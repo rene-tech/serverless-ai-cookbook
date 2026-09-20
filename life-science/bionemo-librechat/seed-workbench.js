@@ -1,5 +1,6 @@
 /* Seed the operator-owned, publicly selectable Scientific AI Platform agent. */
 const { MongoClient, ObjectId } = require('mongodb');
+const { Constants } = require('librechat-data-provider');
 
 const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/LibreChat';
 // LibreChat reserves the `agent_` prefix for persisted agents. Without it the
@@ -16,10 +17,17 @@ Never place PDB, mmCIF, response.json, base64 data, or an artifact chunk in chat
 
 The landing page presents four visual demo cards that create real chats. The instance-admin MCP is owner-authorized: it can write and execute code, install packages, download files, and convert artifacts. Its default working directory is /workspace/shared, a writable bucket mount that persists across instance restarts. Use it when the user asks for work on the instance, keep durable files in /workspace/shared, and report commands and generated paths. For a model input that already exists on the instance, upload the actual bytes to the Scientific AI gateway with begin_scientific_artifact_upload / put_scientific_artifact_bytes / finalize_scientific_artifact_upload and use the returned immutable artifact reference in the input_manifest; the remote gateway cannot see this instance’s filesystem. Use the installed structure, image, video, audio, and analysis workflows to present verified outputs clearly. Treat model outputs as research hypotheses and make benchmark inputs, models, timing, and failures explicit.`;
 
-// `mcpServerNames` below attaches each complete live server through LibreChat's
-// dynamic MCP wildcard. Do not pin stale tool IDs: the model catalog and each
-// user's authorization-aware tool list can change independently of this image.
-const tools = [];
+// Attach each complete live server through LibreChat's dynamic MCP wildcard.
+// Do not pin stale tool IDs: the model catalog and each user's
+// authorization-aware tool list can change independently of this image.
+const mcpServerNames = [
+  'bionemo-models',
+  'tavily',
+  'instance-admin',
+  'protein-viewer',
+  'bionemo-artifacts',
+];
+const tools = mcpServerNames.map((serverName) => `${Constants.mcp_all}_mcp_${serverName}`);
 
 const tutorialPrompts = [
   {
@@ -156,7 +164,7 @@ async function main() {
       model_parameters: { model: 'zai-org/GLM-5.3-Flash', max_tokens: 32768 },
       artifacts: 'default',
       tools,
-      mcpServerNames: ['bionemo-models', 'tavily', 'instance-admin', 'protein-viewer', 'bionemo-artifacts'],
+      mcpServerNames,
       skills_enabled: true,
       skills_scope: 'all',
       conversation_starters: [

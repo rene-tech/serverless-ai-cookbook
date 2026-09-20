@@ -29,7 +29,7 @@ interface:
 endpoints:
   agents:
     allowedProviders: ['Nebius Token Factory']
-    capabilities: [deferred_tools, execute_code, web_search, artifacts, skills, tools, context, chain, subagents, run_in_background, tool_intents]
+    capabilities: [deferred_tools, execute_code, web_search, artifacts, skills, tools, context, chain, run_in_background, tool_intents]
     recursionLimit: 40
     maxRecursionLimit: 80
     toolApproval:
