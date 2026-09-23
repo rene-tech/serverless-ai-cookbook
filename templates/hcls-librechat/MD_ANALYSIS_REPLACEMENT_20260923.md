@@ -129,8 +129,8 @@ preconditions of this selected migration, not authorization to stop anything.
 MD_SDK_PY=/home/tux/worktrees/fs2-gromacs-20260923/k8s-inference/components/control-plane/.venv/bin/python
 MD_QUAL=templates/hcls-librechat/scripts/qualification
 MD_PRIVATE=/home/tux/secure-handoff/fs2-md-engines-20260923
-MD_BACKUP="$MD_PRIVATE/client-preflight-account-07"
-MD_ASSETS="$MD_PRIVATE/client-preflight-assets-03"
+MD_BACKUP="$MD_PRIVATE/client-preflight-account-09"
+MD_ASSETS="$MD_PRIVATE/client-preflight-assets-05"
 MD_IMAGE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d
 MD_UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
 "$MD_SDK_PY" "$MD_QUAL/check_endpoint_storage_binding.py" --backup "$MD_BACKUP" --profile sandbox2
