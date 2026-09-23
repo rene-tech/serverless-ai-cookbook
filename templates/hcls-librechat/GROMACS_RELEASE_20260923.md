@@ -123,3 +123,12 @@ as unattended-perfect. The actual Workspace download control returned the
 summary successfully with the independently expected SHA-256.
 Final deliverables are in
 `/workspace/my-studies/gromacs-colvars-client-20260923/`.
+
+Presentation follow-up completed: `HANDOVER.md` contains four concrete links;
+fixture.json was copied byte-for-byte from the supplied source. Independent
+capture found exactly these two new files and no changed/missing previous file
+among the original 76. The corrected summary link opens a new Workspace tab
+with summary.md selected. The first link-test helper waited in the old tab and
+timed out; selecting the actual opened tab verified the correct destination.
+Final private capture: `client-p2-study-handover-final-v2` (78 files,
+26,452,942 bytes). No additional simulation or analysis run was submitted.
