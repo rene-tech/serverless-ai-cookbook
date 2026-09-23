@@ -20,7 +20,18 @@ def private(path, value):
         handle.write('\n')
 
 
-def capture(endpoint, output, *, profile):
+def required_json(response):
+    """HTTP 200 alone is not an export: LibreChat may stream an API error."""
+    response.raise_for_status()
+    if 'json' not in response.headers.get('content-type', '').lower():
+        raise RuntimeError('Account export returned non-JSON; retain the predecessor')
+    value = response.json()
+    if isinstance(value, dict) and value.get('error'):
+        raise RuntimeError('Account export returned an error; retain the predecessor')
+    return value
+
+
+def capture(endpoint, output, *, profile, browser_user_agent):
     output.mkdir(parents=True, mode=0o700, exist_ok=False)
     cli = ['nebius', '--profile', profile]
     value = json.loads(subprocess.check_output(cli + ['ai', 'endpoint', 'get', '--id', endpoint, '--format', 'json']))
@@ -41,7 +52,8 @@ def capture(endpoint, output, *, profile):
         return selected['string_value']
 
     url = next(item for item in value['status']['public_endpoints'] if item.startswith('https://'))
-    with httpx.Client(base_url=url, timeout=90, trust_env=False) as client:
+    with httpx.Client(base_url=url, timeout=90, trust_env=False,
+                      headers={'User-Agent': browser_user_agent, 'Accept': 'application/json'}) as client:
         login = client.post('/api/auth/login', json={
             'email': resolve('SEED_DEFAULT_USER_EMAIL'), 'password': resolve('SEED_DEFAULT_USER_PASSWORD')})
         if login.status_code != 200:
@@ -52,8 +64,7 @@ def capture(endpoint, output, *, profile):
         cursor = None
         for page in range(1000):
             response = client.get('/api/convos', params={'pageNumber': page + 1, **({'cursor': cursor} if cursor else {})})
-            response.raise_for_status()
-            listing = response.json()
+            listing = required_json(response)
             private(output / f'conversations-{page:04d}.json', listing)
             rows = listing.get('conversations', [])
             fresh = [row for row in rows if row['conversationId'] not in seen]
@@ -62,8 +73,7 @@ def capture(endpoint, output, *, profile):
                 if '/' in conversation_id or '..' in conversation_id:
                     raise ValueError('Unexpected conversation ID in account response')
                 messages = client.get('/api/messages/' + conversation_id)
-                messages.raise_for_status()
-                private(output / (conversation_id + '-messages.json'), messages.json())
+                private(output / (conversation_id + '-messages.json'), required_json(messages))
                 seen.add(conversation_id)
                 conversations.append(conversation_id)
             cursor = listing.get('nextCursor')
@@ -77,7 +87,7 @@ def capture(endpoint, output, *, profile):
                            'projects': '/api/projects'}.items():
             response = client.get(path)
             private(output / (name + '.json'), {'http_status': response.status_code,
-                    'body': response.json() if 'json' in response.headers.get('content-type', '') else None})
+                    'body': required_json(response)})
     receipt = {'endpoint': endpoint, 'url': url, 'image': value['spec']['image'],
                'conversations': len(conversations), 'at': datetime.now(timezone.utc).isoformat(),
                'read_only': True, 'bucket_modified': False, 'endpoint_deleted': False}
@@ -90,6 +100,8 @@ if __name__ == '__main__':
     parser.add_argument('--endpoint', required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--profile', default='sandbox2')
+    parser.add_argument('--browser-user-agent', required=True,
+                        help='Browser-compatible User-Agent required by native authenticated APIs')
     args = parser.parse_args()
     os.umask(0o077)
-    capture(args.endpoint, args.output, profile=args.profile)
+    capture(args.endpoint, args.output, profile=args.profile, browser_user_agent=args.browser_user_agent)

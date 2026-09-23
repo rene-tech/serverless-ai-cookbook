@@ -8,6 +8,7 @@ from pathlib import Path
 import httpx
 
 from restore_endpoint_account import credentials
+from backup_endpoint_account import required_json
 
 
 def main():
@@ -15,6 +16,8 @@ def main():
     parser.add_argument('--backup', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--profile', default='sandbox2')
+    parser.add_argument('--browser-user-agent', required=True,
+                        help='Browser-compatible User-Agent required by native authenticated APIs')
     args = parser.parse_args()
     os.umask(0o077)
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
@@ -24,22 +27,21 @@ def main():
         for message in json.loads(path.read_text()):
             for item in message.get('files', []):
                 references[item['file_id']] = item
-    with httpx.Client(base_url=receipt['url'], timeout=90, trust_env=False) as client:
+    with httpx.Client(base_url=receipt['url'], timeout=90, trust_env=False,
+                      headers={'User-Agent': args.browser_user_agent}) as client:
         login = client.post('/api/auth/login', json=credentials(args.backup, args.profile))
         login.raise_for_status()
         client.headers['Authorization'] = 'Bearer ' + login.json()['token']
         diagnostics = []
-        for route in ['/api/files', '/api/files/']:
+        for route in ['/api/files']:
             response = client.get(route, headers={'Accept': 'application/json'})
             diagnostics.append({'route': route, 'status': response.status_code,
                                 'content_type': response.headers.get('content-type'), 'bytes': len(response.content)})
-            try:
-                listing = response.json()
-            except ValueError:
-                continue
+            listing = required_json(response)
+            if not isinstance(listing, list):
+                raise RuntimeError('File listing has an unexpected shape; retain the predecessor')
             (args.output / 'files-private.json').write_text(json.dumps(listing, indent=2))
-            if isinstance(listing, list):
-                references.update({item['file_id']: item for item in listing if item.get('file_id')})
+            references.update({item['file_id']: item for item in listing if item.get('file_id')})
         retained = []
         for index, (file_id, item) in enumerate(references.items()):
             path = item.get('filepath', '')

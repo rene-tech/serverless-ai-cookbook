@@ -4,6 +4,28 @@ import copy
 from restore_endpoint_account import image_metadata, migrate_files, message_signature
 from uuid import UUID
 import pytest
+import httpx
+
+from backup_endpoint_account import required_json
+
+
+@pytest.mark.parametrize('status,media_type,body', [
+    (200, 'text/event-stream', b'event: error\ndata: {"message":"Illegal request"}\n'),
+    (200, 'text/html', b'<html>Login required</html>'),
+    (200, 'application/json', b'{"error":"Not exported"}'),
+    (403, 'application/json', b'{"error":"Forbidden"}'),
+])
+def test_export_rejects_unsuccessful_payload_even_with_http_200(status, media_type, body):
+    response = httpx.Response(status, headers={'content-type': media_type}, content=body,
+                              request=httpx.Request('GET', 'https://example.invalid/api/files'))
+    with pytest.raises((RuntimeError, httpx.HTTPStatusError)):
+        required_json(response)
+
+
+def test_export_accepts_real_json_including_an_empty_list():
+    response = httpx.Response(200, json=[],
+                              request=httpx.Request('GET', 'https://example.invalid/api/files'))
+    assert required_json(response) == []
 
 
 def test_native_image_contract_includes_archived_dimensions():
