@@ -40,6 +40,43 @@ ARTIFACT_CHUNK_BYTES = 1024 * 1024
 ARTIFACT_DOWNLOAD_ATTEMPTS = 4
 
 
+class FileSource:
+    """Measured input with bounded-memory hashing and an exact-byte upload stream."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        with path.open('rb') as source:
+            self.signature = self._signature(os.fstat(source.fileno()))
+            self.prefix = source.read(4)
+            source.seek(0)
+            self.sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
+            if self._signature(os.fstat(source.fileno())) != self.signature:
+                raise ValueError('Input changed while measuring; no upload was submitted.')
+
+    @staticmethod
+    def _signature(stat):
+        return stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns
+
+    def __len__(self):
+        return self.signature[2]
+
+    def startswith(self, prefix):
+        return self.prefix.startswith(prefix)
+
+    async def chunks(self):
+        checksum, size = hashlib.sha256(), 0
+        with self.path.open('rb') as source:
+            if self._signature(os.fstat(source.fileno())) != self.signature:
+                raise ValueError('Input changed after measurement; preserve it before retrying.')
+            while chunk := source.read(ARTIFACT_CHUNK_BYTES):
+                size += len(chunk)
+                checksum.update(chunk)
+                yield chunk
+            if (size != len(self) or checksum.hexdigest() != self.sha256
+                    or self._signature(os.fstat(source.fileno())) != self.signature):
+                raise ValueError('Input changed during upload; it must not be finalized or submitted.')
+
+
 class TransientArtifactDownloadError(RuntimeError):
     """A read-only artifact transfer can be retried without new GPU work."""
 
@@ -60,7 +97,7 @@ class SourcePreflightError(ValueError):
     """A local source/metadata rejection, before this invocation uploads/admission."""
 
 
-def preflight_parameters(tool_schema: dict, parameters: object, source: bytes, args) -> None:
+def preflight_parameters(tool_schema: dict, parameters: object, source: bytes | FileSource, args) -> None:
     """Validate the exact advertised parameter schema without reserving an artifact.
 
     The documented uploaded-bundle binding is checked with a validation-only UUID
@@ -100,8 +137,8 @@ def canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
 
 
-def digest(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
+def digest(data: bytes | FileSource) -> str:
+    return data.sha256 if isinstance(data, FileSource) else hashlib.sha256(data).hexdigest()
 
 
 def check(response):
@@ -171,7 +208,7 @@ def selected_source_contract(contract: dict, parameters: dict, args):
     return source, selection
 
 
-def resolve_source_compression(contract: dict, parameters: dict, args, source: bytes):
+def resolve_source_compression(contract: dict, parameters: dict, args, source: bytes | FileSource):
     """Resolve omitted transport metadata only; never edit source/scientific bytes.
 
     Explicit choices are left to the existing strict preflight. Plain inputs keep
@@ -226,12 +263,12 @@ def preflight_source(contract: dict, parameters: dict, args, size: int) -> None:
                          'No upload or inference was submitted.')
 
 
-def source_reference(path: Path, data: bytes, args) -> dict:
+def source_reference(path: Path, data: bytes | FileSource, args) -> dict:
     reference = json.loads(path.read_text())
     return validate_source_reference(reference, data, args)
 
 
-def validate_source_reference(reference: dict, data: bytes, args) -> dict:
+def validate_source_reference(reference: dict, data: bytes | FileSource, args) -> dict:
     for field, expected in {'sha256': digest(data), 'size_bytes': len(data),
                             'media_type': args.media_type, 'compression': args.compression}.items():
         if reference.get(field) != expected:
@@ -241,7 +278,7 @@ def validate_source_reference(reference: dict, data: bytes, args) -> dict:
     return {field: reference[field] for field in ('artifact_id', 'sha256', 'size_bytes', 'media_type', 'compression')}
 
 
-async def upload(http, model: str, data: bytes, media_type: str, compression: str,
+async def upload(http, model: str, data: bytes | FileSource, media_type: str, compression: str,
                  idempotency_key: str) -> dict:
     measured = {"model_id": model, "sha256": digest(data), "size_bytes": len(data),
                 "media_type": media_type, "compression": compression}
@@ -251,14 +288,17 @@ async def upload(http, model: str, data: bytes, media_type: str, compression: st
         target = begun["content_path"]
         if not isinstance(target, str) or not target.startswith("/") or target.startswith("//"):
             raise RuntimeError("Unsafe same-origin upload path.")
-        check(await http.put(target, content=data, headers={"content-type": media_type,
+        check(await http.put(target, content=data.chunks() if isinstance(data, FileSource) else data,
+                             headers={"content-type": media_type,
                                                             "content-length": str(len(data))}))
     else:
         handle = begun.get("handle", {})
         if urlparse(handle.get("url", "")).scheme != "https":
             raise RuntimeError("Large upload did not return an HTTPS object-storage handle.")
         async with httpx2.AsyncClient(timeout=600, trust_env=False, follow_redirects=False) as storage:
-            check(await storage.put(handle["url"], content=data, headers=handle.get("headers", {})))
+            check(await storage.put(handle["url"],
+                content=data.chunks() if isinstance(data, FileSource) else data,
+                headers={**handle.get("headers", {}), "content-length": str(len(data))}))
     result = check(await http.post(
         "/v1/scientific-artifacts/uploads/" + quote(begun["upload_id"], safe="") + ":finalize",
         json={"operation_id": begun["operation_id"]},
@@ -440,7 +480,7 @@ async def _run(args) -> dict:
     endpoint = os.environ["SCIENTIFIC_MODELS_MCP_URL"]
     key = os.environ["SCIENTIFIC_MODELS_API_KEY"]
     origin = endpoint.removesuffix("/mcp").removesuffix("/mcp/")
-    source = args.source.read_bytes()
+    source = FileSource(args.source)
     parameters = json.loads(args.parameters.read_text())
     identity = {"model_id": args.model, "source_sha256": digest(source),
                 "parameters_sha256": digest(canonical(parameters)), "endpoint": endpoint,
