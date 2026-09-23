@@ -11,8 +11,8 @@ async function main() {
   });
   const loaded = registry.list();
   const expected = Object.keys(manifest.skills);
-  // The full workbench may add the pinned ClawBio extension; the skills-only
-  // release deliberately installs only the public core. Reject other extras.
+  // The full workbench and additive skills release retain the pinned ClawBio
+  // extension when present. Reject unexpected or accidentally dropped skills.
   if (fs.existsSync('/opt/clawbio/manifest.json')) {
     const extension = JSON.parse(fs.readFileSync('/opt/clawbio/manifest.json', 'utf8'));
     expected.push(...Object.keys(extension.skills).map(name => `clawbio-${name}`));

@@ -1,14 +1,18 @@
 # syntax=docker/dockerfile:1.7
-# Bounded skills-only release: inherit the exact qualified v61 application.
-# The normal Dockerfile also consumes this same canonical skill directory.
-FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:6c3884cb81e36c06cf63124c2806da046c90adbb6360585def5b3391e79208dd
+# Bounded additive skills release from the current recording workbench.
+# Keep its application, instructions and pinned ClawBio extensions unchanged.
+FROM python:3.13.15-alpine3.23@sha256:a3180613a9708f1cd59aa79a3dd82e8a6d3f3199d1d6e2c467a63687518872d3 AS core-skills
+COPY skills/scientific-ai/ /core/
+RUN python3 /core/bundle.py verify
+
+FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:7edb49a149626f585e11293cdf19e3d0c238b0d23f131ecc12a845725619ed63
 ARG SKILLS_REVISION=unknown
 USER root
-# Replace only the baked-in skill tree inside this new image, never a live mount.
-RUN rm -rf /app/skill && mkdir /app/skill
-COPY skills/scientific-ai/ /app/skill/
-COPY life-science/bionemo-librechat/scientific-agent-instructions.md /app/scientific-agent-instructions.md
-RUN python3 /app/skill/bundle.py verify
-LABEL ai.nebius.scientific.skills.version="2026.09.20.1" \
+# This exact base contains the same core minus GROMACS. Do not remove extension
+# directories or replace its seeded-agent instructions with an older copy.
+COPY --from=core-skills /core/ /app/skill/
+COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
+RUN node /tmp/test-skills-installed.cjs
+LABEL ai.nebius.scientific.skills.version="2026.09.23.1" \
       ai.nebius.scientific.skills.revision="${SKILLS_REVISION}" \
       ai.nebius.scientific.skills.source="https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai"
