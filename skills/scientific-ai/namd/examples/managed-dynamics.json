@@ -1,0 +1,23 @@
+{
+  "schema": "fs2-serve.nebius.ai/namd-workflow-request/v1",
+  "threads": 4,
+  "output_destination": "customer-bucket",
+  "output_prefix": "runs/namd/my-study",
+  "jobs": [
+    {
+      "id": "replica-01",
+      "steps": [
+        {
+          "id": "production",
+          "config": "production.conf",
+          "mode": "dynamics",
+          "gpu_mode": "resident",
+          "steps": 200000,
+          "segment_steps": 50000,
+          "output_prefix": "production",
+          "expected_outputs": ["production.coor", "production.vel", "production.xsc"]
+        }
+      ]
+    }
+  ]
+}

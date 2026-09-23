@@ -1,0 +1,19 @@
+{
+  "schema": "fs2-serve.nebius.ai/lammps-workflow-request/v1",
+  "backend": "kokkos-cuda",
+  "threads": 1,
+  "output_destination": "customer-bucket",
+  "output_prefix": "runs/lammps/my-study",
+  "jobs": [
+    {
+      "id": "replica-01",
+      "steps": [
+        {
+          "id": "production",
+          "input": "in.production",
+          "expected_outputs": ["final.restart", "trajectory.lammpstrj"]
+        }
+      ]
+    }
+  ]
+}

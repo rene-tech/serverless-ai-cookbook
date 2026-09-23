@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Make an immutable reproducible GROMACS input archive from real local files."""
+"""Make an immutable reproducible native-MD input archive from real local files.
+
+Shared by the GROMACS, LAMMPS and NAMD skills; no engine-specific rewriting.
+"""
 import argparse
 import gzip
 import hashlib

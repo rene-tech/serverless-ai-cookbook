@@ -33,8 +33,8 @@ def text(name):
 
 def test_manifest_and_skill_format():
     data = bundle.validate()
-    assert len(data['skills']) == 31
-    assert len({model for models in data['skills'].values() for model in models}) == 37
+    assert len(data['skills']) == 34
+    assert len({model for models in data['skills'].values() for model in models}) == 41
     for name in data['skills']:
         assert 'license:' in text(name).split('---')[1]
         assert not re.search(r'`bionemo_[a-z_]+`|`protein_viewer`', text(name))
@@ -54,6 +54,33 @@ def test_new_catalog_app_requires_deliberate_workflow_coverage():
         bundle.check_catalog({'models': [{'id': 'unreviewed-new-model'}]})
     with pytest.raises(ValueError):
         bundle.check_catalog({'models': []})
+
+
+@pytest.mark.parametrize('model,example', [
+    ('lammps', 'native-workflow.json'),
+    ('namd', 'managed-dynamics.json'),
+])
+def test_native_md_parameter_examples_match_worker_contract(model, example):
+    contracts = json.loads((ROOT / 'tests/native-md-contracts.json').read_text())
+    parameters = json.loads((ROOT / model / 'examples' / example).read_text())
+    validator = Draft202012Validator(contracts['schemas'][model])
+    validator.validate(parameters)
+    assert list(validator.iter_errors({**parameters, 'gpu_snapshot': True}))
+    assert model in bundle.manifest()['skills'][model]
+    assert 'scientific-gateway' in text(model)
+    assert 'native-md.md' in text(model)
+    assert 'Installing this skill' in text(model) or 'A skill does not grant' in text(model)
+
+
+def test_native_md_transport_reuses_verified_client_and_bundle_helper():
+    reference = (ROOT / 'scientific-batch/references/native-md.md').read_text()
+    assert 'invoke-scientific-batch.py' in reference
+    assert 'gromacs/scripts/make-input-bundle.py' in reference
+    assert 'not GPU process snapshotting' in text('lammps')
+    assert 'Native restart' in text('namd')
+    assert 'units lj' in text('lammps')
+    assert 'spinAngle' in text('namd')
+    assert 'hill history' in text('namd')
 
 
 def test_illustrative_json_matches_pinned_native_contracts():
@@ -119,7 +146,7 @@ def test_install_repeat_conflict_and_integrity(tmp_path):
     (source / 'files.sha256.json').write_text(json.dumps(bundle.inventory(source)))
     destination = tmp_path / 'installed'
     result = bundle.install(destination, source)
-    assert result['skills'] == 31
+    assert result['skills'] == 34
     assert bundle.install(destination, source) == result
     assert (destination / 'clinical-documentation/scripts/study_report.py').is_file()
     (destination / 'speech-workflows/SKILL.md').write_text('local customization')

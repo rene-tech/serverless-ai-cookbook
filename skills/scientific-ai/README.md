@@ -35,6 +35,12 @@ clinical ASR evaluation, single-cell integration, microscopy, SAM2, binder
 campaigns, starter data and MindEval. Existing clinical documentation and all
 scientific model skills are included with their scripts/references.
 
+The MD additions cover GROMACS (single-GPU and separately identified MPI),
+LAMMPS and NAMD. Their instructions use the same durable client and file bridge.
+LAMMPS/NAMD onboarding is still under qualification; inclusion here does not
+claim live App availability or GPU process snapshot support. Always discover
+the caller's current catalog and exact-runtime limitations.
+
 Start with `scientific-gateway`; load only skills relevant to your task. For
 non-LibreChat clients, see its [portable client contract](scientific-gateway/references/portable-client.md).
 Client-specific tools are conditional, not promised by downloading Markdown.

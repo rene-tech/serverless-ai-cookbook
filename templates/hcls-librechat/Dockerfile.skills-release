@@ -5,15 +5,15 @@ FROM python:3.13.15-alpine3.23@sha256:a3180613a9708f1cd59aa79a3dd82e8a6d3f3199d1
 COPY skills/scientific-ai/ /core/
 RUN python3 /core/bundle.py verify
 
-FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:7edb49a149626f585e11293cdf19e3d0c238b0d23f131ecc12a845725619ed63
+FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:4155dd171ecb2e3c178695a66efe426c75ea8d219dfaceb8757735774dbe8a36
 ARG SKILLS_REVISION=unknown
 USER root
-# This exact base contains the same core minus GROMACS. Do not remove extension
+# This exact base is the retained GROMACS workbench. Do not remove extension
 # directories or replace its seeded-agent instructions with an older copy.
 COPY --from=core-skills /core/ /app/skill/
 COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py
 COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
 RUN node /tmp/test-skills-installed.cjs
-LABEL ai.nebius.scientific.skills.version="2026.09.23.2" \
+LABEL ai.nebius.scientific.skills.version="2026.09.23.3" \
       ai.nebius.scientific.skills.revision="${SKILLS_REVISION}" \
       ai.nebius.scientific.skills.source="https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai"
