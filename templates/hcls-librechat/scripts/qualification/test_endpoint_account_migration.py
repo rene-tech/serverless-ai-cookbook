@@ -6,7 +6,7 @@ from uuid import UUID
 import pytest
 import httpx
 
-from backup_endpoint_account import required_json
+from backup_endpoint_account import capture_run_history, required_json
 
 
 @pytest.mark.parametrize('status,media_type,body', [
@@ -26,6 +26,31 @@ def test_export_accepts_real_json_including_an_empty_list():
     response = httpx.Response(200, json=[],
                               request=httpx.Request('GET', 'https://example.invalid/api/files'))
     assert required_json(response) == []
+
+
+def test_history_backup_follows_all_pages_and_deduplicates_ids(tmp_path):
+    pages = [
+        {'data': [{'id': 'a'}], 'next_cursor': 'page-b', 'history_available': True},
+        {'data': [{'id': 'b'}], 'next_cursor': None, 'history_available': True},
+    ]
+    seen = []
+    def respond(request):
+        seen.append(dict(request.url.params))
+        return httpx.Response(200, json=pages[len(seen) - 1])
+    with httpx.Client(base_url='https://example.invalid', transport=httpx.MockTransport(respond)) as client:
+        result = capture_run_history(client, tmp_path)
+    assert [row['id'] for row in result['data']] == ['a', 'b']
+    assert result['archived_pages'] == 2
+    assert seen == [{'limit': '200'}, {'limit': '200', 'cursor': 'page-b'}]
+    assert len(list(tmp_path.glob('runs-*.json'))) == 2
+
+
+def test_history_backup_rejects_repeating_cursor(tmp_path):
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={
+        'data': [], 'next_cursor': 'same', 'history_available': True}))
+    with httpx.Client(base_url='https://example.invalid', transport=transport) as client:
+        with pytest.raises(RuntimeError, match='repeated'):
+            capture_run_history(client, tmp_path)
 
 
 def test_native_image_contract_includes_archived_dimensions():

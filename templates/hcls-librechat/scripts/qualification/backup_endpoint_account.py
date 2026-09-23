@@ -31,6 +31,27 @@ def required_json(response):
     return value
 
 
+def capture_run_history(client, output):
+    """Keep every discoverable operation, not just the first history page."""
+    rows, cursors, cursor = {}, set(), None
+    for page_number in range(1000):
+        params = {'limit': 200, **({'cursor': cursor} if cursor else {})}
+        page = required_json(client.get('/api/scientific-demos/runs', params=params))
+        if not isinstance(page.get('data'), list) or page.get('history_available') is not True:
+            raise RuntimeError('Full operation history is unavailable; retain the predecessor')
+        private(output / f'runs-{page_number:04d}.json', page)
+        for row in page['data']:
+            rows[row['id']] = row
+        cursor = page.get('next_cursor')
+        if not cursor:
+            return {'data': list(rows.values()), 'next_cursor': None,
+                    'history_available': True, 'archived_pages': page_number + 1}
+        if cursor in cursors:
+            raise RuntimeError('Operation history cursor repeated; export is incomplete')
+        cursors.add(cursor)
+    raise RuntimeError('Operation history pagination bound reached')
+
+
 def capture(endpoint, output, *, profile, browser_user_agent):
     output.mkdir(parents=True, mode=0o700, exist_ok=False)
     cli = ['nebius', '--profile', profile]
@@ -81,15 +102,23 @@ def capture(endpoint, output, *, profile, browser_user_agent):
                 break
         else:
             raise RuntimeError('Account export pagination bound reached; do not retire the endpoint')
-        for name, path in {'runs': '/api/scientific-demos/runs',
-                           'workspace': '/api/scientific-demos/workspace',
+        history = capture_run_history(client, output)
+        private(output / 'runs.json', {'http_status': 200, 'body': history})
+        for name, path in {'workspace': '/api/scientific-demos/workspace',
                            'agents': '/api/agents', 'files': '/api/files',
-                           'projects': '/api/projects'}.items():
+                           'projects': '/api/projects', 'account-user': '/api/user',
+                           'presets': '/api/presets',
+                           'favorites': '/api/user/settings/favorites',
+                           'tool-favorites': '/api/user/settings/favorites/tools',
+                           'active-skills': '/api/user/settings/skills/active'}.items():
             response = client.get(path)
-            private(output / (name + '.json'), {'http_status': response.status_code,
-                    'body': required_json(response)})
+            body = required_json(response)
+            private(output / (name + '.json'), {'http_status': response.status_code, 'body': body})
+            if name == 'agents' and body.get('has_more') or name == 'projects' and body.get('nextCursor'):
+                raise RuntimeError(f'{name} export requires additional pages; retain the predecessor')
     receipt = {'endpoint': endpoint, 'url': url, 'image': value['spec']['image'],
-               'conversations': len(conversations), 'at': datetime.now(timezone.utc).isoformat(),
+               'conversations': len(conversations), 'operation_history_count': len(history['data']),
+               'at': datetime.now(timezone.utc).isoformat(),
                'read_only': True, 'bucket_modified': False, 'endpoint_deleted': False}
     private(output / 'receipt.json', receipt)
     print(json.dumps(receipt))
