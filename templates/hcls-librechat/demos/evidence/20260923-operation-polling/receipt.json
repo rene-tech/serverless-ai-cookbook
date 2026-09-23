@@ -1,0 +1,83 @@
+{
+  "status": "passed",
+  "scope": "bounded read-only scientific operation polling and exact-image completed-result recovery",
+  "customer_ready": false,
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d",
+  "base_image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:d074317715d911addafc4b27860eb8088e0ebce6bdd21fde1f4afacda22a1c03",
+  "image_config_sha256": "2801af59b2b551e97d748f7e01812702d2df2d61c98e8058339b5dd0104e0a56",
+  "runtime_source": "88109af67d11726d1e07e14c5d0ff4e83a4837e0",
+  "installed_helper_sha256": "3d40bb466778ac12244421f889899122f1c7a73a5415e910d25dc0adda165f4d",
+  "recorded_at": "2026-09-23T19:23:36Z",
+  "private_evidence_root": "/home/tux/secure-handoff/fs2-md-engines-20260923",
+  "packaged_tests": {
+    "tests": 120,
+    "new_actual_sdk_http_fault_cases": 35,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "python": "3.11.2",
+    "mcp": "2.2.0",
+    "receipt": "client-operation-polling-r1-tests-digest/receipt.json",
+    "receipt_sha256": "6a74375758fa4d00a65a5ba0c31880a6c129fce58c52386d0f782b36e8c79d8e"
+  },
+  "preservation": {
+    "protected_entries": 81138,
+    "base_layers_retained": 111,
+    "new_layers": 1,
+    "only_changed_file": "/opt/bionemo/invoke-scientific-batch.py",
+    "behavioral_image_config_unchanged": true,
+    "md_analysis_environment_unchanged": true,
+    "skills_unchanged": true,
+    "receipt": "client-operation-polling-r1-preservation-digest/receipt.json",
+    "receipt_sha256": "4202ee0fed2874511e8ca151e40243b96493334e4a771766dec610d6735d8151"
+  },
+  "installed_skill_loader": {
+    "skills": 83,
+    "resources": 77,
+    "verified_core_files": 75,
+    "log": "client-operation-polling-r1-skills.log",
+    "log_sha256": "ffd6d382133fe822696a5fc7c34f4eacfa5095cd3abe23a86dc116e6ecf1b4da"
+  },
+  "fresh_completed_operation_reads": [
+    {
+      "model_id": "gromacs",
+      "operation_id": "f94586c6-b137-4542-87c7-a2e9dd96f5b0",
+      "status": "passed",
+      "verified_artifacts": 56,
+      "artifact_bytes": 119373544,
+      "downloads_including_manifest": 57,
+      "transfer_attempts": 57,
+      "elapsed_seconds": 36.004940865561366,
+      "original_manifest_byte_identity": true,
+      "summary": "client-operation-polling-r1-gromacs-06.summary.json",
+      "summary_sha256": "7d5fdf5a446b3143afb5d512fd6f3f8d5616fbf123229e2a0e664e3164bc974b"
+    },
+    {
+      "model_id": "gromacs",
+      "operation_id": "ad0a2dac-25b0-459a-8dff-dcfc94a888d6",
+      "status": "passed",
+      "verified_artifacts": 56,
+      "artifact_bytes": 119416416,
+      "downloads_including_manifest": 57,
+      "transfer_attempts": 57,
+      "elapsed_seconds": 21.664468068629503,
+      "original_manifest_byte_identity": true,
+      "summary": "client-operation-polling-r1-gromacs-07.summary.json",
+      "summary_sha256": "6853a405431875f20c7a75891fc722e1a9a07df18a50c1ac5bb7199e445c8ab2"
+    }
+  ],
+  "retained_failures": [
+    "Original d074317 long LAMMPS poll stopped after the 18:57:23 durable receipt. Parent resumed its original operation; historical failure is not relabeled.",
+    "First isolated test-harness invocation lacked pytest's py.py shim and stopped before tests. Its log remains in client-operation-polling-r1-tests-tag/pytest.log; no image change was required.",
+    "First GROMACS recovery preflight selected a different ordinary owner key and was rejected locally by the fingerprint check, before network reads or output creation. Correct original owner then passed."
+  ],
+  "not_claimed": [
+    "Backend large-artifact memory fix or its release acceptance",
+    "New scientific simulation or scientific protocol qualification",
+    "Final four-engine CPU analysis/render gate",
+    "Replacement endpoint, account restoration or browser acceptance"
+  ],
+  "scientific_submissions": 0,
+  "large_lammps_artifact_reads": 0,
+  "live_endpoint_changed": false
+}
