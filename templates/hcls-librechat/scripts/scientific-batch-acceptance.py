@@ -37,6 +37,11 @@ from scientific_receipts import (
 
 TERMINAL = {"failed", "cancelled", "expired", "preempted"}
 ARTIFACT_CHUNK_BYTES = 1024 * 1024
+ARTIFACT_DOWNLOAD_ATTEMPTS = 4
+
+
+class TransientArtifactDownloadError(RuntimeError):
+    """A read-only artifact transfer can be retried without new GPU work."""
 
 
 class ExplicitRejection(RuntimeError):
@@ -265,6 +270,18 @@ async def upload(http, model: str, data: bytes, media_type: str, compression: st
 
 
 async def download(http, reference: dict, target: Path) -> dict:
+    for attempt in range(ARTIFACT_DOWNLOAD_ATTEMPTS):
+        try:
+            result = await _download_once(http, reference, target)
+            return {**result, 'transfer_attempts': attempt + 1}
+        except (TransientArtifactDownloadError, httpx2.TransportError):
+            if attempt + 1 == ARTIFACT_DOWNLOAD_ATTEMPTS:
+                raise RuntimeError('Artifact download is temporarily unavailable after bounded retries. '
+                                   'Resume the saved operation; do not resubmit GPU work.') from None
+            await asyncio.sleep(2 ** attempt)
+
+
+async def _download_once(http, reference: dict, target: Path) -> dict:
     expected_size = reference['size_bytes']
     if type(expected_size) is not int or expected_size < 0:
         raise ValueError('Artifact size_bytes must be a nonnegative integer.')
@@ -285,6 +302,8 @@ async def download(http, reference: dict, target: Path) -> dict:
             path = '/v1/artifacts/' + quote(reference['artifact_id'], safe='') + '/content'
             async with http.stream('GET', path) as response:
                 if not response.is_success:
+                    if response.status_code in {429, 500, 502, 503, 504}:
+                        raise TransientArtifactDownloadError('Temporary artifact read failure.')
                     raise RuntimeError(f'Platform returned HTTP {response.status_code}; inspect the saved evidence.')
                 length = response.headers.get('content-length')
                 if length is not None and int(length) != expected_size:

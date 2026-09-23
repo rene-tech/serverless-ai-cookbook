@@ -78,13 +78,57 @@ def test_failed_network_bytes_never_publish_or_leave_spool(tmp_path, monkeypatch
     assert not target.exists() and list(spool.iterdir()) == [] and http.closed
 
 
-@pytest.mark.parametrize('status', [302, 401, 403, 404, 503])
+@pytest.mark.parametrize('status', [302, 401, 403, 404])
 def test_failed_http_is_not_followed_or_published(tmp_path, status):
     http = HTTP(lambda: [b'no'], {'location': 'https://not-followed.invalid/'}, status)
     target = tmp_path / 'artifact'
     with pytest.raises(RuntimeError, match=f'HTTP {status}'):
         asyncio.run(client.download(http, reference(b'no'), target))
     assert len(http.paths) == 1 and not target.exists()
+
+
+def test_transient_503_retries_read_only_and_publishes_verified_bytes(tmp_path, monkeypatch):
+    waits = []
+    async def pause(seconds):
+        waits.append(seconds)
+    monkeypatch.setattr(client.asyncio, 'sleep', pause)
+    payload = b'completed job result'
+
+    class TransientHTTP(HTTP):
+        @asynccontextmanager
+        async def stream(self, method, path):
+            self.status = 503 if not self.paths else 200
+            async with super().stream(method, path) as response:
+                yield response
+
+    http = TransientHTTP(lambda: [payload])
+    target = tmp_path / 'retained'
+    receipt = asyncio.run(client.download(http, reference(payload), target))
+    assert target.read_bytes() == payload and receipt['transfer_attempts'] == 2
+    assert len(http.paths) == 2 and waits == [1]
+
+
+def test_transient_download_retry_budget_is_bounded(tmp_path, monkeypatch):
+    async def pause(_):
+        pass
+    monkeypatch.setattr(client.asyncio, 'sleep', pause)
+    http = HTTP(lambda: [b'no'], status=503)
+    target = tmp_path / 'artifact'
+    with pytest.raises(RuntimeError, match='Resume the saved operation'):
+        asyncio.run(client.download(http, reference(b'no'), target))
+    assert len(http.paths) == client.ARTIFACT_DOWNLOAD_ATTEMPTS and not target.exists()
+
+
+def test_interrupted_stream_restarts_in_a_fresh_spool(tmp_path, monkeypatch):
+    async def pause(_):
+        pass
+    monkeypatch.setattr(client.asyncio, 'sleep', pause)
+    payload = b'complete retained bytes'
+    http = HTTP(lambda: [payload[:3], client.httpx2.ReadError('interrupted')]
+                if len(http.paths) == 1 else [payload])
+    target = tmp_path / 'retained'
+    receipt = asyncio.run(client.download(http, reference(payload), target))
+    assert target.read_bytes() == payload and receipt['transfer_attempts'] == 2
 
 
 def test_existing_dataset_reuses_chunked_hash_without_network(tmp_path, monkeypatch):

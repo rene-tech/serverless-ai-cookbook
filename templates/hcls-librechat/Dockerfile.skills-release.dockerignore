@@ -6,6 +6,7 @@
 !templates/hcls-librechat
 !templates/hcls-librechat/scripts
 !templates/hcls-librechat/scripts/test-skills-installed.cjs
+!templates/hcls-librechat/scripts/scientific-batch-acceptance.py
 **/__pycache__
 **/.pytest_cache
 **/*.pyc
