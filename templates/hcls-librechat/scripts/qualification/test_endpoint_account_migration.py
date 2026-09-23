@@ -6,7 +6,8 @@ from uuid import UUID
 import pytest
 import httpx
 
-from backup_endpoint_account import capture_run_history, required_json
+from backup_endpoint_account import capture_agent_details, capture_run_history, required_json
+from verify_restored_account import verify
 
 
 @pytest.mark.parametrize('status,media_type,body', [
@@ -53,6 +54,35 @@ def test_history_backup_rejects_repeating_cursor(tmp_path):
             capture_run_history(client, tmp_path)
 
 
+def test_agent_export_captures_full_instructions_not_only_list_projection(tmp_path):
+    detail = {'id': 'agent_example', 'instructions': 'Retained account instructions', 'tools': ['tool']}
+    def respond(request):
+        assert request.url.path == '/api/agents/agent_example/expanded'
+        return httpx.Response(200, json=detail)
+    with httpx.Client(base_url='https://example.invalid', transport=httpx.MockTransport(respond)) as client:
+        assert capture_agent_details(client, {'data': [{'id': 'agent_example'}]}, tmp_path) == ['agent_example']
+    import json
+    assert json.loads((tmp_path / 'agent-agent_example-details.json').read_text()) == {'access': 'editable', 'body': detail}
+
+
+def test_agent_export_does_not_accept_a_different_identity(tmp_path):
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={'id': 'other'}))
+    with httpx.Client(base_url='https://example.invalid', transport=transport) as client:
+        with pytest.raises(RuntimeError, match='identity differs'):
+            capture_agent_details(client, {'data': [{'id': 'agent_example'}]}, tmp_path)
+
+
+def test_view_only_seed_is_explicit_not_misrepresented_as_full_export(tmp_path):
+    def respond(request):
+        if request.url.path.endswith('/expanded'):
+            return httpx.Response(403, json={'error': 'Forbidden'})
+        return httpx.Response(200, json={'id': 'agent_seed'})
+    with httpx.Client(base_url='https://example.invalid', transport=httpx.MockTransport(respond)) as client:
+        assert capture_agent_details(client, {'data': [{'id': 'agent_seed'}]}, tmp_path) == ['agent_seed']
+    import json
+    assert json.loads((tmp_path / 'agent-agent_seed-details.json').read_text())['access'] == 'view-only'
+
+
 def test_native_image_contract_includes_archived_dimensions():
     metadata = image_metadata({'original': {'width': 512, 'height': 256}})
     assert metadata['endpoint'] == 'agents'
@@ -93,3 +123,45 @@ def test_image_references_are_mapped_without_mutating_archive():
 def test_messages_without_files_and_unknown_references_are_unchanged():
     messages = [{'text': 'No attachment'}, {'text': '', 'files': [{'file_id': 'unmapped'}]}]
     assert migrate_files(messages, {}) == messages
+
+
+def account_pair(tmp_path):
+    import json
+    before, after, restored = (tmp_path / name for name in ('before', 'after', 'restore'))
+    for directory in (before, after, restored):
+        directory.mkdir()
+    values = {
+        'account-user': {'email': 'synthetic@example.test', 'name': 'synthetic', 'role': 'USER'},
+        'projects': {'projects': []}, 'presets': [], 'favorites': {}, 'tool-favorites': {}, 'active-skills': {},
+        'runs': {'data': [{'id': 'operation-1'}]},
+        'studies': {'data': [{'id': 'study-1', 'state': 'failed', 'status': 'failed', 'completed_steps': []}]},
+    }
+    for directory in (before, after):
+        for name, value in values.items():
+            (directory / (name + '.json')).write_text(json.dumps({'body': value}))
+        (directory / 'agent-seed-details.json').write_text(json.dumps({'access': 'view-only', 'body': {'id': 'seed', 'instructions': 'Retained instructions'}}))
+    (before / 'receipt.json').write_text(json.dumps({'conversations': 1}))
+    (restored / 'receipt.json').write_text(json.dumps({'conversations_verified': 1, 'messages_verified': 2, 'images_restored': 1}))
+    return before, after, restored
+
+
+def test_restored_account_checks_supported_state_without_database_claim(tmp_path):
+    result = verify(*account_pair(tmp_path))
+    assert result['seeded_agents_verified'] == 1
+    assert result['existing_platform_operations_verified'] == 1
+    assert result['terminal_bucket_studies_verified'] == 1
+    assert result['mongo_database_restored'] is False
+
+
+def test_agent_instruction_loss_is_not_silently_accepted(tmp_path):
+    before, after, restored = account_pair(tmp_path)
+    (after / 'agent-seed-details.json').write_text('{"body":{"id":"seed","instructions":"Changed"}}')
+    with pytest.raises(ValueError, match='agent configuration differs'):
+        verify(before, after, restored)
+
+
+def test_platform_history_loss_is_not_silently_accepted(tmp_path):
+    before, after, restored = account_pair(tmp_path)
+    (after / 'runs.json').write_text('{"body":{"data":[]}}')
+    with pytest.raises(ValueError, match='history is incomplete'):
+        verify(before, after, restored)

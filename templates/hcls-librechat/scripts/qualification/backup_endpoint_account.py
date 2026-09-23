@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from urllib.parse import quote
 
 import httpx
 
@@ -50,6 +51,29 @@ def capture_run_history(client, output):
             raise RuntimeError('Operation history cursor repeated; export is incomplete')
         cursors.add(cursor)
     raise RuntimeError('Operation history pagination bound reached')
+
+
+def capture_agent_details(client, listing, output):
+    """Capture editable details, or explicitly mark server-owned view-only seeds."""
+    if not isinstance(listing.get('data'), list) or listing.get('has_more'):
+        raise RuntimeError('Agent listing is incomplete; retain the predecessor')
+    ids = []
+    for row in listing['data']:
+        agent_id = row.get('id')
+        if not isinstance(agent_id, str) or not agent_id or '/' in agent_id or '..' in agent_id:
+            raise RuntimeError('Unexpected agent identity; retain the predecessor')
+        path = '/api/agents/' + quote(agent_id, safe='')
+        response = client.get(path + '/expanded')
+        access = 'editable'
+        if response.status_code == 403:
+            access = 'view-only'
+            response = client.get(path)
+        detail = required_json(response)
+        if not isinstance(detail, dict) or detail.get('id') != agent_id:
+            raise RuntimeError('Expanded agent identity differs; retain the predecessor')
+        private(output / ('agent-' + agent_id + '-details.json'), {'access': access, 'body': detail})
+        ids.append(agent_id)
+    return ids
 
 
 def capture(endpoint, output, *, profile, browser_user_agent):
@@ -104,6 +128,7 @@ def capture(endpoint, output, *, profile, browser_user_agent):
             raise RuntimeError('Account export pagination bound reached; do not retire the endpoint')
         history = capture_run_history(client, output)
         private(output / 'runs.json', {'http_status': 200, 'body': history})
+        agent_ids = []
         for name, path in {'workspace': '/api/scientific-demos/workspace',
                            'studies': '/api/scientific-demos/studies',
                            'clinical': '/api/scientific-demos/clinical',
@@ -118,8 +143,11 @@ def capture(endpoint, output, *, profile, browser_user_agent):
             private(output / (name + '.json'), {'http_status': response.status_code, 'body': body})
             if name == 'agents' and body.get('has_more') or name == 'projects' and body.get('nextCursor'):
                 raise RuntimeError(f'{name} export requires additional pages; retain the predecessor')
+            if name == 'agents':
+                agent_ids = capture_agent_details(client, body, output)
     receipt = {'endpoint': endpoint, 'url': url, 'image': value['spec']['image'],
                'conversations': len(conversations), 'operation_history_count': len(history['data']),
+               'archived_agent_details': len(agent_ids),
                'at': datetime.now(timezone.utc).isoformat(),
                'read_only': True, 'bucket_modified': False, 'endpoint_deleted': False}
     private(output / 'receipt.json', receipt)
