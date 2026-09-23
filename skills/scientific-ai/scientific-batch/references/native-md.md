@@ -1,6 +1,6 @@
 # Native molecular-dynamics transport
 
-This shared reference applies to GROMACS, LAMMPS and NAMD. A skill being
+This shared reference applies to GROMACS, LAMMPS, NAMD and AMBER. A skill being
 installed is not evidence that its App is released or granted to this user.
 Discover the exact App and schema first. AMBER is not interchangeable with these
 engines; do not silently translate its inputs to another simulator.
@@ -24,7 +24,7 @@ Put model parameters in a separate JSON file, not a scientific-run envelope and
 not inside the input directory. Inspect files before assigning their names in
 that JSON. Native examples are protocol templates, not validated customer data.
 
-The existing client supports all three engines through discovery. Substitute
+The existing client selects the engine contract through discovery. Substitute
 the actual App/tool/source role below; never paste archive bytes into MCP:
 
 ```sh
@@ -39,6 +39,8 @@ the actual App/tool/source role below; never paste archive bytes into MCP:
 
 For NAMD these identifiers are `namd`, `submit_namd_workflow`, `namd-inputs`
 and `namd-input-bundle/v1`. Discovery is authoritative if identifiers change.
+For AMBER use `amber`, `submit_amber_workflow`, `amber-inputs` and
+`amber-input-bundle/v1`.
 Authentication is supplied by the configured client; do not read keys into chat.
 `/opt/bionemo` is a retained installation path, not the platform product name.
 In LibreChat prefer the existing durable study executor from `scientific-batch`

@@ -1,0 +1,27 @@
+{
+  "schema": "fs2-serve.nebius.ai/amber-workflow-request/v1",
+  "backend": "cuda-spfp",
+  "threads": 1,
+  "output_destination": "customer-bucket",
+  "output_prefix": "runs/amber/my-study",
+  "jobs": [{
+    "id": "replica-1",
+    "steps": [
+      {"id": "prepare", "kind": "tleap", "input": "prepare.leap",
+       "expected_outputs": ["system.prmtop", "system.inpcrd"]},
+      {"id": "minimize", "kind": "pmemd", "task": "minimization",
+       "input": "minimize.mdin", "topology": "system.prmtop",
+       "coordinates": "system.inpcrd", "output_prefix": "minimized"},
+      {"id": "equilibrate", "kind": "pmemd", "task": "dynamics",
+       "input": "equilibrate.mdin", "topology": "system.prmtop",
+       "coordinates": "minimized.rst7", "expected_nsteps": 50000,
+       "output_prefix": "equilibrated"},
+      {"id": "production", "kind": "pmemd", "task": "dynamics",
+       "input": "production.mdin", "topology": "system.prmtop",
+       "coordinates": "equilibrated.rst7", "expected_nsteps": 500000,
+       "output_prefix": "production", "expected_outputs": ["production.nc"]},
+      {"id": "analyze", "kind": "cpptraj", "input": "analysis.cpptraj",
+       "topology": "system.prmtop", "expected_outputs": ["rmsd.dat"]}
+    ]
+  }]
+}

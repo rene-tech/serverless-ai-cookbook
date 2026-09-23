@@ -33,8 +33,8 @@ def text(name):
 
 def test_manifest_and_skill_format():
     data = bundle.validate()
-    assert len(data['skills']) == 34
-    assert len({model for models in data['skills'].values() for model in models}) == 41
+    assert len(data['skills']) == 35
+    assert len({model for models in data['skills'].values() for model in models}) == 42
     for name in data['skills']:
         assert 'license:' in text(name).split('---')[1]
         assert not re.search(r'`bionemo_[a-z_]+`|`protein_viewer`', text(name))
@@ -59,6 +59,7 @@ def test_new_catalog_app_requires_deliberate_workflow_coverage():
 @pytest.mark.parametrize('model,example', [
     ('lammps', 'native-workflow.json'),
     ('namd', 'managed-dynamics.json'),
+    ('amber', 'native-workflow.json'),
 ])
 def test_native_md_parameter_examples_match_worker_contract(model, example):
     contracts = json.loads((ROOT / 'tests/native-md-contracts.json').read_text())
@@ -146,7 +147,7 @@ def test_install_repeat_conflict_and_integrity(tmp_path):
     (source / 'files.sha256.json').write_text(json.dumps(bundle.inventory(source)))
     destination = tmp_path / 'installed'
     result = bundle.install(destination, source)
-    assert result['skills'] == 34
+    assert result['skills'] == 35
     assert bundle.install(destination, source) == result
     assert (destination / 'clinical-documentation/scripts/study_report.py').is_file()
     (destination / 'speech-workflows/SKILL.md').write_text('local customization')
