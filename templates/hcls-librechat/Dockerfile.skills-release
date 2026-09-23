@@ -14,6 +14,6 @@ COPY --from=core-skills /core/ /app/skill/
 COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py
 COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
 RUN node /tmp/test-skills-installed.cjs
-LABEL ai.nebius.scientific.skills.version="2026.09.23.1" \
+LABEL ai.nebius.scientific.skills.version="2026.09.23.2" \
       ai.nebius.scientific.skills.revision="${SKILLS_REVISION}" \
       ai.nebius.scientific.skills.source="https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai"

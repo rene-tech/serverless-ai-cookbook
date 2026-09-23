@@ -49,13 +49,14 @@ exchange and external analysis packages are not covered by this initial shape.
   ns/day; queue, staging/checkpoint I/O and initialization also matter.
 - Initial engine: NVIDIA v2026.2 (reports 2026.2-dev), CUDA 13, thread-MPI.
   Real single-GPU tests cover H100/L40S; not every GPU has been qualified.
-- PLUMED and Colvars appear in the engine build; enhanced-sampling workflow and
-  external PLUMED kernel compatibility are **Priority 2**, not promised support.
+- The enhanced single-GPU image adds a pinned PLUMED kernel while preserving the
+  NVIDIA binary. Use the live qualification and [advanced contract](advanced.md)
+  for Colvars/PLUMED; do not infer support from the engine's feature list alone.
 - CP2K QM/MM and Torch NNPot are not compiled into that image. They require a
   separate pinned/qualified build and their own license/dependency review.
-- Multi-node requires external MPI, compatible GPU-aware MPI/UCX/RDMA and gang
-  scheduling. Thread-MPI is in-process and does not span nodes. Strong-scaling
-  evidence on a sufficiently large system is needed before making it a default.
+- Multi-node uses the separate `gromacs-mpi` App and JobSet/Kueue gang scheduling.
+  Its portable baseline uses TCP, not qualified RDMA. Thread-MPI in the NVIDIA
+  App remains in-process. Consult measured strong scaling before changing Apps.
 - MPS is an aggregate-throughput option, not more memory or independent GPUs.
   The initial customer job shape does not expose MPS or MIG controls. Do not
   change cluster device configuration from a scientific request.

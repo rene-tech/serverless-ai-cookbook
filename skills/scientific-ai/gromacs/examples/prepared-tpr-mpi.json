@@ -1,0 +1,15 @@
+{
+  "schema": "fs2-serve.nebius.ai/gromacs-mpi-workflow-request/v1",
+  "nodes": 2,
+  "jobs": [{"id": "gang", "steps": [
+    {"id": "production", "command": "mdrun", "args": ["-s", "simulation.tpr", "-deffnm", "md"]},
+    {"id": "join-trajectory", "command": "trjcat", "args": ["-f", {"files": "md.part*.xtc"}, "-o", "trajectory.xtc"], "expected_outputs": ["trajectory.xtc"]},
+    {"id": "check", "command": "check", "args": ["-f", "trajectory.xtc"]}
+  ]}],
+  "threads": 8,
+  "checkpoint_minutes": 5,
+  "segment_minutes": 5,
+  "max_wall_seconds": 21600,
+  "output_destination": "customer-bucket",
+  "output_prefix": "runs/gromacs-mpi"
+}

@@ -1,6 +1,6 @@
 ---
 name: gromacs
-description: Prepare, submit, resume and analyze NVIDIA-packaged GROMACS molecular-dynamics workflows on Scientific AI. Use for prepared TPRs, protein/system preparation, equilibration, production MD, independent replicas, free-energy windows, trajectory analysis and native checkpoint recovery. Distinguish MD from docking and unqualified enhanced-sampling or multi-node extensions.
+description: Prepare, submit, resume and analyze GROMACS molecular-dynamics workflows on Scientific AI. Use for NVIDIA-packaged single-GPU MD, Colvars/PLUMED enhanced sampling, separately identified distributed MPI runs, independent replicas, free-energy windows, trajectory analysis and native checkpoint recovery. Check the live App's qualified capabilities; MD is not docking pose search.
 license: Apache-2.0
 ---
 
@@ -11,6 +11,9 @@ GROMACS HPC distribution behind the existing durable scientific-batch API,
 not an NVIDIA NIM HTTP API, a folding neural network, or a docking engine.
 Installing this skill does not establish that a particular runtime is released.
 Read its live schema and qualification limitations before promising a workflow.
+The separate **gromacs-mpi** App uses an upstream external-MPI build, not the
+NVIDIA engine binary. Select it only for a requested distributed workflow; more
+GPUs can be slower and more expensive for small systems.
 
 ## Establish the scientific protocol
 
@@ -88,8 +91,11 @@ expands files without a shell. A literal `*.xtc` string does not do that.
 The initial shape is one GPU, one thread-MPI rank, up to eight CPU threads.
 Native automatic offload is the default. Do not force PME/update onto the GPU
 without checking algorithm compatibility and a matched-system benchmark.
-Do not request multi-node, replica exchange, PLUMED, CP2K or NNPot through
-undocumented flags. See [capability boundaries](references/workflows.md).
+For enhanced sampling or distributed execution, read
+[the advanced workflow contract](references/advanced.md). PLUMED uses the typed
+`plumed_input` field, not a raw `-plumed` flag. Multi-node uses its own App and
+schema. Do not request replica exchange, CP2K or NNPot through undocumented
+flags; a compiled dependency alone is not a hosted capability.
 
 Operational defaults: five-minute local checkpoints and remote segments,
 six-hour per-job wall budget, 4 GiB output budget, and customer-bucket export.
