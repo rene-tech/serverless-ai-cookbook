@@ -38,6 +38,7 @@ from scientific_receipts import (
 TERMINAL = {"failed", "cancelled", "expired", "preempted"}
 ARTIFACT_CHUNK_BYTES = 1024 * 1024
 ARTIFACT_DOWNLOAD_ATTEMPTS = 4
+ARTIFACT_DOWNLOAD_WORKERS = 4
 
 
 class FileSource:
@@ -372,11 +373,23 @@ async def collect_outputs(http, result: dict, output: Path) -> dict:
         raise RuntimeError('Published result did not pass semantic validation.')
     manifest = await download(http, result['output_manifest'], output / 'output-manifest.json')
     entries = json.loads((output / 'output-manifest.json').read_text())['entries']
-    artifacts = []
-    for index, entry in enumerate(entries):
-        downloaded = await download(http, entry['artifact'], output / f'output-{index:02d}.artifact')
-        artifacts.append({**entry['artifact'], **downloaded,
-                          'name': entry['name'], 'semantic_type': entry['semantic_type']})
+    # MD workflows have many native files. Bound both memory and simultaneous
+    # transfers without paying one network round trip per file sequentially.
+    pending = iter(enumerate(entries))
+    artifacts = [None] * len(entries)
+    async def worker():
+        for index, entry in pending:
+            downloaded = await download(http, entry['artifact'], output / f'output-{index:02d}.artifact')
+            artifacts[index] = {**entry['artifact'], **downloaded,
+                                'name': entry['name'], 'semantic_type': entry['semantic_type']}
+    workers = [asyncio.create_task(worker()) for _ in range(min(ARTIFACT_DOWNLOAD_WORKERS, len(entries)))]
+    try:
+        await asyncio.gather(*workers)
+    except BaseException:
+        for task in workers:
+            task.cancel()
+        await asyncio.gather(*workers, return_exceptions=True)
+        raise
     return {'output_manifest': manifest, 'verified_artifacts': artifacts}
 
 

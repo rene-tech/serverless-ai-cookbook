@@ -5,12 +5,57 @@ import errno
 import gzip
 import hashlib
 import itertools
+import json
 from pathlib import Path
 import tracemalloc
 
 import pytest
 
 from test_scientific_batch_client import client
+
+
+def test_manifest_downloads_have_bounded_parallelism_and_stable_order(tmp_path, monkeypatch):
+    entries = [{'name': f'file-{index}', 'semantic_type': 'native',
+                'artifact': {'artifact_id': str(index)}} for index in range(17)]
+    active = peak = 0
+    async def download(_, ref, target):
+        nonlocal active, peak
+        if ref['artifact_id'] == 'manifest':
+            target.write_text(json.dumps({'entries': entries}))
+        else:
+            active += 1
+            peak = max(peak, active)
+            await asyncio.sleep(0)
+            active -= 1
+        return {'path': str(target)}
+    monkeypatch.setattr(client, 'download', download)
+    result = asyncio.run(client.collect_outputs(None, {'terminal_status': 'succeeded',
+        'semantic_validation': {'status': 'passed'}, 'output_manifest': {'artifact_id': 'manifest'}}, tmp_path))
+    assert peak == client.ARTIFACT_DOWNLOAD_WORKERS and active == 0
+    assert [r['artifact_id'] for r in result['verified_artifacts']] == [str(i) for i in range(17)]
+
+
+def test_one_failed_transfer_drains_all_parallel_workers(tmp_path, monkeypatch):
+    active = 0
+    async def download(_, ref, target):
+        nonlocal active
+        if ref['artifact_id'] == 'manifest':
+            target.write_text(json.dumps({'entries': [{'name': str(i), 'semantic_type': 'native',
+                'artifact': {'artifact_id': str(i)}} for i in range(8)]}))
+            return {}
+        active += 1
+        try:
+            await asyncio.sleep(0)
+            if ref['artifact_id'] == '0':
+                raise RuntimeError('retained transfer failure')
+            await asyncio.sleep(10)
+        finally:
+            active -= 1
+    monkeypatch.setattr(client, 'download', download)
+    with pytest.raises(RuntimeError, match='retained transfer failure'):
+        asyncio.run(client.collect_outputs(None, {'terminal_status': 'succeeded',
+            'semantic_validation': {'status': 'passed'}, 'output_manifest': {'artifact_id': 'manifest'}}, tmp_path))
+    assert active == 0
 
 
 def reference(data):
