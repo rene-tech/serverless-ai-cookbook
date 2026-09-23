@@ -53,12 +53,29 @@ ordered steps, with `input` relative to `directory`:
   requires `expected_nsteps` equal to the actual MDIN `nstlim`.
 - `cpptraj`: native trajectory-analysis script and optional topology.
 - `parmed`: native ParmEd script with optional topology/coordinates.
+- `antechamber`: PDB/MOL2/SDF ligand input, explicit net charge/multiplicity,
+  AM1-BCC charges and GAFF/GAFF2 atom types. Preserve SQM and intermediate files;
+  use a separate directory for each ligand calculation. Report the measured
+  charge residual; never silently renormalize charges or relax its tolerance.
+- `parmchk2`: MOL2 input to an explicit FRCMOD output; review missing/estimated
+  parameters before LEaP preparation.
+- `mmpbsa`: native MMPBSA input, complex/receptor/ligand topologies (and solvated
+  topology when needed), ordered trajectory filenames and exact expected frame
+  count. GB/PB calculations are CPU-side tools; they are not GPU PMEMD dynamics.
+  With `use_mdins: true`, include every native intermediate MDIN dependency,
+  including the PB ligand variant when used.
 
 Tool steps require nonempty `expected_outputs`. Scripts and scientific options
 remain native; the platform does not rewrite MDIN, force fields or trajectories.
 Use a distinct PMEMD output prefix per stage. The wrapper assigns `.mdout`,
 `.rst7`, `.nc`, `.mdvel`, `.mden` and `.mdinfo` filenames; which files contain
 output still depends on the native protocol and cadence.
+
+These seven step kinds require the current deployed schema; older releases
+exposed only PMEMD/LEaP/CPPTRAJ/ParmEd. Native qualification includes a ligand
+preparation chain and a five-frame Ras–Raf GB/PB calculation, not arbitrary
+ligand chemistry or binding-free-energy accuracy. A retained Sustiva control
+exceeds the default charge-sum tolerance; do not describe that case as passed.
 
 ## Continuation, storage and analysis
 
@@ -86,6 +103,15 @@ Report atom count, achieved steps/time, finite coordinates and energies,
 temperature/pressure behavior, expected versus observed frames, warnings and
 continuation consistency. Keep native ns/day separate from queue, preparation,
 export and total turnaround time. Stability over a short run is not convergence.
+
+Check whether pressure is actually calculated: AMBER Monte Carlo barostat
+output can contain a placeholder `PRESS=0`; it is not measured zero pressure.
+AMBER26 also provides documented single-GPU stochastic cell rescaling with
+Langevin LFMiddle and calculated virial pressure. Choose and record the native
+barostat, not a silent substitute for the requested ensemble. For shrinking
+periodic boxes, set an adequate neighbor-list margin (`skinnb`) and keep the
+native small-box checks enabled; do not change the physical cutoff to hide a
+neighbor-grid error.
 
 For TI/FEP, require the actual transformation, topology/masks, lambda schedule,
 soft-core settings, equilibration/production lengths, seeds and estimator.

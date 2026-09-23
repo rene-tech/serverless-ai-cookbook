@@ -393,6 +393,25 @@ async def collect_outputs(http, result: dict, output: Path) -> dict:
     return {'output_manifest': manifest, 'verified_artifacts': artifacts}
 
 
+async def retain_terminal_diagnostics(client, status: dict, output: Path, receipt: dict) -> None:
+    """Keep a failed run's published explanation without treating it as success."""
+    operation = status.get('operation', status)
+    if operation.get('status') not in TERMINAL:
+        raise ValueError('Terminal diagnostics require an unsuccessful terminal operation.')
+    receipt['state'] = operation['status']
+    receipt['failure_code'] = operation.get('error_code') or status.get('batch', {}).get('failure_code')
+    if status.get('batch', {}).get('result_published') or operation.get('result_available'):
+        try:
+            result = await call(client, 'get_scientific_result', {'operation_id': receipt['operation_id']})
+            save(output / 'failure-result.json', result)
+            receipt['failure_result'] = 'failure-result.json'
+        except Exception as error:
+            # The original failed operation remains authoritative. A diagnostics
+            # read failure must not trigger a new scientific submission.
+            receipt['diagnostics_read_error_type'] = type(error).__name__
+    save(output / 'receipt.json', receipt)
+
+
 async def recover_completed(args) -> dict:
     """Only status/result reads: never reserve, upload, admit, cancel or infer."""
     operation_id = str(UUID(args.recover_operation_id))
@@ -617,7 +636,10 @@ async def _run(args) -> dict:
                     receipt["state"] = operation["status"]
                     save(receipt_path, receipt)
                     if operation["status"] in TERMINAL:
-                        raise RuntimeError("Scientific batch ended in " + operation["status"] + ".")
+                        await retain_terminal_diagnostics(client, status, args.output, receipt)
+                        raise RuntimeError("Scientific batch ended in " + operation["status"] +
+                                           "; operation " + receipt["operation_id"] +
+                                           ". Retained status/diagnostics: " + str(args.output))
                     if status.get("batch", {}).get("result_published"):
                         result = await call(client, "get_scientific_result", {"operation_id": receipt["operation_id"]})
                         save(args.output / "result.json", result)

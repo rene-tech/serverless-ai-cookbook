@@ -74,12 +74,14 @@ Stochastic thermostat restart is not promised bitwise: native coordinate/cell
 files do not serialize every RNG. Seeds are retained and recorded, not silently
 rewritten. Independent replicas need deliberately distinct sampling seeds.
 
-**Known qualification issue:** sustained ungridded metadynamics tests on this
-NVIDIA binary found lost explicit hill history during native restart. Do not
-recommend that path until the published exact-image evidence includes complete
-pre/post hill-state preservation and repeated production trajectories. A correct
-state timestep alone is not sufficient. A different gridded protocol is a
-different scientific choice, not an automatic fix.
+Colvars continuation must verify the actual complete bias state, not only its
+timestep. Earlier qualification found missing explicit hill history, and the
+successor wrapper corrects recognition of native gridded-state syntax. Exact-r5
+qualification now includes ungridded and gridded `keepHills` trajectories plus
+fresh-pod continuation with preserved hills. Confirm the deployed image and
+published workflow evidence before using this capability; those tests do not
+qualify every Colvars method. Switching between gridded and ungridded protocols
+is a scientific change, never an automatic recovery workaround.
 
 ## Results and advanced work
 

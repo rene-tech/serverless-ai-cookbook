@@ -16,8 +16,12 @@ upload its private source or runtime binaries with a scientific input bundle.
 Only existing App grants authorize access; no separate academic authentication
 mechanism is required.
 
-Current typed preparation/analysis steps are LEaP, CPPTRAJ and ParmEd. Other
-AmberTools programs such as Antechamber, MMPBSA.py and SANDER need separate
-execution support and qualification before promising hosted workflows. Inputs
-prepared with those programs elsewhere can be bundled when compatible with the
-selected PMEMD protocol. Package presence alone is not end-to-end validation.
+Current typed preparation/analysis steps are LEaP, CPPTRAJ, ParmEd,
+Antechamber/parmchk2 and MMPBSA.py, in addition to PMEMD dynamics. Discover the
+deployed schema before using these: older images expose only the first three
+tools. SANDER is used by MMPBSA internally, not exposed as an unrestricted native
+execution command. Package presence alone is not end-to-end qualification.
+
+AMBER26 manual sections23.6.10 and23.7 describe stochastic cell rescaling and
+the neighbor-list skin, respectively. Preserve exact settings in the report;
+different engines do not use identical thermostat/barostat algorithms.

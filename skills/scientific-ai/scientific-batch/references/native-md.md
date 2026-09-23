@@ -90,3 +90,34 @@ Do not call file presence, successful process exit or a short stable trajectory
 scientific convergence. Free-energy results additionally need declared windows,
 sampling, estimator, overlap, uncertainty and convergence analysis. MD does not
 replace docking or automatically parameterize ligands.
+
+## Comparing engines
+
+Use one canonical topology/coordinate set, not four independently solvated
+systems. Inventory the installed engines, converters, force-field files and
+renderers before promising outputs. Preserve a master Amber topology when
+comparing ff14SB; NAMD can read it natively, whereas GROMACS/LAMMPS need explicit
+conversion and validation. Re-read actual output parameters: atom ordering/types,
+masses, charges, bonded and LJ terms, combining rules, exclusions and AMBER1–4
+electrostatic/LJ scaling. Compare identical-coordinate decomposed energies and,
+where available, forces before dynamics. Native Coulomb constants, long-range
+mesh accuracy and dispersion corrections can differ; disclose and quantify
+them rather than changing charges to make total energies coincide.
+
+TIP3P representations differ. A master topology may encode an H–H bond instead
+of an HOH angle. Do not drop that potential or choose an approximate water angle
+without proof. Native rigid-water/constraint adapters must preserve the original
+target geometry. LAMMPS hybrid bond/angle styles also require coefficient replay
+after reading native restart files; a restart alone may not contain them.
+
+Keep physical cutoffs, thermodynamic targets, timestep, stage lengths, seeds and
+trajectory cadence explicit. Solver-specific constraint/thermostat/barostat
+differences must be recorded. Retain failed variants; a repaired configuration
+is a new input identity. Compare ensemble properties and phi/psi distributions,
+not matching chaotic frames or convergence inferred from one nanosecond.
+
+For comparative videos, unwrap each molecule, center and align the peptide to
+one reference, use identical camera/representation/frame cadence/playback, and
+label each engine. Preserve original trajectories separately. Missing pressure
+calculations, native timings or frames are missing data, not zeros or estimates
+presented as measurements.
