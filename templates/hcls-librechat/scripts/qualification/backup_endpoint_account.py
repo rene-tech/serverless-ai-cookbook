@@ -73,7 +73,8 @@ def capture(endpoint, output, *, profile):
             raise RuntimeError('Account export pagination bound reached; do not retire the endpoint')
         for name, path in {'runs': '/api/scientific-demos/runs',
                            'workspace': '/api/scientific-demos/workspace',
-                           'agents': '/api/agents'}.items():
+                           'agents': '/api/agents', 'files': '/api/files',
+                           'projects': '/api/projects'}.items():
             response = client.get(path)
             private(output / (name + '.json'), {'http_status': response.status_code,
                     'body': response.json() if 'json' in response.headers.get('content-type', '') else None})
