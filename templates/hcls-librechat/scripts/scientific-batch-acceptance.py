@@ -371,8 +371,25 @@ async def collect_outputs(http, result: dict, output: Path) -> dict:
     """One flat published manifest, using the existing hash-verified transport."""
     if result.get('terminal_status') != 'succeeded' or result.get('semantic_validation', {}).get('status') != 'passed':
         raise RuntimeError('Published result did not pass semantic validation.')
-    manifest = await download(http, result['output_manifest'], output / 'output-manifest.json')
-    entries = json.loads((output / 'output-manifest.json').read_text())['entries']
+    return await collect_manifest(http, result['output_manifest'], output)
+
+
+async def collect_manifest(http, reference: dict, output: Path, *, diagnostics=False) -> dict:
+    """Transport integrity is distinct from scientific success, including logs."""
+    manifest = await download(http, reference, output / 'output-manifest.json')
+    document = json.loads((output / 'output-manifest.json').read_text())
+    if diagnostics:
+        allowed = {'native-failed-diagnostics/v1'} | {
+            f'{engine}-failed-{kind}/v1'
+            for engine in ('gromacs', 'namd', 'amber', 'lammps')
+            for kind in ('result', 'log')
+        }
+        if (document.get('schema') != 'fs2-serve.nebius.ai/scientific-artifact-manifest/v1'
+                or not isinstance(document.get('entries'), list)
+                or not document['entries']
+                or any(entry.get('semantic_type') not in allowed for entry in document['entries'])):
+            raise RuntimeError('Failed-attempt manifest contains non-diagnostic artifacts.')
+    entries = document['entries']
     # MD workflows have many native files. Bound both memory and simultaneous
     # transfers without paying one network round trip per file sequentially.
     pending = iter(enumerate(entries))
@@ -393,7 +410,7 @@ async def collect_outputs(http, result: dict, output: Path) -> dict:
     return {'output_manifest': manifest, 'verified_artifacts': artifacts}
 
 
-async def retain_terminal_diagnostics(client, status: dict, output: Path, receipt: dict) -> None:
+async def retain_terminal_diagnostics(client, status: dict, output: Path, receipt: dict, *, http=None) -> None:
     """Keep a failed run's published explanation without treating it as success."""
     operation = status.get('operation', status)
     if operation.get('status') not in TERMINAL:
@@ -405,6 +422,15 @@ async def retain_terminal_diagnostics(client, status: dict, output: Path, receip
             result = await call(client, 'get_scientific_result', {'operation_id': receipt['operation_id']})
             save(output / 'failure-result.json', result)
             receipt['failure_result'] = 'failure-result.json'
+            if http is not None and result.get('output_manifest'):
+                if (result.get('terminal_status') not in TERMINAL
+                        or result.get('semantic_validation', {}).get('status') == 'passed'
+                        or result.get('operation_id') != receipt['operation_id']):
+                    raise RuntimeError('Failed diagnostics do not match the unsuccessful operation.')
+                collected = await collect_manifest(
+                    http, result['output_manifest'], output / 'failed-attempt', diagnostics=True)
+                receipt['diagnostic_manifest'] = collected['output_manifest']
+                receipt['diagnostic_artifacts'] = collected['verified_artifacts']
         except Exception as error:
             # The original failed operation remains authoritative. A diagnostics
             # read failure must not trigger a new scientific submission.
@@ -636,7 +662,7 @@ async def _run(args) -> dict:
                     receipt["state"] = operation["status"]
                     save(receipt_path, receipt)
                     if operation["status"] in TERMINAL:
-                        await retain_terminal_diagnostics(client, status, args.output, receipt)
+                        await retain_terminal_diagnostics(client, status, args.output, receipt, http=http)
                         raise RuntimeError("Scientific batch ended in " + operation["status"] +
                                            "; operation " + receipt["operation_id"] +
                                            ". Retained status/diagnostics: " + str(args.output))

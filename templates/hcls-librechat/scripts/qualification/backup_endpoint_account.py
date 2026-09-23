@@ -105,6 +105,8 @@ def capture(endpoint, output, *, profile, browser_user_agent):
         history = capture_run_history(client, output)
         private(output / 'runs.json', {'http_status': 200, 'body': history})
         for name, path in {'workspace': '/api/scientific-demos/workspace',
+                           'studies': '/api/scientific-demos/studies',
+                           'clinical': '/api/scientific-demos/clinical',
                            'agents': '/api/agents', 'files': '/api/files',
                            'projects': '/api/projects', 'account-user': '/api/user',
                            'presets': '/api/presets',
