@@ -3,6 +3,7 @@ import asyncio
 from contextlib import asynccontextmanager
 import hashlib
 import importlib.util
+import os
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,8 @@ import argparse
 import json
 
 ROOT = Path(__file__).parent
-spec = importlib.util.spec_from_file_location('batch_client', ROOT / 'scripts/scientific-batch-acceptance.py')
+spec = importlib.util.spec_from_file_location('batch_client', os.environ.get(
+    'SCIENTIFIC_BATCH_TEST_HELPER', ROOT / 'scripts/scientific-batch-acceptance.py'))
 client = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(client)
 

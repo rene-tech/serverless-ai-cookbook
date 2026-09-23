@@ -1,0 +1,6 @@
+# syntax=docker/dockerfile:1.7
+# Bounded read-only recovery correction on the exact analysis-qualified client.
+FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:d074317715d911addafc4b27860eb8088e0ebce6bdd21fde1f4afacda22a1c03
+ARG OPERATION_POLLING_REVISION=unknown
+COPY --chmod=0664 templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py
+LABEL ai.nebius.scientific.operation-polling.revision="${OPERATION_POLLING_REVISION}"

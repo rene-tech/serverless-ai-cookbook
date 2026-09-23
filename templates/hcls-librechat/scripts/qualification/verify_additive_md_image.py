@@ -44,10 +44,12 @@ def inspect(image):
     return json.loads(subprocess.check_output(["docker", "image", "inspect", image]))[0]
 
 
-def inventory(image):
+def inventory(image, *, include_md_analysis=False):
+    script = (INVENTORY.replace('rows = {}', 'roots += ["/opt/md-analysis"]\nrows = {}')
+              if include_md_analysis else INVENTORY)
     return json.loads(subprocess.check_output([
         "docker", "run", "--rm", "--network", "none", "--read-only",
-        "--entrypoint", "/usr/bin/python3", image, "-B", "-c", INVENTORY,
+        "--entrypoint", "/usr/bin/python3", image, "-B", "-c", script,
     ]))
 
 
@@ -56,6 +58,7 @@ def main():
     parser.add_argument("--base", required=True)
     parser.add_argument("--candidate", required=True)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--scope", choices=("md-analysis", "operation-polling"), default="md-analysis")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     before, after = inspect(args.base), inspect(args.candidate)
@@ -67,15 +70,17 @@ def main():
     config_after = {k: v for k, v in after["Config"].items() if k != "Labels"}
     if config_before != config_after:
         raise RuntimeError("Candidate changed application image configuration")
-    old, new = inventory(args.base), inventory(args.candidate)
+    old = inventory(args.base, include_md_analysis=args.scope == 'operation-polling')
+    new = inventory(args.candidate, include_md_analysis=args.scope == 'operation-polling')
     for name, data in (("base-files.json", old), ("candidate-files.json", new)):
         (args.output / name).write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
     changed = sorted(name for name in old.keys() | new.keys() if old.get(name) != new.get(name))
-    allowed = ["/app/skill/files.sha256.json", "/app/skill/scientific-batch/references/native-md.md"]
+    allowed = (["/opt/bionemo/invoke-scientific-batch.py"] if args.scope == 'operation-polling' else
+               ["/app/skill/files.sha256.json", "/app/skill/scientific-batch/references/native-md.md"])
     if changed != allowed:
         raise RuntimeError("Unexpected protected file change: " + repr(changed))
     receipt = {
-        "status": "passed", "recorded_at": datetime.now(timezone.utc).isoformat(),
+        "status": "passed", "scope": args.scope, "recorded_at": datetime.now(timezone.utc).isoformat(),
         "base": args.base, "candidate": args.candidate,
         "base_id": before["Id"], "candidate_id": after["Id"],
         "base_layers_preserved": len(old_layers), "additive_layers": len(new_layers) - len(old_layers),
@@ -83,7 +88,8 @@ def main():
         "protected_entries": len(old), "intentional_changed_entries": changed,
         "inventory_sha256": {name: hashlib.sha256((args.output / name).read_bytes()).hexdigest()
                              for name in ("base-files.json", "candidate-files.json")},
-        "api_client_unchanged": True, "extension_skills_unchanged": True,
+        "api_client_unchanged": args.scope == 'md-analysis', "extension_skills_unchanged": True,
+        "md_analysis_environment_unchanged": args.scope == 'operation-polling',
         "customer_ready": False,
     }
     (args.output / "receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
