@@ -1,8 +1,12 @@
 # Small public MD preview, after replacement only
 
-The publisher is prepared and unit-tested; **nothing has been uploaded**.
-The old endpoint remains running. The release owner must explicitly authorize
-the stop-first replacement and finish the account restore/browser session first.
+The release-owner-approved publisher completed: **82 files / 32,244,862 bytes**
+were uploaded and fully hash-verified without overwrite, deletion or quota
+change. Actual browser downloads of all five MP4s and four analysis PNGs also
+matched. The new endpoint is running and the old one is stopped/retained.
+The [real-agent acceptance gate remains blocked](MD_REPLACEMENT_RESULT_20260923.md)
+by the unchanged provider's selected-model 404; publication is not a chat or
+inline-viewer readiness verdict.
 
 Frozen source: `/home/tux/fs2-alanine-comparison-20260923/preview-01`.
 It contains 82 regular files / 32,244,862 bytes, including all five videos,
@@ -29,8 +33,9 @@ simulation requests. No blind mutation retries or existing-data deletion occur.
 
 Eleven tests cover dry-run behavior, fresh headroom, quota mismatch, pre-existing
 conflicts, exclusive-create races, resumed identical content, source size/links,
-and replacement image/account/bucket binding. Actual publication and browser
-playback remain untested until the replacement is authorized.
+and replacement image/account/bucket binding. Actual publication/downloads
+passed. Inline browser playback remains unqualified because the real agent
+failed before any media-viewer call.
 
 ## Prepared commands
 
@@ -45,6 +50,11 @@ agent records and no active study. Proof:
 After the explicit go, replacement and account restore, set `MD_NEW_ENDPOINT`
 to the actual new ID from the creation receipt; do not substitute the old ID.
 Use the restored browser session to avoid another password login:
+
+The following is the original prepared form. A refresh cookie can be rotated
+by another consumer (for example the browser). A stale cookie must not trigger
+file-write retries: preserve the failed receipt and use a fresh normal login by
+omitting `--session-state`. That was the successful live publication path.
 
 ```bash
 MD_PRIVATE=/home/tux/secure-handoff/fs2-md-engines-20260923
@@ -67,5 +77,9 @@ The workbench link is `/demos?tab=workspace&path=demo-assets%2Ffour-engine-alani
 No exact-image rebuild is needed for this operator-side qualification helper.
 
 The LibreChat and Serverless skills informed use of the existing authenticated
-workspace API and preserved endpoint bindings. Release qualification remains
-scoped to the evidence actually collected; preparation is not publication.
+workspace API and preserved endpoint bindings. The publication receipt is
+`client-preview-publication-01.json` under the private MD evidence root, SHA256
+`1ade9fbe1f1617abedfce6eabbdec9e395c78954263d5979f48090e177579c95`.
+Post-publication provider headroom was 188,401,000 bytes under the unchanged
+5,000,000,000-byte quota. Release qualification remains scoped to the evidence
+actually collected; the preview is not the complete raw-regeneration bundle.

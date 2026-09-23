@@ -3,8 +3,10 @@
 The candidate is
 `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d`,
 runtime source `88109af67d11726d1e07e14c5d0ff4e83a4837e0`.
-It supersedes `d074317` for the pending Rene replacement. No endpoint has been
-stopped or changed. Deployment still requires the release owner's explicit go.
+It supersedes `d074317` and was deployed with the release owner's explicit go.
+Account recovery and file publication passed, but the real-agent gate is
+[blocked by the unchanged chat provider/model](MD_REPLACEMENT_RESULT_20260923.md).
+This does not invalidate the separately measured polling/transport tests below.
 
 The [machine-readable receipt](demos/evidence/20260923-operation-polling/receipt.json)
 records exact-image tests, protected-byte comparison and two ordinary-owner

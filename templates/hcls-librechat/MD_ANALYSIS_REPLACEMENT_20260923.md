@@ -1,5 +1,10 @@
 # MD analysis candidate and Rene replacement preparation
 
+Current outcome: the approved replacement and supported recovery completed;
+the real-agent gate is **blocked by an upstream selected-model 404**. See
+[the exact replacement result](MD_REPLACEMENT_RESULT_20260923.md). Preparation
+notes below are historical, not the current deployment status.
+
 The analysis image below is now the preserved base of the
 [bounded polling successor](OPERATION_POLLING_20260923.md). Use successor digest
 `81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d`
