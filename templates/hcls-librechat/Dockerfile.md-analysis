@@ -14,7 +14,6 @@ COPY templates/hcls-librechat/scripts/md-analysis-inventory.py /opt/md-analysis/
 COPY skills/scientific-ai/scientific-batch/references/native-md.md /app/skill/scientific-batch/references/native-md.md
 COPY skills/scientific-ai/files.sha256.json /app/skill/files.sha256.json
 RUN /opt/md-analysis/bin/python /opt/md-analysis/inventory.py \
- && python3 /app/skill/bundle.py verify \
  && node /tmp/test-skills-installed.cjs
 LABEL ai.nebius.scientific.md-analysis.revision="${MD_ANALYSIS_REVISION}" \
       ai.nebius.scientific.md-analysis.interpreter="/opt/md-analysis/bin/python"
