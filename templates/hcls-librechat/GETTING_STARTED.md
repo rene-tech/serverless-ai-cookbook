@@ -108,6 +108,27 @@ research, Cellpose microscopy, single-cell UMAP, generated media, robotics and
 other authorized Apps. They are not silently counted as completed starter
 examples: each needs its own live schema, suitable data and acceptance evidence.
 
+### GROMACS molecular dynamics
+
+GROMACS is an authorized hosted App, not a local workstation installation. The
+installed `gromacs` skill covers preparation, simulation, native checkpoint
+continuation, trajectories, analysis and supported enhanced-sampling inputs.
+For example, after uploading a prepared, licensed bundle and request:
+
+> Use the GROMACS skill. Inspect my prepared input bundle and request in
+> /workspace/my-studies/md-input/. Keep the scientific parameters unchanged,
+> explain what will run, and then submit once. Poll the saved operation and save
+> the native outputs, verification and a readable summary to
+> /workspace/my-studies/md-results/.
+
+Single GPU is the default. The separate `gromacs-mpi` App supports the qualified
+two-node execution shape, but the current TCP setup is slower than one H100 for
+the tested STMV system; more GPUs do not imply faster results. PLUMED/Colvars
+require an explicit scientific protocol. Native GROMACS checkpoints provide
+recovery; do not describe these as CUDA process snapshots. Check workspace space
+before a long trajectory run, and never discard outputs or alter a protocol to
+fit a quota without asking.
+
 ## Bring your own data
 
 Upload through **Workspace** and tell the agent the resulting `/workspace/`

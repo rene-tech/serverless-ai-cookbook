@@ -1,7 +1,34 @@
 """Account migration changes attachment coordinates, never original message data."""
 import copy
 
-from restore_endpoint_account import migrate_files
+from restore_endpoint_account import image_metadata, migrate_files, message_signature
+from uuid import UUID
+import pytest
+
+
+def test_native_image_contract_includes_archived_dimensions():
+    metadata = image_metadata({'original': {'width': 512, 'height': 256}})
+    assert metadata['endpoint'] == 'agents'
+    assert metadata['width'] == '512' and metadata['height'] == '256'
+    assert UUID(metadata['file_id'])
+
+
+def test_invalid_image_dimensions_are_not_guessed():
+    with pytest.raises(ValueError):
+        image_metadata({'original': {'width': 0, 'height': 256}})
+
+
+def test_only_transient_assistant_renderer_handles_are_normalized():
+    old = {'text': '', 'isCreatedByUser': False,
+           'content': [{'type': 'text', 'text': 'The result: \\ui{c9e982c43b}'}]}
+    new = copy.deepcopy(old)
+    new['content'][0]['text'] = 'The result: '
+    assert message_signature(old) == message_signature(new)
+    old['isCreatedByUser'] = new['isCreatedByUser'] = True
+    assert message_signature(old) != message_signature(new)
+    old['isCreatedByUser'] = new['isCreatedByUser'] = False
+    new['content'][0]['text'] = 'Different scientific result'
+    assert message_signature(old) != message_signature(new)
 
 
 def test_image_references_are_mapped_without_mutating_archive():

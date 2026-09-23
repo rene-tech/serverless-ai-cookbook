@@ -18,8 +18,10 @@ the versioned `examples/v1/` pack in your bucket, not hidden event fixtures.
 See [GETTING_STARTED.md](GETTING_STARTED.md) for the same setup and recovery steps.
 The [naming contract](NAMING.md) defines the product, App and MCP names used by
 the client and explains the one retained legacy alias.
-The [general-client candidate receipt](GENERAL_CLIENT_RELEASE_20260920.md) records
-the published image, exact UI tests and the live-upgrade work still required.
+The [GROMACS workbench release receipt](GROMACS_RELEASE_20260923.md) records
+the deployed image, restored recording account, UI tests and hosted acceptance.
+The [earlier general-client receipt](GENERAL_CLIENT_RELEASE_20260920.md) remains
+as historical qualification evidence.
 
 Six general research cards prepare editable prompts for literature-backed
 reproduction, structures, molecular/protein design, genomics/aging, clinical
@@ -49,15 +51,17 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:skills-20260920-v1`,
-digest `sha256:01a9363e53e6cc7e7592af892c960e99410d201c70365c20f8a85b10efe4d94a`.
-Its 31 preinstalled customer skills come from the same
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:gromacs-p2-20260923-r1`,
+digest `sha256:4155dd171ecb2e3c178695a66efe426c75ea8d219dfaceb8757735774dbe8a36`.
+Its 32 canonical customer skills (80 installed including the pinned ClawBio
+selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. Operators maintain this selection in
 `scripts/release-image.sh`. Existing running instances do not auto-upgrade when
 this default changes; upgrading their application requires a separate controlled
 rollout preserving chats, credentials and workspace bindings. In particular,
-this v61-based image is not a skills-only replacement for an older v11 runtime.
+this image extends the qualified recording workbench; it is not a skills-only
+replacement for an older v11 runtime.
 
 The script creates a public CPU D3 endpoint on port `3080`; LibreChat keeps its
 own email/password sign-in page reachable. Dedicated deployments mount a user or team's
@@ -66,6 +70,10 @@ put real keys in commands, Git, image layers or chat prompts.
 
 Never delete an existing endpoint without preserving `/data` and `/app/uploads`:
 the self-contained image runs its own MongoDB.
+Serverless **stop also tears down its VM and local disk**; it is not a
+disk-preserving rollback. A direct Compute stop does not provide a reliable
+snapshot window. Use a tested pre-stop database/filesystem backup or supported
+account export, documenting native-import limitations before replacement.
 
 ### Deployment ownership: one instance per user
 
@@ -183,10 +191,17 @@ its image to work around this limitation.
   uses public setup guidance and checks for any optional official Nebius skills.
   The public customer image does not depend on their private source. Guidance
   does not connect a participant cloud account or authorize resource creation.
+- **GROMACS:** the `gromacs` skill uses typed scientific-batch tools, file-backed
+  requests, durable operation tracking and customer-bucket outputs. The NVIDIA
+  single-GPU App supports MD, explicit free-energy windows and qualified
+  Colvars/PLUMED protocols. The separate `gromacs-mpi` App uses an upstream MPI
+  build and gang scheduling. Consult live discovery and the per-capability
+  qualification; more nodes are not automatically faster. Recovery uses native
+  checkpoints, not a claimed persistent CUDA snapshot.
 - **Limitations:** a deployment without a mounted bucket does not yet have an S3
   file browser. The generic LibreChat attachment picker is not a scientific
-  artifact upload bridge, and there is no GROMACS
-  server. The viewer does not download scientific-batch artifact references or
+  artifact upload bridge. Use the scientific file helpers for GROMACS bundles
+  and other model inputs. The viewer does not download scientific-batch artifact references or
   invent coordinates for sequences/SMILES. Inline inputs and finalized artifacts
   remain usable. Do not promise arbitrary attachment submission or fabricated
   output links. Catalog presence is not runtime readiness.
