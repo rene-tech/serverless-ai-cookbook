@@ -1,0 +1,8 @@
+# CPU-only trajectory analysis. Do not merge into /opt/scientific-client.
+numpy==1.26.4
+scipy==1.16.3
+MDAnalysis==2.10.0
+ParmEd==4.3.1
+matplotlib==3.10.7
+Pillow==12.3.0
+netCDF4==1.6.5

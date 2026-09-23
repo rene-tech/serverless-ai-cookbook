@@ -1,0 +1,20 @@
+# syntax=docker/dockerfile:1.7
+# Additive CPU analysis layer; the hosted API client and application stay intact.
+FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:aac7719ca7efd9fcb8e8e5b3e367271b80ff76c61d65fe3a1ede44faf6774eb1
+ARG MD_ANALYSIS_REVISION=unknown
+USER root
+COPY templates/hcls-librechat/md-analysis-build-requirements.txt /opt/md-analysis-build-requirements.txt
+COPY templates/hcls-librechat/md-analysis-requirements.txt /opt/md-analysis-requirements.txt
+RUN python3 -m venv /opt/md-analysis \
+ && /opt/md-analysis/bin/python -m pip install --no-cache-dir --require-hashes -r /opt/md-analysis-build-requirements.txt \
+ && /opt/md-analysis/bin/python -m pip install --no-cache-dir --no-build-isolation --require-hashes -r /opt/md-analysis-requirements.txt \
+ && /opt/md-analysis/bin/python -m pip check
+COPY templates/hcls-librechat/scripts/md-analysis-inventory.py /opt/md-analysis/inventory.py
+# Only this reference and its integrity inventory differ from the base bundle.
+COPY skills/scientific-ai/scientific-batch/references/native-md.md /app/skill/scientific-batch/references/native-md.md
+COPY skills/scientific-ai/files.sha256.json /app/skill/files.sha256.json
+RUN /opt/md-analysis/bin/python /opt/md-analysis/inventory.py \
+ && python3 /app/skill/bundle.py verify \
+ && node /tmp/test-skills-installed.cjs
+LABEL ai.nebius.scientific.md-analysis.revision="${MD_ANALYSIS_REVISION}" \
+      ai.nebius.scientific.md-analysis.interpreter="/opt/md-analysis/bin/python"

@@ -1,0 +1,13 @@
+**
+!templates
+!templates/hcls-librechat
+!templates/hcls-librechat/md-analysis-build-requirements.txt
+!templates/hcls-librechat/md-analysis-requirements.txt
+!templates/hcls-librechat/scripts
+!templates/hcls-librechat/scripts/md-analysis-inventory.py
+!skills
+!skills/scientific-ai
+!skills/scientific-ai/files.sha256.json
+!skills/scientific-ai/scientific-batch
+!skills/scientific-ai/scientific-batch/references
+!skills/scientific-ai/scientific-batch/references/native-md.md

@@ -91,6 +91,28 @@ scientific convergence. Free-energy results additionally need declared windows,
 sampling, estimator, overlap, uncertainty and convergence analysis. MD does not
 replace docking or automatically parameterize ligands.
 
+## Installed CPU analysis environment
+
+This workbench has a separate Python 3.11 interpreter at
+`/opt/md-analysis/bin/python`. Its pinned analysis packages are NumPy 1.26.4,
+SciPy 1.16.3, MDAnalysis 2.10.0, ParmEd 4.3.1, Matplotlib 3.10.7, Pillow 12.3.0 and
+netCDF4 1.6.5. It uses the existing system FFmpeg/ffprobe for CPU video encoding.
+Inspect the actual installed versions without making an API call:
+
+```sh
+/opt/md-analysis/bin/python /opt/md-analysis/inventory.py
+```
+
+Use this interpreter for trajectory readers, topology inspection, numerical
+analysis and plotting. Keep `/opt/scientific-client/bin/python` for the hosted
+API helper above; do not upgrade it to add analysis packages. The analysis
+environment does not install local GROMACS, LAMMPS, NAMD or AMBER simulators.
+Discover and invoke the granted hosted Apps for dynamics. Library availability
+is not a scientific-validation or customer-readiness claim: verify real file
+formats, atom mapping, units, periodic cells, frame/time coverage and native
+provenance for each analysis. Keep raw downloaded files unchanged, and write
+derived tables, figures, aligned display coordinates and videos separately.
+
 ## Comparing engines
 
 Use one canonical topology/coordinate set, not four independently solvated
