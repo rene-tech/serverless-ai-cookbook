@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1.7
+# Additive demo only. Existing deployed instances must not be replaced.
+ARG SPEECH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d
+FROM ${SPEECH_BASE} AS client
+USER root
+# Release images retain upstream client source; reconstruct the versioned UI
+# overlays before adding live speech, preserving the existing Scientific AI UI.
+COPY templates/hcls-librechat/ /tmp/clinical-client-source/
+RUN cd /tmp/clinical-client-source \
+ && cp ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx \
+ && cp ScientificGettingStarted.tsx WorkspaceInlineCode.tsx /app/client/src/components/ \
+ && cp PoweredByFooter.tsx /app/client/src/components/Chat/Footer.tsx \
+ && node patch-client.mjs \
+ && cp demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
+ && cp demos/comparison.ts /app/client/src/components/scientific-comparison.ts \
+ && cp demos/run-display.ts /app/client/src/components/scientific-run-display.ts \
+ && node demos/patch.mjs client \
+ && cp speech/AudioRecorder.tsx /app/client/src/components/Chat/Input/AudioRecorder.tsx \
+ && cp speech/LiveSpeech.tsx speech/speech-state.js /app/client/src/components/ \
+ && node speech/patch.mjs client
+WORKDIR /app/client
+RUN NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build
+
+FROM ${SPEECH_BASE}
+USER root
+COPY --from=client /app/client/dist /app/client/dist
+COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/patch.mjs /opt/hcls-librechat/speech/
+COPY templates/hcls-librechat/speech/pcm-worklet.js /app/client/dist/scientific-speech/pcm-worklet.js
+COPY templates/hcls-librechat/assets/nebius-logo.svg /app/client/dist/assets/logo.svg
+COPY templates/hcls-librechat/assets/token-factory.svg /app/client/dist/assets/token-factory.svg
+RUN node /opt/hcls-librechat/speech/patch.mjs server \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist
+ARG SPEECH_REVISION=unknown
+LABEL ai.nebius.scientific.clinical-speech.revision="${SPEECH_REVISION}"
