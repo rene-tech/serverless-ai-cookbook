@@ -21,6 +21,7 @@ the versioned Scientific AI UI and replaces the actual composer microphone.
 | `SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL` | Same dedicated endpoint's HTTPS origin, without `/v1`; enables typed agent MCP and direct workspace-byte upload |
 | `SCIENTIFIC_MEDICAL_SPEECH_API_KEY` | Server-only adapter bearer, supplied through the deployment secret mechanism |
 | `SCIENTIFIC_MEDICAL_SPEECH_MODEL` | Default `nemotron-clinical-en` |
+| `SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256` | Set to the **qualified winner's exact loaded `.nemo` SHA-256** for the three-mode release. Both medical choices verify the authenticated `/v1/models` identity before admitting a stream; a mismatch fails closed. Historical configurations without this value remain unpinned, not qualified. |
 | `SCIENTIFIC_MEDICAL_SPEECH_LABEL` | Public selector label; explicitly mark `PILOT checkpoint` for a pilot deployment, never put secrets here |
 | `SCIENTIFIC_SPEECH_JOBS_DIR` | Private local receipts; default `/data/hcls-speech` |
 | `NEBIUS_API_KEY` or `CLINICAL_REPORT_API_KEY` | Separate server-side Token Factory credential for existing reviewed-report workflow |
@@ -54,8 +55,11 @@ It overrides **live** speech only; existing batch report model routing is unchan
 
 ## Paths and guarantees
 
-- The default microphone is `nemotron-speech-en-0-6b`; the optional medical
-  Nemotron 3.5 selector is never silently substituted for it.
+- The selector order is (1) existing English Nemotron, always default; (2)
+  fine-tuned medical Nemotron; (3) **the identical fine-tuned endpoint/checkpoint**
+  plus streaming Sortformer. The two medical modes appear only when explicitly
+  configured. There is no base/old-checkpoint fallback. Batch/API/MCP routing is
+  unchanged; qualification of a future winning model is a separate gate.
 - Authenticated POST `/api/scientific-demos/speech/tickets` exchanges the logged-in
   user's stored platform key for a one-use, 30-second, origin-bound relay ticket.
   WebSocket `/api/scientific-demos/speech/stream` receives that ticket as its first
@@ -72,7 +76,28 @@ It overrides **live** speech only; existing batch report model routing is unchan
   Cancel/disconnect closes the upstream session, with no invisible replay. Frames,
   buffer backlog, connections, per-user sessions, duration and finalization are
   bounded. Failure leaves visible unverified text, not a fabricated final result.
-- Live ASR requests real acoustic word timings. Explicit post-stop speaker
+- Mode 3 requires the ordinary caller's Sortformer grant and opens one additional
+  `/v1/voice/stream` operation using that caller's key, never the medical service
+  bearer. Identical captured PCM reaches both models only after both are ready.
+  Stop flushes and waits for **both** terminal results. Cancel, disconnect,
+  malformed output or either backend failure cancels the other stream; there is
+  no replay or ASR-only fallback. Each session is capped at ten minutes.
+- Sortformer activity is genuinely streamed, not file inference animated in a UI.
+  Its anonymous `speaker_0`–`speaker_3` channels display as Speaker 1–4.
+  Live speaker text uses only finalized ASR acoustic word times. Untimed partials,
+  missing alignment, low confidence and overlap stay explicitly unassigned or
+  flagged. The underlying model supports four speakers, not named identities.
+  [NVIDIA model contract](https://huggingface.co/nvidia/diar_streaming_sortformer_4spk-v2.1)
+  and the platform's separate `/v1/voice/stream` protocol define this behavior.
+- Mode 3 automatically saves speaker evidence after successful Stop. A private
+  server receipt binds the ordinary caller, exact captured PCM hash, ASR model
+  and preflight runtime identity, and completed Sortformer operation. The final
+  job fetches that **same** caller-scoped durable result (including SHA-verified
+  JSON artifacts) and never starts a second diarization. Failed lookups do not
+  fall back to inference. The operation is tracked in Runs; final speaker jobs
+  resume by their existing ID. Preflight identity is not a WS runtime attestation;
+  deployment qualification must also bind the endpoint and actual image.
+- Live ASR requests real acoustic word timings. For modes 1–2, explicit post-stop speaker
   analysis uploads the exact captured WAV through tenant-scoped artifact/MCP
   helpers and invokes Sortformer. Word/activity interval overlap produces
   anonymous channels; low confidence and simultaneous activity stay marked.
@@ -95,7 +120,10 @@ It overrides **live** speech only; existing batch report model routing is unchan
 
 Use simulated/de-identified data only. Raw live audio is initially retained in
 browser memory, and the relay holds bounded transport frames without payload
-logging. The model endpoint still receives audio. Clicking speaker analysis saves
+logging. Each selected model endpoint receives audio. Selecting mode 3 explicitly
+enables both models and automatic audio/evidence storage after Stop; it displays
+that consequence before recording. Modes 1–2 do not invoke Sortformer until the
+user clicks speaker analysis. Saving speaker analysis saves
 audio/receipts on the demo server and in platform artifacts; clicking report
 generation requires a completed speaker job owned by the signed-in user. Its
 immutable admission request retains the original browser-captured ASR text,
@@ -125,3 +153,12 @@ WSS ingress, microphone hardware, or a final deployed release. The release owner
 must bind two unchanged browser/API/MCP cohorts to exact image/model identities,
 including invalid input/cancel/recovery, EN/DE batch, tuned live inference,
 speaker attribution, reviewed clinical output, and held-out measurements.
+
+`browser-fixture.cjs` bundles the actual `LiveSpeech` and composer `AudioRecorder`
+against deterministic loopback model adapters; `qualify-browser-fixture.mjs`
+exercises the three modes, fake-device microphone, real-time WAV playback,
+cancellation/failure, missing word timings and review gates. It makes **no real
+model calls** and does not qualify GPU accuracy or a deployed release.
+`probe-sortformer.cjs` is a separate explicitly invoked bounded public-path probe;
+it is not run by unit tests or image builds. Neither script supplies credentials
+or enables an unqualified round-2 model by default.

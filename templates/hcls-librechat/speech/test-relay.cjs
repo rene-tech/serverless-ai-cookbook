@@ -1,6 +1,17 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { targets, targetCredential, socketUrl, issueTicket, consumeTicket, installRoutes } = require('./relay.cjs');
+const { targets, targetCredential, socketUrl, issueTicket, consumeTicket, installRoutes, verifyMedicalIdentity } = require('./relay.cjs');
+test('qualified medical checkpoint is checked against exact nested runtime identity with no fallback', async () => {
+  const target = { id: 'nemotron-clinical-en', expectedCheckpoint: 'a'.repeat(64), url: 'https://medical.test/v1/audio/stream', credential: 'private-test' };
+  const model = { id: target.id, checkpoint_sha256: 'a'.repeat(64), base_revision: 'base', unexpected_secret: 'omit' };
+  const request = async (url, options) => {
+    assert.equal(String(url), 'https://medical.test/v1/models'); assert.equal(options.headers.Authorization, 'Bearer private-test');
+    return { ok: true, json: async () => ({ data: [{ model }] }) };
+  };
+  assert.deepEqual(await verifyMedicalIdentity(target, request), { id: target.id, checkpoint_sha256: model.checkpoint_sha256, base_revision: 'base' });
+  await assert.rejects(verifyMedicalIdentity({ ...target, expectedCheckpoint: 'b'.repeat(64) }, request), /differs/);
+  await assert.rejects(verifyMedicalIdentity(target, async () => { throw new Error('secret provider body'); }), /Cannot verify/);
+});
 test('English default and medical selectable only if explicitly configured', () => {
   assert.deepEqual(Object.keys(targets({})), ['english']);
   assert.equal(targets({ SCIENTIFIC_MEDICAL_SPEECH_URL: 'https://medical.example/v1/audio/stream' }).medical.id, 'nemotron-clinical-en');

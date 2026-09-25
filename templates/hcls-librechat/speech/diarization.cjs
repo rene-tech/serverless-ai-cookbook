@@ -54,8 +54,8 @@ async function run(owner, credential, id) {
   child.once('error', () => void finish(1)); child.once('exit', (code) => void finish(code ?? 1));
   return { id, state: 'running' };
 }
-function installRoutes(router, { key }) {
-  const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 5, fieldSize: 2 * 1024 * 1024 } });
+function installRoutes(router, { key, platform, artifactBytes }) {
+  const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 6, fieldSize: 2 * 1024 * 1024 } });
   const wrap = (handler) => (req, res, next) => Promise.resolve(handler(req, res)).catch(next);
   router.post('/speech/diarization', upload.single('file'), wrap(async (req, res) => {
     if (!req.file) throw fail('Attach captured mono PCM WAV audio.');
@@ -69,13 +69,26 @@ function installRoutes(router, { key }) {
       const bytes = await fs.readFile(req.file.path);
       if (bytes.length < 46 || bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WAVE' || bytes.readUInt16LE(20) !== 1 || bytes.readUInt16LE(22) !== 1 || bytes.readUInt32LE(24) !== 16000 || bytes.readUInt16LE(34) !== 16 || bytes.readUInt32LE(40) !== bytes.length - 44) throw fail('Expected exact captured 16 kHz mono PCM16 WAV.');
       const id = hash(req.body.idempotency_key).slice(0, 32); const dir = directory(req.user.id, id);
-      const identity = hash(JSON.stringify([hash(bytes), words, req.body.model, hash(credential), source]));
+      const streamReceipt = req.body.stream_receipt || null;
+      const identity = hash(JSON.stringify([hash(bytes), words, req.body.model, hash(credential), source, ...(streamReceipt ? [streamReceipt] : [])]));
+      const existing = await reading(path.join(dir, 'request.json')).catch(() => null);
+      if (existing) {
+        if (existing.identity !== identity) throw fail('Request belongs to different input. Retry unchanged.', 409);
+        res.status(202).json(await run(req.user.id, credential, id)); return;
+      }
+      // Fetch the exact completed stream result with the same ordinary key.
+      // Any lookup/mismatch fails closed; never fall back to another inference.
+      const streamed = streamReceipt ? await require('./stream-receipt.cjs').resolve(req.user.id,
+        streamReceipt, credential, bytes, req.body.model, platform, artifactBytes) : null;
       await fs.mkdir(path.dirname(dir), { recursive: true, mode: 0o700 });
       try {
         await fs.mkdir(dir, { mode: 0o700 });
         await fs.writeFile(path.join(dir, 'input.wav'), bytes, { mode: 0o600 });
+        if (streamed) await save(path.join(dir, 'streamed-diarization.json'), streamed);
         await save(path.join(dir, 'request.json'), { id, identity, words, asr_model: req.body.model,
           audio_sha256: hash(bytes), source_receipt: source,
+          ...(streamed ? { stream_operation_id: streamed.receipt.operation_id, stream_receipt: streamReceipt,
+            streamed_result_sha256: hash(JSON.stringify(streamed)), asr_runtime: streamed.receipt.asr_runtime } : {}),
           key_hash: hash(credential), audio_seconds: (bytes.length - 44) / 32000 });
       } catch (error) {
         if (error.code !== 'EEXIST') throw error;
@@ -104,7 +117,7 @@ async function reviewSource(owner, id) {
     raw_asr_transcript_sha256: hash(source.raw_transcript), acoustic_words_sha256: hash(JSON.stringify(request.words)),
     browser_source_receipt_sha256: hash(JSON.stringify(source)), browser_timings: source.timings,
     source_evidence_origin: 'Browser-captured ASR output; immutable after speaker job admission, not server-attested clinical evidence.',
-    speaker_result_sha256: hash(resultBytes), asr_model: request.asr_model,
+    speaker_result_sha256: hash(resultBytes), asr_model: request.asr_model, asr_runtime: request.asr_runtime || null,
     diarization_operation_id: result.operation_id,
     anonymous_transcript_sha256: hash(result.turns.map((turn) => `[${turn.speaker}] ${turn.text}`).join('\n')) };
 }

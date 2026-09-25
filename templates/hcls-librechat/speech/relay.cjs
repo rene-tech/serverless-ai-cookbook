@@ -1,6 +1,7 @@
 /* Live PCM relay. No API keys, recordings or transcripts are logged. */
 const crypto = require('node:crypto');
 const ENGLISH = 'nemotron-speech-en-0-6b';
+const SORTFORMER = 'diar-streaming-sortformer-4spk-v2-1';
 const PATH = '/api/scientific-demos/speech/stream';
 const tickets = new Map();
 const active = new Map();
@@ -8,17 +9,19 @@ const failure = (message, status = 400) => Object.assign(new Error(message), { s
 
 function targets(env = process.env) {
   const platform = (env.SCIENTIFIC_MODELS_API_BASE_URL || 'https://89.169.99.188/v1').replace(/\/v1\/?$/, '');
+  const medical = { id: env.SCIENTIFIC_MEDICAL_SPEECH_MODEL || 'nemotron-clinical-en',
+    label: env.SCIENTIFIC_MEDICAL_SPEECH_LABEL || 'Fine-tuned Nemotron · medical English',
+    url: env.SCIENTIFIC_MEDICAL_SPEECH_URL, credential: env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY, dedicated: true,
+    expectedCheckpoint: env.SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256 };
   return {
     english: { id: ENGLISH, label: env.SCIENTIFIC_ENGLISH_SPEECH_URL ? 'Nemotron English · default · isolated runtime' : 'Nemotron English · default',
       url: env.SCIENTIFIC_ENGLISH_SPEECH_URL || platform + '/v1/audio/stream',
       ...(env.SCIENTIFIC_ENGLISH_SPEECH_URL ? { dedicated: true,
         wireModel: env.SCIENTIFIC_ENGLISH_SPEECH_UPSTREAM_MODEL || 'nemotron-speech-en-0.6b',
         credential: env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY } : {}) },
-    ...(env.SCIENTIFIC_MEDICAL_SPEECH_URL ? { medical: {
-      id: env.SCIENTIFIC_MEDICAL_SPEECH_MODEL || 'nemotron-clinical-en',
-      label: env.SCIENTIFIC_MEDICAL_SPEECH_LABEL || 'Medical Nemotron 3.5 · English', url: env.SCIENTIFIC_MEDICAL_SPEECH_URL,
-      credential: env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY, dedicated: true,
-    } } : {}),
+    ...(env.SCIENTIFIC_MEDICAL_SPEECH_URL ? { medical,
+      'medical-speakers': { ...medical, label: medical.label + ' + Sortformer · live speakers',
+        diarization: { id: SORTFORMER, url: platform + '/v1/voice/stream' } } } : {}),
   };
 }
 function targetCredential(target, userKey) {
@@ -55,14 +58,30 @@ function consumeTicket(ticket, origin, now = Date.now()) {
   if ((active.get(item.owner) || 0) >= 2) throw failure('Two speech sessions are already active.', 429);
   return item;
 }
-function installRoutes(router, { key, platform }) {
+async function verifyMedicalIdentity(target, request = fetch) {
+  if (!target.expectedCheckpoint) return undefined; // Historical configurations remain explicit, unpinned.
+  if (!/^[a-f0-9]{64}$/.test(target.expectedCheckpoint)) throw failure('Configure the qualified medical checkpoint SHA-256.', 503);
+  let value;
+  try {
+    const response = await request(new URL('/v1/models', target.url), { headers: { Authorization: `Bearer ${target.credential}` },
+      redirect: 'error', signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error('Discovery failed');
+    value = (await response.json()).data?.map(row => row.model || row).find(model => model.id === target.id);
+  } catch { throw failure('Cannot verify the selected medical checkpoint. No speech inference was started.', 503); }
+  if (!value || value.checkpoint_sha256 !== target.expectedCheckpoint) throw failure('Medical checkpoint differs from the qualified deployment. No speech inference was started.', 503);
+  return Object.fromEntries(['id', 'checkpoint_sha256', 'base_model', 'base_revision', 'nemo_revision', 'precision', 'chunk_size_ms', 'language']
+    .filter(field => value[field] !== undefined).map(field => [field, value[field]]));
+}
+function installRoutes(router, { key, platform, fetchModels = fetch }) {
   router.get('/speech/models', (_req, res) => res.json({
-    default: 'english', data: Object.entries(targets()).map(([key, value]) => ({ key, id: value.id, label: value.label })),
+    default: 'english', data: Object.entries(targets()).map(([key, value]) => ({ key, id: value.id, label: value.label,
+      ...(value.diarization ? { diarization: { model: value.diarization.id, timing: 'live-activity-with-final-acoustic-words' } } : {}) })),
     audio: { encoding: 'pcm_s16le', sample_rate_hz: 16000, channels: 1 },
     retention: 'Audio stays in browser unless explicitly submitted. Server relay buffers bounded frames only; upstream policies apply.',
   }));
   router.post('/speech/tickets', (req, res, next) => Promise.resolve().then(async () => {
-    const target = targets()[req.body?.model || 'english'];
+    const available = targets(), selected = req.body?.model || 'english';
+    const target = Object.hasOwn(available, selected) ? available[selected] : undefined;
     if (!target) throw failure('Selected speech model is not configured.');
     socketUrl(target.url);
     const userKey = await key(req);
@@ -71,13 +90,19 @@ function installRoutes(router, { key, platform }) {
     if (target.id === ENGLISH && !catalog.data?.some((item) => (item.id || item.model_id) === ENGLISH)) {
       throw failure('Your Scientific AI key does not grant the English speech model.', 403);
     }
+    if (target.diarization) {
+      if (!catalog.data?.some((item) => (item.id || item.model_id) === SORTFORMER)) throw failure('Your Scientific AI key does not grant Sortformer. Choose ASR-only or request the grant.', 403);
+      target.diarization = { ...target.diarization, credential: userKey };
+      socketUrl(target.diarization.url);
+    }
     const credential = targetCredential(target, userKey);
+    target.modelIdentity = await verifyMedicalIdentity(target, fetchModels);
     const origin = req.get('origin') || `${req.protocol}://${req.get('host')}`;
     res.json(issueTicket(req.user.id, origin, target, credential));
   }).catch(next));
 }
 
-function attach(server, WebSocket = require('/app/node_modules/ws')) {
+function attach(server, WebSocket = require('/app/node_modules/ws'), { saveStreamReceipt } = {}) {
   const wss = new WebSocket.WebSocketServer({ noServer: true, maxPayload: 65536, perMessageDeflate: false });
   server.on('upgrade', (req, socket, head) => {
     if (req.url !== PATH) return;
@@ -85,13 +110,14 @@ function attach(server, WebSocket = require('/app/node_modules/ws')) {
     wss.handleUpgrade(req, socket, head, (client) => wss.emit('connection', client, req));
   });
   wss.on('connection', (client, req) => {
-    let upstream, session, ready = false, finished = false, bytes = 0, released = false;
+    let upstream, dual, session, ready = false, finished = false, bytes = 0, released = false;
     const send = (event) => { if (client.readyState === WebSocket.OPEN) client.send(JSON.stringify(event)); };
     const release = () => {
       if (released) return;
       released = true;
       clearTimeout(authTimer); clearTimeout(durationTimer); clearInterval(heartbeat);
       if (session) active.set(session.owner, Math.max(0, (active.get(session.owner) || 1) - 1));
+      dual?.release();
       if (upstream?.readyState === WebSocket.OPEN) {
         if (!finished) upstream.send('{"type":"session.cancel"}');
         upstream.close();
@@ -117,6 +143,10 @@ function attach(server, WebSocket = require('/app/node_modules/ws')) {
           session = consumeTicket(first.ticket, req.headers.origin);
           active.set(session.owner, (active.get(session.owner) || 0) + 1);
           clearTimeout(authTimer);
+          if (session.target.diarization) {
+            dual = require('./dual-stream.cjs').connect(client, session, WebSocket, { send, fail, release }, saveStreamReceipt);
+            return;
+          }
           upstream = new WebSocket(socketUrl(session.target.url), {
             headers: { Authorization: `Bearer ${session.credential}` },
             handshakeTimeout: 15000, maxPayload: 1024 * 1024, perMessageDeflate: false,
@@ -134,7 +164,8 @@ function attach(server, WebSocket = require('/app/node_modules/ws')) {
               }
               if (event.type === 'session.ready') ready = true;
               // Never relay arbitrary backend error bodies, which can include internal details.
-              send(event.type === 'session.error' ? { type: event.type, code: /^[a-z0-9_]{1,100}$/.test(event.code || '') ? event.code : 'upstream_failed', retryable: Boolean(event.retryable) } : event);
+              send(event.type === 'session.error' ? { type: event.type, code: /^[a-z0-9_]{1,100}$/.test(event.code || '') ? event.code : 'upstream_failed', retryable: Boolean(event.retryable) }
+                : event.type === 'session.ready' && session.target.modelIdentity ? { ...event, model_identity: session.target.modelIdentity } : event);
               if (['session.completed', 'session.cancelled', 'session.error'].includes(event.type)) {
                 finished = true; client.close(1000); release();
               }
@@ -144,6 +175,7 @@ function attach(server, WebSocket = require('/app/node_modules/ws')) {
           upstream.on('close', () => { if (!released) fail('relay_upstream_disconnected'); });
           return;
         }
+        if (dual) return dual.handle(data, binary);
         if (binary) {
           bytes += data.length;
           if (!ready || finished || data.length % 2 || bytes > 10 * 60 * 32000 || upstream.bufferedAmount > 256000) return fail('relay_audio_limit');
@@ -165,4 +197,4 @@ function attach(server, WebSocket = require('/app/node_modules/ws')) {
   });
   return wss;
 }
-module.exports = { installRoutes, attach, targets, targetCredential, socketUrl, issueTicket, consumeTicket };
+module.exports = { installRoutes, attach, targets, targetCredential, socketUrl, issueTicket, consumeTicket, verifyMedicalIdentity };

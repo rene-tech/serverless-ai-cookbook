@@ -84,18 +84,28 @@ def main():
     artifact, code = upload_source(source=source, model=model, media_type='audio/wav', directory=root / 'upload', idempotency_key=request['id'] + '-source')
     if code:
         return code
-    immutable_input(root / 'input.json', {'audio': artifact})
-    receipt, code = invoke(model=model, tool='infer_diar_streaming_sortformer_4spk_v2_1_native', input_path=root / 'input.json', directory=root / 'run', idempotency_key=request['id'] + '-diar', wait_seconds=120, recover_only=False)
-    if code:
-        return code
-    result = unwrap(load(root / 'run' / 'result.json'))
+    if request.get('stream_operation_id'):
+        data = (root / 'streamed-diarization.json').read_bytes()
+        if hashlib.sha256(data).hexdigest() != request['streamed_result_sha256']:
+            raise ValueError('Retained streamed diarization bytes changed')
+        streamed = json.loads(data)
+        if streamed['receipt']['operation_id'] != request['stream_operation_id']:
+            raise ValueError('Retained streamed operation differs')
+        result, receipt = streamed['result'], {'operation_id': request['stream_operation_id']}
+    else:
+        immutable_input(root / 'input.json', {'audio': artifact})
+        receipt, code = invoke(model=model, tool='infer_diar_streaming_sortformer_4spk_v2_1_native', input_path=root / 'input.json', directory=root / 'run', idempotency_key=request['id'] + '-diar', wait_seconds=120, recover_only=False)
+        if code:
+            return code
+        result = unwrap(load(root / 'run' / 'result.json'))
     duration = float(result['audio_seconds'])
     if abs(duration - float(request['audio_seconds'])) > .2:
         raise ValueError('Diarization duration differs from captured audio')
     value = attribute_words(request['words'], result['events'], duration)
     value.update(schema='scientific-clinical/speaker-transcript/v1', audio=file_identity(source),
                  audio_seconds=duration, asr_model=request['asr_model'], diarization_model=model,
-                 operation_id=receipt.get('operation_id'), clinical_validation=False)
+                 operation_id=receipt.get('operation_id'), clinical_validation=False,
+                 diarization_mode='retained-live-stream' if request.get('stream_operation_id') else 'explicit-post-stop')
     save(root / 'result.json', value)
     return 0
 

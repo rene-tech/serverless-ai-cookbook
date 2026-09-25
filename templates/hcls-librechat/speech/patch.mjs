@@ -21,7 +21,7 @@ if (mode === 'client') {
 } else if (mode === 'server') {
   await replace('/app/api/server/routes/scientific-demos.js',
     'router.use((error, _req, res, _next) => {',
-    "require('/opt/hcls-librechat/speech/relay.cjs').installRoutes(router, { key, platform: service.platform });\nrequire('/opt/hcls-librechat/speech/diarization.cjs').installRoutes(router, { key });\nrouter.use((error, _req, res, _next) => {");
+    "require('/opt/hcls-librechat/speech/relay.cjs').installRoutes(router, { key, platform: service.platform });\nrequire('/opt/hcls-librechat/speech/diarization.cjs').installRoutes(router, { key, platform: service.platform, artifactBytes: service.platformBytes });\nrouter.use((error, _req, res, _next) => {");
   await replace('/app/api/server/index.js', '  configureServerTimeouts(server);',
     "  require('/opt/hcls-librechat/speech/relay.cjs').attach(server);\n  configureServerTimeouts(server);");
 } else throw new Error('Select client or server patch');

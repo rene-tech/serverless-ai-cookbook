@@ -2,7 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { acousticWords, transcriptEvent, wavBlob, appendDictation } from './speech-state.js';
+import { acousticWords, transcriptEvent, wavBlob, appendDictation, liveSpeakerTurns, speakerText } from './speech-state.js';
+test('live speaker labels require actual finalized word timings; partials remain unassigned', () => {
+  const segments = new Map([['0', { final: true, text: 'No fever.' }], ['1', { final: false, text: ' Maybe' }]]);
+  const words = new Map([['0', [{ text: 'No', start_seconds: 0, end_seconds: .1 }, { text: 'fever.', render_text: ' fever.', start_seconds: .1, end_seconds: .2 }]]]);
+  const events = [{ start_seconds: 0, frame_duration_seconds: .1, probabilities: [[.9, .05, 0, 0], [.1, .9, 0, 0]] }];
+  const turns = liveSpeakerTurns(segments, words, events);
+  assert.deepEqual(turns.map(t => t.speaker), ['speaker_0', 'speaker_1', 'uncertain']);
+  assert.match(speakerText(turns), /Speaker 1/); assert.match(speakerText(turns), /partial_unassigned/);
+  assert.ok(!speakerText(turns).includes('Clinician'));
+  assert.equal(liveSpeakerTurns(segments, words, [])[0].speaker, 'uncertain');
+  assert.equal(liveSpeakerTurns(segments, new Map(), events)[0].flag, 'acoustic_alignment_unavailable');
+  events[0].probabilities[0] = [.8, .7, 0, 0];
+  assert.equal(liveSpeakerTurns(segments, words, events)[0].flag, 'overlap');
+});
 test('composer prefix is preserved without adding duplicate boundary whitespace or changing native words',()=>{
   assert.equal(appendDictation('Review: ', ' Hello, hishall'), 'Review: Hello, hishall');
   assert.equal(appendDictation('Review:', ' Hello'), 'Review: Hello');

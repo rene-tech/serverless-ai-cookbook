@@ -34,6 +34,7 @@ COPY templates/hcls-librechat/speech/pcm-worklet.js /app/client/dist/scientific-
 COPY templates/hcls-librechat/assets/nebius-logo.svg /app/client/dist/assets/logo.svg
 COPY templates/hcls-librechat/assets/token-factory.svg /app/client/dist/assets/token-factory.svg
 COPY templates/hcls-librechat/speech/test-installed-seed.cjs /opt/hcls-librechat/speech/
+COPY templates/hcls-librechat/speech/dual-stream.cjs templates/hcls-librechat/speech/stream-receipt.cjs /opt/hcls-librechat/speech/
 RUN node /opt/hcls-librechat/speech/patch.mjs server \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist \
  && node /opt/hcls-librechat/speech/test-installed-config.cjs \
