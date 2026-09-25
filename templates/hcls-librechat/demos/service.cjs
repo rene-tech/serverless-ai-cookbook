@@ -19,7 +19,14 @@ function reportCredential() {
   // Never send a Token Factory key to an explicitly selected external endpoint.
   return process.env.CLINICAL_REPORT_API_KEY || (!process.env.CLINICAL_REPORT_BASE_URL ? process.env.NEBIUS_API_KEY : '') || '';
 }
-const FILES = ['report.md', 'transcript.txt', 'follow-up.md', 'review.md', 'document.json', 'review.json', 'run.json'];
+function englishAsrBackend(kind = 'audio', language = 'en') {
+  if (kind !== 'audio' || language !== 'en' || !process.env.SCIENTIFIC_ENGLISH_SPEECH_URL) return undefined;
+  return { type: 'isolated-native-ws-file', url: require('../speech/relay.cjs').socketUrl(process.env.SCIENTIFIC_ENGLISH_SPEECH_URL),
+    model: process.env.SCIENTIFIC_ENGLISH_SPEECH_UPSTREAM_MODEL || 'nemotron-speech-en-0.6b',
+    declared_model_revision: process.env.SCIENTIFIC_ENGLISH_SPEECH_MODEL_REVISION || null,
+    timing: 'unpaced batch, not real-time playback', max_audio_seconds: 1800 };
+}
+const FILES = ['report.md', 'transcript.txt', 'follow-up.md', 'review.md', 'document.json', 'review.json', 'run.json', 'asr-receipt.json'];
 const WORKSPACE = process.env.SCIENTIFIC_WORKSPACE || '/workspace';
 const RUN_ID = /^[a-f0-9-]{36}$/i;
 const TERMINAL_STATES = new Set(['succeeded', 'completed', 'failed', 'cancelled', 'preempted', 'expired']);
@@ -596,7 +603,7 @@ async function status(owner, id) {
     error: receipt.error, ...(receipt.error_code ? { error_code: receipt.error_code } : {}),
     files: available, model: request.report_model || REPORT_MODEL,
     input_provenance: { kind: request.kind, sha256: request.input_sha256,
-      size_bytes: request.input_size_bytes, workspace_file: request.source_workspace },
+      size_bytes: request.input_size_bytes, workspace_file: request.source_workspace, asr_backend: request.asr_backend },
     url: `/demos?tab=clinical&job=${id}`, clinical_validation: false };
 }
 async function list(owner) {
@@ -611,6 +618,7 @@ async function start(owner, key, id) {
   if (request.key_hash !== hash(privateKey(key))) throw failure('Resume with the original submitting platform key.', 409);
   if (request.report_model !== REPORT_MODEL || request.report_provider !== REPORT_PROVIDER) throw failure('Report backend changed. Restore its original configuration to resume this job; do not mix model outputs.', 409);
   if (JSON.stringify(request.report_limits || {}) !== JSON.stringify(REPORT_LIMITS)) throw failure('Report context/output limits changed. Restore the original settings or use a new job.', 409);
+  if (JSON.stringify(request.asr_backend) !== JSON.stringify(englishAsrBackend(request.kind, request.language))) throw failure('ASR backend changed. Restore the original configuration; do not mix transcripts.', 409);
   let lock;
   try { lock = await fs.open(path.join(dir, 'launch.lock'), 'wx', 0o600); }
   catch { throw failure('A launch is already in progress. Refresh job status.', 409); }
@@ -621,6 +629,7 @@ async function start(owner, key, id) {
     const worker = spawn(process.execPath, [path.join(__dirname, 'worker.cjs'), dir], {
       detached: true, stdio: 'ignore', env: { PATH: process.env.PATH, LANG: 'C.UTF-8',
         FS2_API_KEY: key, CLINICAL_REPORT_API_KEY: reportCredential(),
+        ...(request.asr_backend ? { SCIENTIFIC_ENGLISH_SPEECH_API_KEY: process.env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY } : {}),
         ...REPORT_LIMITS,
         SCIENTIFIC_CLINICAL_PYTHON: process.env.SCIENTIFIC_CLINICAL_PYTHON || '/opt/clinical-client/bin/python',
         SCIENTIFIC_CLINICAL_SCRIPT: process.env.SCIENTIFIC_CLINICAL_SCRIPT || '/app/skill/clinical-documentation/scripts/clinical_report.py' },
@@ -639,6 +648,12 @@ async function clinical(owner, key, input) {
   privateKey(key);
   if (!['en', 'de'].includes(input.language)) throw failure('Choose English or German.');
   if (!['audio', 'transcript'].includes(input.kind)) throw failure('Choose audio or transcript.');
+  const asrBackend = englishAsrBackend(input.kind, input.language);
+  if (asrBackend) {
+    if (!process.env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY) throw failure('The operator must configure the isolated English speech credential.', 503);
+    const catalog = await platform(key, 'GET', '/v1/models');
+    if (!catalog.data?.some(item => (item.id || item.model_id) === 'nemotron-speech-en-0-6b')) throw failure('Your platform key does not grant English speech.', 403);
+  }
   if (!/^[A-Za-z0-9_.:-]{1,160}$/.test(input.idempotency_key || '')) throw failure('Supply an idempotency key.');
   if (!reportCredential()) throw failure('The operator must configure the selected report provider credential.', 503);
   const reportUrl = new URL(REPORT_PROVIDER);
@@ -686,6 +701,7 @@ async function clinical(owner, key, input) {
     signature, key_hash: hash(key), created_at: new Date().toISOString(), platform: PLATFORM,
     input_sha256: inputDigest, input_size_bytes: size, source_workspace: input.source_workspace,
     ...(reviewedSource ? { reviewed_source: reviewedSource } : {}),
+    ...(asrBackend ? { asr_backend: asrBackend } : {}),
     report_model: REPORT_MODEL, report_provider: REPORT_PROVIDER, report_limits: REPORT_LIMITS });
   await save(path.join(dir, 'status.json'), { id, status: 'prepared', created_at: new Date().toISOString() });
   return start(owner, key, id);
@@ -741,4 +757,4 @@ async function analyzeWorkspace(kind, key, args) {
     : analysis.compare(kind, key, args, { workspaceGet, retainWorkspaceBytes });
 }
 module.exports = { platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, soap, reviewSoap, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
-  workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL, REPORT_PROVIDER_LABEL, reportCredential };
+  workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL, REPORT_PROVIDER_LABEL, reportCredential, englishAsrBackend };

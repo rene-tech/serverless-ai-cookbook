@@ -243,7 +243,7 @@ function ClinicalAndMindEval() {
   const [role, setRole] = useState('clinician');
   const [intervention, setIntervention] = useState('');
   const [preview, setPreview] = useState('');
-  const settings = useQuery(['scientific-demos', 'settings'], () => request.get<{ configured: boolean; report_model: string; report_provider?: string }>(`${BASE}/settings`));
+  const settings = useQuery(['scientific-demos', 'settings'], () => request.get<{ configured: boolean; report_model: string; report_provider?: string; english_asr?: { type: string; model: string } }>(`${BASE}/settings`));
   const enabled = settings.data?.configured === true;
   const jobs = useQuery(['scientific-demos', 'clinical'], () => request.get<{ data: Job[] }>(`${BASE}/clinical`), { enabled, refetchInterval: clinical ? 3000 : false });
   const catalog = useQuery(['scientific-demos', 'catalog'], () => request.get<Catalog>(`${BASE}/workshop/catalog`), { enabled: enabled && !clinical, retry: false });
@@ -285,6 +285,7 @@ function ClinicalAndMindEval() {
     {clinical ? <>
       <h2 className="text-xl font-semibold">Transcript or recording → report draft</h2>
       <p className="my-3 text-sm text-text-secondary">English or German · Nemotron speech when needed → {settings.data?.report_model || 'configured clinical text model'} ({settings.data?.report_provider || 'server-configured provider'}). A clinician must review the transcript, citations, withheld facts and questions. This is not a clinically validated report generator.</p>
+      {settings.data?.english_asr && <p className="my-2 text-xs">English audio uploads: isolated {settings.data.english_asr.model}, unpaced file-over-WebSocket batch (maximum 30 minutes). Its runtime session is not a platform operation. German audio retains the platform batch route. Completed ASR is cached; interrupted audio is never transparently replayed.</p>}
       <form className="grid gap-3 rounded-xl border border-border-medium p-4" onSubmit={(event) => { event.preventDefault(); void act(async () => {
         if (!input) return;
         const data = new FormData(); data.append('file', input); data.append('language', language); data.append('kind', kind); data.append('idempotency_key', submission);

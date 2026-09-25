@@ -40,8 +40,25 @@ async function main() {
   await save(path.join(dir, 'status.json'), { ...receipt, status: 'running' });
   const log = await fs.open(path.join(dir, 'worker.log'), 'a', 0o600);
   try {
+    let source = path.join(dir, request.source), kind = request.kind;
+    if (request.asr_backend) {
+      const controller = new AbortController();
+      const cancel = () => controller.abort();
+      process.once('SIGTERM', cancel); process.once('SIGINT', cancel);
+      try {
+        const asr = await require('../speech/native-file.cjs').transcribeFile({ source,
+          directory: path.join(dir, 'native-asr'), backend: request.asr_backend,
+          credential: process.env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY, signal: controller.signal });
+        source = asr.path; kind = 'transcript';
+        await fs.mkdir(path.join(dir, 'output'), { recursive: true, mode: 0o700 });
+        const target = path.join(dir, 'output', 'asr-receipt.json');
+        const bytes = Buffer.from(JSON.stringify(asr.receipt, null, 2));
+        try { await fs.writeFile(target, bytes, { flag: 'wx', mode: 0o600 }); }
+        catch (error) { if (error.code !== 'EEXIST' || !(await fs.readFile(target)).equals(bytes)) throw error; }
+      } finally { process.removeListener('SIGTERM', cancel); process.removeListener('SIGINT', cancel); }
+    }
     const args = [process.env.SCIENTIFIC_CLINICAL_SCRIPT,
-      `--${request.kind}`, path.join(dir, request.source), '--language', request.language,
+      `--${kind}`, source, '--language', request.language,
       '--base-url', request.platform, '--report-model', request.report_model,
       '--report-provider', request.report_provider, '--output', path.join(dir, 'output')];
     let code, lastReason, noFacts;
@@ -66,8 +83,11 @@ async function main() {
       finished_at: new Date().toISOString(), ...(code ? noFacts
         ? { error: NO_FACTS_DETAIL, error_code: NO_FACTS_CODE }
         : { error: `${lastReason === 'ReadTimeout' ? 'Report provider timed out. ' : ''}Workflow incomplete. Inspect saved receipts and resume this job; do not re-upload.` } : {}) });
-  } catch {
-    await save(path.join(dir, 'status.json'), { ...receipt, status: 'incomplete', error: 'Clinical worker could not complete.' });
+  } catch (error) {
+    const native = /^native_asr_[a-z_]+$/.test(error.code || '');
+    await save(path.join(dir, 'status.json'), { ...receipt, status: 'incomplete',
+      ...(native ? { error_code: error.code } : {}),
+      error: native ? 'Isolated English batch did not complete. Saved native receipts must be inspected; no automatic audio replay or shared-runtime fallback.' : 'Clinical worker could not complete.' });
   } finally {
     await log.close();
     await releaseSlot();

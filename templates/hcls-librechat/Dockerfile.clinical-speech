@@ -24,11 +24,11 @@ RUN NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules
 FROM ${SPEECH_BASE}
 USER root
 COPY --from=client /app/client/dist /app/client/dist
-COPY templates/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/service.cjs
+COPY templates/hcls-librechat/demos/service.cjs templates/hcls-librechat/demos/worker.cjs /opt/hcls-librechat/demos/
 COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
 COPY templates/hcls-librechat/render-config.mjs templates/hcls-librechat/seed-workbench.js /opt/hcls-librechat/
 COPY skills/scientific-ai/ /app/skill/
-COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/medical-mcp.py templates/hcls-librechat/speech/soap.cjs templates/hcls-librechat/speech/patch.mjs templates/hcls-librechat/speech/test-installed-config.cjs /opt/hcls-librechat/speech/
+COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/medical-mcp.py templates/hcls-librechat/speech/soap.cjs templates/hcls-librechat/speech/patch.mjs templates/hcls-librechat/speech/test-installed-config.cjs templates/hcls-librechat/speech/native-file.cjs templates/hcls-librechat/speech/speech-state.js /opt/hcls-librechat/speech/
 COPY templates/hcls-librechat/speech/pcm-worklet.js /app/client/dist/scientific-speech/pcm-worklet.js
 COPY templates/hcls-librechat/assets/nebius-logo.svg /app/client/dist/assets/logo.svg
 COPY templates/hcls-librechat/assets/token-factory.svg /app/client/dist/assets/token-factory.svg

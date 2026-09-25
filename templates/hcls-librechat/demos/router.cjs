@@ -16,6 +16,7 @@ async function key(req) {
   return getUserPluginAuthValue(req.user.id, 'SCIENTIFIC_MODELS_API_KEY', false, 'mcp_scientific-demos');
 }
 router.get('/settings', wrap(async (req, res) => res.json({ configured: Boolean(await key(req)),
+  english_asr: service.englishAsrBackend(),
   report_model: service.REPORT_MODEL, report_provider: service.REPORT_PROVIDER_LABEL, private_sword: 'awaiting_event_artifact', provider: 'Nebius Token Factory (global)' })));
 router.put('/settings', wrap(async (req, res) => {
   const value = req.body?.api_key;
