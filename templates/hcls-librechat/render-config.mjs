@@ -188,7 +188,7 @@ const config = {
   mcpServers: {
     ...(process.env.SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL && process.env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY ? {
       'medical-speech': {
-        title: 'Medical Nemotron Speech · dedicated endpoint',
+        title: 'Medical Nemotron Speech - dedicated endpoint',
         description: 'Fine-tuned clinical ASR: direct workspace audio upload, typed MCP submission, durable status/results/cancel. Separate from the base-model platform Apps.',
         type: 'stdio', command: '/opt/scientific-client/bin/python', args: ['/opt/hcls-librechat/speech/medical-mcp.py'],
         startup: true, initTimeout: 30000, timeout: 150000, serverInstructions: true,

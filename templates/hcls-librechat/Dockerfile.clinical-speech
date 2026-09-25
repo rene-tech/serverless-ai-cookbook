@@ -28,11 +28,12 @@ COPY templates/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/servic
 COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
 COPY templates/hcls-librechat/render-config.mjs templates/hcls-librechat/seed-workbench.js /opt/hcls-librechat/
 COPY skills/scientific-ai/ /app/skill/
-COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/medical-mcp.py templates/hcls-librechat/speech/soap.cjs templates/hcls-librechat/speech/patch.mjs /opt/hcls-librechat/speech/
+COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/medical-mcp.py templates/hcls-librechat/speech/soap.cjs templates/hcls-librechat/speech/patch.mjs templates/hcls-librechat/speech/test-installed-config.cjs /opt/hcls-librechat/speech/
 COPY templates/hcls-librechat/speech/pcm-worklet.js /app/client/dist/scientific-speech/pcm-worklet.js
 COPY templates/hcls-librechat/assets/nebius-logo.svg /app/client/dist/assets/logo.svg
 COPY templates/hcls-librechat/assets/token-factory.svg /app/client/dist/assets/token-factory.svg
 RUN node /opt/hcls-librechat/speech/patch.mjs server \
- && node /opt/hcls-librechat/brand-client.mjs /app/client/dist
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist \
+ && node /opt/hcls-librechat/speech/test-installed-config.cjs
 ARG SPEECH_REVISION=unknown
 LABEL ai.nebius.scientific.clinical-speech.revision="${SPEECH_REVISION}"
