@@ -84,6 +84,10 @@ class NoClinicalFactsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             args = self.arguments(Path(directory))
             with patch.object(workflow, 'Platform'), patch.object(workflow, 'Reporter') as reporter:
+                # Real Reporter now exposes its bounded chunk budget. Explicitly
+                # model that property instead of allowing MagicMock arithmetic
+                # to mask the unrelated provider exception tested here.
+                reporter.return_value.chunk_chars = 8500
                 reporter.return_value.complete.side_effect = ValueError('unrelated private fixture failure')
                 with self.assertRaises(ValueError):
                     workflow.run(args, key='offline-fixture')

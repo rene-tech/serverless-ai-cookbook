@@ -20,7 +20,7 @@
   "clinical-documentation/scripts/document.py": "8432d15a71f51f18f84ea17ef4c2a319d6599f1e3ce24e33f74b1e403fdd889e",
   "clinical-documentation/scripts/study_report.py": "f40e627c931f5995e19ea5b28f9a14b5f93fd9c73fee92d447b0ebd0a9cafb02",
   "clinical-documentation/scripts/test_clinical_report.py": "5a87c237f90addc2a20e5e05749b5e243d854eb5b0de82b01721774e03620ecf",
-  "clinical-documentation/scripts/test_no_clinical_facts.py": "8912e6857b5578ed6012c942ab2c160393724c1d03aadbe00156939a2ed3f845",
+  "clinical-documentation/scripts/test_no_clinical_facts.py": "ad8fb8a671126112d96f6f7c9cda66ba81aba5baab3ea85f0e28763bf54dffd3",
   "clinical-documentation/scripts/test_source_anchors.py": "ce9a21a74010b73a44d25b7258d499fcc6b0156f1c72e662c0385fc618fc6999",
   "clinical-documentation/scripts/test_source_attribution.py": "d34dabbc85d3b26f40820c1a00739ae530c196340559eeb06670b4a912056136",
   "clinical-documentation/scripts/test_source_coverage.py": "57523b818cc5f46cc92d1dbb772e461f1887e9cfa5a3fe7d110bcb8bc207f8d5",
