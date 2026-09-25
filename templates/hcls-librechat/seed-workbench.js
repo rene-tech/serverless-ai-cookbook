@@ -205,6 +205,13 @@ For acceptance, use complete representative recordings and reference transcripts
 }
 
 async function seedAgent({ agents: collection, aclEntries, owner, now, definition }) {
+  if (process.env.SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL && process.env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY
+      && ['agent_nebius_scientific_ai', 'agent_audio_transcription_tutorial'].includes(definition.id)) {
+    definition.tools = [...definition.tools, ...['describe_clinical_asr', 'upload_clinical_workspace_audio',
+      'transcribe_clinical_audio', 'get_clinical_transcription', 'cancel_clinical_transcription'].map((name) => `${name}_mcp_medical-speech`)];
+    definition.mcpServerNames = [...definition.mcpServerNames, 'medical-speech'];
+    definition.instructions += `\n\nFor the fine-tuned medical Nemotron demo, use the separately configured medical-speech MCP, not the existing base-model Apps. First call describe_clinical_asr_mcp_medical-speech and state its actual checkpoint identity. Read an existing workspace WAV with upload_clinical_workspace_audio_mcp_medical-speech; it transfers bytes directly without base64 or LLM copying. Pass only its immutable artifact to transcribe_clinical_audio_mcp_medical-speech with one stable idempotency key, then poll get_clinical_transcription_mcp_medical-speech. Use its saved transcript and authenticated Workspace links; if requested, generate a physician-reviewed draft with clinical_report_from_workspace. The existing English microphone remains the default. Do not claim model improvement or held-out status without measured split/checkpoint evidence.`;
+  }
   await collection.updateOne(
     { id: definition.id },
     {

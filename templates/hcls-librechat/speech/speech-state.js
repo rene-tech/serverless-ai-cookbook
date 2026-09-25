@@ -8,7 +8,9 @@ export function transcriptEvent(segments, event) {
   if (!old || (revision >= old.revision && !(old.final && event.type === 'transcript.partial'))) {
     segments.set(id, { text: event.text, revision, final: event.type === 'transcript.final' });
   }
-  return [...segments.values()].map((item) => item.text.trim()).filter(Boolean).join(' ');
+  // NeMo owns whitespace and may finalize mid-word; inserting spaces between
+  // segments corrupts words (e.g. "sor" + "ry") and no-space languages.
+  return [...segments.values()].map((item) => item.text).join('').trim();
 }
 export function wavBlob(chunks) {
   const size = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
@@ -19,4 +21,20 @@ export function wavBlob(chunks) {
   view.setUint32(24, 16000, true); view.setUint32(28, 32000, true); view.setUint16(32, 2, true);
   view.setUint16(34, 16, true); ascii(36, 'data'); view.setUint32(40, size, true);
   return new Blob([header, ...chunks], { type: 'audio/wav' });
+}
+
+export function acousticWords(event) {
+  // Word items omit inter-word spaces, but a chunk can begin mid-word. Partition
+  // the exact final string using its acoustic items; do not guess word boundaries.
+  let cursor = 0;
+  const words = (event.items || []).map((word) => {
+    const token = word.text.trim();
+    const start = event.text.indexOf(token, cursor);
+    if (!token || start < cursor) throw new Error('Acoustic items do not match the final transcript');
+    const end = start + token.length;
+    const result = { ...word, render_text: event.text.slice(cursor, end) };
+    cursor = end; return result;
+  });
+  if (words.length) words[words.length - 1].render_text += event.text.slice(cursor);
+  return words;
 }

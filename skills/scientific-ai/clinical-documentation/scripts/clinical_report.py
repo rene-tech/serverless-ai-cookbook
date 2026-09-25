@@ -209,10 +209,30 @@ def parse_completion(response):
     return result
 
 
+def report_limits():
+    """Optional operator limits; never truncate a clinical source to fit."""
+    limits = {}
+    for key, variable, minimum, maximum in (
+        ("max_output_tokens", "CLINICAL_REPORT_MAX_OUTPUT_TOKENS", 256, 16384),
+        ("context_tokens", "CLINICAL_REPORT_CONTEXT_TOKENS", 2048, 131072),
+        ("chunk_chars", "CLINICAL_REPORT_CHUNK_CHARS", 1000, 8500),
+        ("review_workers", "CLINICAL_REPORT_REVIEW_WORKERS", 1, 3),
+    ):
+        if os.getenv(variable):
+            value = int(os.environ[variable])
+            if not minimum <= value <= maximum:
+                raise ValueError(f"{variable} outside supported bounds")
+            limits[key] = value
+    return limits
+
+
 class Reporter:
     def __init__(self, platform, model, provider_url=None, provider_key=None):
         self.platform, self.model = platform, model
         self.provider = None
+        self.limits = report_limits()
+        self.chunk_chars = self.limits.get("chunk_chars", 8500)
+        self.review_workers = self.limits.get("review_workers", 3)
         if provider_url:
             if not provider_key:
                 raise ValueError("CLINICAL_REPORT_API_KEY is required for an explicitly selected external report provider")
@@ -222,6 +242,8 @@ class Reporter:
             ids = {x["id"] for x in check(self.provider.get("models")).json()["data"]}
             if model not in ids:
                 raise ValueError("report model absent from the selected provider catalog")
+        if self.limits.get("context_tokens") and not self.provider:
+            raise ValueError("A context-limited report backend must expose an authenticated /tokenize route")
 
     def complete(self, stage, prompt, data):
         body = {"model": self.model, "messages": [{"role": "system", "content": prompt},
@@ -232,12 +254,33 @@ class Reporter:
                     "schema": completion_schema(stage, data)}}}
         if self.model in {"qwen3-8b", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"}:
             body["chat_template_kwargs"] = {"enable_thinking": False}
+        if self.limits.get("max_output_tokens"):
+            body["max_tokens"] = min(body["max_tokens"], self.limits["max_output_tokens"])
+        budget = None
+        if self.limits.get("context_tokens"):
+            # vLLM's tokenizer applies the actual deployed chat template. Do not
+            # estimate medical text by character count or silently cut evidence.
+            body["chat_template_kwargs"] = {"enable_thinking": False}
+            parsed = urlparse(str(self.provider.base_url))
+            tokenize_url = parsed._replace(path="/tokenize", params="", query="", fragment="").geturl()
+            counted = check(self.provider.post(tokenize_url, json={
+                "model": self.model, "messages": body["messages"],
+                "add_generation_prompt": True, "chat_template_kwargs": body["chat_template_kwargs"]})).json()
+            count, capacity = counted.get("count"), counted.get("max_model_len")
+            if type(count) is not int or type(capacity) is not int or count < 0 or capacity <= 0:
+                raise ValueError("Report tokenizer did not return a valid exact context count")
+            budget = {"input_tokens": count, "max_output_tokens": body["max_tokens"],
+                      "context_tokens": min(capacity, self.limits["context_tokens"]), "reserve_tokens": 64}
+            if count + body["max_tokens"] + 64 > budget["context_tokens"]:
+                raise ValueError("clinical_context_budget_exceeded: source retained unchanged; choose a larger context or a separately versioned smaller-chunk run")
         if not self.provider:
             response = self.platform.operation(stage, "/v1/chat/completions", body)
         else:
             folder = self.platform.output / "calls" / stage
             cache = folder / "response.json"
             request = {"body": body, "provider": str(self.provider.base_url)}
+            if budget:
+                request["context_budget"] = budget
             if cache.exists():
                 if read(folder / "request.json") != request:
                     raise ValueError("provider request changed")
@@ -262,7 +305,7 @@ def document_transcript(text, language, reporter, output):
         raise ValueError("empty transcript: no consultation report generated")
     facts, uncertainties, rejected, kinds, coverage = [], [], [], [], []
     next_id = 1
-    for index, chunk in enumerate(chunks(text)):
+    for index, chunk in enumerate(chunks(text, size=getattr(reporter, "chunk_chars", 8500))):
         chunk["segments"] = source_segments(chunk)
         data = {"language": language, "segments": [{"id": s["id"], "text": s["text"]} for s in chunk["segments"]]}
         value = reporter.complete(f"extract-{index:03}", EXTRACT, data)
@@ -308,7 +351,7 @@ def document_transcript(text, language, reporter, output):
                 return kept, dropped
 
             # Bounded client parallelism, not a platform/provider quota change.
-            with ThreadPoolExecutor(max_workers=3) as pool:
+            with ThreadPoolExecutor(max_workers=getattr(reporter, "review_workers", 3)) as pool:
                 checked = list(pool.map(review_one, current))
             current = [fact for kept, _ in checked for fact in kept]
             rejected.extend(item for _, dropped in checked for item in dropped)
@@ -378,6 +421,8 @@ def run(args, key=None, provider_key=None):
               "language": args.language, "asr_model": asr_model, "report_model": args.report_model,
               "report_provider": args.report_provider, "platform": args.base_url,
               "prompt_sha256": digest([EXTRACT, VERIFY, QUESTIONS, LOCATE]), "chunk_size": 8500}
+    if limits := report_limits():
+        config.update(report_limits=limits, chunk_size=limits.get("chunk_chars", 8500))
     output = args.output
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
     manifest_path = output / "run.json"

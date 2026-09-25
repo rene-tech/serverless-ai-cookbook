@@ -22,6 +22,12 @@ def test_overlap_and_low_confidence_are_not_forced_to_a_person():
     assert result['words'][0]['flag'] == 'overlap'
     assert result['words'][1]['speaker'] == 'uncertain'
 
+def test_exact_asr_rendering_keeps_midword_final_chunks_and_spaces():
+    words = [{**word(text, i * .1, (i + 1) * .1), 'render_text': rendered}
+             for i, (text, rendered) in enumerate([(' sor', ' sor'), ('ry', 'ry'), ('to', ' to'), ('hear', ' hear')])]
+    result = module.attribute_words(words, events([[.9, 0, 0, 0]] * 4), .4)
+    assert result['turns'][0]['text'] == 'sorry to hear'
+
 @pytest.mark.parametrize('words', [[word('bad', 1, 0)], [word('bad', 0, 50)], [], [word('bad', float('nan'), .1)]])
 def test_invalid_or_absent_asr_timings_never_fabricate_alignment(words):
     with pytest.raises(ValueError):

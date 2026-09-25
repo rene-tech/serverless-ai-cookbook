@@ -26,7 +26,9 @@ USER root
 COPY --from=client /app/client/dist /app/client/dist
 COPY templates/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/service.cjs
 COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
-COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/patch.mjs /opt/hcls-librechat/speech/
+COPY templates/hcls-librechat/render-config.mjs templates/hcls-librechat/seed-workbench.js /opt/hcls-librechat/
+COPY skills/scientific-ai/ /app/skill/
+COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/medical-mcp.py templates/hcls-librechat/speech/patch.mjs /opt/hcls-librechat/speech/
 COPY templates/hcls-librechat/speech/pcm-worklet.js /app/client/dist/scientific-speech/pcm-worklet.js
 COPY templates/hcls-librechat/assets/nebius-logo.svg /app/client/dist/assets/logo.svg
 COPY templates/hcls-librechat/assets/token-factory.svg /app/client/dist/assets/token-factory.svg

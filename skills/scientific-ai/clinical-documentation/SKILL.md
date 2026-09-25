@@ -275,10 +275,24 @@ platform key. Changing models requires quality testing, not just catalog
 discovery. The provider comparison results and negative runs are documented in
 the solution's `acceptance/clinical-documentation-20260917/README.md`.
 
+An isolated demo may explicitly select a dedicated Fastino healthcare endpoint.
+That is a separate report model, not the ASR checkpoint or a qualified substitute
+for the tested profile. Keep the provider/model identity visible and evaluate its
+drafts separately. Bounded deployments can set `CLINICAL_REPORT_MAX_OUTPUT_TOKENS`
+(for example 2048), `CLINICAL_REPORT_CONTEXT_TOKENS` (8192),
+`CLINICAL_REPORT_CHUNK_CHARS` (3500) and `CLINICAL_REPORT_REVIEW_WORKERS` (1).
+The context-limited profile requires the same authenticated vLLM origin's
+`/tokenize` route: exact chat-template tokens plus output and a 64-token reserve
+must fit before inference. A tokenizer or budget failure stops the run with the
+original source retained; never trim clinical evidence to force success. These
+limits are saved in run/request receipts; changing them requires a new run.
+
 The report is a consultation-note/Arztbrief draft, not a discharge summary,
 clinical decision, or signed document. Speaker identity is not established by
 the default ASR. Do not infer patient/clinician identity from voice alone.
-Recorded audio is supported; live microphone capture requires a separate client.
+Recorded audio is supported; a client may additionally provide live PCM capture
+and a separate Sortformer speaker pass. Anonymous model speakers require explicit
+human role assignment and transcript review before a draft is generated.
 Long transcripts are chunked without truncation. Questions are omitted with an
 explicit notice if the complete fact set exceeds the question context budget;
 no completeness claim is made for long or multi-encounter recordings. Separate

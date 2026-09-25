@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { request } from 'librechat-data-provider';
 import { useSearchParams } from 'react-router-dom';
 import { Mic, Square, X } from 'lucide-react';
-import { transcriptEvent, wavBlob } from './speech-state';
+import { acousticWords, transcriptEvent, wavBlob } from './speech-state';
 
 type Model = { key: string; id: string; label: string };
 type Event = { type: string; text?: string; segment_id?: string; sequence?: number; revision?: number;
@@ -155,7 +155,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
           if (event.type === 'transcript.partial' || event.type === 'transcript.final') {
             const value = transcriptEvent(segments.current, event);
             transcript.current = value; setText(value); handlers.current.onTranscript?.(value);
-            if (event.type === 'transcript.final' && event.items) run.words.set(String(event.segment_id ?? event.sequence), event.items);
+            if (event.type === 'transcript.final' && event.items) run.words.set(String(event.segment_id ?? event.sequence), acousticWords(event));
             if (value && run.first === undefined) { run.first = performance.now() - run.started; setMetrics((old) => ({ ...old, first: run.first })); }
           }
           if (event.type === 'session.completed') {

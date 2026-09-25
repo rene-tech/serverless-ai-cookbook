@@ -62,10 +62,11 @@ def attribute_words(words, events, duration):
     turns = []
     for word in attributed:
         if turns and turns[-1]['speaker'] == word['speaker'] and word['start_seconds'] - turns[-1]['end_seconds'] < 1.5:
-            turns[-1]['text'] += ' ' + word['text'].strip()
+            turns[-1]['text'] += word.get('render_text', ' ' + word['text'].strip())
             turns[-1]['end_seconds'] = word['end_seconds']
         else:
             turns.append({name: word[name] for name in ('speaker', 'start_seconds', 'end_seconds', 'text', 'flag')})
+            turns[-1]['text'] = word.get('render_text', word['text']).strip()
     return {'words': attributed, 'turns': turns,
             'thresholds': {'active_probability': .5, 'minimum_margin': .1, 'minimum_time_coverage': .5},
             'limitations': ['Anonymous speaker channels are not identities or clinician/patient roles.',

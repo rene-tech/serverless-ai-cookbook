@@ -9,6 +9,12 @@ const PLATFORM = (process.env.SCIENTIFIC_MODELS_API_BASE_URL || 'https://89.169.
 const REPORT_MODEL = process.env.CLINICAL_REPORT_MODEL || 'Qwen/Qwen3-235B-A22B-Instruct-2507';
 const REPORT_PROVIDER = process.env.CLINICAL_REPORT_BASE_URL || 'https://api.tokenfactory.nebius.com/v1';
 const REPORT_PROVIDER_LABEL = process.env.CLINICAL_REPORT_PROVIDER_LABEL || (process.env.CLINICAL_REPORT_BASE_URL ? 'Dedicated clinical report endpoint' : 'Nebius Token Factory');
+const REPORT_LIMITS = Object.fromEntries(Object.entries({
+  CLINICAL_REPORT_MAX_OUTPUT_TOKENS: process.env.CLINICAL_REPORT_MAX_OUTPUT_TOKENS || (process.env.CLINICAL_REPORT_BASE_URL ? '2048' : ''),
+  CLINICAL_REPORT_CONTEXT_TOKENS: process.env.CLINICAL_REPORT_CONTEXT_TOKENS || (process.env.CLINICAL_REPORT_BASE_URL ? '8192' : ''),
+  CLINICAL_REPORT_CHUNK_CHARS: process.env.CLINICAL_REPORT_CHUNK_CHARS || (process.env.CLINICAL_REPORT_BASE_URL ? '3500' : ''),
+  CLINICAL_REPORT_REVIEW_WORKERS: process.env.CLINICAL_REPORT_REVIEW_WORKERS || (process.env.CLINICAL_REPORT_BASE_URL ? '1' : ''),
+}).filter(([, value]) => value));
 function reportCredential() {
   // Never send a Token Factory key to an explicitly selected external endpoint.
   return process.env.CLINICAL_REPORT_API_KEY || (!process.env.CLINICAL_REPORT_BASE_URL ? process.env.NEBIUS_API_KEY : '') || '';
@@ -604,6 +610,7 @@ async function start(owner, key, id) {
   const request = await read(path.join(dir, 'request.json'));
   if (request.key_hash !== hash(privateKey(key))) throw failure('Resume with the original submitting platform key.', 409);
   if (request.report_model !== REPORT_MODEL || request.report_provider !== REPORT_PROVIDER) throw failure('Report backend changed. Restore its original configuration to resume this job; do not mix model outputs.', 409);
+  if (JSON.stringify(request.report_limits || {}) !== JSON.stringify(REPORT_LIMITS)) throw failure('Report context/output limits changed. Restore the original settings or use a new job.', 409);
   let lock;
   try { lock = await fs.open(path.join(dir, 'launch.lock'), 'wx', 0o600); }
   catch { throw failure('A launch is already in progress. Refresh job status.', 409); }
@@ -614,6 +621,7 @@ async function start(owner, key, id) {
     const worker = spawn(process.execPath, [path.join(__dirname, 'worker.cjs'), dir], {
       detached: true, stdio: 'ignore', env: { PATH: process.env.PATH, LANG: 'C.UTF-8',
         FS2_API_KEY: key, CLINICAL_REPORT_API_KEY: reportCredential(),
+        ...REPORT_LIMITS,
         SCIENTIFIC_CLINICAL_PYTHON: process.env.SCIENTIFIC_CLINICAL_PYTHON || '/opt/clinical-client/bin/python',
         SCIENTIFIC_CLINICAL_SCRIPT: process.env.SCIENTIFIC_CLINICAL_SCRIPT || '/app/skill/clinical-documentation/scripts/clinical_report.py' },
     });
@@ -660,7 +668,7 @@ async function clinical(owner, key, input) {
   await save(path.join(dir, 'request.json'), { source, kind: input.kind, language: input.language,
     signature, key_hash: hash(key), created_at: new Date().toISOString(), platform: PLATFORM,
     input_sha256: inputDigest, input_size_bytes: size, source_workspace: input.source_workspace,
-    report_model: REPORT_MODEL, report_provider: REPORT_PROVIDER });
+    report_model: REPORT_MODEL, report_provider: REPORT_PROVIDER, report_limits: REPORT_LIMITS });
   await save(path.join(dir, 'status.json'), { id, status: 'prepared', created_at: new Date().toISOString() });
   return start(owner, key, id);
 }

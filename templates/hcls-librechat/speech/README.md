@@ -16,6 +16,7 @@ the versioned Scientific AI UI and replaces the actual composer microphone.
 | `SCIENTIFIC_MODELS_API_BASE_URL` | Existing Scientific AI API ending `/v1` |
 | `SCIENTIFIC_MODELS_MCP_URL` | Existing hosted MCP URL |
 | `SCIENTIFIC_MEDICAL_SPEECH_URL` | Medical adapter HTTPS or WSS `/v1/audio/stream`; absence hides medical selector |
+| `SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL` | Same dedicated endpoint's HTTPS origin, without `/v1`; enables typed agent MCP and direct workspace-byte upload |
 | `SCIENTIFIC_MEDICAL_SPEECH_API_KEY` | Server-only adapter bearer, supplied through the deployment secret mechanism |
 | `SCIENTIFIC_MEDICAL_SPEECH_MODEL` | Default `nemotron-clinical-en` |
 | `SCIENTIFIC_SPEECH_JOBS_DIR` | Private local receipts; default `/data/hcls-speech` |
@@ -23,6 +24,8 @@ the versioned Scientific AI UI and replaces the actual composer microphone.
 | `CLINICAL_REPORT_BASE_URL` | Optional dedicated OpenAI-compatible HTTPS `/v1` endpoint, e.g. self-hosted Fastino; requires its own `CLINICAL_REPORT_API_KEY` |
 | `CLINICAL_REPORT_MODEL` | Optional clinical text model ID; defaults to `Qwen/Qwen3-235B-A22B-Instruct-2507` |
 | `CLINICAL_REPORT_PROVIDER_LABEL` | Optional public UI label (never put credentials in it) |
+| `CLINICAL_REPORT_MAX_OUTPUT_TOKENS` / `CLINICAL_REPORT_CONTEXT_TOKENS` | Custom backend defaults 2048 / 8192; exact authenticated `/tokenize` count before inference |
+| `CLINICAL_REPORT_CHUNK_CHARS` / `CLINICAL_REPORT_REVIEW_WORKERS` | Custom backend defaults 3500 / 1; preserve full source with overlapping chunks, not truncation |
 
 Leave `SCIENTIFIC_STUDY_OWNER_MODE` **unset** on a parallel demo instance; do not
 claim ownership of another running client's autonomous scientific-study worker.
@@ -34,6 +37,13 @@ The optional clinical provider does not change the user's chat model. A Token
 Factory key is never used as fallback for a separately configured endpoint.
 Changing provider/model blocks resume of older report jobs until their original
 configuration is restored, preventing mixtures of untracked model outputs.
+The dedicated `medical-speech` MCP bridge reads only files in the isolated mounted
+workspace, transfers WAV bytes over authenticated HTTP, and passes only immutable
+artifact references through typed remote tools. It saves exact completed output
+bytes and hashes back to Workspace. The primary Scientific AI and Audio Guide
+agents gain these tools only when the dedicated endpoint is explicitly configured.
+The medical endpoint has demo-level authentication, not platform per-user tenant
+isolation. This deployment must remain single-tenant with registration disabled.
 
 ## Paths and guarantees
 
