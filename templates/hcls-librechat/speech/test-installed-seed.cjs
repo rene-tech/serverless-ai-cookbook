@@ -15,12 +15,13 @@ async function main() {
   try {
     assert.deepEqual(await fs.readFile('/app/seed-hcls-workbench.js'), await fs.readFile('/opt/hcls-librechat/seed-workbench.js'), 'Installed startup seeder must match the versioned candidate');
     const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(SCIENTIFIC_|SEED_|CLINICAL_|NEBIUS_|MONGO_)/.test(key)));
-    for (const medical of [false, true]) {
-      const uri = `mongodb://127.0.0.1:27919/clinical_seed_${medical ? 'medical' : 'default'}`;
+    for (const [medical, english] of [[false, false], [false, true], [true, false], [true, true]]) {
+      const uri = `mongodb://127.0.0.1:27919/clinical_seed_${medical}_${english}`;
       const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       try {
         execFileSync('node', ['/app/seed-hcls-workbench.js'], { env: { ...env, MONGO_URI: uri,
+          ...(english ? { SCIENTIFIC_ENGLISH_SPEECH_URL: 'https://english.invalid/v1/audio/stream' } : {}),
           ...(medical ? { SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL: 'https://medical.invalid', SCIENTIFIC_MEDICAL_SPEECH_API_KEY: 'synthetic-only-not-a-secret' } : {}) }, stdio: 'pipe' });
         const db = client.db();
         for (const id of ['agent_nebius_scientific_ai', 'agent_audio_transcription_tutorial']) {
@@ -29,6 +30,8 @@ async function main() {
           assert.equal(agent.mcpServerNames.includes('medical-speech'), medical);
           for (const tool of tools) assert.equal(agent.tools.includes(tool), medical, `Missing actual seeded tool ${tool}`);
           if (medical) assert(agent.instructions.includes('separately configured medical-speech MCP'));
+          assert.equal(agent.instructions.includes('Do not call the legacy platform English App'), english);
+          if (medical) assert(agent.instructions.includes('dedicated medical Serverless endpoint, not the Scientific AI platform operation service'));
           const acl = await db.collection('aclentries').findOne({ principalType: 'public', resourceType: 'agent', resourceId: agent._id });
           assert.equal(acl?.permBits, 1, 'Ordinary users retain view access, not public mutation');
         }
