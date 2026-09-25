@@ -1,0 +1,32 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+const { hash } = require('./soap.cjs');
+test('review acknowledgement is user-scoped, hash-bound and does not mutate report/source', async()=>{
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(),'clinical-soap-test-'));
+  process.env.SCIENTIFIC_DEMOS_DIR=directory;
+  const service=require('../demos/service.cjs');
+  const owner='synthetic-user', id='a'.repeat(32), source='No fever.';
+  const dir=path.join(directory,hash(owner),id), output=path.join(dir,'output');
+  await fs.mkdir(output,{recursive:true});
+  const document={transcript_sha256:hash(source),facts:[],rejected:[]};
+  const request={created_at:'2026-09-25T00:00:00Z',kind:'transcript',input_sha256:hash(source),report_model:'test-model',report_provider:'https://report.test/v1',reviewed_source:{speaker_job:'b'.repeat(32),previous_draft:'c'.repeat(32),previous_input_sha256:'d'.repeat(64)}};
+  await service.save(path.join(dir,'request.json'),request);
+  await service.save(path.join(dir,'status.json'),{status:'completed',created_at:request.created_at});
+  await fs.writeFile(path.join(output,'document.json'),JSON.stringify(document));
+  await fs.writeFile(path.join(output,'transcript.txt'),source);
+  const first=await service.soap(owner,id);
+  assert.equal(first.demo_review,null);
+  assert.deepEqual(first.provenance.reviewed_source,request.reviewed_source);
+  await assert.rejects(service.soap('another-user',id),/not found/);
+  await assert.rejects(service.reviewSoap(owner,id,{document_sha256:'wrong',attestation:'reviewed-demo-draft-not-clinical-signoff'}),/exact document/);
+  const review=await service.reviewSoap(owner,id,{document_sha256:first.provenance.document_sha256,attestation:'reviewed-demo-draft-not-clinical-signoff'});
+  assert.equal(review.clinical_signoff,false); assert.equal(review.actor_user,hash(owner));
+  const again=await service.reviewSoap(owner,id,{document_sha256:first.provenance.document_sha256,attestation:'reviewed-demo-draft-not-clinical-signoff'});
+  assert.deepEqual(review,again);
+  assert.equal(await fs.readFile(path.join(output,'transcript.txt'),'utf8'),source);
+  assert.equal(hash(await fs.readFile(path.join(output,'document.json'))),first.provenance.document_sha256);
+  await fs.rm(directory,{recursive:true}); // Exact mkdtemp-owned synthetic test tree only.
+});

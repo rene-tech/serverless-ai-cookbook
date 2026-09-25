@@ -647,10 +647,27 @@ async function clinical(owner, key, input) {
   if (!(input.kind === 'audio' ? ['.wav', '.flac', '.mp3', '.ogg', '.m4a', '.mp4', '.webm'] : ['.txt', '.json']).includes(ext)) throw failure('Unsupported input format.');
   const size = input.local_path ? (await fs.stat(input.local_path)).size : input.bytes?.length;
   if (!size || size > 512 * 1024 * 1024 || (!input.local_path && !Buffer.isBuffer(input.bytes))) throw failure('Upload a nonempty file, at most 512 MiB.');
+  let reviewedSource;
+  if (input.reviewed_source) {
+    if (input.kind !== 'transcript') throw failure('Live review provenance requires a transcript.');
+    const supplied = JSON.parse(input.reviewed_source);
+    if (supplied.reviewed !== true) throw failure('Explicit transcript review is required.');
+    const source = supplied.speaker_job ? await require('../speech/diarization.cjs').reviewSource(owner, supplied.speaker_job) : {};
+    const roles = Object.fromEntries(Object.entries(supplied.roles || {}).filter(([name, role]) => /^speaker_[0-3]$/.test(name) && ['Clinician', 'Patient', 'Other'].includes(role)));
+    reviewedSource = { ...source, roles, reviewer_user: hash(owner), reviewed_at: new Date().toISOString(),
+      attestation: 'User marked transcript reviewed for demonstration; not clinical sign-off.' };
+    if (supplied.previous_draft) {
+      const previous = await read(path.join(directory(owner, supplied.previous_draft), 'request.json'));
+      if (previous.reviewed_source?.speaker_job !== source.speaker_job) throw failure('Regenerated draft must retain the same reviewed audio source.');
+      reviewedSource.previous_draft = supplied.previous_draft;
+      reviewedSource.previous_input_sha256 = previous.input_sha256;
+    }
+  }
   const id = hash(input.idempotency_key).slice(0, 32);
   const dir = directory(owner, id);
   const inputDigest = input.local_path ? await fileHash(input.local_path) : hash(input.bytes);
-  const signature = hash(JSON.stringify([inputDigest, input.kind, input.language]));
+  const signature = hash(JSON.stringify([inputDigest, input.kind, input.language,
+    ...(input.reviewed_source ? [input.reviewed_source] : [])]));
   await fs.mkdir(path.dirname(dir), { recursive: true, mode: 0o700 });
   try { await fs.mkdir(dir, { mode: 0o700 }); }
   catch (error) {
@@ -668,6 +685,7 @@ async function clinical(owner, key, input) {
   await save(path.join(dir, 'request.json'), { source, kind: input.kind, language: input.language,
     signature, key_hash: hash(key), created_at: new Date().toISOString(), platform: PLATFORM,
     input_sha256: inputDigest, input_size_bytes: size, source_workspace: input.source_workspace,
+    ...(reviewedSource ? { reviewed_source: reviewedSource } : {}),
     report_model: REPORT_MODEL, report_provider: REPORT_PROVIDER, report_limits: REPORT_LIMITS });
   await save(path.join(dir, 'status.json'), { id, status: 'prepared', created_at: new Date().toISOString() });
   return start(owner, key, id);
@@ -686,6 +704,29 @@ async function output(owner, id, filename) {
   try { return await fs.readFile(path.join(directory(owner, id), 'output', filename)); }
   catch (error) { if (error.code === 'ENOENT') throw failure('This report file has not been produced. Check job status.', 409); throw error; }
 }
+async function soap(owner, id) {
+  if ((await status(owner, id)).status !== 'completed') throw failure('Wait for the accepted document before opening SOAP.', 409);
+  const dir = directory(owner, id);
+  const [documentBytes, transcriptBytes, request] = await Promise.all([output(owner, id, 'document.json'), output(owner, id, 'transcript.txt'), read(path.join(dir, 'request.json'))]);
+  const value = require('../speech/soap.cjs').buildSoap(JSON.parse(documentBytes), transcriptBytes.toString('utf8'), {
+    job_id: id, document_sha256: hash(documentBytes), transcript_sha256: hash(transcriptBytes),
+    submitted_input_sha256: request.input_sha256, report_model: request.report_model,
+    report_provider: request.report_provider, reviewed_source: request.reviewed_source || null });
+  value.demo_review = await read(path.join(dir, 'demo-review.json')).catch(() => null);
+  if (value.demo_review && value.demo_review.document_sha256 !== value.provenance.document_sha256) throw failure('Saved demo review belongs to different document bytes; original evidence must not be overwritten.', 409);
+  return value;
+}
+async function reviewSoap(owner, id, input) {
+  const current = await soap(owner, id);
+  if (input?.attestation !== 'reviewed-demo-draft-not-clinical-signoff' || input.document_sha256 !== current.provenance.document_sha256) throw failure('Review must identify this exact document and explicitly remain a demo acknowledgement.', 409);
+  const file = path.join(directory(owner, id), 'demo-review.json');
+  const review = { schema: 'clinical-demo/review/v1', job_id: id, actor_user: hash(owner),
+    document_sha256: input.document_sha256, transcript_sha256: current.provenance.transcript_sha256,
+    reviewed_at: new Date().toISOString(), attestation: input.attestation, clinical_signoff: false };
+  try { await fs.writeFile(file, JSON.stringify(review), { mode: 0o600, flag: 'wx' }); }
+  catch (error) { if (error.code !== 'EEXIST') throw error; }
+  return read(file);
+}
 async function clinicalOutput(owner, key, id, filename) {
   const bytes = await output(owner, id, filename);
   const workspace_file = await retainWorkspaceBytes(key,
@@ -699,5 +740,5 @@ async function analyzeWorkspace(kind, key, args) {
     : kind === 'docking-batch' ? analysis.dockingBatch(key, args, { workspaceGet, retainWorkspaceBytes })
     : analysis.compare(kind, key, args, { workspaceGet, retainWorkspaceBytes });
 }
-module.exports = { platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
+module.exports = { platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, soap, reviewSoap, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
   workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL, REPORT_PROVIDER_LABEL, reportCredential };

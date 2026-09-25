@@ -82,4 +82,14 @@ function installRoutes(router, { key }) {
   }));
   router.post('/speech/diarization/:id/resume', wrap(async (req, res) => res.json(await run(req.user.id, await key(req), req.params.id))));
 }
-module.exports = { installRoutes };
+async function reviewSource(owner, id) {
+  const dir = directory(owner, id);
+  const request = await reading(path.join(dir, 'request.json'));
+  const resultBytes = await fs.readFile(path.join(dir, 'result.json'));
+  const result = JSON.parse(resultBytes);
+  return { speaker_job: id, audio_sha256: hash(await fs.readFile(path.join(dir, 'input.wav'))),
+    speaker_result_sha256: hash(resultBytes), asr_model: request.asr_model,
+    diarization_operation_id: result.operation_id,
+    anonymous_transcript_sha256: hash(result.turns.map((turn) => `[${turn.speaker}] ${turn.text}`).join('\n')) };
+}
+module.exports = { installRoutes, reviewSource };

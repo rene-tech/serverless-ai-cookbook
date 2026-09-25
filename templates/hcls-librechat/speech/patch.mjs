@@ -11,10 +11,13 @@ if (mode === 'client') {
   await replace('/app/client/src/components/Chat/Input/ChatForm.tsx',
     '{SpeechToText && (', '{true && (');
   await replace('/app/client/src/components/ScientificDemos.tsx',
-    "import { useEffect, useState } from 'react';", "import { useEffect, useState } from 'react';\nimport LiveSpeech from './LiveSpeech';");
+    "import { useEffect, useState } from 'react';", "import { useEffect, useState } from 'react';\nimport LiveSpeech from './LiveSpeech';\nimport ClinicalSoap from './ClinicalSoap';");
   await replace('/app/client/src/components/ScientificDemos.tsx',
     '<h2 className="text-xl font-semibold">Transcript or recording → report draft</h2>',
     '<LiveSpeech /><h2 className="text-xl font-semibold">Transcript or recording → report draft</h2>');
+  await replace('/app/client/src/components/ScientificDemos.tsx',
+    '        })}>{name}</Button>)}</div>\n      </article>)}',
+    '        })}>{name}</Button>)}</div>\n        {job.status === \'completed\' && <ClinicalSoap jobId={job.id} />}\n      </article>)}');
 } else if (mode === 'server') {
   await replace('/app/api/server/routes/scientific-demos.js',
     'router.use((error, _req, res, _next) => {',

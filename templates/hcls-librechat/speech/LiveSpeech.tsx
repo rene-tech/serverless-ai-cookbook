@@ -28,6 +28,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
   const [draftBusy, setDraftBusy] = useState(false);
   const [draftJob, setDraftJob] = useState('');
   const draftId = useRef(crypto.randomUUID());
+  const previousDraft = useRef('');
   const speakerId = useRef(crypto.randomUUID());
   const [speaker, setSpeaker] = useState<SpeakerJob | null>(null);
   const [speakerBusy, setSpeakerBusy] = useState(false);
@@ -44,6 +45,10 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
     request.get<{ data: Model[] }>(`${BASE}/models`).then((value) => setModels(value.data))
       .catch(() => setError('Sign in to configure speech.'));
     const previous = params.get('speech_job');
+    const priorDraft = params.get('job');
+    if (!compact && previous && priorDraft && /^[a-f0-9]{32}$/.test(priorDraft)) {
+      previousDraft.current = priorDraft; setDraftJob(priorDraft);
+    }
     if (!compact && previous && /^[a-f0-9]{32}$/.test(previous)) {
       request.get<SpeakerJob>(`${BASE}/diarization/${previous}`).then((value) => {
         setSpeaker(value); setState('completed');
@@ -105,7 +110,8 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
     current.current = run; segments.current = new Map(); transcript.current = '';
     setText(''); setAudio(null); setError(''); setMetrics({}); setReport(''); setDraftJob(''); draftId.current = crypto.randomUUID(); setReviewed(false); setState('connecting');
     setSpeaker(null); setRoles({}); speakerId.current = crypto.randomUUID();
-    if (!compact && params.has('speech_job')) { const updated = new URLSearchParams(params); updated.delete('speech_job'); setParams(updated, { replace: true }); }
+    previousDraft.current = '';
+    if (!compact && (params.has('speech_job') || params.has('job'))) { const updated = new URLSearchParams(params); updated.delete('speech_job'); updated.delete('job'); setParams(updated, { replace: true }); }
     handlers.current.onStart?.();
     try {
       // Acquire microphone permission only as the direct consequence of a click.
@@ -180,8 +186,12 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
       const data = new FormData();
       data.append('file', new File([text], 'reviewed-live-transcript.txt', { type: 'text/plain' }));
       data.append('kind', 'transcript'); data.append('language', 'en'); data.append('idempotency_key', draftId.current);
+      data.append('reviewed_source', JSON.stringify({ reviewed: true, speaker_job: speaker?.id, roles,
+        ...(previousDraft.current ? { previous_draft: previousDraft.current } : {}) }));
       const job = await request.postMultiPart('/api/scientific-demos/clinical', data) as { id: string };
       setDraftJob(job.id);
+      previousDraft.current = job.id;
+      const updated = new URLSearchParams(params); updated.set('job', job.id); setParams(updated, { replace: true });
       setReport(`Draft admitted: ${job.id}. See Your report jobs below; a clinician must review its source citations and withheld facts.`);
     } catch { setReport('Draft admission failed. Retry unchanged text with the same request ID; check existing report jobs first.'); }
     finally { setDraftBusy(false); }

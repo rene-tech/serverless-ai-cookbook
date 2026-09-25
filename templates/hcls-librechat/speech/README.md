@@ -75,6 +75,14 @@ isolation. This deployment must remain single-tenant with registration disabled.
   URL after browser reload. The selected, corrected text is explicitly submitted
   to the existing clinical report flow. Original ASR/timing and speaker receipts
   remain separate from human-edited draft input.
+- Completed clinical jobs expose an additive structured SOAP/task-handoff view.
+  It copies verified source phrases without another model call, keeps unknown
+  objective/assessment sections explicitly undocumented, and never assigns or
+  executes a treatment task. Source buttons open exact transcript character spans.
+  A separate demo-review acknowledgement binds the user, document hash and time;
+  it is not clinical sign-off. Live transcript corrections create new report
+  jobs, linked to the original speaker/audio hashes and previous draft, leaving
+  earlier outputs unchanged.
 
 ## Data handling
 

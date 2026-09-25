@@ -225,6 +225,9 @@ const config = {
         ...(process.env.SCIENTIFIC_STUDY_OWNER ? { SCIENTIFIC_STUDY_OWNER: '${SCIENTIFIC_STUDY_OWNER}' } : {}),
         ...(process.env.SEED_DEFAULT_USER_EMAIL ? { SEED_DEFAULT_USER_EMAIL: '${SEED_DEFAULT_USER_EMAIL}' } : {}),
         ...(process.env.CLINICAL_REPORT_API_KEY ? { CLINICAL_REPORT_API_KEY: '${CLINICAL_REPORT_API_KEY}' } : {}),
+        ...Object.fromEntries(['CLINICAL_REPORT_BASE_URL', 'CLINICAL_REPORT_MODEL', 'CLINICAL_REPORT_MAX_OUTPUT_TOKENS',
+          'CLINICAL_REPORT_CONTEXT_TOKENS', 'CLINICAL_REPORT_CHUNK_CHARS', 'CLINICAL_REPORT_REVIEW_WORKERS']
+          .filter((name) => process.env[name]).map((name) => [name, '${' + name + '}'])),
         ...(process.env.NEBIUS_API_KEY ? { NEBIUS_API_KEY: '${NEBIUS_API_KEY}' } : {}),
         ...(process.env.CLINICAL_REPORT_API_KEY_FILE ? { CLINICAL_REPORT_API_KEY_FILE: '${CLINICAL_REPORT_API_KEY_FILE}' } : {}),
         ...(sharedGatewayKey ? { SCIENTIFIC_MODELS_API_KEY: '${SCIENTIFIC_MODELS_API_KEY}' } : {}),

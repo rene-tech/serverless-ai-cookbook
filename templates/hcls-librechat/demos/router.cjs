@@ -68,12 +68,15 @@ router.post('/clinical', upload.single('file'), wrap(async (req, res) => {
   try {
     const job = await service.clinical(req.user.id, await key(req), { kind: req.body.kind,
       language: req.body.language, idempotency_key: req.body.idempotency_key,
+      reviewed_source: req.body.reviewed_source,
       filename: req.file.originalname, local_path: req.file.path });
     res.status(202).json(job);
   } finally { await fs.unlink(req.file.path).catch(() => {}); }
 }));
 router.get('/clinical/:id', wrap(async (req, res) => res.json(await service.status(req.user.id, req.params.id))));
 router.post('/clinical/:id/resume', wrap(async (req, res) => res.json(await service.start(req.user.id, await key(req), req.params.id))));
+router.get('/clinical/:id/soap', wrap(async (req, res) => res.json(await service.soap(req.user.id, req.params.id))));
+router.post('/clinical/:id/review', wrap(async (req, res) => res.json(await service.reviewSoap(req.user.id, req.params.id, req.body))));
 router.get('/clinical/:id/files/:name', wrap(async (req, res) => {
   const bytes = await service.output(req.user.id, req.params.id, req.params.name);
   res.type(req.params.name.endsWith('.json') ? 'application/json' : 'text/plain').attachment(req.params.name).send(bytes);
