@@ -140,7 +140,12 @@ function attach(server, WebSocket = require('/app/node_modules/ws')) {
         } else {
           if (data.length > 4096) return fail('relay_control_limit');
           const control = JSON.parse(data.toString());
-          if (control.type === 'session.cancel') { upstream?.close(); send({ type: 'session.cancelled' }); client.close(); release(); return; }
+          if (control.type === 'session.cancel') {
+            // Send the cancellation control before the closing frame. Closing
+            // first used to rely solely on the platform's disconnect cleanup.
+            if (upstream?.readyState === WebSocket.OPEN) upstream.send('{"type":"session.cancel"}');
+            finished = true; send({ type: 'session.cancelled' }); client.close(); release(); return;
+          }
           if (control.type !== 'input.finish' || !ready || finished) return fail('relay_control_invalid');
           finished = true; upstream.send('{"type":"input.finish"}');
         }

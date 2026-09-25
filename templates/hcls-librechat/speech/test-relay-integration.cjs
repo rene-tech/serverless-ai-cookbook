@@ -52,3 +52,29 @@ test('authenticated relay forwards PCM and revised/final events, preserves upstr
     relay.close(); backend.close(); await new Promise((resolve) => server.close(resolve));
   }
 });
+test('cancel control reaches upstream before the closing frame', async () => {
+  const origin='https://client.test';
+  const backend=new WebSocket.WebSocketServer({port:0});await once(backend,'listening');
+  const controls=[];
+  let observed;
+  const cancelled=new Promise(resolve=>{observed=resolve;});
+  backend.on('connection',ws=>{
+    ws.on('message',raw=>{const event=JSON.parse(raw);controls.push(event.type);
+      if(event.type==='session.start')ws.send('{"type":"session.ready"}');
+      if(event.type==='session.cancel')observed();
+    });
+  });
+  const server=http.createServer(),relay=attach(server,LocalWebSocket);server.listen(0,'127.0.0.1');await once(server,'listening');
+  try{
+    const {ticket,path}=issueTicket('cancel-test',origin,{id:'nemotron-speech-en-0-6b',url:`https://127.0.0.1:${backend.address().port}/v1/audio/stream`},'private-mock');
+    const client=new WebSocket(`ws://127.0.0.1:${server.address().port}${path}`,{origin});
+    const closed=once(client,'close');
+    client.on('message',raw=>{if(JSON.parse(raw).type==='session.ready')client.send('{"type":"session.cancel"}');});
+    await once(client,'open');client.send(JSON.stringify({type:'relay.attach',ticket}));
+    await closed;await cancelled;
+    assert.deepEqual(controls,['session.start','session.cancel']);
+  }finally{
+    for(const client of relay.clients)client.terminate();for(const client of backend.clients)client.terminate();
+    relay.close();backend.close();await new Promise(resolve=>server.close(resolve));
+  }
+});
