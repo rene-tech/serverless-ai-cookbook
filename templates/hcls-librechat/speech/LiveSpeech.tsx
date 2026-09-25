@@ -6,7 +6,7 @@ import { acousticWords, transcriptEvent, wavBlob } from './speech-state';
 
 type Model = { key: string; id: string; label: string };
 type Event = { type: string; text?: string; segment_id?: string; sequence?: number; revision?: number;
-  code?: string; operation_id?: string; model_revision?: string; items?: Word[] };
+  code?: string; operation_id?: string; session_id?: string; model_revision?: string; items?: Word[] };
 type Word = { text: string; start_seconds: number; end_seconds: number };
 type SpeakerJob = { id: string; state: string; error?: string; result?: {
   turns: (Word & { speaker: string; flag?: string })[]; operation_id?: string; limitations: string[] } };
@@ -22,7 +22,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
   const [error, setError] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [audio, setAudio] = useState<Blob | null>(null);
-  const [metrics, setMetrics] = useState<{ first?: number; final?: number; operation?: string;
+  const [metrics, setMetrics] = useState<{ first?: number; final?: number; operation?: string; runtime_session?: string;
     connect_at?: string; ready_at?: string; audio_start_at?: string; first_partial_at?: string;
     input_end_at?: string; completed_at?: string }>({});
   const [reviewed, setReviewed] = useState(false);
@@ -142,6 +142,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
         try {
           const event: Event = JSON.parse(message.data);
           if (event.operation_id) setMetrics((value) => ({ ...value, operation: event.operation_id }));
+          if (event.session_id) setMetrics((value) => ({ ...value, runtime_session: event.session_id }));
           if (event.type === 'session.queued') setState('queued');
           if (event.type === 'session.ready') {
             if (run.node) return;
@@ -237,7 +238,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
       <button type="button" disabled={busy || !file} onClick={() => file && void start(file)} className="rounded border p-2">Play and transcribe live</button></div>
     {error && <p role="alert" className="my-2 text-status-error">{error}</p>}
     <textarea aria-label="Live transcript for review" value={text} readOnly={busy || draftBusy} onChange={(event) => { setText(event.target.value); setReviewed(false); setDraftJob(''); draftId.current = crypto.randomUUID(); }} rows={6} className="w-full rounded border border-border-medium bg-surface-primary p-3" />
-    <p className="text-xs">First partial: {metrics.first === undefined ? '—' : `${(metrics.first / 1000).toFixed(2)}s`} · final after stop: {metrics.final === undefined ? '—' : `${(metrics.final / 1000).toFixed(2)}s`}{metrics.operation ? ` · operation ${metrics.operation}` : ''}</p>
+    <p className="text-xs">First partial: {metrics.first === undefined ? '—' : `${(metrics.first / 1000).toFixed(2)}s`} · final after stop: {metrics.final === undefined ? '—' : `${(metrics.final / 1000).toFixed(2)}s`}{metrics.operation ? ` · operation ${metrics.operation}` : metrics.runtime_session ? ` · runtime session ${metrics.runtime_session} (not a durable platform operation)` : ''}</p>
     <details className="my-2 text-xs"><summary>Browser timing receipt (UTC; milliseconds)</summary><pre data-testid="speech-timing-receipt" className="whitespace-pre-wrap">{JSON.stringify({ ...metrics, model: current.current.model, timing_origin: 'browser observation; first/final durations are milliseconds, not GPU execution time' }, null, 2)}</pre></details>
     <p className="my-2 text-xs">Raw audio is buffered in your browser, not saved by the relay. Upstream inference receives the audio; endpoint isolation, retention and logging depend on the deployed configuration. This demo is not a HIPAA compliance claim.</p>
     {state === 'completed' && <div className="my-3 flex flex-wrap items-center gap-3">

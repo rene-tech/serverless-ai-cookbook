@@ -1,9 +1,27 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { targets, socketUrl, issueTicket, consumeTicket } = require('./relay.cjs');
+const { targets, targetCredential, socketUrl, issueTicket, consumeTicket, installRoutes } = require('./relay.cjs');
 test('English default and medical selectable only if explicitly configured', () => {
   assert.deepEqual(Object.keys(targets({})), ['english']);
   assert.equal(targets({ SCIENTIFIC_MEDICAL_SPEECH_URL: 'https://medical.example/v1/audio/stream' }).medical.id, 'nemotron-clinical-en');
+});
+test('isolated English changes wire model/auth only, never grant identity or implicit fallback', () => {
+  const ordinary=targets({}).english;
+  assert.equal(ordinary.id,'nemotron-speech-en-0-6b');
+  assert.equal(targetCredential(ordinary,'ordinary-key'),'ordinary-key');
+  const isolated=targets({SCIENTIFIC_ENGLISH_SPEECH_URL:'https://english.test/v1/audio/stream'}).english;
+  assert.equal(isolated.id,ordinary.id); assert.equal(isolated.wireModel,'nemotron-speech-en-0.6b');
+  assert.throws(()=>targetCredential(isolated,'ordinary-key'),/dedicated speech credential/);
+  isolated.credential='dedicated-key'; assert.equal(targetCredential(isolated,'ordinary-key'),'dedicated-key');
+});
+test('isolated English still requires the ordinary caller English grant', async()=>{
+  const prior=process.env.SCIENTIFIC_ENGLISH_SPEECH_URL;
+  process.env.SCIENTIFIC_ENGLISH_SPEECH_URL='https://english.test/v1/audio/stream';
+  let handler;
+  installRoutes({get(){},post(_path,action){handler=action;}},{key:async()=> 'ordinary-key',platform:async()=>({data:[]})});
+  try {
+    await assert.rejects(new Promise((resolve,reject)=>handler({body:{model:'english'},user:{id:'test'},get:()=> 'https://client.test'}, {json:resolve}, reject)),/does not grant/);
+  } finally { if(prior===undefined)delete process.env.SCIENTIFIC_ENGLISH_SPEECH_URL;else process.env.SCIENTIFIC_ENGLISH_SPEECH_URL=prior; }
 });
 test('only pinned TLS destinations, never URL credentials or query keys', () => {
   assert.equal(socketUrl('https://example.test/v1/audio/stream'), 'wss://example.test/v1/audio/stream');

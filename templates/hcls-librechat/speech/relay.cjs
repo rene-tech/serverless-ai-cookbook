@@ -9,13 +9,24 @@ const failure = (message, status = 400) => Object.assign(new Error(message), { s
 function targets(env = process.env) {
   const platform = (env.SCIENTIFIC_MODELS_API_BASE_URL || 'https://89.169.99.188/v1').replace(/\/v1\/?$/, '');
   return {
-    english: { id: ENGLISH, label: 'Nemotron English · default', url: platform + '/v1/audio/stream' },
+    english: { id: ENGLISH, label: env.SCIENTIFIC_ENGLISH_SPEECH_URL ? 'Nemotron English · default · isolated runtime' : 'Nemotron English · default',
+      url: env.SCIENTIFIC_ENGLISH_SPEECH_URL || platform + '/v1/audio/stream',
+      ...(env.SCIENTIFIC_ENGLISH_SPEECH_URL ? { dedicated: true,
+        wireModel: env.SCIENTIFIC_ENGLISH_SPEECH_UPSTREAM_MODEL || 'nemotron-speech-en-0.6b',
+        credential: env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY } : {}) },
     ...(env.SCIENTIFIC_MEDICAL_SPEECH_URL ? { medical: {
       id: env.SCIENTIFIC_MEDICAL_SPEECH_MODEL || 'nemotron-clinical-en',
       label: 'Medical Nemotron 3.5 · English', url: env.SCIENTIFIC_MEDICAL_SPEECH_URL,
-      credential: env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY,
+      credential: env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY, dedicated: true,
     } } : {}),
   };
+}
+function targetCredential(target, userKey) {
+  if (target.dedicated) {
+    if (!target.credential) throw failure('The operator must configure the dedicated speech credential.', 503);
+    return target.credential;
+  }
+  return userKey;
 }
 function socketUrl(value) {
   const url = new URL(value);
@@ -60,7 +71,7 @@ function installRoutes(router, { key, platform }) {
     if (target.id === ENGLISH && !catalog.data?.some((item) => (item.id || item.model_id) === ENGLISH)) {
       throw failure('Your Scientific AI key does not grant the English speech model.', 403);
     }
-    const credential = target.credential || (target.id === ENGLISH ? userKey : '');
+    const credential = targetCredential(target, userKey);
     const origin = req.get('origin') || `${req.protocol}://${req.get('host')}`;
     res.json(issueTicket(req.user.id, origin, target, credential));
   }).catch(next));
@@ -111,7 +122,7 @@ function attach(server, WebSocket = require('/app/node_modules/ws')) {
             handshakeTimeout: 15000, maxPayload: 1024 * 1024, perMessageDeflate: false,
           });
           upstream.on('open', () => upstream.send(JSON.stringify({ type: 'session.start',
-            options: { model: session.target.id, output_granularity: 'word' },
+            options: { model: session.target.wireModel || session.target.id, output_granularity: 'word' },
             audio: { encoding: 'pcm_s16le', sample_rate_hz: 16000, channels: 1 },
           })));
           upstream.on('message', (raw, isBinary) => {
@@ -154,4 +165,4 @@ function attach(server, WebSocket = require('/app/node_modules/ws')) {
   });
   return wss;
 }
-module.exports = { installRoutes, attach, targets, socketUrl, issueTicket, consumeTicket };
+module.exports = { installRoutes, attach, targets, targetCredential, socketUrl, issueTicket, consumeTicket };

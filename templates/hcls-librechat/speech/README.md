@@ -15,6 +15,8 @@ the versioned Scientific AI UI and replaces the actual composer microphone.
 | --- | --- |
 | `SCIENTIFIC_MODELS_API_BASE_URL` | Existing Scientific AI API ending `/v1` |
 | `SCIENTIFIC_MODELS_MCP_URL` | Existing hosted MCP URL |
+| `SCIENTIFIC_ENGLISH_SPEECH_URL` / `SCIENTIFIC_ENGLISH_SPEECH_API_KEY` | Optional isolated **same English checkpoint** native runtime HTTPS/WSS route and dedicated server bearer. Existing platform route remains default when absent; no runtime failover/replay. |
+| `SCIENTIFIC_ENGLISH_SPEECH_UPSTREAM_MODEL` | Isolated native wire ID defaults `nemotron-speech-en-0.6b`; UI and ordinary grant identity remain `nemotron-speech-en-0-6b` |
 | `SCIENTIFIC_MEDICAL_SPEECH_URL` | Medical adapter HTTPS or WSS `/v1/audio/stream`; absence hides medical selector |
 | `SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL` | Same dedicated endpoint's HTTPS origin, without `/v1`; enables typed agent MCP and direct workspace-byte upload |
 | `SCIENTIFIC_MEDICAL_SPEECH_API_KEY` | Server-only adapter bearer, supplied through the deployment secret mechanism |
@@ -44,6 +46,10 @@ bytes and hashes back to Workspace. The primary Scientific AI and Audio Guide
 agents gain these tools only when the dedicated endpoint is explicitly configured.
 The medical endpoint has demo-level authentication, not platform per-user tenant
 isolation. This deployment must remain single-tenant with registration disabled.
+The optional isolated English override has the same limitation. It still checks
+the ordinary user's English App grant, never sends that key to the dedicated
+runtime, and labels native session IDs separately from durable platform operations.
+It overrides **live** speech only; existing batch report model routing is unchanged.
 
 ## Paths and guarantees
 
