@@ -97,6 +97,13 @@ Use simulated/de-identified data only. Raw live audio is initially retained in
 browser memory, and the relay holds bounded transport frames without payload
 logging. The model endpoint still receives audio. Clicking speaker analysis saves
 audio/receipts on the demo server and in platform artifacts; clicking report
+generation requires a completed speaker job owned by the signed-in user. Its
+immutable admission request retains the original browser-captured ASR text,
+final segments, acoustic word timings, browser timing observations and audio
+hash before edits; these are browser observations, not server-attested clinical
+evidence. Missing, pending or foreign sources are rejected. Regeneration must
+name the same nonempty speaker job as the prior draft. Ordinary uploaded-text
+reports do not require this live-source gate. Draft
 generation saves the reviewed transcript in the existing clinical-job store and
 sends it to the configured report provider. A public authenticated TLS endpoint
 is **not** evidence of private networking, HIPAA compliance, or a PHI retention

@@ -186,13 +186,13 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
     }
   }
   async function generateDraft() {
-    if (draftBusy || draftJob) return;
+    if (draftBusy || draftJob || !reviewed || speaker?.state !== 'completed' || !speaker.result) return;
     setDraftBusy(true); setReport('Submitting reviewed transcript…');
     try {
       const data = new FormData();
       data.append('file', new File([text], 'reviewed-live-transcript.txt', { type: 'text/plain' }));
       data.append('kind', 'transcript'); data.append('language', 'en'); data.append('idempotency_key', draftId.current);
-      data.append('reviewed_source', JSON.stringify({ reviewed: true, speaker_job: speaker?.id, roles,
+      data.append('reviewed_source', JSON.stringify({ reviewed: true, speaker_job: speaker.id, roles,
         ...(previousDraft.current ? { previous_draft: previousDraft.current } : {}) }));
       const job = await request.postMultiPart('/api/scientific-demos/clinical', data) as { id: string };
       setDraftJob(job.id);
@@ -213,6 +213,9 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
         if (!words.length) throw new Error('This endpoint returned no acoustic word timestamps. Speaker-attributed text cannot be produced without alignment.');
         const data = new FormData(); data.append('file', new File([audio!], 'live.wav', { type: 'audio/wav' }));
         data.append('words', JSON.stringify(words)); data.append('model', current.current.model || 'unknown'); data.append('idempotency_key', speakerId.current);
+        data.append('source_receipt', JSON.stringify({ schema: 'scientific-clinical/browser-asr-source/v1',
+          raw_transcript: transcript.current, segments: [...segments.current.entries()].map(([id, value]) => ({ id, ...value })),
+          timings: metrics, observation_origin: 'Browser-captured ASR output and timings; not server-attested clinical evidence.' }));
         const accepted = await request.postMultiPart(`${BASE}/diarization`, data) as SpeakerJob;
         setSpeaker(accepted); const updated = new URLSearchParams(params); updated.set('speech_job', accepted.id); setParams(updated, { replace: true });
       }
@@ -244,7 +247,8 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
     {state === 'completed' && <div className="my-3 flex flex-wrap items-center gap-3">
       <button type="button" disabled={speakerBusy || speaker?.state === 'running' || speaker?.state === 'completed'} onClick={() => void identifySpeakers()} className="rounded border p-2">{speaker?.id ? 'Resume speaker analysis' : 'Identify anonymous speakers'}</button>
       <label className="text-sm"><input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} /> I reviewed the transcript, terminology, doses and negation</label>
-      <button type="button" disabled={!reviewed || !text || draftBusy || Boolean(draftJob)} onClick={() => void generateDraft()} className="rounded border p-2">Generate clinical draft</button>
+      <button type="button" disabled={!reviewed || !text || speaker?.state !== 'completed' || !speaker.result || draftBusy || Boolean(draftJob)} onClick={() => void generateDraft()} className="rounded border p-2">Generate clinical draft</button>
+      {speaker?.state !== 'completed' && <p className="text-xs">Complete speaker analysis first to preserve the original audio, ASR transcript and timings before generating a corrected draft.</p>}
       {audio && <button type="button" onClick={() => { const url = URL.createObjectURL(audio); const a = document.createElement('a'); a.href = url; a.download = 'live-consultation.wav'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }} className="rounded border p-2">Save captured audio for diarization</button>}
     </div>}
     {speaker && <div className="my-3 rounded border border-border-medium p-3">

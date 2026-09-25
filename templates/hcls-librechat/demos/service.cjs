@@ -667,13 +667,14 @@ async function clinical(owner, key, input) {
     if (input.kind !== 'transcript') throw failure('Live review provenance requires a transcript.');
     const supplied = JSON.parse(input.reviewed_source);
     if (supplied.reviewed !== true) throw failure('Explicit transcript review is required.');
-    const source = supplied.speaker_job ? await require('../speech/diarization.cjs').reviewSource(owner, supplied.speaker_job) : {};
+    if (typeof supplied.speaker_job !== 'string' || !/^[a-f0-9]{32}$/.test(supplied.speaker_job)) throw failure('A completed owned speaker job is required for live review provenance.');
+    const source = await require('../speech/diarization.cjs').reviewSource(owner, supplied.speaker_job);
     const roles = Object.fromEntries(Object.entries(supplied.roles || {}).filter(([name, role]) => /^speaker_[0-3]$/.test(name) && ['Clinician', 'Patient', 'Other'].includes(role)));
     reviewedSource = { ...source, roles, reviewer_user: hash(owner), reviewed_at: new Date().toISOString(),
       attestation: 'User marked transcript reviewed for demonstration; not clinical sign-off.' };
     if (supplied.previous_draft) {
       const previous = await read(path.join(directory(owner, supplied.previous_draft), 'request.json'));
-      if (previous.reviewed_source?.speaker_job !== source.speaker_job) throw failure('Regenerated draft must retain the same reviewed audio source.');
+      if (!previous.reviewed_source?.speaker_job || previous.reviewed_source.speaker_job !== source.speaker_job) throw failure('Regenerated draft must retain the same reviewed audio source.');
       reviewedSource.previous_draft = supplied.previous_draft;
       reviewedSource.previous_input_sha256 = previous.input_sha256;
     }
