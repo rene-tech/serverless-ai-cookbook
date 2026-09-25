@@ -283,8 +283,15 @@ drafts separately. Bounded deployments can set `CLINICAL_REPORT_MAX_OUTPUT_TOKEN
 `CLINICAL_REPORT_CHUNK_CHARS` (3500) and `CLINICAL_REPORT_REVIEW_WORKERS` (1).
 The context-limited profile requires the same authenticated vLLM origin's
 `/tokenize` route: exact chat-template tokens plus output and a 64-token reserve
-must fit before inference. A tokenizer or budget failure stops the run with the
-original source retained; never trim clinical evidence to force success. These
+must fit before inference. A tokenizer failure or required-stage budget failure
+stops the run with the original source retained; never trim clinical evidence to
+force success. Only an exact preflight overflow in optional follow-up-question
+synthesis may omit those questions, with a visible incompleteness warning,
+exact budget receipt and proof that no question-generation request was admitted.
+All accepted facts, source references and reviews remain unchanged. Other
+question-stage errors still fail closed. Versioned `optional-questions/v1` is
+recorded in the run configuration; do not resume an older failed run under this
+policy. These
 limits are saved in run/request receipts; changing them requires a new run.
 
 The context-limited profile uses versioned `clinical-bounded-generation/v1`:

@@ -1,9 +1,10 @@
 """Offline regressions for citation repair; no clinical model calls."""
 import tempfile
+import json
 import unittest
 from pathlib import Path
 
-from clinical_report import document_transcript
+from clinical_report import document_transcript, ContextBudgetExceeded
 
 
 class CitationReporter:
@@ -36,6 +37,30 @@ class CitationReporter:
 
 
 class CitationRepairTests(unittest.TestCase):
+    def test_optional_question_budget_failure_saves_full_report_and_explicit_omission(self):
+        class QuestionLimitedReporter(CitationReporter):
+            def __init__(self):
+                super().__init__()
+                self.generation_warnings = []
+            def complete(self, stage, prompt, data):
+                if stage == 'questions':
+                    raise ContextBudgetExceeded(stage, {'input_tokens': 7000, 'max_output_tokens': 1800, 'context_tokens': 8192, 'reserve_tokens': 64})
+                return super().complete(stage, prompt, data)
+        text = 'Symptoms began yesterday. ' + ('Conversation context. ' * 18)
+        text += 'A sample may be collected if symptoms persist.'
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            baseline = document_transcript(text, 'en', CitationReporter(), output / 'baseline')
+            actual = document_transcript(text, 'en', QuestionLimitedReporter(), output / 'limited')
+            self.assertEqual(actual['facts'], baseline['facts'])
+            self.assertEqual(actual['transcript_sha256'], baseline['transcript_sha256'])
+            self.assertEqual(actual['questions'], [])
+            self.assertEqual(actual['generation_warnings'][0]['code'], 'optional_questions_context_budget_exceeded')
+            saved = json.loads((output / 'limited/review.json').read_text())
+            self.assertEqual(saved['generation_warnings'], actual['generation_warnings'])
+            self.assertIn('GENERATION INCOMPLETENESS', (output / 'limited/report.md').read_text())
+            self.assertIn('No facts were truncated', (output / 'limited/review.md').read_text())
+
     def run_case(self, reporter):
         text = 'Symptoms began yesterday. ' + ('Conversation context. ' * 18)
         text += 'A sample may be collected if symptoms persist.'

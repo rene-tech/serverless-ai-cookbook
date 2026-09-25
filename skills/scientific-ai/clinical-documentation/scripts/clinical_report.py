@@ -62,6 +62,28 @@ BOUNDED_GENERATION = {
     "version": "clinical-bounded-generation/v1", "max_array_items": 8,
     "instruction": "Bounded response: emit each supported fact ONCE, never repeat facts or references to fill an array. At most eight distinct facts and eight uncertainties per extraction. Empty or absent clinical sections are valid; never invent evidence. Finish the complete JSON object after the supported unique items, then stop. Missing/cap-limited content remains incomplete and requires review.",
 }
+OPTIONAL_QUESTION_POLICY = {"version": "optional-questions/v1", "context_overflow": "omit_questions_with_explicit_warning_only", "facts_truncated": False}
+
+
+class ContextBudgetExceeded(ValueError):
+    """Exact tokenizer preflight rejected the request before model admission."""
+    def __init__(self, stage, budget):
+        self.stage, self.budget = stage, budget
+        super().__init__("clinical_context_budget_exceeded: source retained unchanged; choose a larger context or a separately versioned smaller-chunk run")
+
+
+def optional_questions(reporter, data, facts, uncertainties):
+    try:
+        return validate_questions(reporter.complete("questions", QUESTIONS, data), facts)
+    except ContextBudgetExceeded as exc:
+        if exc.stage != "questions":
+            raise
+        warning = {"stage": "questions", "code": "optional_questions_context_budget_exceeded",
+                   "detail": "Optional follow-up questions were not generated: the complete fact set exceeded the exact context budget. No facts were truncated and no question-generation request was admitted. Review the retained source, accepted facts and uncertainties manually.",
+                   "context_budget": exc.budget, "provider_request_admitted": False}
+        reporter.generation_warnings.append(warning)
+        uncertainties.append({"description": warning["detail"], "kind": "optional_stage_omitted", "evidence": []})
+        return []
 
 
 def bounded_completion_schema(stage, data):
@@ -318,7 +340,12 @@ class Reporter:
             budget = {"input_tokens": count, "max_output_tokens": body["max_tokens"],
                       "context_tokens": min(capacity, self.limits["context_tokens"]), "reserve_tokens": 64}
             if count + body["max_tokens"] + 64 > budget["context_tokens"]:
-                raise ValueError("clinical_context_budget_exceeded: source retained unchanged; choose a larger context or a separately versioned smaller-chunk run")
+                if stage == "questions":
+                    save(self.platform.output / "calls" / stage / "preflight-rejected.json",
+                         {"stage": stage, "status": "not_admitted", "context_budget": budget,
+                          "request_sha256": digest(body), "provider": str(self.provider.base_url),
+                          "policy": OPTIONAL_QUESTION_POLICY})
+                raise ContextBudgetExceeded(stage, budget)
         if not self.provider:
             response = self.platform.operation(stage, "/v1/chat/completions", body)
         else:
@@ -444,7 +471,7 @@ def document_transcript(text, language, reporter, output):
         questions = []
         uncertainties.append({"description": "Question synthesis omitted: full fact set exceeds the configured context budget.", "evidence": []})
     else:
-        questions = validate_questions(reporter.complete("questions", QUESTIONS, question_data), facts)
+        questions = optional_questions(reporter, question_data, facts, uncertainties)
     document = {"schema": VERSION, "kind": "consultation" if "consultation" in kinds else kinds[0],
                 "language": language, "transcript_sha256": digest(text), "facts": facts,
                 "uncertainties": uncertainties, "questions": questions, "rejected": rejected,
@@ -479,6 +506,7 @@ def run(args, key=None, provider_key=None):
         config.update(report_limits=limits, chunk_size=limits.get("chunk_chars", 8500))
         if limits.get("context_tokens"):
             config.update(generation_contract=BOUNDED_GENERATION,
+                          optional_question_policy=OPTIONAL_QUESTION_POLICY,
                           prompt_sha256=digest([EXTRACT, VERIFY, QUESTIONS, LOCATE, BOUNDED_GENERATION]))
     output = args.output
     output.mkdir(parents=True, exist_ok=True, mode=0o700)

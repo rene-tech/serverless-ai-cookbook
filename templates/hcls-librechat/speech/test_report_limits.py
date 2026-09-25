@@ -10,7 +10,7 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[3] / 'skills/scientific-ai/clinical-documentation/scripts'
 sys.path.insert(0, str(SCRIPTS))
-from clinical_report import Reporter, report_limits, bounded_completion_schema, generation_warnings
+from clinical_report import Reporter, report_limits, bounded_completion_schema, generation_warnings, ContextBudgetExceeded, optional_questions
 from document import completion_schema
 
 
@@ -54,11 +54,43 @@ def test_exact_tokenizer_precedes_inference_and_receipt_matches_request(tmp_path
 
 def test_over_budget_never_sends_partial_source_to_inference(tmp_path, monkeypatch):
     value, calls = reporter(tmp_path, monkeypatch, 7000)
-    with pytest.raises(ValueError, match='clinical_context_budget_exceeded'):
+    with pytest.raises(ContextBudgetExceeded, match='clinical_context_budget_exceeded') as failure:
         value.complete('extract-000', 'source only', {'segments': [{'id': 'S1', 'text': 'unchanged full source'}]})
+    assert failure.value.stage == 'extract-000'
+    assert value.generation_warnings == []
     assert len(calls) == 2
     assert not (tmp_path / 'calls').exists()
     value.close()
+
+
+def test_optional_question_exact_preflight_preserves_facts_without_admitting_model_request(tmp_path, monkeypatch):
+    value, calls = reporter(tmp_path, monkeypatch, 7000)
+    facts = [{'id': 'F0001', 'statement': 'No fever.', 'source_phrases': [{'quote': 'No fever.'}]}]
+    before = json.dumps(facts, sort_keys=True)
+    uncertainties = []
+    questions = optional_questions(value, {'language': 'en', 'facts': facts, 'uncertainties': []}, facts, uncertainties)
+    assert questions == [] and json.dumps(facts, sort_keys=True) == before
+    assert [request.url.path for request in calls] == ['/v1/models', '/tokenize']
+    assert value.generation_warnings[0]['code'] == 'optional_questions_context_budget_exceeded'
+    assert value.generation_warnings[0]['provider_request_admitted'] is False
+    assert uncertainties[0]['kind'] == 'optional_stage_omitted'
+    receipt = json.loads((tmp_path / 'calls/questions/preflight-rejected.json').read_text())
+    assert receipt['status'] == 'not_admitted'
+    assert receipt['context_budget']['input_tokens'] == 7000
+    assert len(receipt['request_sha256']) == 64
+    assert not (tmp_path / 'calls/questions/request.json').exists()
+    assert not (tmp_path / 'calls/questions/response.json').exists()
+    value.close()
+
+
+def test_other_optional_question_failures_and_required_stage_budget_remain_fatal():
+    for error in [ValueError('malformed provider response'), ContextBudgetExceeded('extract-000', {})]:
+        def fail(*_args):
+            raise error
+        value = SimpleNamespace(complete=fail, generation_warnings=[])
+        with pytest.raises(type(error), match=str(error)):
+            optional_questions(value, {}, [], [])
+        assert value.generation_warnings == []
 
 
 def test_invalid_limits_fail_closed(monkeypatch):

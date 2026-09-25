@@ -12,6 +12,13 @@ export function transcriptEvent(segments, event) {
   // segments corrupts words (e.g. "sor" + "ry") and no-space languages.
   return [...segments.values()].map((item) => item.text).join('').trim();
 }
+export function appendDictation(prefix, text) {
+  // Preserve typed content and native ASR wording. Only avoid introducing a
+  // second separator at the boundary between the existing composer and ASR.
+  if (!prefix || !text) return prefix + text;
+  if (/\s$/.test(prefix)) return prefix + text.trimStart();
+  return prefix + (/^\s/.test(text) ? '' : ' ') + text;
+}
 export function wavBlob(chunks) {
   const size = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
   const header = new ArrayBuffer(44); const view = new DataView(header);

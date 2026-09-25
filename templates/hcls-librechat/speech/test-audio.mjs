@@ -2,7 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { acousticWords, transcriptEvent, wavBlob } from './speech-state.js';
+import { acousticWords, transcriptEvent, wavBlob, appendDictation } from './speech-state.js';
+test('composer prefix is preserved without adding duplicate boundary whitespace or changing native words',()=>{
+  assert.equal(appendDictation('Review: ', ' Hello, hishall'), 'Review: Hello, hishall');
+  assert.equal(appendDictation('Review:', ' Hello'), 'Review: Hello');
+  assert.equal(appendDictation('Review:', 'Hello'), 'Review: Hello');
+  assert.equal(appendDictation('Review:\n', ' Hello'), 'Review:\nHello');
+  assert.equal(appendDictation('Review: ', ''), 'Review: ');
+  assert.equal(appendDictation('', ' Hello'), ' Hello');
+  const segments=new Map();
+  transcriptEvent(segments,{type:'transcript.final',segment_id:0,text:'Hello, hi'});
+  assert.equal(appendDictation('Review: ',transcriptEvent(segments,{type:'transcript.partial',segment_id:1,revision:1,text:'shall'})), 'Review: Hello, hishall');
+  assert.equal(appendDictation('Review: ',transcriptEvent(segments,{type:'transcript.partial',segment_id:1,revision:2,text:'shall we start'})), 'Review: Hello, hishall we start');
+});
 test('partial revisions replace text and finalized segments do not regress', () => {
   const map = new Map();
   assert.equal(transcriptEvent(map, { type: 'transcript.partial', segment_id: 'a', revision: 1, text: 'meta' }), 'meta');
