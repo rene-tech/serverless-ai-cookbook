@@ -397,7 +397,10 @@ test('workspace clinical input captures full bytes and exposes immutable source 
   const job = await service.clinicalFromWorkspace('user-a', 'test-platform-key', relative, 'en', 'full-workspace-fixture');
   await complete(service, job.id);
   const done = await service.status('user-a', job.id);
-  assert.deepEqual(done.input_provenance, { kind: 'transcript',
+  // The authenticated JSON API omits optional undefined ASR metadata for an
+  // already-transcribed source; it must never imply a new audio invocation.
+  assert.equal(done.input_provenance.asr_backend, undefined);
+  assert.deepEqual(JSON.parse(JSON.stringify(done.input_provenance)), { kind: 'transcript',
     sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
     size_bytes: bytes.length, workspace_file: relative });
   const captured = path.join(root, crypto.createHash('sha256').update('user-a').digest('hex'), job.id, 'input.json');
