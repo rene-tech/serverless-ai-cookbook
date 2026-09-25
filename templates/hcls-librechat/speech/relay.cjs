@@ -16,7 +16,7 @@ function targets(env = process.env) {
         credential: env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY } : {}) },
     ...(env.SCIENTIFIC_MEDICAL_SPEECH_URL ? { medical: {
       id: env.SCIENTIFIC_MEDICAL_SPEECH_MODEL || 'nemotron-clinical-en',
-      label: 'Medical Nemotron 3.5 · English', url: env.SCIENTIFIC_MEDICAL_SPEECH_URL,
+      label: env.SCIENTIFIC_MEDICAL_SPEECH_LABEL || 'Medical Nemotron 3.5 · English', url: env.SCIENTIFIC_MEDICAL_SPEECH_URL,
       credential: env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY, dedicated: true,
     } } : {}),
   };

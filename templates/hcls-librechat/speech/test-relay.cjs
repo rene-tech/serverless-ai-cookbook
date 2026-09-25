@@ -4,6 +4,7 @@ const { targets, targetCredential, socketUrl, issueTicket, consumeTicket, instal
 test('English default and medical selectable only if explicitly configured', () => {
   assert.deepEqual(Object.keys(targets({})), ['english']);
   assert.equal(targets({ SCIENTIFIC_MEDICAL_SPEECH_URL: 'https://medical.example/v1/audio/stream' }).medical.id, 'nemotron-clinical-en');
+  assert.equal(targets({ SCIENTIFIC_MEDICAL_SPEECH_URL: 'https://medical.example/v1/audio/stream', SCIENTIFIC_MEDICAL_SPEECH_LABEL: 'Medical Nemotron 3.5 · PILOT checkpoint' }).medical.label, 'Medical Nemotron 3.5 · PILOT checkpoint');
 });
 test('isolated English changes wire model/auth only, never grant identity or implicit fallback', () => {
   const ordinary=targets({}).english;

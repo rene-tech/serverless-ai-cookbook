@@ -21,6 +21,7 @@ the versioned Scientific AI UI and replaces the actual composer microphone.
 | `SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL` | Same dedicated endpoint's HTTPS origin, without `/v1`; enables typed agent MCP and direct workspace-byte upload |
 | `SCIENTIFIC_MEDICAL_SPEECH_API_KEY` | Server-only adapter bearer, supplied through the deployment secret mechanism |
 | `SCIENTIFIC_MEDICAL_SPEECH_MODEL` | Default `nemotron-clinical-en` |
+| `SCIENTIFIC_MEDICAL_SPEECH_LABEL` | Public selector label; explicitly mark `PILOT checkpoint` for a pilot deployment, never put secrets here |
 | `SCIENTIFIC_SPEECH_JOBS_DIR` | Private local receipts; default `/data/hcls-speech` |
 | `NEBIUS_API_KEY` or `CLINICAL_REPORT_API_KEY` | Separate server-side Token Factory credential for existing reviewed-report workflow |
 | `CLINICAL_REPORT_BASE_URL` | Optional dedicated OpenAI-compatible HTTPS `/v1` endpoint, e.g. self-hosted Fastino; requires its own `CLINICAL_REPORT_API_KEY` |
