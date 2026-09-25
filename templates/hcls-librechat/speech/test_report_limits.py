@@ -10,7 +10,8 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[3] / 'skills/scientific-ai/clinical-documentation/scripts'
 sys.path.insert(0, str(SCRIPTS))
-from clinical_report import Reporter, report_limits
+from clinical_report import Reporter, report_limits, bounded_completion_schema, generation_warnings
+from document import completion_schema
 
 
 def reporter(tmp_path, monkeypatch, input_tokens=1000):
@@ -42,6 +43,8 @@ def test_exact_tokenizer_precedes_inference_and_receipt_matches_request(tmp_path
     assert [request.url.path for request in calls] == ['/v1/models', '/tokenize', '/v1/chat/completions']
     receipt = json.loads((tmp_path / 'calls/extract-000/request.json').read_text())
     assert receipt['body'] == json.loads(calls[-1].content)
+    assert receipt['body']['response_format']['json_schema']['schema']['properties']['facts']['maxItems'] == 8
+    assert 'emit each supported fact ONCE' in receipt['body']['messages'][0]['content']
     assert receipt['context_budget'] == {'input_tokens': 1000, 'max_output_tokens': 2048, 'context_tokens': 8192, 'reserve_tokens': 64}
     assert value.chunk_chars == 3500 and value.review_workers == 1
     value.complete('extract-000', 'source only', {'segments': []})
@@ -62,3 +65,23 @@ def test_invalid_limits_fail_closed(monkeypatch):
     monkeypatch.setenv('CLINICAL_REPORT_REVIEW_WORKERS', '100')
     with pytest.raises(ValueError, match='outside supported bounds'):
         report_limits()
+
+
+def test_bounded_generation_does_not_change_default_schema_or_fabricate_empty_facts():
+    data = {'segments': [{'id': 'S1', 'text': 'No fever.'}]}
+    assert completion_schema('extract-000', data)['properties']['facts']['maxItems'] == 50
+    schema = bounded_completion_schema('extract-000', data)
+    assert schema['properties']['facts']['maxItems'] == 8
+    assert schema['properties']['facts']['minItems'] == 0
+    assert schema['properties']['uncertainties']['maxItems'] == 8
+    assert schema['properties']['excluded_segments']['maxItems'] == 1
+    assert generation_warnings('extract-000', {'facts': [], 'uncertainties': []}) == []
+
+
+def test_cap_and_repetition_are_visible_incompleteness_not_repair():
+    fact = {'section': 'history', 'source_phrases': [{'source_id': 'S1', 'quote': 'No fever.'}]}
+    value = {'facts': [fact] * 8, 'uncertainties': []}
+    warnings = generation_warnings('extract-000', value)
+    assert [item['code'] for item in warnings] == ['bounded_generation_capacity_reached', 'repeated_extraction_candidates']
+    assert warnings[-1]['count'] == 7
+    assert len(value['facts']) == 8  # Raw candidates are not silently repaired/discarded.

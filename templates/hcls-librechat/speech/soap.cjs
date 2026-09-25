@@ -39,6 +39,7 @@ function buildSoap(document, transcript, identity) {
       'Automated attribution and source matching are not clinical validation. Review transcript, rejected facts and completeness.',
       'Demo acknowledgement is not clinical sign-off and never executes a task.'],
     withheld_count: (document.rejected || []).length,
+    generation_warnings: document.generation_warnings || [],
     review_url: `/api/scientific-demos/clinical/${identity.job_id}/files/review.md` };
 }
 module.exports = { buildSoap, hash, UNKNOWN };

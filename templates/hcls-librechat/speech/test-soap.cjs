@@ -37,3 +37,11 @@ test('Unicode source offsets are Python code points, with mismatches failing clo
   assert.throws(()=>build('unchanged',{source_phrases:[{quote:'invented',spans:[{start:0,end:8}]}]}),/does not match/);
   assert.throws(()=>buildSoap({transcript_sha256:'wrong'},'text',{}),/hash differs/);
 });
+test('bounded generation warnings remain visible without fabricating SOAP facts',()=>{
+  const warnings=[{code:'bounded_generation_capacity_reached',detail:'Extraction reached its eight-fact limit; source coverage may be incomplete.'}];
+  const value=buildSoap({transcript_sha256:hash('No fever.'),facts:[],rejected:[],generation_warnings:warnings},'No fever.',{});
+  assert.deepEqual(value.generation_warnings,warnings);
+  assert.equal(value.sections.S.facts.length,0);
+  assert.equal(value.sections.O.notice,UNKNOWN);
+  assert.equal(value.clinical_signoff,false);
+});

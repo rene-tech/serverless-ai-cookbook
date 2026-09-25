@@ -11,13 +11,15 @@ test('review acknowledgement is user-scoped, hash-bound and does not mutate repo
   const owner='synthetic-user', id='a'.repeat(32), source='No fever.';
   const dir=path.join(directory,hash(owner),id), output=path.join(dir,'output');
   await fs.mkdir(output,{recursive:true});
-  const document={transcript_sha256:hash(source),facts:[],rejected:[]};
+  const document={transcript_sha256:hash(source),facts:[],rejected:[],generation_warnings:[{code:'bounded_generation_capacity_reached',detail:'Bounded extraction reached the fact limit; review source coverage.'}]};
   const request={created_at:'2026-09-25T00:00:00Z',kind:'transcript',input_sha256:hash(source),report_model:'test-model',report_provider:'https://report.test/v1',reviewed_source:{speaker_job:'b'.repeat(32),previous_draft:'c'.repeat(32),previous_input_sha256:'d'.repeat(64)}};
   await service.save(path.join(dir,'request.json'),request);
   await service.save(path.join(dir,'status.json'),{status:'completed',created_at:request.created_at});
   await fs.writeFile(path.join(output,'document.json'),JSON.stringify(document));
   await fs.writeFile(path.join(output,'transcript.txt'),source);
   const first=await service.soap(owner,id);
+  assert.deepEqual(first.generation_warnings,document.generation_warnings);
+  assert.deepEqual((await service.status(owner,id)).generation_warnings,document.generation_warnings);
   assert.equal(first.demo_review,null);
   assert.deepEqual(first.provenance.reviewed_source,request.reviewed_source);
   await assert.rejects(service.soap('another-user',id),/not found/);

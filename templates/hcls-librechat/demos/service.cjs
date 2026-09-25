@@ -599,9 +599,11 @@ async function status(owner, id) {
     try { await fs.access(path.join(dir, 'output', name)); available.push(name); } catch { /* not produced */ }
   }
   const request = await read(path.join(dir, 'request.json')).catch(() => ({}));
+  const document = available.includes('document.json') ? await read(path.join(dir, 'output', 'document.json')) : {};
   return { id, status: receipt.status, created_at: receipt.created_at, finished_at: receipt.finished_at,
     error: receipt.error, ...(receipt.error_code ? { error_code: receipt.error_code } : {}),
     files: available, model: request.report_model || REPORT_MODEL,
+    generation_warnings: document.generation_warnings || [],
     input_provenance: { kind: request.kind, sha256: request.input_sha256,
       size_bytes: request.input_size_bytes, workspace_file: request.source_workspace, asr_backend: request.asr_backend },
     url: `/demos?tab=clinical&job=${id}`, clinical_validation: false };

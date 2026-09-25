@@ -6,7 +6,7 @@ type Fact = { id: string; text: string; attribution: string; uncertain: boolean;
 type Soap = { status: string; provenance: { document_sha256: string; transcript_sha256: string; report_model: string; reviewed_source?: unknown };
   sections: Record<string, { status: string; notice: string; facts: Fact[] }>; unassigned: Fact[];
   handoff: { source_fact_id: string; source_text: string; status: string; assignee: string; execution_authorized: boolean }[];
-  notices: string[]; withheld_count: number; demo_review?: { reviewed_at: string }; };
+  notices: string[]; withheld_count: number; generation_warnings?: { code: string; detail: string }[]; demo_review?: { reviewed_at: string }; };
 const labels: Record<string, string> = { S: 'S · Subjective', O: 'O · Objective', A: 'A · Recorded assessment', P: 'P · Recorded plan' };
 
 export default function ClinicalSoap({ jobId }: { jobId: string }) {
@@ -42,6 +42,8 @@ export default function ClinicalSoap({ jobId }: { jobId: string }) {
     {value && <div className="mt-3 rounded border border-border-medium p-3">
       <h4 className="font-semibold">DRAFT · human review required · not clinical sign-off</h4>
       <p className="my-2 text-xs">{value.provenance.report_model} · {value.withheld_count} withheld entries require separate review. Unknown sections are not normal findings.</p>
+      <p className="my-2 text-xs">Check short answers such as “yes” or “no” against the preceding question in their source context; they are not independently interpretable clinical facts.</p>
+      {value.generation_warnings?.map((warning, index) => <p role="alert" key={index} className="my-2 text-sm text-status-error">Generation incomplete: {warning.code} — {warning.detail}</p>)}
       {Object.entries(value.sections).map(([key, section]) => <section key={key} className="my-3">
         <h5 className="font-semibold">{labels[key]}</h5>
         {section.facts.length ? <ul>{section.facts.map(fact)}</ul> : <p className="text-sm">{section.notice}</p>}

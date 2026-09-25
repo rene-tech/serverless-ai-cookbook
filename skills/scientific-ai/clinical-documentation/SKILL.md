@@ -287,6 +287,15 @@ must fit before inference. A tokenizer or budget failure stops the run with the
 original source retained; never trim clinical evidence to force success. These
 limits are saved in run/request receipts; changing them requires a new run.
 
+The context-limited profile uses versioned `clinical-bounded-generation/v1`:
+at most eight extraction facts/uncertainties and bounded reference arrays, plus
+an explicit unique-fact/termination instruction. This guards generation loops;
+it does not establish completeness. Cap hits and repeated candidates remain
+visible as generation-incompleteness warnings in the draft/review outputs and
+SOAP view. Original provider responses and source validators are unchanged.
+A changed contract/prompt requires a new run; never repair a truncated response,
+reuse an old failed cache under a new prompt, or hide omitted clinical content.
+
 The report is a consultation-note/Arztbrief draft, not a discharge summary,
 clinical decision, or signed document. Speaker identity is not established by
 the default ASR. Do not infer patient/clinician identity from voice alone.

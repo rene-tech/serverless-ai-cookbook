@@ -9,7 +9,7 @@ import type { WorkshopRun as Run } from './scientific-comparison';
 import { runDisplay, studyDisplay } from './scientific-run-display';
 import GettingStarted from './ScientificGettingStarted';
 
-type Job = { id: string; status: string; created_at: string; error?: string; files: string[] };
+type Job = { id: string; status: string; created_at: string; error?: string; files: string[]; generation_warnings?: { code: string; detail: string }[] };
 type Catalog = { catalog: { judge_model: string; data: { id: string; clinician_eligible: boolean; patient_eligible: boolean }[] };
   profiles: { data: { id: string; profile_id?: string; name?: string }[] }; limits: { profiles: number; workers_per_team: number } };
 type AppRow = { id: string; native?: { display_name?: string; enabled?: boolean; capabilities?: string[]; protocols?: string[];
@@ -300,7 +300,8 @@ function ClinicalAndMindEval() {
       </form>
       <h3 className="my-4 font-semibold">Your report jobs</h3>
       {(jobs.data?.data || []).map((job) => <article key={job.id} className="mb-3 rounded-xl border border-border-medium p-4">
-        <p><strong>{job.status === 'completed' ? 'Draft ready for review' : job.status}</strong> · <code>{job.id}</code></p>
+        <p><strong>{job.status === 'completed' ? job.generation_warnings?.length ? 'Draft generated with incompleteness warnings' : 'Draft ready for review' : job.status}</strong> · <code>{job.id}</code></p>
+        {job.generation_warnings?.map((warning, index) => <p role="alert" key={index} className="my-2 text-sm text-status-error">{warning.code}: {warning.detail}</p>)}
         {job.error && <p role="status">{job.error}</p>}
         {['incomplete', 'interrupted', 'prepared'].includes(job.status) && <Button variant="outline" disabled={busy} onClick={() => void act(async () => { await request.post(`${BASE}/clinical/${job.id}/resume`); })}>Resume same job</Button>}
         <div className="mt-3 flex flex-wrap gap-2">{job.files.map((name) => <Button key={name} variant="outline" size="sm" onClick={() => void act(async () => {
