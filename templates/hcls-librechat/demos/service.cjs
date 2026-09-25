@@ -6,8 +6,13 @@ const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const ROOT = process.env.SCIENTIFIC_DEMOS_DIR || '/data/hcls-demos';
 const PLATFORM = (process.env.SCIENTIFIC_MODELS_API_BASE_URL || 'https://89.169.99.188/v1').replace(/\/v1\/?$/, '');
-const REPORT_MODEL = 'Qwen/Qwen3-235B-A22B-Instruct-2507';
-const REPORT_PROVIDER = 'https://api.tokenfactory.nebius.com/v1';
+const REPORT_MODEL = process.env.CLINICAL_REPORT_MODEL || 'Qwen/Qwen3-235B-A22B-Instruct-2507';
+const REPORT_PROVIDER = process.env.CLINICAL_REPORT_BASE_URL || 'https://api.tokenfactory.nebius.com/v1';
+const REPORT_PROVIDER_LABEL = process.env.CLINICAL_REPORT_PROVIDER_LABEL || (process.env.CLINICAL_REPORT_BASE_URL ? 'Dedicated clinical report endpoint' : 'Nebius Token Factory');
+function reportCredential() {
+  // Never send a Token Factory key to an explicitly selected external endpoint.
+  return process.env.CLINICAL_REPORT_API_KEY || (!process.env.CLINICAL_REPORT_BASE_URL ? process.env.NEBIUS_API_KEY : '') || '';
+}
 const FILES = ['report.md', 'transcript.txt', 'follow-up.md', 'review.md', 'document.json', 'review.json', 'run.json'];
 const WORKSPACE = process.env.SCIENTIFIC_WORKSPACE || '/workspace';
 const RUN_ID = /^[a-f0-9-]{36}$/i;
@@ -583,7 +588,7 @@ async function status(owner, id) {
   const request = await read(path.join(dir, 'request.json')).catch(() => ({}));
   return { id, status: receipt.status, created_at: receipt.created_at, finished_at: receipt.finished_at,
     error: receipt.error, ...(receipt.error_code ? { error_code: receipt.error_code } : {}),
-    files: available, model: REPORT_MODEL,
+    files: available, model: request.report_model || REPORT_MODEL,
     input_provenance: { kind: request.kind, sha256: request.input_sha256,
       size_bytes: request.input_size_bytes, workspace_file: request.source_workspace },
     url: `/demos?tab=clinical&job=${id}`, clinical_validation: false };
@@ -598,6 +603,7 @@ async function start(owner, key, id) {
   const dir = directory(owner, id);
   const request = await read(path.join(dir, 'request.json'));
   if (request.key_hash !== hash(privateKey(key))) throw failure('Resume with the original submitting platform key.', 409);
+  if (request.report_model !== REPORT_MODEL || request.report_provider !== REPORT_PROVIDER) throw failure('Report backend changed. Restore its original configuration to resume this job; do not mix model outputs.', 409);
   let lock;
   try { lock = await fs.open(path.join(dir, 'launch.lock'), 'wx', 0o600); }
   catch { throw failure('A launch is already in progress. Refresh job status.', 409); }
@@ -607,7 +613,7 @@ async function start(owner, key, id) {
     await fs.unlink(path.join(dir, 'launched')).catch(() => {});
     const worker = spawn(process.execPath, [path.join(__dirname, 'worker.cjs'), dir], {
       detached: true, stdio: 'ignore', env: { PATH: process.env.PATH, LANG: 'C.UTF-8',
-        FS2_API_KEY: key, CLINICAL_REPORT_API_KEY: process.env.NEBIUS_API_KEY || process.env.CLINICAL_REPORT_API_KEY || '',
+        FS2_API_KEY: key, CLINICAL_REPORT_API_KEY: reportCredential(),
         SCIENTIFIC_CLINICAL_PYTHON: process.env.SCIENTIFIC_CLINICAL_PYTHON || '/opt/clinical-client/bin/python',
         SCIENTIFIC_CLINICAL_SCRIPT: process.env.SCIENTIFIC_CLINICAL_SCRIPT || '/app/skill/clinical-documentation/scripts/clinical_report.py' },
     });
@@ -626,7 +632,9 @@ async function clinical(owner, key, input) {
   if (!['en', 'de'].includes(input.language)) throw failure('Choose English or German.');
   if (!['audio', 'transcript'].includes(input.kind)) throw failure('Choose audio or transcript.');
   if (!/^[A-Za-z0-9_.:-]{1,160}$/.test(input.idempotency_key || '')) throw failure('Supply an idempotency key.');
-  if (!process.env.NEBIUS_API_KEY && !process.env.CLINICAL_REPORT_API_KEY) throw failure('The operator must configure the report provider credential.', 503);
+  if (!reportCredential()) throw failure('The operator must configure the selected report provider credential.', 503);
+  const reportUrl = new URL(REPORT_PROVIDER);
+  if (reportUrl.protocol !== 'https:' || reportUrl.username || reportUrl.password || reportUrl.search || reportUrl.hash) throw failure('The report endpoint requires credential-free HTTPS configuration.', 503);
   const ext = path.extname(input.filename || '').toLowerCase();
   if (!(input.kind === 'audio' ? ['.wav', '.flac', '.mp3', '.ogg', '.m4a', '.mp4', '.webm'] : ['.txt', '.json']).includes(ext)) throw failure('Unsupported input format.');
   const size = input.local_path ? (await fs.stat(input.local_path)).size : input.bytes?.length;
@@ -684,4 +692,4 @@ async function analyzeWorkspace(kind, key, args) {
     : analysis.compare(kind, key, args, { workspaceGet, retainWorkspaceBytes });
 }
 module.exports = { platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
-  workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL };
+  workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL, REPORT_PROVIDER_LABEL, reportCredential };

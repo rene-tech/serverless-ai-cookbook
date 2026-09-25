@@ -1,0 +1,12 @@
+{
+  "browser": {
+    "launchOptions": {
+      "headless": true,
+      "args": ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"]
+    },
+    "contextOptions": {
+      "permissions": ["microphone"],
+      "viewport": {"width": 1440, "height": 1050}
+    }
+  }
+}

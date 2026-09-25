@@ -20,6 +20,9 @@ the versioned Scientific AI UI and replaces the actual composer microphone.
 | `SCIENTIFIC_MEDICAL_SPEECH_MODEL` | Default `nemotron-clinical-en` |
 | `SCIENTIFIC_SPEECH_JOBS_DIR` | Private local receipts; default `/data/hcls-speech` |
 | `NEBIUS_API_KEY` or `CLINICAL_REPORT_API_KEY` | Separate server-side Token Factory credential for existing reviewed-report workflow |
+| `CLINICAL_REPORT_BASE_URL` | Optional dedicated OpenAI-compatible HTTPS `/v1` endpoint, e.g. self-hosted Fastino; requires its own `CLINICAL_REPORT_API_KEY` |
+| `CLINICAL_REPORT_MODEL` | Optional clinical text model ID; defaults to `Qwen/Qwen3-235B-A22B-Instruct-2507` |
+| `CLINICAL_REPORT_PROVIDER_LABEL` | Optional public UI label (never put credentials in it) |
 
 Leave `SCIENTIFIC_STUDY_OWNER_MODE` **unset** on a parallel demo instance; do not
 claim ownership of another running client's autonomous scientific-study worker.
@@ -27,6 +30,10 @@ Keep `SCHEDULES_SINGLE_PROCESS=true` for this one-process deployment; this is a
 separate LibreChat mechanism, not Scientific AI worker ownership.
 Use a new ordinary tenant/user key and isolated workspace. Keys are saved through
 the existing authenticated Apps/Clinical connection panel, not embedded in JS.
+The optional clinical provider does not change the user's chat model. A Token
+Factory key is never used as fallback for a separately configured endpoint.
+Changing provider/model blocks resume of older report jobs until their original
+configuration is restored, preventing mixtures of untracked model outputs.
 
 ## Paths and guarantees
 
