@@ -4,7 +4,9 @@ const { createReadStream } = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
-const WebSocket = require('ws');
+// Detached report workers have a deliberately minimal environment: do not
+// depend on an interactive NODE_PATH for the exact installed LibreChat SDK.
+const WebSocket = require('/app/node_modules/ws');
 const { socketUrl } = require('./relay.cjs');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const failure = code => Object.assign(new Error(code), { code });

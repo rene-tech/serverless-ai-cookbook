@@ -34,6 +34,7 @@ COPY templates/hcls-librechat/assets/nebius-logo.svg /app/client/dist/assets/log
 COPY templates/hcls-librechat/assets/token-factory.svg /app/client/dist/assets/token-factory.svg
 RUN node /opt/hcls-librechat/speech/patch.mjs server \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist \
- && node /opt/hcls-librechat/speech/test-installed-config.cjs
+ && node /opt/hcls-librechat/speech/test-installed-config.cjs \
+ && node -e "require('/opt/hcls-librechat/speech/native-file.cjs')"
 ARG SPEECH_REVISION=unknown
 LABEL ai.nebius.scientific.clinical-speech.revision="${SPEECH_REVISION}"
