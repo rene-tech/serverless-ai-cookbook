@@ -22,7 +22,9 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
   const [error, setError] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [audio, setAudio] = useState<Blob | null>(null);
-  const [metrics, setMetrics] = useState<{ first?: number; final?: number; operation?: string }>({});
+  const [metrics, setMetrics] = useState<{ first?: number; final?: number; operation?: string;
+    connect_at?: string; ready_at?: string; audio_start_at?: string; first_partial_at?: string;
+    input_end_at?: string; completed_at?: string }>({});
   const [reviewed, setReviewed] = useState(false);
   const [report, setReport] = useState('');
   const [draftBusy, setDraftBusy] = useState(false);
@@ -88,6 +90,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
     const run = current.current;
     if (run.closed || run.stopped) return;
     run.stopped = performance.now(); setState('finalizing');
+    setMetrics((value) => ({ ...value, input_end_at: new Date().toISOString() }));
     run.source?.disconnect(); run.stream?.getTracks().forEach((track) => track.stop());
     if (run.source instanceof AudioBufferSourceNode) { run.source.onended = null; try { run.source.stop(); } catch { /* ended */ } }
     const node = run.node;
@@ -108,7 +111,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
     cleanup(true);
     const run = { chunks: [] as ArrayBuffer[], words: new Map(), model: models.find((item) => item.key === model)?.id, started: performance.now(), closed: false } as typeof current.current;
     current.current = run; segments.current = new Map(); transcript.current = '';
-    setText(''); setAudio(null); setError(''); setMetrics({}); setReport(''); setDraftJob(''); draftId.current = crypto.randomUUID(); setReviewed(false); setState('connecting');
+    setText(''); setAudio(null); setError(''); setMetrics({ connect_at: new Date().toISOString() }); setReport(''); setDraftJob(''); draftId.current = crypto.randomUUID(); setReviewed(false); setState('connecting');
     setSpeaker(null); setRoles({}); speakerId.current = crypto.randomUUID();
     previousDraft.current = '';
     if (!compact && (params.has('speech_job') || params.has('job'))) { const updated = new URLSearchParams(params); updated.delete('speech_job'); updated.delete('job'); setParams(updated, { replace: true }); }
@@ -142,6 +145,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
           if (event.type === 'session.queued') setState('queued');
           if (event.type === 'session.ready') {
             if (run.node) return;
+            setMetrics((value) => ({ ...value, ready_at: new Date().toISOString() }));
             run.node = new AudioWorkletNode(run.context!, 'scientific-pcm');
             run.node.port.onmessage = (packet) => {
               if (!(packet.data instanceof ArrayBuffer) || run.closed) return;
@@ -157,18 +161,19 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
               run.source = run.context!.createMediaStreamSource(run.stream!); run.source.connect(run.node);
             }
             run.started = performance.now(); setState('listening');
+            setMetrics((value) => ({ ...value, audio_start_at: new Date().toISOString() }));
           }
           if (event.type === 'transcript.partial' || event.type === 'transcript.final') {
             const value = transcriptEvent(segments.current, event);
             transcript.current = value; setText(value); handlers.current.onTranscript?.(value);
             if (event.type === 'transcript.final' && event.items) run.words.set(String(event.segment_id ?? event.sequence), acousticWords(event));
-            if (value && run.first === undefined) { run.first = performance.now() - run.started; setMetrics((old) => ({ ...old, first: run.first })); }
+            if (event.type === 'transcript.partial' && value && run.first === undefined) { run.first = performance.now() - run.started; setMetrics((old) => ({ ...old, first: run.first, first_partial_at: new Date().toISOString() })); }
           }
           if (event.type === 'session.completed') {
             if ([...segments.current.values()].some((segment) => !segment.final && segment.text)) {
               setError('The endpoint completed with unfinalized partial text. Review the retained text; it is not a complete transcript.'); setState('failed'); cleanup(); return;
             }
-            setMetrics((old) => ({ ...old, final: performance.now() - (run.stopped || run.started) }));
+            setMetrics((old) => ({ ...old, final: run.stopped ? performance.now() - run.stopped : undefined, completed_at: new Date().toISOString() }));
             setAudio(wavBlob(run.chunks)); setState('completed'); cleanup();
           }
           if (event.type === 'session.cancelled') { setState('cancelled'); cleanup(); }
@@ -233,6 +238,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
     {error && <p role="alert" className="my-2 text-status-error">{error}</p>}
     <textarea aria-label="Live transcript for review" value={text} readOnly={busy || draftBusy} onChange={(event) => { setText(event.target.value); setReviewed(false); setDraftJob(''); draftId.current = crypto.randomUUID(); }} rows={6} className="w-full rounded border border-border-medium bg-surface-primary p-3" />
     <p className="text-xs">First partial: {metrics.first === undefined ? '—' : `${(metrics.first / 1000).toFixed(2)}s`} · final after stop: {metrics.final === undefined ? '—' : `${(metrics.final / 1000).toFixed(2)}s`}{metrics.operation ? ` · operation ${metrics.operation}` : ''}</p>
+    <details className="my-2 text-xs"><summary>Browser timing receipt (UTC; milliseconds)</summary><pre data-testid="speech-timing-receipt" className="whitespace-pre-wrap">{JSON.stringify({ ...metrics, model: current.current.model, timing_origin: 'browser observation; first/final durations are milliseconds, not GPU execution time' }, null, 2)}</pre></details>
     <p className="my-2 text-xs">Raw audio is buffered in your browser, not saved by the relay. Upstream inference receives the audio; endpoint isolation, retention and logging depend on the deployed configuration. This demo is not a HIPAA compliance claim.</p>
     {state === 'completed' && <div className="my-3 flex flex-wrap items-center gap-3">
       <button type="button" disabled={speakerBusy || speaker?.state === 'running' || speaker?.state === 'completed'} onClick={() => void identifySpeakers()} className="rounded border p-2">{speaker?.id ? 'Resume speaker analysis' : 'Identify anonymous speakers'}</button>
