@@ -26,6 +26,7 @@ async function main() {
     const retrieved = await methods.getSkillByName(skill.name, registry.ids());
     assert.equal(retrieved.body, skill.body, skill.name);
     for (const file of skill.files) {
+      assert.ok(!/(^|\/)__pycache__\/|\.py[co]$/.test(file.relativePath), `Generated Python cache must not be published as a skill resource: ${skill.name}/${file.relativePath}`);
       const read = await methods.getSkillFileByPath(skill._id, file.relativePath);
       assert.ok(read, `${skill.name}/${file.relativePath}`);
       if (read.content !== undefined && !read.isBinary) {
