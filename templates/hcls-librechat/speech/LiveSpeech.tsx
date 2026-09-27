@@ -7,6 +7,7 @@ import { acousticWords, transcriptEvent, wavBlob, liveSpeakerTurns, speakerLabel
 type Model = { key: string; id: string; label: string; diarization?: { model: string; timing: string } };
 type Activity = { start_seconds: number; frame_duration_seconds: number; probabilities: number[][] };
 type Event = { type: string; text?: string; segment_id?: string; sequence?: number; revision?: number;
+  separator_before?: '' | ' ';
   code?: string; operation_id?: string; session_id?: string; model_revision?: string; items?: Word[];
   diarization_operation_id?: string; speaker_stream_receipt?: string; model_identity?: Record<string, unknown> } & Partial<Activity>;
 type Word = { text: string; start_seconds: number; end_seconds: number };

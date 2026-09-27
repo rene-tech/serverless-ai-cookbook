@@ -1,16 +1,27 @@
 // Pure helpers shared with deterministic tests. A partial replaces its segment;
 // it is not a stream of additive tokens. Old runtime uses sequence, newer uses segment_id.
+export function transcriptText(segments) {
+  let text = '';
+  for (const item of segments) {
+    if (item.separator_before !== undefined && item.separator_before !== '' && item.separator_before !== ' ') throw new Error('Invalid native separator');
+    const space = item.separator_before === ' ' && text && item.text && !/\s$/.test(text) && !/^\s/.test(item.text);
+    text += (space ? ' ' : '') + item.text;
+  }
+  return text.trim();
+}
 export function transcriptEvent(segments, event) {
   if (typeof event.text !== 'string') throw new Error('Invalid transcript');
+  if (event.separator_before !== undefined && (event.type !== 'transcript.final' || !['', ' '].includes(event.separator_before))) throw new Error('Invalid native separator');
   const id = String(event.segment_id ?? event.sequence ?? 'current');
   const old = segments.get(id);
   const revision = Number(event.revision ?? (old?.revision ?? -1) + 1);
   if (!old || (revision >= old.revision && !(old.final && event.type === 'transcript.partial'))) {
-    segments.set(id, { text: event.text, revision, final: event.type === 'transcript.final' });
+    segments.set(id, { text: event.text, revision, final: event.type === 'transcript.final',
+      ...(event.separator_before !== undefined ? { separator_before: event.separator_before } : {}) });
   }
-  // NeMo owns whitespace and may finalize mid-word; inserting spaces between
-  // segments corrupts words (e.g. "sor" + "ry") and no-space languages.
-  return [...segments.values()].map((item) => item.text).join('').trim();
+  // Only explicit native BPE evidence may request a boundary separator.
+  // Legacy fragments, including "sor" + "ry" and no-space locales, stay verbatim.
+  return transcriptText(segments.values());
 }
 export function appendDictation(prefix, text) {
   // Preserve typed content and native ASR wording. Only avoid introducing a
@@ -33,6 +44,7 @@ export function wavBlob(chunks) {
 export function acousticWords(event) {
   // Word items omit inter-word spaces, but a chunk can begin mid-word. Partition
   // the exact final string using its acoustic items; do not guess word boundaries.
+  if (event.separator_before !== undefined && !['', ' '].includes(event.separator_before)) throw new Error('Invalid native separator');
   let cursor = 0;
   const words = (event.items || []).map((word) => {
     const token = word.text.trim();
@@ -43,6 +55,8 @@ export function acousticWords(event) {
     cursor = end; return result;
   });
   if (words.length) words[words.length - 1].render_text += event.text.slice(cursor);
+  // Display metadata only; raw native item.text and acoustic times stay intact.
+  if (words.length && event.separator_before === ' ' && !/^\s/.test(words[0].render_text)) words[0].render_text = ' ' + words[0].render_text;
   return words;
 }
 

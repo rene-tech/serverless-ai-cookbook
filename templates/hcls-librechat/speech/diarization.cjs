@@ -12,7 +12,13 @@ const reading = async (file) => JSON.parse(await fs.readFile(file, 'utf8'));
 const pending = new Set();
 function sourceReceipt(value) {
   if (!value || value.schema !== 'scientific-clinical/browser-asr-source/v1' || typeof value.raw_transcript !== 'string' || !value.raw_transcript.trim() || value.raw_transcript.length > 500000 || !Array.isArray(value.segments) || !value.segments.length || value.segments.length > 20000 || value.segments.some(item => typeof item.id !== 'string' || typeof item.text !== 'string' || item.final !== true || !Number.isFinite(item.revision))) throw fail('Completed raw ASR source evidence is required.');
-  if (value.segments.map(item => item.text).join('').trim() !== value.raw_transcript) throw fail('Raw ASR segments do not match the source transcript.');
+  let joined = '';
+  for (const item of value.segments) {
+    if (item.separator_before !== undefined && !['', ' '].includes(item.separator_before)) throw fail('Invalid native separator in ASR source evidence.');
+    const space = item.separator_before === ' ' && joined && item.text && !/\s$/.test(joined) && !/^\s/.test(item.text);
+    joined += (space ? ' ' : '') + item.text;
+  }
+  if (joined.trim() !== value.raw_transcript) throw fail('Raw ASR segments do not match the source transcript.');
   const timings = value.timings;
   if (!timings || !['ready_at', 'audio_start_at', 'input_end_at', 'completed_at'].every(name => typeof timings[name] === 'string' && Number.isFinite(Date.parse(timings[name])))) throw fail('Completed browser timing evidence is required.');
   return value;

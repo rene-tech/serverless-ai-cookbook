@@ -53,6 +53,29 @@ test('ambiguous disconnect is retained and never automatically replays audio', a
   assert.equal(options.connections(), 1);
   assert.equal(JSON.parse(await fs.readFile(path.join(options.directory, 'failure.json'))).automatic_replay, false);
 });
+test('file batch honors explicit native separator while preserving raw event and word evidence', async t => {
+  const options = await fixture(t, ws => {
+    let count = 0;
+    ws.on('message', (data, binary) => {
+      if (binary) { count += data.length; return; }
+      const event = JSON.parse(data);
+      if (event.type === 'session.start') ws.send(JSON.stringify({ type: 'session.ready', session_id: 'native-hint' }));
+      if (event.type === 'input.finish') {
+        ws.send(JSON.stringify({ type: 'transcript.final', segment_id: 0, revision: 1, text: 'Hi', items: [{ text: 'Hi', start_seconds: 0, end_seconds: .2 }] }));
+        ws.send(JSON.stringify({ type: 'transcript.final', segment_id: 1, revision: 1, text: 'shall', separator_before: ' ', items: [{ text: 'shall', start_seconds: .3, end_seconds: .5 }] }));
+        ws.send(JSON.stringify({ type: 'session.completed', audio_seconds: count / 32000 }));
+      }
+    });
+  });
+  const result = await transcribeFile(options);
+  const raw = JSON.parse(await fs.readFile(result.path));
+  assert.equal(raw.text, 'Hi shall');
+  assert.equal(raw.words[1].text, 'shall');
+  assert.equal(raw.words[1].render_text, ' shall');
+  const events = (await fs.readFile(path.join(options.directory, 'events.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+  const final = events.find(row => row.event.segment_id === 1).event;
+  assert.equal(final.text, 'shall'); assert.equal(final.separator_before, ' ');
+});
 test('unfinalized partial cannot become a cached successful transcript', async t => {
   const options = await fixture(t, ws => {
     let count = 0;

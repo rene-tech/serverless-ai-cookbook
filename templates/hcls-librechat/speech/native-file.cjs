@@ -45,7 +45,7 @@ async function transcribeFile({ source, directory, backend, credential, signal,
       return { path: resultPath, receipt, cached: true };
     } catch { throw failure('native_asr_admission_unknown_no_automatic_replay'); }
   }
-  const { transcriptEvent, acousticWords } = await import('./speech-state.js');
+  const { transcriptEvent, transcriptText, acousticWords } = await import('./speech-state.js');
   const segments = new Map(), words = new Map();
   let ws, decoder, session, completed, audioBytes = 0, eventBytes = 0, eventCount = 0;
   const eventFile = path.join(directory, 'events.jsonl');
@@ -121,7 +121,7 @@ async function transcribeFile({ source, directory, backend, credential, signal,
     });
     await recording;
     await events.close();
-    const result = { text: [...segments.values()].map(value => value.text).join('').trim(),
+    const result = { text: transcriptText(segments.values()),
       words: [...words.values()].flat(), audio_seconds: completed.audio_seconds,
       runtime_session_id: session, platform_operation_id: null,
       provenance: { ...config, events_sha256: await digestFile(eventFile), clinical_validation: false } };

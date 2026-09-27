@@ -2,7 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { acousticWords, transcriptEvent, wavBlob, appendDictation, liveSpeakerTurns, speakerText } from './speech-state.js';
+import { acousticWords, transcriptEvent, transcriptText, wavBlob, appendDictation, liveSpeakerTurns, speakerText } from './speech-state.js';
+test('only explicit native final boundary hints separate phrases; legacy fragments remain verbatim', () => {
+  const segments = new Map();
+  const first = { type: 'transcript.final', segment_id: 0, text: ' Hello, hello, hi, hi', revision: 1 };
+  transcriptEvent(segments, first);
+  assert.equal(transcriptEvent(segments, { type: 'transcript.partial', segment_id: 1, revision: 1, text: ', shall we' }), 'Hello, hello, hi, hi, shall we');
+  const next = { type: 'transcript.final', segment_id: 1, revision: 2, text: 'shall we stop? Yeah, OK. Hello', separator_before: ' ' };
+  assert.equal(transcriptEvent(segments, next), 'Hello, hello, hi, hi shall we stop? Yeah, OK. Hello');
+  assert.equal(segments.get('1').text, next.text);
+  assert.equal(segments.get('1').separator_before, ' ');
+  assert.equal(transcriptEvent(segments, { type: 'transcript.partial', segment_id: 1, revision: 3, text: 'stale' }), 'Hello, hello, hi, hi shall we stop? Yeah, OK. Hello');
+  assert.equal(transcriptText([{ text: 'I am sor' }, { text: 'ry.' }]), 'I am sorry.');
+  assert.equal(transcriptText([{ text: '你' }, { text: '好' }]), '你好');
+  assert.equal(transcriptText([{ text: 'dose ' }, { text: '5 mg', separator_before: ' ' }]), 'dose 5 mg');
+  assert.equal(transcriptText([{ text: 'dose' }, { text: ' 5 mg', separator_before: ' ' }]), 'dose 5 mg');
+  assert.equal(transcriptText([{ text: '', separator_before: ' ' }, { text: 'first', separator_before: ' ' }]), 'first');
+  assert.throws(() => transcriptEvent(segments, { ...next, separator_before: '\n' }), /Invalid native separator/);
+  assert.throws(() => transcriptEvent(segments, { ...next, type: 'transcript.partial' }), /Invalid native separator/);
+});
+test('explicit native separator affects acoustic display, not words or timestamps', () => {
+  const item = { text: 'shall', start_seconds: 7.44, end_seconds: 7.68 };
+  const result = acousticWords({ text: 'shall', separator_before: ' ', items: [item] });
+  assert.deepEqual(result, [{ ...item, render_text: ' shall' }]);
+  assert.deepEqual(item, { text: 'shall', start_seconds: 7.44, end_seconds: 7.68 });
+  assert.equal(acousticWords({ text: ' shall', separator_before: ' ', items: [item] })[0].render_text, ' shall');
+});
 test('live speaker labels require actual finalized word timings; partials remain unassigned', () => {
   const segments = new Map([['0', { final: true, text: 'No fever.' }], ['1', { final: false, text: ' Maybe' }]]);
   const words = new Map([['0', [{ text: 'No', start_seconds: 0, end_seconds: .1 }, { text: 'fever.', render_text: ' fever.', start_seconds: .1, end_seconds: .2 }]]]);
