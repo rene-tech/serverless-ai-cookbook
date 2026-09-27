@@ -723,28 +723,73 @@ async function output(owner, id, filename) {
   try { return await fs.readFile(path.join(directory(owner, id), 'output', filename)); }
   catch (error) { if (error.code === 'ENOENT') throw failure('This report file has not been produced. Check job status.', 409); throw error; }
 }
+async function optionalReviewFile(filename) {
+  try { const bytes = await fs.readFile(filename); return { value: JSON.parse(bytes), sha256: hash(bytes) }; }
+  catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw failure('Saved review evidence is unreadable; preserve it for inspection.', 409);
+  }
+}
+async function createReviewFile(filename, value) {
+  // Publish complete immutable bytes atomically; no partial read or overwrite.
+  const temporary = `${filename}.${crypto.randomUUID()}.tmp`;
+  await fs.writeFile(temporary, JSON.stringify(value), { mode: 0o600, flag: 'wx' });
+  try { await fs.link(temporary, filename); }
+  catch (error) { if (error.code !== 'EEXIST') throw error; }
+  finally { await fs.unlink(temporary); }
+  return optionalReviewFile(filename);
+}
 async function soap(owner, id) {
   if ((await status(owner, id)).status !== 'completed') throw failure('Wait for the accepted document before opening SOAP.', 409);
   const dir = directory(owner, id);
   const [documentBytes, transcriptBytes, request] = await Promise.all([output(owner, id, 'document.json'), output(owner, id, 'transcript.txt'), read(path.join(dir, 'request.json'))]);
-  const value = require('../speech/soap.cjs').buildSoap(JSON.parse(documentBytes), transcriptBytes.toString('utf8'), {
+  const document = JSON.parse(documentBytes);
+  const identity = {
     job_id: id, document_sha256: hash(documentBytes), transcript_sha256: hash(transcriptBytes),
     submitted_input_sha256: request.input_sha256, report_model: request.report_model,
-    report_provider: request.report_provider, reviewed_source: request.reviewed_source || null });
-  value.demo_review = await read(path.join(dir, 'demo-review.json')).catch(() => null);
-  if (value.demo_review && value.demo_review.document_sha256 !== value.provenance.document_sha256) throw failure('Saved demo review belongs to different document bytes; original evidence must not be overwritten.', 409);
+    report_provider: request.report_provider, reviewed_source: request.reviewed_source || null };
+  const saved = await optionalReviewFile(path.join(dir, 'fact-review-v1.json'));
+  if (saved) require('../speech/fact-review.cjs').validateReview(saved.value, identity, (document.facts || []).map((fact) => fact.id), hash(owner));
+  const value = require('../speech/soap.cjs').buildSoap(document, transcriptBytes.toString('utf8'), identity, saved?.value || null);
+  value.fact_review_sha256 = saved?.sha256 || null;
+  const acknowledgement = await optionalReviewFile(path.join(dir, 'demo-review-v2.json'));
+  value.demo_review = acknowledgement?.value || null;
+  if (value.demo_review && (!saved || Object.keys(value.demo_review).sort().join(',') !== 'actor_user,attestation,clinical_signoff,document_sha256,fact_review_sha256,job_id,reviewed_at,reviewer_kind,schema,transcript_sha256'
+      || value.demo_review.schema !== 'clinical-demo/review/v2'
+      || value.demo_review.actor_user !== hash(owner) || value.demo_review.job_id !== id
+      || value.demo_review.document_sha256 !== identity.document_sha256
+      || value.demo_review.transcript_sha256 !== identity.transcript_sha256
+      || value.demo_review.fact_review_sha256 !== saved.sha256
+      || value.demo_review.reviewer_kind !== saved.value.reviewer_kind
+      || typeof value.demo_review.reviewed_at !== 'string' || !Number.isFinite(Date.parse(value.demo_review.reviewed_at))
+      || value.demo_review.attestation !== 'reviewed-demo-draft-not-clinical-signoff'
+      || value.demo_review.clinical_signoff !== false)) throw failure('Saved acknowledgement does not bind the exact complete fact review.', 409);
+  const legacy = await optionalReviewFile(path.join(dir, 'demo-review.json'));
+  value.legacy_demo_review = legacy ? { ...legacy.value, qualifies_current_projection: false } : null;
   return value;
+}
+async function reviewSoapFacts(owner, id, input) {
+  const current = await soap(owner, id);
+  const policy = require('../speech/fact-review.cjs');
+  const snapshot = policy.makeReview(input, current.provenance, current.review_candidates.map((fact) => fact.id), hash(owner));
+  const file = path.join(directory(owner, id), 'fact-review-v1.json');
+  const saved = await createReviewFile(file, snapshot);
+  policy.validateReview(saved.value, current.provenance, current.review_candidates.map((fact) => fact.id), hash(owner));
+  if (saved.value.request_sha256 !== snapshot.request_sha256) throw failure('A different immutable fact review already exists; preserve both source and saved review, do not overwrite.', 409);
+  return soap(owner, id);
 }
 async function reviewSoap(owner, id, input) {
   const current = await soap(owner, id);
-  if (input?.attestation !== 'reviewed-demo-draft-not-clinical-signoff' || input.document_sha256 !== current.provenance.document_sha256) throw failure('Review must identify this exact document and explicitly remain a demo acknowledgement.', 409);
-  const file = path.join(directory(owner, id), 'demo-review.json');
-  const review = { schema: 'clinical-demo/review/v1', job_id: id, actor_user: hash(owner),
+  if (!input || Object.keys(input).sort().join(',') !== 'attestation,document_sha256,fact_review_sha256'
+      || input.attestation !== 'reviewed-demo-draft-not-clinical-signoff' || input.document_sha256 !== current.provenance.document_sha256
+      || !current.review_complete || !current.fact_review_sha256 || input.fact_review_sha256 !== current.fact_review_sha256) throw failure('A complete exact fact review is required before this demo-only acknowledgement.', 409);
+  const file = path.join(directory(owner, id), 'demo-review-v2.json');
+  const review = { schema: 'clinical-demo/review/v2', job_id: id, actor_user: hash(owner),
     document_sha256: input.document_sha256, transcript_sha256: current.provenance.transcript_sha256,
+    fact_review_sha256: current.fact_review_sha256, reviewer_kind: current.fact_review.reviewer_kind,
     reviewed_at: new Date().toISOString(), attestation: input.attestation, clinical_signoff: false };
-  try { await fs.writeFile(file, JSON.stringify(review), { mode: 0o600, flag: 'wx' }); }
-  catch (error) { if (error.code !== 'EEXIST') throw error; }
-  return read(file);
+  await createReviewFile(file, review);
+  return (await soap(owner, id)).demo_review;
 }
 async function clinicalOutput(owner, key, id, filename) {
   const bytes = await output(owner, id, filename);
@@ -759,5 +804,5 @@ async function analyzeWorkspace(kind, key, args) {
     : kind === 'docking-batch' ? analysis.dockingBatch(key, args, { workspaceGet, retainWorkspaceBytes })
     : analysis.compare(kind, key, args, { workspaceGet, retainWorkspaceBytes });
 }
-module.exports = { platform, platformBytes, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, soap, reviewSoap, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
+module.exports = { platform, platformBytes, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, soap, reviewSoap, reviewSoapFacts, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
   workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL, REPORT_PROVIDER_LABEL, reportCredential, englishAsrBackend };

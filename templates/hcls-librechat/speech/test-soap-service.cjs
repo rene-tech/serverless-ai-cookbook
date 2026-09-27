@@ -23,10 +23,11 @@ test('review acknowledgement is user-scoped, hash-bound and does not mutate repo
   assert.equal(first.demo_review,null);
   assert.deepEqual(first.provenance.reviewed_source,request.reviewed_source);
   await assert.rejects(service.soap('another-user',id),/not found/);
-  await assert.rejects(service.reviewSoap(owner,id,{document_sha256:'wrong',attestation:'reviewed-demo-draft-not-clinical-signoff'}),/exact document/);
-  const review=await service.reviewSoap(owner,id,{document_sha256:first.provenance.document_sha256,attestation:'reviewed-demo-draft-not-clinical-signoff'});
+  await assert.rejects(service.reviewSoap(owner,id,{document_sha256:'wrong',attestation:'reviewed-demo-draft-not-clinical-signoff'}),/complete exact fact review/);
+  const reviewed=await service.reviewSoapFacts(owner,id,{document_sha256:first.provenance.document_sha256,transcript_sha256:first.provenance.transcript_sha256,expected_review_sha256:null,reviewer_kind:'ai_engineering',decisions:[]});
+  const review=await service.reviewSoap(owner,id,{document_sha256:first.provenance.document_sha256,fact_review_sha256:reviewed.fact_review_sha256,attestation:'reviewed-demo-draft-not-clinical-signoff'});
   assert.equal(review.clinical_signoff,false); assert.equal(review.actor_user,hash(owner));
-  const again=await service.reviewSoap(owner,id,{document_sha256:first.provenance.document_sha256,attestation:'reviewed-demo-draft-not-clinical-signoff'});
+  const again=await service.reviewSoap(owner,id,{document_sha256:first.provenance.document_sha256,fact_review_sha256:reviewed.fact_review_sha256,attestation:'reviewed-demo-draft-not-clinical-signoff'});
   assert.deepEqual(review,again);
   assert.equal(await fs.readFile(path.join(output,'transcript.txt'),'utf8'),source);
   assert.equal(hash(await fs.readFile(path.join(output,'document.json'))),first.provenance.document_sha256);

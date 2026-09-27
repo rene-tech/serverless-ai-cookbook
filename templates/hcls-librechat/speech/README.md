@@ -4,6 +4,42 @@ This is an additive **new-instance** overlay on the operation-polling release
 `sha256:81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d`.
 Do not replace, restart, or resize any retained endpoint to deploy it.
 
+## Per-fact review projection (source change; deployment qualification required)
+
+The original model document, transcript, rejected candidates, citations and hashes
+remain unchanged. The SOAP panel now distinguishes **original model candidates**
+from a **reviewed demo projection**. Unreviewed, rejected and uncertain candidates
+do not appear in reviewed SOAP sections or task proposals; their source passages,
+model rationales and reviewer reasons remain visible and exportable.
+
+For each generated fact choose retain-for-demo, reject or uncertain, with a
+nonblank plain-text reason (at most 2,000 characters). Explicitly choose
+`ai_engineering` or `self_declared_human_demo`: neither means clinician
+certification or clinical sign-off. Retention is a reviewer decision about a demo
+passage, not proof of clinical truth or verified speaker roles. No medical text
+correction, role assignment or additional model invocation occurs here.
+
+Saving freezes one complete snapshot for this exact document/transcript and
+original provenance. All fact IDs must be covered exactly once. The authenticated
+server supplies the actor; the create-only absent-state compare-and-set rejects
+different later decisions and handles an identical retry idempotently. Atomic
+file publication prevents readers seeing a partial snapshot. The private local
+job store must support normal local-filesystem hard links; this is not a direct
+object-store write protocol. Existing state is never overwritten.
+
+The full structured export contains the immutable snapshot, its hash, all original
+model candidates, excluded dispositions/reasons, reviewed projection and original
+artifact links/hashes. The separate demo acknowledgement requires that exact
+complete snapshot. Historical v1 acknowledgements remain visible as historical
+only and cannot approve a new projection. Every export remains `DRAFT`,
+`human_review_required=true`, `clinical_signoff=false`; no task executes.
+This one-snapshot UI deliberately does not edit a previously frozen review.
+
+Run `speech/test-fact-review*.cjs` and the SOAP tests in the pinned dependency
+image. The TSX event-wiring test uses actual component/source and local service
+with deterministic hook/request adapters, not a real browser or clinical model.
+Exact packaged-image and new customer-browser qualification remain separate.
+
 ## Selected existing English checkpoint, September 27
 
 The new shared-App deployment uses `SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE=platform`,

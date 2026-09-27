@@ -1,12 +1,17 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildSoap, hash, UNKNOWN } = require('./soap.cjs');
+const { makeReview } = require('./fact-review.cjs');
 function build(text, details = {}) {
   const source_attribution = details.source_attribution || 'patient_reported';
   const fact = { id: 'F0001', section: 'history', uncertain: false, source_attribution,
     source_attribution_extraction: source_attribution, source_attribution_review: source_attribution,
     source_phrases: [{quote:text,spans:[{start:0,end:[...text].length}]}], ...details };
-  return buildSoap({transcript_sha256:hash(text),facts:[fact],rejected:[]},text,{job_id:'a'.repeat(32)});
+  const document={transcript_sha256:hash(text),facts:[fact],rejected:[]};
+  const identity={job_id:'a'.repeat(32),document_sha256:hash(JSON.stringify(document)),transcript_sha256:hash(text)};
+  const review=makeReview({document_sha256:identity.document_sha256,transcript_sha256:identity.transcript_sha256,
+    expected_review_sha256:null,reviewer_kind:'ai_engineering',decisions:[{fact_id:'F0001',disposition:'retain_for_demo',reason:'Synthetic test of literal source projection only'}]},identity,['F0001'],hash('test-owner'));
+  return buildSoap(document,text,identity,review);
 }
 test('SOAP keeps negation literal and objective/assessment unknown',()=>{
   const value=build('I do not have chest pain.');

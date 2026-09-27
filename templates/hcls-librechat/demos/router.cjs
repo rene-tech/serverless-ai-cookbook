@@ -77,6 +77,7 @@ router.post('/clinical', upload.single('file'), wrap(async (req, res) => {
 router.get('/clinical/:id', wrap(async (req, res) => res.json(await service.status(req.user.id, req.params.id))));
 router.post('/clinical/:id/resume', wrap(async (req, res) => res.json(await service.start(req.user.id, await key(req), req.params.id))));
 router.get('/clinical/:id/soap', wrap(async (req, res) => res.json(await service.soap(req.user.id, req.params.id))));
+router.post('/clinical/:id/fact-review', wrap(async (req, res) => res.json(await service.reviewSoapFacts(req.user.id, req.params.id, req.body))));
 router.post('/clinical/:id/review', wrap(async (req, res) => res.json(await service.reviewSoap(req.user.id, req.params.id, req.body))));
 router.get('/clinical/:id/files/:name', wrap(async (req, res) => {
   const bytes = await service.output(req.user.id, req.params.id, req.params.name);
