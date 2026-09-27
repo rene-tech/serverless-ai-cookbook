@@ -8,6 +8,45 @@ const { attach, issueTicket } = require('./relay.cjs');
 class LocalWebSocket extends WebSocket {
   constructor(url, options) { super(url.replace('wss://', 'ws://'), options); }
 }
+for (const matching of [true, false]) test(`shared App post-stop relay attests checkpoint before PCM (${matching ? 'matching' : 'wrong checkpoint'})`, { timeout: 5000 }, async () => {
+  const origin = 'https://client.test', checkpoint = '2a2b1cae8e96d62e83a82351f7d483df01fc28d1d64793ce45a5de514a6c3b5f';
+  const backend = new WebSocket.WebSocketServer({ port: 0 }); await once(backend, 'listening');
+  let connections = 0, audioBytes = 0, authorization, wireModel;
+  backend.on('connection', (ws, req) => {
+    connections++; authorization = req.headers.authorization;
+    ws.on('message', (data, binary) => {
+      if (binary) { audioBytes += data.length; return; }
+      const event = JSON.parse(data);
+      if (event.type === 'session.start') {
+        wireModel = event.options.model;
+        ws.send(JSON.stringify({ type: 'session.ready', runtime_identity: { checkpoint_sha256: matching ? checkpoint : 'a'.repeat(64), checkpoint_kind: 'fine_tuned' } }));
+      }
+      if (event.type === 'input.finish') ws.send('{"type":"session.completed"}');
+    });
+  });
+  const server = http.createServer(), relay = attach(server, LocalWebSocket);
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  try {
+    const { ticket, path } = issueTicket('attest-' + matching, origin, { id: 'nemotron-speech-en-medical-0-6b',
+      url: `https://127.0.0.1:${backend.address().port}/v1/audio/stream`, attestRuntime: true, expectedCheckpoint: checkpoint,
+      diarization: { id: 'diar-streaming-sortformer-4spk-v2-1', timing: 'post-stop', url: 'https://must-not-connect.invalid/v1/voice/stream' } }, 'ordinary-fixture-key');
+    const client = new WebSocket(`ws://127.0.0.1:${server.address().port}${path}`, { origin }), received = [];
+    const closed = once(client, 'close');
+    client.on('message', raw => { const event = JSON.parse(raw); received.push(event);
+      if (event.type === 'session.ready') { client.send(Buffer.alloc(3200)); client.send('{"type":"input.finish"}'); }
+    });
+    await once(client, 'open'); client.send(JSON.stringify({ type: 'relay.attach', ticket })); await closed;
+    assert.equal(connections, 1); assert.equal(authorization, 'Bearer ordinary-fixture-key');
+    assert.equal(wireModel, 'nemotron-speech-en-medical-0-6b');
+    assert.equal(audioBytes, matching ? 3200 : 0);
+    assert.deepEqual(received.map(row => row.type), matching ? ['session.ready', 'session.completed'] : ['session.error']);
+    if (matching) assert.equal(received[0].model_identity.checkpoint_sha256, checkpoint);
+    else assert.equal(received[0].code, 'speech_checkpoint_mismatch');
+  } finally {
+    for (const client of relay.clients) client.terminate(); for (const client of backend.clients) client.terminate();
+    relay.close(); backend.close(); await new Promise(resolve => server.close(resolve));
+  }
+});
 test('authenticated relay forwards PCM and revised/final events, preserves upstream bearer only server-side', async () => {
   const origin = 'https://client.test';
   const backend = new WebSocket.WebSocketServer({ port: 0 }); await once(backend, 'listening');

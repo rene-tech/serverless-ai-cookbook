@@ -15,12 +15,13 @@ async function main() {
   try {
     assert.deepEqual(await fs.readFile('/app/seed-hcls-workbench.js'), await fs.readFile('/opt/hcls-librechat/seed-workbench.js'), 'Installed startup seeder must match the versioned candidate');
     const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(SCIENTIFIC_|SEED_|CLINICAL_|NEBIUS_|MONGO_)/.test(key)));
-    for (const [medical, english] of [[false, false], [false, true], [true, false], [true, true]]) {
-      const uri = `mongodb://127.0.0.1:27919/clinical_seed_${medical}_${english}`;
+    for (const [medical, english, platform = false] of [[false, false], [false, true], [true, false], [true, true], [false, false, true]]) {
+      const uri = `mongodb://127.0.0.1:27919/clinical_seed_${medical}_${english}_${platform}`;
       const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
       await client.connect();
       try {
         execFileSync('node', ['/app/seed-hcls-workbench.js'], { env: { ...env, MONGO_URI: uri,
+          ...(platform ? { SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE: 'platform' } : {}),
           ...(english ? { SCIENTIFIC_ENGLISH_SPEECH_URL: 'https://english.invalid/v1/audio/stream' } : {}),
           ...(medical ? { SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL: 'https://medical.invalid', SCIENTIFIC_MEDICAL_SPEECH_API_KEY: 'synthetic-only-not-a-secret' } : {}) }, stdio: 'pipe' });
         const db = client.db();
@@ -31,6 +32,13 @@ async function main() {
           for (const tool of tools) assert.equal(agent.tools.includes(tool), medical, `Missing actual seeded tool ${tool}`);
           if (medical) assert(agent.instructions.includes('separately configured medical-speech MCP'));
           assert.equal(agent.instructions.includes('Do not call the legacy platform English App'), english);
+          assert.equal(agent.instructions.includes('This clinical-speech release uses shared Scientific AI Apps'), platform);
+          if (platform) {
+            assert(agent.tools.includes('invoke_model_mcp_scientific-ai-apps'));
+            assert(agent.instructions.includes('nemotron-speech-en-medical-0-6b'));
+            assert(agent.instructions.includes('runs Sortformer after Stop'));
+            assert(!agent.mcpServerNames.includes('medical-speech'));
+          }
           if (medical) assert(agent.instructions.includes('dedicated medical Serverless endpoint, not the Scientific AI platform operation service'));
           const acl = await db.collection('aclentries').findOne({ principalType: 'public', resourceType: 'agent', resourceId: agent._id });
           assert.equal(acl?.permBits, 1, 'Ordinary users retain view access, not public mutation');

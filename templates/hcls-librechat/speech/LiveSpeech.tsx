@@ -49,7 +49,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
   const transcript = useRef('');
   const current = useRef<{ ws?: WebSocket; context?: AudioContext; node?: AudioWorkletNode;
     source?: AudioBufferSourceNode | MediaStreamAudioSourceNode; stream?: MediaStream; chunks: ArrayBuffer[];
-    model?: string; words: Map<string, Word[]>; speakerMode?: boolean; activity: Activity[];
+    model?: string; words: Map<string, Word[]>; speakerMode?: boolean; liveDiarization?: boolean; activity: Activity[];
     streamReceipt?: string; autoSubmitted?: boolean;
     started: number; first?: number; stopped?: number; closed?: boolean; finalTimer?: ReturnType<typeof setTimeout> }>({ chunks: [], words: new Map(), activity: [], started: 0 });
   const handlers = useRef({ onTranscript, onStart }); handlers.current = { onTranscript, onStart };
@@ -80,6 +80,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
       request.get<SpeakerJob>(`${BASE}/diarization/${speaker.id}`).then((value) => {
         setSpeaker(value);
         if (value.state === 'completed' && value.result) {
+          if (value.result.operation_id) updateMetrics({ diarization_operation: value.result.operation_id, diarization_completed_at: new Date().toISOString() });
           const transcript = speakerText(value.result.turns);
           setText(transcript); setReviewed(false); setDraftJob(''); draftId.current = crypto.randomUUID();
           if (compact) handlers.current.onTranscript?.(transcript);
@@ -141,7 +142,8 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
     if (busy || savingSpeaker) return;
     cleanup(true);
     const selected = models.find((item) => item.key === model);
-    const run = { chunks: [] as ArrayBuffer[], words: new Map(), activity: [], speakerMode: Boolean(selected?.diarization), model: selected?.id, started: performance.now(), closed: false } as typeof current.current;
+    const run = { chunks: [] as ArrayBuffer[], words: new Map(), activity: [], speakerMode: Boolean(selected?.diarization),
+      liveDiarization: Boolean(selected?.diarization && selected.diarization.timing !== 'post-stop'), model: selected?.id, started: performance.now(), closed: false } as typeof current.current;
     current.current = run; segments.current = new Map(); transcript.current = '';
     metricsRef.current = {}; setLiveSpeakers(''); setTrackingError('');
     setText(''); setAudio(null); setError(''); updateMetrics({ connect_at: new Date().toISOString() }); setReport(''); setDraftJob(''); draftId.current = crypto.randomUUID(); setReviewed(false); setState('connecting');
@@ -205,7 +207,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
           if (event.type === 'transcript.partial' || event.type === 'transcript.final') {
             const value = transcriptEvent(segments.current, event);
             transcript.current = value; setText(value);
-            if (!run.speakerMode) handlers.current.onTranscript?.(value);
+            if (!run.liveDiarization) handlers.current.onTranscript?.(value);
             const id = String(event.segment_id ?? event.sequence ?? 'current');
             const accepted = segments.current.get(id);
             if (event.type === 'transcript.final' && event.items && accepted?.text === event.text && accepted.final && (event.revision === undefined || accepted.revision === event.revision)) run.words.set(id, acousticWords(event));
@@ -215,7 +217,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
             run.activity.push(event as Activity);
             if (!metricsRef.current.first_speaker_activity_at) updateMetrics({ first_speaker_activity_at: new Date().toISOString() });
           }
-          if (run.speakerMode && ['speaker.activity', 'transcript.final', 'transcript.partial'].includes(event.type)) {
+          if (run.liveDiarization && ['speaker.activity', 'transcript.final', 'transcript.partial'].includes(event.type)) {
             const value = speakerText(liveSpeakerTurns(segments.current, run.words, run.activity));
             setLiveSpeakers(value); handlers.current.onTranscript?.(value);
           }
@@ -223,7 +225,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
             if ([...segments.current.values()].some((segment) => !segment.final && segment.text)) {
               setError('The endpoint completed with unfinalized partial text. Review the retained text; it is not a complete transcript.'); setState('failed'); cleanup(); return;
             }
-            if (run.speakerMode && !event.speaker_stream_receipt) throw new Error('Missing paired stream receipt');
+            if (run.liveDiarization && !event.speaker_stream_receipt) throw new Error('Missing paired stream receipt');
             run.streamReceipt = event.speaker_stream_receipt;
             updateMetrics({ final: run.stopped ? performance.now() - run.stopped : undefined, completed_at: new Date().toISOString() });
             setAudio(wavBlob(run.chunks)); setState('completed'); cleanup();
@@ -265,7 +267,7 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
         if (!words.length) throw new Error('This endpoint returned no acoustic word timestamps. Speaker-attributed text cannot be produced without alignment.');
         const data = new FormData(); data.append('file', new File([audio!], 'live.wav', { type: 'audio/wav' }));
         data.append('words', JSON.stringify(words)); data.append('model', current.current.model || 'unknown'); data.append('idempotency_key', speakerId.current);
-        if (current.current.speakerMode) {
+        if (current.current.liveDiarization) {
           if (!current.current.streamReceipt) throw new Error('No completed paired stream receipt. Do not resubmit diarization; start a new recording explicitly.');
           data.append('stream_receipt', current.current.streamReceipt);
         }
@@ -274,7 +276,8 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
           timings: metricsRef.current, observation_origin: 'Browser-captured ASR output and timings; not server-attested clinical evidence.' }));
         const accepted = await request.postMultiPart(`${BASE}/diarization`, data) as SpeakerJob;
         setSpeaker(accepted);
-        if (accepted.result) { const value = speakerText(accepted.result.turns); setText(value); setReviewed(false); setDraftJob(''); draftId.current = crypto.randomUUID(); if (compact) handlers.current.onTranscript?.(value); }
+        if (accepted.result) { const value = speakerText(accepted.result.turns); setText(value); setReviewed(false); setDraftJob(''); draftId.current = crypto.randomUUID(); if (compact) handlers.current.onTranscript?.(value);
+          if (accepted.result.operation_id) updateMetrics({ diarization_operation: accepted.result.operation_id, diarization_completed_at: new Date().toISOString() }); }
         if (!compact) { const updated = new URLSearchParams(params); updated.set('speech_job', accepted.id); setParams(updated, { replace: true }); }
       }
     } catch (problem) { setError(problem instanceof Error ? problem.message : 'Speaker job submission failed.'); }
@@ -289,18 +292,21 @@ export default function LiveSpeech({ compact = false, disabled = false, onTransc
       onClick={() => state === 'listening' ? void finish() : void start()}>{state === 'listening' ? <Square size={18} /> : <Mic size={18} />}</button>
     {busy && <button type="button" aria-label="Cancel speech" onClick={() => { cleanup(true); setState('cancelled'); }} className="rounded p-2"><X size={18} /></button>}
     <span role="status" className="text-xs">{state}</span>
-    {model === 'medical-speakers' && <span className="text-xs">Live anonymous labels follow finalized word timings; partials stay unassigned. Stop saves audio and speaker evidence for review.</span>}
+    {model === 'medical-speakers' && <span className="text-xs">{models.find(item => item.key === model)?.diarization?.timing === 'post-stop'
+      ? 'Text arrives live. Stop saves audio and starts Sortformer; anonymous speaker labels appear afterward for review.'
+      : 'Legacy live anonymous labels follow finalized word timings; partials stay unassigned. Stop saves audio and speaker evidence for review.'}</span>}
     {metrics.diarization_operation && <a className="text-xs underline" href="/demos?tab=runs">Sortformer operation {metrics.diarization_operation} · Runs</a>}
     {trackingError && <span role="alert" className="text-xs">{trackingError}</span>}
   </>;
   if (compact) return <div className="flex flex-wrap items-center gap-1" aria-label="Live Nemotron speech">{controls}
     {speaker && <a className="text-xs underline" href={`/demos?tab=clinical&speech_job=${speaker.id}`}>Speaker evidence: {speaker.state} · review roles and draft</a>}
-    {savingSpeaker && <span role="status" className="text-xs">Saving final speaker evidence (no second diarization)</span>}
+    {savingSpeaker && <span role="status" className="text-xs">{current.current.liveDiarization ? 'Saving final speaker evidence (no second diarization)' : 'Processing post-stop Sortformer speaker analysis'}</span>}
     {state === 'completed' && current.current.speakerMode && !savingSpeaker && speaker?.state !== 'completed' && <button type="button" onClick={() => void identifySpeakers()} className="text-xs underline">Resume same speaker evidence</button>}
     {error && <span role="alert" className="max-w-64 text-xs text-status-error">{error}</span>}</div>;
   return <section className="my-4 rounded-xl border border-border-medium p-4" aria-label="Clinical live transcription">
     <h3 className="font-semibold">Live speech · synthetic / de-identified demo only</h3>
-    <p className="my-2 text-sm">English stays default. The two medical modes use the same fine-tuned Nemotron checkpoint. With Sortformer selected, anonymous speaker activity arrives live and is aligned only to real finalized ASR word times. Partial words remain unassigned; Stop finalizes and saves the same speaker operation, then you review roles and wording before creating a draft.</p>
+    <p className="my-2 text-sm">English stays default. The two medical modes use the same fine-tuned Nemotron checkpoint. The shared-App Sortformer option transcribes live, then starts speaker analysis after Stop using the captured audio and actual ASR word times. No live speaker-label promise or named-person identification. Review anonymous roles and wording before creating a draft.</p>
+    <p className="my-2 text-xs">Fine-tuning improved several measured speech benchmarks, but medication, dose and meaning errors remain. This model is not clinically validated; verify the source audio and transcript.</p>
     <div className="flex flex-wrap items-center gap-2">{controls}</div>
     <div className="my-3 flex flex-wrap items-center gap-2"><label className="text-sm">Play a recorded consultation through the live pipeline <input type="file" accept="audio/*" disabled={busy || savingSpeaker} onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
       <button type="button" disabled={busy || savingSpeaker || !file} onClick={() => file && void start(file)} className="rounded border p-2">Play and transcribe live</button></div>

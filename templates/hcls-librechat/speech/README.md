@@ -4,6 +4,36 @@ This is an additive **new-instance** overlay on the operation-polling release
 `sha256:81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d`.
 Do not replace, restart, or resize any retained endpoint to deploy it.
 
+## Selected existing English checkpoint, September 27
+
+The new shared-App deployment uses `SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE=platform`,
+`SCIENTIFIC_MEDICAL_SPEECH_MODEL=nemotron-speech-en-medical-0-6b`, and
+`SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256=2a2b1cae8e96d62e83a82351f7d483df01fc28d1d64793ce45a5de514a6c3b5f`.
+Set `SCIENTIFIC_ENGLISH_SPEECH_EXPECTED_CHECKPOINT_SHA256=283638054c44f6794e74fe9af9048d78a6d9d6c058c12131856c7859a62ac9cd`.
+Both routes use the configured canonical platform origin and current ordinary
+user key. Leave dedicated English/medical URLs and dedicated medical key unset;
+mixing dedicated medical credentials with platform mode is rejected.
+The platform must grant both distinct ASR Apps and Sortformer as appropriate.
+Before audio is sent, the live session's loaded checkpoint identity must match.
+No silent base-model fallback is permitted.
+
+For this mode the ordered choices are base English, selected fine-tuned English,
+and **the same fine-tuned checkpoint plus post-stop Sortformer**. ASR text arrives
+live; successful Stop automatically saves captured audio and starts one durable
+speaker-analysis job. Actual final acoustic word timings are required; missing
+alignment is an explicit error, not fabricated speaker text. Anonymous speaker
+channels require reviewer-assigned roles. This mode does not open a second live
+WebSocket or claim live diarization. Older dual-live behavior described below is
+retained only for explicit legacy dedicated configurations and is not the shared
+deployment's advertised contract.
+
+The selected checkpoint is the user's best-existing **engineering** choice.
+Known medication/dose/meaning errors and unresolved meanings remain; its clinical
+gate rejection is not rewritten. No clinician validation or HIPAA assertion.
+Runtime, public API/MCP, batch, browser, multi-customer and capacity qualification
+must still bind the exact new deployment; an old or untuned-base probe does not
+qualify this artifact.
+
 ## Configuration
 
 Build from the repository root with `templates/hcls-librechat/Dockerfile.clinical-speech`.

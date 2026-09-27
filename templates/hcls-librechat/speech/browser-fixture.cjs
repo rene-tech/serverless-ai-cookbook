@@ -3,6 +3,9 @@ const path = require('node:path'), fs = require('node:fs/promises'), os = requir
 const express = require('/app/node_modules/express'), multer = require('/app/node_modules/multer');
 const http = require('node:http'), crypto = require('node:crypto'), WebSocket = require('/app/node_modules/ws');
 async function main() {
+  const shared = process.env.SHARED_PLATFORM_FIXTURE === '1';
+  const parent = '2a2b1cae8e96d62e83a82351f7d483df01fc28d1d64793ce45a5de514a6c3b5f';
+  const base = '283638054c44f6794e74fe9af9048d78a6d9d6c058c12131856c7859a62ac9cd';
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'three-mode-browser-'));
   process.env.SCIENTIFIC_SPEECH_JOBS_DIR = root;
   process.env.SCIENTIFIC_MODELS_API_BASE_URL = 'https://127.0.0.1:4100/v1';
@@ -10,6 +13,12 @@ async function main() {
   process.env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY = 'english-fixture';
   process.env.SCIENTIFIC_MEDICAL_SPEECH_URL = 'https://127.0.0.1:4100/asr';
   process.env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY = 'medical-fixture';
+  if (shared) {
+    for (const key of ['SCIENTIFIC_ENGLISH_SPEECH_URL', 'SCIENTIFIC_ENGLISH_SPEECH_API_KEY', 'SCIENTIFIC_MEDICAL_SPEECH_URL', 'SCIENTIFIC_MEDICAL_SPEECH_API_KEY']) delete process.env[key];
+    process.env.SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE = 'platform';
+    process.env.SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256 = parent;
+    process.env.SCIENTIFIC_ENGLISH_SPEECH_EXPECTED_CHECKPOINT_SHA256 = base;
+  }
   const relay = require('./relay.cjs'), receipts = require('./stream-receipt.cjs');
   const helpers = await import('./speech-state.js');
   const { build } = await import('/app/node_modules/vite/dist/node/index.js');
@@ -21,12 +30,12 @@ async function main() {
       'react-dom': '/app/node_modules/react-dom', 'react': '/app/node_modules/react' } },
     build: { outDir: path.join(root, 'built'), lib: { entry: path.join(__dirname, 'browser-fixture.tsx'), name: 'Fixture', formats: ['iife'], fileName: () => 'bundle.js' } } });
   const app = express(); app.use(express.json()); app.use((req, _res, next) => { req.user = { id: 'fixture-owner' }; next(); });
-  const operations = new Map(), jobs = new Map(), evidence = { asr_models: [], stream_starts: 0, speaker_submissions: 0, tracked: [], controls: [], draft_submissions: 0 };
+  const operations = new Map(), jobs = new Map(), evidence = { asr_models: [], stream_starts: 0, speaker_submissions: 0, tracked: [], controls: [], draft_submissions: 0, post_stop_submissions: 0 };
   let scenario = 'success';
   app.post('/fixture/scenario', (req, res) => { scenario = req.body.scenario; res.json({ scenario }); });
   app.get('/fixture/evidence', (_req, res) => res.json(evidence));
   const platform = async (_key, _method, resource) => {
-    if (resource === '/v1/models') return { data: [{ id: 'nemotron-speech-en-0-6b' }, { id: 'diar-streaming-sortformer-4spk-v2-1' }] };
+    if (resource === '/v1/models') return { data: [{ id: 'nemotron-speech-en-0-6b' }, { id: 'nemotron-speech-en-medical-0-6b' }, { id: 'diar-streaming-sortformer-4spk-v2-1' }] };
     const id = resource.split('/')[3], operation = operations.get(id);
     if (!operation) throw new Error('Unknown fixture operation');
     return resource.endsWith('/result') ? operation.result : { id, status: operation.done ? 'succeeded' : 'running', model_id: 'diar-streaming-sortformer-4spk-v2-1' };
@@ -37,8 +46,17 @@ async function main() {
   router.post('/speech/diarization', multer().single('file'), async (req, res, next) => {
     try {
       evidence.speaker_submissions++;
-      if (!req.body.stream_receipt) throw new Error('Browser fixture allows retained stream only; no second inference');
-      const resolved = await receipts.resolve(req.user.id, req.body.stream_receipt, 'ordinary-fixture', req.file.buffer, req.body.model, platform);
+      let resolved;
+      if (shared) {
+        if (req.body.stream_receipt || evidence.controls.at(-1)?.type !== 'input.finish') throw new Error('Post-stop fixture requires completed ASR without live speaker receipt');
+        evidence.post_stop_submissions++;
+        if (scenario === 'diar-failure') throw new Error('Fixture speaker operation failed after ASR completion');
+        resolved = { receipt: { operation_id: crypto.randomUUID() }, result: { events: [{ type: 'speaker.activity', start_seconds: 0, frame_duration_seconds: .1,
+          probabilities: Array.from({ length: 20 }, (_, i) => i < 4 ? [.9, .02, 0, 0] : [.02, .9, 0, 0]) }] } };
+      } else {
+        if (!req.body.stream_receipt) throw new Error('Browser fixture allows retained stream only; no second inference');
+        resolved = await receipts.resolve(req.user.id, req.body.stream_receipt, 'ordinary-fixture', req.file.buffer, req.body.model, platform);
+      }
       const source = require('./diarization.cjs').sourceReceipt(JSON.parse(req.body.source_receipt));
       const words = JSON.parse(req.body.words), id = receipts.hash(req.body.idempotency_key).slice(0, 32);
       if (!words.length) throw new Error('No acoustic words');
@@ -58,7 +76,7 @@ async function main() {
   class LocalWebSocket extends WebSocket { constructor(url, options) { super(url.replace('wss://', 'ws://'), options); } }
   relay.attach(server, LocalWebSocket);
   server.on('upgrade', (req, socket, head) => {
-    if (!['/asr', '/v1/voice/stream'].includes(req.url)) return;
+    if (!['/asr', '/v1/audio/stream', '/v1/voice/stream'].includes(req.url)) return;
     upstream.handleUpgrade(req, socket, head, ws => upstream.emit('connection', ws, req));
   });
   upstream.on('connection', (ws, req) => {
@@ -84,7 +102,9 @@ async function main() {
       if (e.type === 'session.start') {
         if (diar) { evidence.stream_starts++; operations.set(operation, { done: false }); send({ type: 'operation.queued', operation_id: operation }); }
         else evidence.asr_models.push(e.options.model);
-        send({ type: 'session.ready', session_id: diar ? operation : 'fixture-native', model_revision: 'fixture-checkpoint' });
+        send({ type: 'session.ready', session_id: diar ? operation : 'fixture-native', model_revision: 'fixture-checkpoint',
+          ...(shared && !diar ? { runtime_identity: { checkpoint_sha256: e.options.model === 'nemotron-speech-en-0-6b' ? base : parent,
+            checkpoint_kind: e.options.model === 'nemotron-speech-en-0-6b' ? 'base' : 'fine_tuned' } } : {}) });
       }
       if (e.type === 'input.finish') send({ type: 'session.completed' });
       if (e.type === 'session.finish') {

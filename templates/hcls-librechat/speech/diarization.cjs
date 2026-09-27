@@ -87,8 +87,10 @@ function installRoutes(router, { key, platform, artifactBytes }) {
         if (streamed) await save(path.join(dir, 'streamed-diarization.json'), streamed);
         await save(path.join(dir, 'request.json'), { id, identity, words, asr_model: req.body.model,
           audio_sha256: hash(bytes), source_receipt: source,
+          asr_runtime: streamed ? streamed.receipt.asr_runtime : (source.timings.model_identity || null),
+          asr_runtime_identity_origin: streamed ? streamed.receipt.asr_runtime_identity_origin : 'Browser-captured relay runtime identity; not an independently signed attestation.',
           ...(streamed ? { stream_operation_id: streamed.receipt.operation_id, stream_receipt: streamReceipt,
-            streamed_result_sha256: hash(JSON.stringify(streamed)), asr_runtime: streamed.receipt.asr_runtime } : {}),
+            streamed_result_sha256: hash(JSON.stringify(streamed)) } : {}),
           key_hash: hash(credential), audio_seconds: (bytes.length - 44) / 32000 });
       } catch (error) {
         if (error.code !== 'EEXIST') throw error;

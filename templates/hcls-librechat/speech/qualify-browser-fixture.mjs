@@ -2,7 +2,9 @@
 import fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
-const [session, output] = process.argv.slice(2);
+const [session, output, configuration] = process.argv.slice(2);
+const shared = configuration === 'platform';
+if (configuration && !shared) throw new Error('Unknown fixture configuration');
 if (!/^[a-z0-9-]+$/.test(session || '') || !output) throw new Error('Supply session and new receipt path');
 const run = code => JSON.parse(execFileSync('bash', ['/home/tux/.codex/skills/playwright/scripts/playwright_cli.sh', `-s=${session}`, '--raw', 'run-code', code], { encoding: 'utf8', timeout: 30000 }));
 const results = [];
@@ -34,9 +36,10 @@ for (const [mode, scenario, compact, input] of [
     const during=${compact ? `await page.getByRole('textbox',{name:'Composer'}).inputValue()` : `await page.getByRole('textbox',{name:'Live transcript for review'}).inputValue()`};
     const liveLabels=${!compact ? `await page.getByLabel('Live anonymous speaker transcript').count()?await page.getByLabel('Live anonymous speaker transcript').innerText():''` : 'during'};
     ${input === 'microphone' ? `await page.getByRole('button',{name:${JSON.stringify(scenario === 'cancel' ? 'Cancel speech' : 'Stop microphone and finalize')},exact:true}).click();` : ''}
-    await page.getByRole('status').filter({hasText:/^${scenario === 'cancel' ? 'cancelled' : scenario === 'diar-failure' ? 'failed' : 'completed'}$/}).waitFor({timeout:8000});
+    await page.getByRole('status').filter({hasText:/^${scenario === 'cancel' ? 'cancelled' : scenario === 'diar-failure' && !shared ? 'failed' : 'completed'}$/}).waitFor({timeout:8000});
     ${mode === 'medical-speakers' && scenario === 'success' ? compact ? `await page.getByRole('link',{name:/Speaker evidence: completed/}).waitFor({timeout:8000});` : `await page.getByRole('status').filter({hasText:/Speaker job: completed/}).waitFor({timeout:8000});` : ''}
     ${scenario === 'missing-words' ? `await page.getByRole('alert').filter({hasText:/no acoustic word timestamps/}).waitFor({timeout:8000});` : ''}
+    ${scenario === 'diar-failure' && shared ? `await page.getByRole('alert').waitFor({timeout:8000});` : ''}
     const after=await (await page.request.get('http://127.0.0.1:4420/fixture/evidence')).json();
     const roleValues=await page.getByRole('combobox',{name:/Speaker [1-4] role/}).evaluateAll(options=>options.map(o=>o.value));
     return {mode:${JSON.stringify(mode)},scenario:${JSON.stringify(scenario)},compact:${compact},input:${JSON.stringify(input)}, defaultMode,choices,during,liveLabels,
@@ -45,15 +48,18 @@ for (const [mode, scenario, compact, input] of [
       recordingReleased:await page.evaluate(()=>!window.fixtureTrack||window.fixtureTrack.readyState==='ended'),
       asrModels:after.asr_models.slice(before.asr_models.length),newDiarization:after.stream_starts-before.stream_starts,
       newSpeakerSubmissions:after.speaker_submissions-before.speaker_submissions,newDraftSubmissions:after.draft_submissions-before.draft_submissions,
+      newPostStopSubmissions:after.post_stop_submissions-before.post_stop_submissions,
       tracked:after.tracked.slice(before.tracked.length),url:page.url()};
   }`);
   const checks = { default_english: result.defaultMode === 'english', exactly_three_ordered: JSON.stringify(result.choices) === JSON.stringify(['english','medical','medical-speakers']),
     no_auto_draft: result.newDraftSubmissions === 0, recording_released: result.recordingReleased,
-    asr_exact: result.asrModels.length === 1 && result.asrModels[0] === (mode === 'english' ? 'nemotron-speech-en-0.6b' : 'nemotron-clinical-en'),
-    explicit_diarization_only: result.newDiarization === (mode === 'medical-speakers' ? 1 : 0),
-    one_final_submission: result.newSpeakerSubmissions === (mode === 'medical-speakers' && scenario === 'success' ? 1 : 0),
+    asr_exact: result.asrModels.length === 1 && result.asrModels[0] === (shared ? (mode === 'english' ? 'nemotron-speech-en-0-6b' : 'nemotron-speech-en-medical-0-6b') : (mode === 'english' ? 'nemotron-speech-en-0.6b' : 'nemotron-clinical-en')),
+    explicit_diarization_only: result.newDiarization === (!shared && mode === 'medical-speakers' ? 1 : 0),
+    one_final_submission: result.newSpeakerSubmissions === (mode === 'medical-speakers' && (scenario === 'success' || shared && scenario === 'diar-failure') ? 1 : 0),
+    post_stop_phase: !shared || result.newPostStopSubmissions === (mode === 'medical-speakers' && ['success','diar-failure'].includes(scenario) ? 1 : 0),
     roles_never_inferred: result.roleValues.every(value => value === ''),
-    visible_live_labels: mode !== 'medical-speakers' || scenario === 'missing-words' || result.liveLabels.includes('Speaker 1') && result.liveLabels.includes('Speaker 2'),
+    honest_speaker_timing: shared ? !result.liveLabels.includes('Speaker 1') && !result.liveLabels.includes('Speaker 2') : mode !== 'medical-speakers' || scenario === 'missing-words' || result.liveLabels.includes('Speaker 1') && result.liveLabels.includes('Speaker 2'),
+    final_speaker_labels: mode !== 'medical-speakers' || scenario !== 'success' || result.after.includes('Speaker 1') && result.after.includes('Speaker 2'),
     composer_prefix_preserved: !compact || result.after.startsWith('Review: '),
     expected_failure_visible: !['missing-words','diar-failure'].includes(scenario) || result.alerts.length > 0,
     no_unexpected_alerts: ['missing-words','diar-failure'].includes(scenario) || result.alerts.length === 0 };

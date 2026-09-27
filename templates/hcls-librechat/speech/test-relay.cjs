@@ -1,6 +1,55 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { targets, targetCredential, socketUrl, issueTicket, consumeTicket, installRoutes, verifyMedicalIdentity } = require('./relay.cjs');
+const { targets, targetCredential, socketUrl, issueTicket, consumeTicket, installRoutes, verifyMedicalIdentity, verifyRuntimeIdentity, liveDiarization } = require('./relay.cjs');
+const PARENT = '2a2b1cae8e96d62e83a82351f7d483df01fc28d1d64793ce45a5de514a6c3b5f';
+test('shared platform offers three ordered choices with identical tuned weights and post-stop speaker analysis', () => {
+  const choices = targets({ SCIENTIFIC_MODELS_API_BASE_URL: 'https://gateway.test/v1',
+    SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE: 'platform', SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256: PARENT });
+  assert.deepEqual(Object.keys(choices), ['english', 'medical', 'medical-speakers']);
+  assert.equal(choices.english.url, 'https://gateway.test/v1/audio/stream');
+  assert.equal(choices.medical.id, 'nemotron-speech-en-medical-0-6b');
+  assert.equal(choices.medical.url, choices.english.url);
+  assert.equal(targetCredential(choices.medical, 'ordinary-key'), 'ordinary-key');
+  for (const name of ['medical', 'medical-speakers']) {
+    assert.equal(choices[name].expectedCheckpoint, PARENT);
+    assert.equal(choices[name].id, choices.medical.id);
+  }
+  assert.equal(choices['medical-speakers'].diarization.timing, 'post-stop');
+  assert.equal(liveDiarization(choices['medical-speakers']), false);
+  assert.throws(() => targets({ SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE: 'platform', SCIENTIFIC_MEDICAL_SPEECH_API_KEY: 'legacy' }), /Remove dedicated/);
+  assert.throws(() => targets({ SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE: 'fallback' }), /Unknown/);
+});
+test('shared loaded-weight attestation fails closed before PCM, including missing identity or base substitution', async () => {
+  const target = { attestRuntime: true, expectedCheckpoint: PARENT };
+  await verifyMedicalIdentity(target, () => { throw new Error('Must not discover dedicated endpoint'); });
+  const identity = { checkpoint_sha256: PARENT, checkpoint_kind: 'fine_tuned', ignored: 'not-forwarded' };
+  assert.deepEqual(verifyRuntimeIdentity(target, { runtime_identity: identity }), { checkpoint_sha256: PARENT, checkpoint_kind: 'fine_tuned' });
+  for (const event of [{}, { runtime_identity: {} }, { runtime_identity: { checkpoint_sha256: 'a'.repeat(64) } }]) {
+    assert.throws(() => verifyRuntimeIdentity(target, event), /does not match/);
+  }
+  await assert.rejects(verifyMedicalIdentity({ attestRuntime: true }), /checkpoint SHA/);
+});
+test('ordinary medical and Sortformer grants are independently required, not substituted by English access', async () => {
+  const names = ['SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE', 'SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256', 'SCIENTIFIC_MEDICAL_SPEECH_URL', 'SCIENTIFIC_MEDICAL_SPEECH_API_KEY'];
+  const before = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  process.env.SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE = 'platform';
+  process.env.SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256 = PARENT;
+  delete process.env.SCIENTIFIC_MEDICAL_SPEECH_URL; delete process.env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY;
+  let handler, grants = ['nemotron-speech-en-0-6b'];
+  installRoutes({ get() {}, post(_path, action) { handler = action; } }, { key: async () => 'ordinary-key', platform: async () => ({ data: grants.map(id => ({ id })) }) });
+  const invoke = model => new Promise((resolve, reject) => handler({ body: { model }, user: { id: 'platform-grant-test' }, get: () => 'https://client.test' }, { json: resolve }, reject));
+  try {
+    await assert.rejects(invoke('medical'), /does not grant/);
+    grants.push('nemotron-speech-en-medical-0-6b');
+    await assert.rejects(invoke('medical-speakers'), /does not grant Sortformer/);
+    const admitted = await invoke('medical');
+    const ticket = consumeTicket(admitted.ticket, 'https://client.test');
+    assert.equal(ticket.credential, 'ordinary-key');
+    assert.equal(ticket.target.expectedCheckpoint, PARENT);
+  } finally {
+    for (const name of names) if (before[name] === undefined) delete process.env[name]; else process.env[name] = before[name];
+  }
+});
 test('qualified medical checkpoint is checked against exact nested runtime identity with no fallback', async () => {
   const target = { id: 'nemotron-clinical-en', expectedCheckpoint: 'a'.repeat(64), url: 'https://medical.test/v1/audio/stream', credential: 'private-test' };
   const model = { id: target.id, checkpoint_sha256: 'a'.repeat(64), base_revision: 'base', unexpected_secret: 'omit' };
