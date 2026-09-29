@@ -96,7 +96,7 @@ async function platformBytes(key, resource) {
 
 const USE_CASE_ORDER = [
   'Protein structures & complexes', 'Protein design & engineering',
-  'Molecular design & docking', 'Biomedical imaging & segmentation',
+  'Molecular design & docking', 'Molecular dynamics', 'Biomedical imaging & segmentation',
   'Speech & audio', 'Physical AI & robotics', 'Generative media',
   'Genomics', 'Aging & clinical biomarkers', 'Single-cell analysis',
   'General-purpose chat', 'Other',
@@ -105,6 +105,7 @@ const DEMO_PATTERNS = {
   'Protein structures & complexes': 'Open the returned structure in the 3D viewer and use model-reported confidence coloring only when the result actually contains confidence evidence.',
   'Protein design & engineering': 'Show the returned design artifacts and a 3D structure comparison after the live schema confirms those outputs.',
   'Molecular design & docking': 'Show the returned ranked poses and a synchronized receptor/ligand overlay after verifying the exact result contract.',
+  'Molecular dynamics': 'Show the returned trajectory, energies and native checkpoint with the exact engine and input protocol. A short run does not establish equilibration or scientific convergence.',
   'Biomedical imaging & segmentation': 'Show the source beside the returned image or mask overlay; keep research-only limitations visible.',
   'Speech & audio': 'Show a synchronized transcript or speaker timeline from the returned artifact.',
   'Physical AI & robotics': 'Show source and returned video or dataset artifacts side by side, preserving the source action/data provenance.',
@@ -119,6 +120,7 @@ const DEMO_OPERATION_PRIORITY = {
   'Protein structures & complexes': ['predict-structure', 'predict-protein-structure', 'predict-complex-structure'],
   'Protein design & engineering': ['design-backbone', 'scaffold-motif', 'design-binder', 'design-binders', 'design-protein'],
   'Molecular design & docking': ['dock', 'generate-molecule'],
+  'Molecular dynamics': ['run-workflow'],
   'Biomedical imaging & segmentation': ['segment-cells', 'segment-ct', 'segment-track-media', 'analyze-image'],
   'Speech & audio': ['diarize', 'transcribe', 'synthesize'],
   'Physical AI & robotics': ['transfer-video', 'augment-lerobot-dataset', 'generate-media'],
@@ -135,6 +137,10 @@ function appUseCase(item) {
   const id = String(item.id || item.model_id || '').toLowerCase();
   const operations = (item.operations || []).map((value) => String(value).toLowerCase());
   const has = (...values) => values.some((value) => operations.includes(value));
+  // Native workflow engines do not all include "molecular dynamics" in their
+  // display name (notably AMBER26 and distributed GROMACS). Classify their
+  // stable App IDs before text search, without granting or inventing Apps.
+  if (has('run-workflow') && ['amber', 'gromacs', 'gromacs-mpi', 'lammps', 'namd'].includes(id)) return 'Molecular dynamics';
   if (has('predict-structure', 'predict-protein-structure', 'predict-complex-structure', 'search-msa')
       || (has('predict') && /(?:fold|boltz)/.test(id))) return 'Protein structures & complexes';
   if (has('design-protein', 'design-binder', 'design-binders', 'design-backbone', 'scaffold-motif')) return 'Protein design & engineering';
@@ -181,7 +187,9 @@ async function listApps(key, query = '') {
       ...(item.mcp_tool_description ? { description: item.mcp_tool_description.slice(0, 500) } : {}),
     });
   }
-  const data = [...apps.values()].filter((item) => !query || JSON.stringify(item).toLowerCase().includes(query.toLowerCase()));
+  const normalizeSearch = (value) => value.toLowerCase().replace(/[-_]+/g, ' ').trim();
+  const search = normalizeSearch(query);
+  const data = [...apps.values()].filter((item) => !search || normalizeSearch(JSON.stringify(item)).includes(search));
   const groups = USE_CASE_ORDER.map((useCase) => ({
     use_case: useCase,
     apps: data.filter((item) => item.use_case === useCase),

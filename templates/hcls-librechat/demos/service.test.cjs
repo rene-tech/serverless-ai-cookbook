@@ -221,6 +221,28 @@ test('compact discovery filters Apps and does not emit scientific input schemas'
     assert.equal((await service.listApps('fixture-key', 'missing')).count, 0);
   } finally { global.fetch = originalFetch; }
 });
+test('MD capability search includes AMBER and MPI without broadening caller grants', async () => {
+  const service = await setup;
+  const originalFetch = global.fetch;
+  let authorized = ['amber', 'gromacs', 'gromacs-mpi', 'lammps', 'namd'];
+  global.fetch = async (url) => new Response(JSON.stringify({ data: String(url).endsWith('/v1/models')
+    ? [] : authorized.map((model_id) => ({ model_id,
+      display_name: model_id === 'amber' ? 'AMBER26 · PMEMD and AmberTools' : model_id,
+      operations: ['run-workflow'] })) }));
+  try {
+    for (const query of ['molecular dynamics', 'Molecular-Dynamics', ' molecular_dynamics ']) {
+      const result = await service.listApps('fixture-key', query);
+      assert.deepEqual(result.data.map((app) => app.model_id).sort(), authorized);
+      assert.deepEqual(result.groups.map((group) => group.use_case), ['Molecular dynamics']);
+      assert.equal(result.groups[0].recommended_demo.operation, 'run-workflow');
+    }
+    authorized = ['gromacs', 'namd'];
+    assert.deepEqual((await service.listApps('fixture-key', 'molecular dynamics')).data.map((app) => app.model_id).sort(), authorized);
+    authorized = ['unknown-workflow-engine'];
+    assert.equal((await service.listApps('fixture-key', 'molecular dynamics')).count, 0);
+    assert.equal((await service.listApps('fixture-key')).data[0].use_case, 'Other');
+  } finally { global.fetch = originalFetch; }
+});
 test('inline output is compacted, saved losslessly and never overwrites different evidence', async () => {
   const service = await setup;
   const id = crypto.randomUUID();
