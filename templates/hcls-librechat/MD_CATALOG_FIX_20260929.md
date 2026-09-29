@@ -32,10 +32,20 @@ bounded release used the established `crane append` mechanism with a root-owned
 tar entry at the exact runtime path; it did not rebuild or silently update the
 large inherited client/runtime dependencies.
 
-Only the two new Lynx workbenches are in this deployment scope. No Rene, Kopra,
-demo or speech client is replaced. Initial onboarding client-local state is
-exported before stop; the existing shared key, login passwords, bucket and
-scientific model deployments are preserved. Ordinary user authentication,
-mounted storage, caller-scoped MD discovery and agent behavior must be checked
-again against the final endpoints. Broader scientific/scaling qualification is
-not established by this presentation-only fix.
+Only the new Lynx workbench is in this deployment scope. The owner clarified
+that both people need separate logins on **one shared instance**, not one
+instance per person. Final endpoint: `aiendpoint-e00kybbs8a1sbxcfyw`. No other
+customer, demo or speech client is replaced. Initial onboarding client-local
+state is exported before stop; the shared key, login passwords, bucket and
+scientific model deployments are preserved.
+
+Both ordinary logins passed HTTPS authentication, five-App discovery and
+mounted workspace read/write on that same final endpoint. Application chat
+histories remained account-scoped (cross-account messages return 404); workspace
+files are deliberately shared. Two concurrent real agent conversations each
+called `workbench_list_apps` exactly once with `molecular dynamics` and completed
+without errors, listing all five IDs including `amber` and `gromacs-mpi`.
+The installed catalog module independently returned all five under Molecular
+dynamics. These are HTTP/SSE client and runtime checks, not a fresh visual/browser
+qualification. Broader scientific/scaling qualification is not established by
+this presentation-only fix.
