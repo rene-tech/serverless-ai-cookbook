@@ -33,7 +33,7 @@ def text(name):
 
 def test_manifest_and_skill_format():
     data = bundle.validate()
-    assert len(data['skills']) == 35
+    assert len(data['skills']) == 36
     assert len({model for models in data['skills'].values() for model in models}) == 42
     for name in data['skills']:
         assert 'license:' in text(name).split('---')[1]
@@ -147,7 +147,7 @@ def test_install_repeat_conflict_and_integrity(tmp_path):
     (source / 'files.sha256.json').write_text(json.dumps(bundle.inventory(source)))
     destination = tmp_path / 'installed'
     result = bundle.install(destination, source)
-    assert result['skills'] == 35
+    assert result['skills'] == 36
     assert bundle.install(destination, source) == result
     assert (destination / 'clinical-documentation/scripts/study_report.py').is_file()
     (destination / 'speech-workflows/SKILL.md').write_text('local customization')

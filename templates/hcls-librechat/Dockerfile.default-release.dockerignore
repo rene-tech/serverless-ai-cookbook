@@ -1,0 +1,17 @@
+**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/openff/
+!templates/hcls-librechat/openff/**
+!templates/hcls-librechat/agent-instructions.md
+!templates/hcls-librechat/seed-workbench.js
+!templates/hcls-librechat/render-config.mjs
+!templates/hcls-librechat/inspect-mmcif.py
+!templates/hcls-librechat/prepare-openff.py
+!templates/hcls-librechat/scripts/
+!templates/hcls-librechat/scripts/test-skills-installed.cjs
+!skills/
+!skills/scientific-ai/
+!skills/scientific-ai/**
+**/__pycache__
+**/.pytest_cache

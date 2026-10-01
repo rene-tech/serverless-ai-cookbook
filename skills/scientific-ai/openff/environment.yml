@@ -1,0 +1,13 @@
+# CPU environment built into the shared workbench, not installed by agent chat.
+# Builds use templates/hcls-librechat/openff/conda-linux-64.lock; requalify updates.
+name: scientific-openff
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11.16
+  - openff-toolkit=0.18.0
+  - openff-interchange=0.5.2
+  - openff-forcefields=2026.01.0
+  - ambertools=26.0
+  - openmm=8.6.1
+  - rdkit=2026.03.1

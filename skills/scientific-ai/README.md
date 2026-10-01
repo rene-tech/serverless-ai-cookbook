@@ -41,6 +41,10 @@ LAMMPS/NAMD onboarding is still under qualification; inclusion here does not
 claim live App availability or GPU process snapshot support. Always discover
 the caller's current catalog and exact-runtime limitations.
 
+The `openff` skill covers optional **CPU** ligand parameterization, force-field
+compatibility and measured export checks. It is not another catalog App and does
+not install its required environment. See its explicit dependency contract.
+
 Start with `scientific-gateway`; load only skills relevant to your task. For
 non-LibreChat clients, see its [portable client contract](scientific-gateway/references/portable-client.md).
 Client-specific tools are conditional, not promised by downloading Markdown.

@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.09.23.5",
+  "version": "2026.10.01.1",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -31,6 +31,7 @@
     "msa-structure-prediction-pipeline": ["msa-search-pdb70", "boltz2", "openfold3"],
     "namd": ["namd"],
     "nebius-infrastructure-prep": [],
+    "openff": [],
     "openfold2": ["openfold2"],
     "openfold3": ["openfold3"],
     "protein-binder-design": ["rfdiffusion", "proteinmpnn"],

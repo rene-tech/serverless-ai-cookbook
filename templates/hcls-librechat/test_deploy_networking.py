@@ -10,12 +10,13 @@ import pytest
 SCRIPT = Path(__file__).parent / 'scripts/deploy.sh'
 
 
-def command(tmp_path, public_ip=None, ssh=False, s3_profile=None):
+def command(tmp_path, public_ip=None, ssh=False, s3_profile=None, reasoning_effort=None):
     executable = tmp_path / 'nebius'
     executable.write_text('#!/usr/bin/env python3\nimport json,sys\nprint(json.dumps(sys.argv[1:]))\n')
     executable.chmod(0o700)
     environment = {key: value for key, value in os.environ.items()
-                   if key not in {'SERVERLESS_PUBLIC_IP', 'SSH_PUBLIC_KEY_FILE', 'NEBIUS_PROFILE'}}
+                   if key not in {'SERVERLESS_PUBLIC_IP', 'SSH_PUBLIC_KEY_FILE', 'NEBIUS_PROFILE',
+                                  'SCIENTIFIC_CHAT_REASONING_EFFORT'}}
     environment.update(PATH=str(tmp_path) + os.pathsep + os.environ['PATH'],
         NEBIUS_PROJECT_ID='project-fixture', NEBIUS_SUBNET_ID='subnet-fixture',
         SCIENTIFIC_MODELS_API_KEY_SECRET_SELECTOR='secret-fixture',
@@ -27,6 +28,8 @@ def command(tmp_path, public_ip=None, ssh=False, s3_profile=None):
         environment['SERVERLESS_PUBLIC_IP'] = public_ip
     if s3_profile is not None:
         environment['S3_AWS_PROFILE'] = s3_profile
+    if reasoning_effort is not None:
+        environment['SCIENTIFIC_CHAT_REASONING_EFFORT'] = reasoning_effort
     if ssh:
         key = tmp_path / 'fixture.pub'
         key.write_text('ssh-ed25519 public-fixture test-only\n')
@@ -67,6 +70,13 @@ def test_recording_completion_budget_is_explicit(tmp_path):
     assert result.returncode == 0 and result.stderr == ''
     arguments = json.loads(result.stdout)
     assert 'SCIENTIFIC_CHAT_MAX_OUTPUT_TOKENS=16384' in arguments
+
+
+@pytest.mark.parametrize('override,expected', [(None, 'low'), ('high', 'high')])
+def test_reasoning_default_and_explicit_override(tmp_path, override, expected):
+    result = command(tmp_path, 'false', reasoning_effort=override)
+    assert result.returncode == 0
+    assert 'SCIENTIFIC_CHAT_REASONING_EFFORT=' + expected in json.loads(result.stdout)
 
 
 def test_private_explicit_ssh_is_not_silently_removed(tmp_path):

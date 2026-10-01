@@ -1,5 +1,14 @@
 # syntax=docker/dockerfile:1.7
 ARG LIBRECHAT_BASE=cr.eu-north1.nebius.cloud/e00jz93pkqx2m4vqj4/ba:librechat-0.2.7-20260908@sha256:1eaa9a5e7dc7e7a141d6f452f46e5547646a7c6113e610348511f801e7b185d1
+FROM mambaorg/micromamba:2.3.3@sha256:800e7ade3ffe29c9a9ac2026163131495f8197c3852e572c5835beb4e8a33cd6 AS micromamba
+FROM ${LIBRECHAT_BASE} AS openff-runtime
+USER root
+COPY --from=micromamba /bin/micromamba /usr/local/bin/micromamba
+COPY templates/hcls-librechat/openff/conda-linux-64.lock /opt/openff-runtime.lock
+COPY templates/hcls-librechat/openff/verify-runtime.py /opt/verify-openff-runtime.py
+RUN micromamba create --yes --no-rc --root-prefix /tmp/openff-build --prefix /opt/openff --file /opt/openff-runtime.lock \
+ && /opt/openff/bin/python /opt/verify-openff-runtime.py
+
 FROM ${LIBRECHAT_BASE} AS scientific-client
 USER root
 COPY templates/hcls-librechat/ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx
@@ -41,6 +50,8 @@ FROM ${LIBRECHAT_BASE}
 
 USER root
 COPY --from=scientific-client /app/client/dist /app/client/dist
+COPY --from=openff-runtime /opt/openff /opt/openff
+COPY templates/hcls-librechat/openff/ /opt/openff-release/
 # zstd is the published scientific/LeRobot archive transport, not an optional
 # notebook-only dependency. Keep it available after a fresh deployment.
 RUN apt-get update && apt-get install -y --no-install-recommends zstd plink1.9 ffmpeg \
@@ -114,6 +125,9 @@ RUN node /opt/hcls-librechat/demos/patch.mjs server \
  && python3 -m venv /opt/clinical-client \
  && /opt/clinical-client/bin/pip install --no-cache-dir httpx==0.28.1
 COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
+COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
+COPY templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
+COPY templates/hcls-librechat/prepare-openff.py /opt/bionemo/prepare-openff.py
 COPY life-science/bionemo-librechat/scientific-agent-instructions.md /app/scientific-agent-instructions.md
 COPY templates/hcls-librechat/entrypoint.sh /usr/local/bin/hcls-librechat-entrypoint
 COPY templates/hcls-librechat/brand-client.mjs /opt/hcls-librechat/brand-client.mjs
@@ -151,6 +165,7 @@ LABEL org.opencontainers.image.title="Nebius Scientific AI Agent" \
       org.opencontainers.image.licenses="MIT"
 
 ENV HOST=0.0.0.0 \
+    SCIENTIFIC_CHAT_REASONING_EFFORT=low \
     PORT=3080 \
     NODE_ENV=production \
     APP_TITLE="Nebius Scientific AI Agent" \

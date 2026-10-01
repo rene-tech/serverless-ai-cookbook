@@ -1,0 +1,38 @@
+# syntax=docker/dockerfile:1.7
+# General-purpose additive release. Preserve the deployed UI, MD analysis,
+# ClawBio extensions and hosted clients; no customer-specific configuration.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:16b34a377caf015553d4d51ef78721ce1eb142d6e5c9a57ccd7cffdf7b9cdc65
+FROM mambaorg/micromamba:2.3.3@sha256:800e7ade3ffe29c9a9ac2026163131495f8197c3852e572c5835beb4e8a33cd6 AS micromamba
+FROM ${WORKBENCH_BASE} AS core-skills
+COPY skills/scientific-ai/ /core/
+RUN python3 /core/bundle.py verify
+FROM ${WORKBENCH_BASE} AS openff-runtime
+USER root
+COPY --from=micromamba /bin/micromamba /usr/local/bin/micromamba
+COPY templates/hcls-librechat/openff/conda-linux-64.lock /opt/openff-runtime.lock
+COPY templates/hcls-librechat/openff/verify-runtime.py /opt/verify-openff-runtime.py
+RUN micromamba create --yes --no-rc --root-prefix /tmp/openff-build --prefix /opt/openff --file /opt/openff-runtime.lock \
+ && /opt/openff/bin/python /opt/verify-openff-runtime.py
+
+FROM ${WORKBENCH_BASE}
+USER root
+COPY --from=openff-runtime /opt/openff /opt/openff
+COPY templates/hcls-librechat/openff/ /opt/openff-release/
+COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
+COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
+COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
+COPY templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
+COPY templates/hcls-librechat/prepare-openff.py /opt/bionemo/prepare-openff.py
+COPY --from=core-skills /core/ /app/skill/
+COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
+RUN /opt/openff/bin/python /opt/openff-release/verify-runtime.py \
+ && node /tmp/test-skills-installed.cjs \
+ && node --check /app/seed-hcls-workbench.js \
+ && node --check /opt/hcls-librechat/render-config.mjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.openff.interpreter="/opt/openff/bin/python" \
+      ai.nebius.scientific.release="general-openff-20261001"
+# Retain the approved GLM model. Bound conversational reasoning independently
+# of scientific methods or workflow-specific patient/clinician/judge models.
+ENV SCIENTIFIC_CHAT_REASONING_EFFORT=low

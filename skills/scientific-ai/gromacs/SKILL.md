@@ -6,7 +6,7 @@ license: Apache-2.0
 
 # GROMACS on Scientific AI
 
-Read `scientific-gateway` first. App ID: **gromacs**. This is the NVIDIA NGC
+For model execution, read `scientific-gateway`. App ID: **gromacs**. This is the NVIDIA NGC
 GROMACS HPC distribution behind the existing durable scientific-batch API,
 not an NVIDIA NIM HTTP API, a folding neural network, or a docking engine.
 Installing this skill does not establish that a particular runtime is released.
@@ -14,6 +14,17 @@ Read its live schema and qualification limitations before promising a workflow.
 The separate **gromacs-mpi** App uses an upstream external-MPI build, not the
 NVIDIA engine binary. Select it only for a requested distributed workflow; more
 GPUs can be slower and more expensive for small systems.
+
+## Match the current request
+
+- For force-field recommendations or small-molecule parameterization, read
+  [ligand parameterization](references/ligand-parameterization.md). An advisory
+  question does not authorize parameterization or require a simulation protocol.
+  For OpenFF execution, load the dedicated `openff` skill, not a generated ad-hoc script.
+- For a coordinate inventory, inspect the file and report its contents; do not
+  launch MD, install packages, or add an unsolicited preparation study. In the
+  Scientific AI workbench, `inspect-mmcif.py` provides measured mmCIF inventory.
+- Establish the full protocol below only when preparing or running a simulation.
 
 ## Establish the scientific protocol
 

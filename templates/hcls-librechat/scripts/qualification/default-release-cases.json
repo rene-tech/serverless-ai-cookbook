@@ -1,0 +1,13 @@
+{
+  "scope": "General-purpose agent instructions and installed CPU tools; not all-App scientific qualification",
+  "cases": [
+    {"case_id": "structure-inventory", "prompt": "Inspect /workspace/inputs/1UBQ.cif. Give me the polymer chains, residue counts, atom counts and water count. This is just an inventory, not preparation or a simulation."},
+    {"case_id": "force-field-advice", "prompt": "I have a protein-ligand system using CHARMM36m. Should I parameterize my small ligand with OpenFF Sage or CGenFF? Give me a short recommendation with the compatibility caveat. Do not run a simulation or parameterize anything."},
+    {"case_id": "openff-aspirin", "prompt": "Parameterize aspirin, SMILES CC(=O)Oc1ccccc1C(=O)O, using OpenFF Sage 2.2.1 with AmberTools AM1-BCC charges on CPU. Export the standalone ligand topology and coordinates for GROMACS, with charge and version provenance, to {output}. Verify the delivered files. Do not solvate or run MD."},
+    {"case_id": "openff-cation", "prompt": "Use OpenFF Sage 2.2.1 and AmberTools AM1-BCC to parameterize methylammonium, SMILES C[NH3+], preserving its +1 formal charge. Save the standalone GROMACS ligand files and provenance in {output}. Do not simulate."},
+    {"case_id": "undefined-stereochemistry", "prompt": "Parameterize CC(O)CC with OpenFF Sage for GROMACS. I have not decided which enantiomer to use. Save any valid results in {output}."},
+    {"case_id": "sequence-analysis", "prompt": "Analyze /workspace/inputs/sequences.fasta locally. Report each sequence length, GC percentage over A/C/G/T only, and ambiguous base count. Save a CSV in {output}. No inference model is needed."},
+    {"case_id": "data-plot", "prompt": "From /workspace/inputs/assay.csv calculate mean response and sample standard deviation by condition, excluding missing observations. Save a summary CSV and a labeled error-bar PNG in {output}, and give me links. Do not infer statistical significance from this small dataset."},
+    {"case_id": "missing-file", "prompt": "Inspect /workspace/inputs/does-not-exist.cif and tell me its chains. Do not substitute another structure."}
+  ]
+}
