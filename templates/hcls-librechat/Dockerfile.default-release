@@ -23,6 +23,9 @@ COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
 COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
 COPY templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
 COPY templates/hcls-librechat/prepare-openff.py /opt/bionemo/prepare-openff.py
+COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librechat/patch-title-options.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-title-options.mjs \
+ && node --check /app/api/server/controllers/agents/client.js
 COPY --from=core-skills /core/ /app/skill/
 COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
 RUN /opt/openff/bin/python /opt/openff-release/verify-runtime.py \

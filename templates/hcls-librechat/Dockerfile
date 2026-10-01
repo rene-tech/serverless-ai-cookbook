@@ -120,6 +120,8 @@ RUN python3 -m venv /opt/scientific-client \
 COPY life-science/bionemo-librechat/viewer-mcp.py /opt/bionemo/viewer-mcp.py
 COPY life-science/bionemo-librechat/3dmol.js /opt/bionemo/3dmol.js
 RUN node /opt/hcls-librechat/patch-server.mjs
+COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librechat/patch-title-options.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-title-options.mjs
 RUN node /opt/hcls-librechat/demos/patch.mjs server \
  && command -v flock \
  && python3 -m venv /opt/clinical-client \

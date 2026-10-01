@@ -90,4 +90,8 @@ if [[ -n "${SSH_PUBLIC_KEY_FILE:-}" ]]; then
   CREATE_CMD+=(--ssh-key "$(<"$SSH_PUBLIC_KEY_FILE")")
 fi
 
+if [[ "${SERVERLESS_DRY_RUN:-false}" == true ]]; then
+  CREATE_CMD+=(--dry-run)
+fi
+
 "${CREATE_CMD[@]}"

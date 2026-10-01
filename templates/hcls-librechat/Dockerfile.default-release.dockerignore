@@ -8,6 +8,8 @@
 !templates/hcls-librechat/render-config.mjs
 !templates/hcls-librechat/inspect-mmcif.py
 !templates/hcls-librechat/prepare-openff.py
+!templates/hcls-librechat/scientific-title-options.cjs
+!templates/hcls-librechat/patch-title-options.mjs
 !templates/hcls-librechat/scripts/
 !templates/hcls-librechat/scripts/test-skills-installed.cjs
 !skills/
