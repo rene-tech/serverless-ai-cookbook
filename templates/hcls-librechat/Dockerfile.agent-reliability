@@ -1,0 +1,12 @@
+# syntax=docker/dockerfile:1.7
+# Additive qualification/release over the immutable shared OpenFF workbench.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d
+FROM ${WORKBENCH_BASE}
+USER root
+COPY templates/hcls-librechat/scientific-provider-recovery.cjs templates/hcls-librechat/patch-agent-reliability.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-agent-reliability.mjs \
+ && node --check /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      ai.nebius.scientific.agent-reliability.revision="${HCLS_IMAGE_REVISION}"

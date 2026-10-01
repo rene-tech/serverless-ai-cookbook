@@ -1,0 +1,34 @@
+// Additive patch to the pinned R11 graph. No routing/model/tool-budget changes.
+import { readFile, writeFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+
+function replaceOnce(source, before, after, name) {
+  if (source.includes(after)) throw new Error(`${name} is already installed`);
+  if (source.split(before).length !== 2) throw new Error(`Unsupported pinned ${name} seam`);
+  return source.replace(before, after);
+}
+
+export function patchProviderRecovery(source) {
+  source = replaceOnce(source,
+    '\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(',
+    "\t\t\t\tresult = await require('/opt/hcls-librechat/scientific-provider-recovery.cjs').invokeWithRecovery({\n" +
+    '\t\t\t\t\tinvoke: () => require_langfuseRuntimeScope.withLangfuseRuntimeScope(',
+    'empty provider recovery start');
+  return replaceOnce(source,
+    '\t\t\t\t}, invokeConfig));\n\t\t\t} catch (primaryError) {',
+    `\t\t\t\t}, invokeConfig)),
+\t\t\t\t\tsignal: invokeConfig.signal,
+\t\t\t\t\tcanRetry: () => !hasCurrentTextDeltaStep({ graph: this, metadata }) &&
+\t\t\t\t\t\t![...(this.pendingToolCallsByStep?.values() ?? [])].some((calls) => calls.size > 0),
+\t\t\t\t\tobserveEmpty: (message) => {
+\t\t\t\t\t\trequire('/opt/hcls-librechat/scientific-context-audit.cjs').response(message, agentContext);
+\t\t\t\t\t\trequire_events.emitAgentLog(config, "warn", "graph", "Recovering an empty provider response without replaying tools", { retry: 1 }, invokeMeta, { force: true });
+\t\t\t\t\t}
+\t\t\t\t});
+\t\t\t} catch (primaryError) {`, 'empty provider recovery end');
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const path = '/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs';
+  await writeFile(path, patchProviderRecovery(await readFile(path, 'utf8')));
+}

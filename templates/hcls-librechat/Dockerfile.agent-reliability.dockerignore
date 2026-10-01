@@ -1,0 +1,5 @@
+**
+!templates
+!templates/hcls-librechat
+!templates/hcls-librechat/scientific-provider-recovery.cjs
+!templates/hcls-librechat/patch-agent-reliability.mjs
