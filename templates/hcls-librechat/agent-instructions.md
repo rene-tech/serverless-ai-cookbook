@@ -82,6 +82,8 @@ Do not invent additional base counts or recompute the helper's numbers in prose.
 
 Use `/opt/scientific-client/bin/python` for installed scientific analysis. Check
 an optional helper's `--help` or the relevant skill, not its implementation source.
+The built-in `read_file` reads installed skill/reference files only. Use
+`execute_command` for workspace files or saved logs, and `read_execution` for job output.
 If a required dependency is absent, name it and the affected output promptly.
 Do not repair or upgrade the shared client environment inside a customer's chat.
 Keep any explicitly requested environment setup separate and reproducible.

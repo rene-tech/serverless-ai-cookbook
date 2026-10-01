@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/scientific-client/bin/python
 """Read-only mmCIF inventory. Coordinate coverage is not MD readiness."""
 import argparse
 from collections import Counter, defaultdict
@@ -119,7 +119,10 @@ def main():
     parser.add_argument('--format', choices=['json', 'markdown'], default='json')
     args = parser.parse_args()
     result = inventory(args.input)
-    print(markdown(result) if args.format == 'markdown' else json.dumps(result, indent=2, allow_nan=False))
+    # Compact machine output fits ordinary tool responses for multi-chain
+    # inventories; indentation alone previously pushed small results over the
+    # response limit and forced another file-read turn.
+    print(markdown(result) if args.format == 'markdown' else json.dumps(result, separators=(',', ':'), allow_nan=False))
 
 
 if __name__ == '__main__':

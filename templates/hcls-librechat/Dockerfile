@@ -137,7 +137,7 @@ RUN node /opt/hcls-librechat/demos/patch.mjs server \
  && /opt/clinical-client/bin/pip install --no-cache-dir httpx==0.28.1
 COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
 COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
-COPY templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
+COPY --chmod=0755 templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
 COPY templates/hcls-librechat/inspect-fasta.py /opt/bionemo/inspect-fasta.py
 COPY templates/hcls-librechat/prepare-openff.py /opt/bionemo/prepare-openff.py
 COPY life-science/bionemo-librechat/scientific-agent-instructions.md /app/scientific-agent-instructions.md

@@ -35,7 +35,7 @@ def tool_failures(calls):
         raw = str(call.get('output', ''))
         if (output.get('status') in {'failed', 'timed_out', 'interrupted'} or
                 output.get('isError') is True or call.get('isError') is True or
-                re.search(r'MCP error -?\d+|McpError|Request timed out|Error executing tool', raw)):
+                re.search(r'MCP error -?\d+|McpError|Request timed out|Error executing tool|^Error:', raw)):
             failures.append({'tool': call.get('name'), 'status': output.get('status', 'tool_error'),
                              'job_id': output.get('job_id'), 'exit_code': output.get('exit_code')})
     return failures
