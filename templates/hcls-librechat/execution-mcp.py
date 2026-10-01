@@ -183,7 +183,7 @@ def read_job(args):
     return status
 
 
-def execute(args):
+def execute(args, on_admit=None):
     command = args.get('command')
     if not isinstance(command, str) or not command.strip():
         raise ValueError('command must be a nonempty Bash command or script.')
@@ -196,10 +196,59 @@ def execute(args):
     directory = ROOT / str(uuid.uuid4())
     directory.mkdir(mode=0o700)
     save(directory / 'request.json', {'command': command, 'cwd': cwd, 'timeout_seconds': timeout})
+    if on_admit is not None:
+        # Persist typed-job identity before launching; an interrupted reply must
+        # never cause a second expensive preparation under the same output path.
+        on_admit(directory.name)
     subprocess.Popen([sys.executable, str(Path(__file__).resolve()), '--worker', str(directory)],
         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         start_new_session=True)
     return read_job({'job_id': directory.name, 'wait_seconds': wait})
+
+
+def prepare_openff_ligand(args):
+    """Typed CPU helper, reusing the existing execution worker and receipts."""
+    smiles, force_field = args.get('smiles'), args.get('force_field')
+    if not isinstance(smiles, str) or not smiles.strip() or force_field != 'openff-2.2.1.offxml':
+        raise ValueError('Supply the exact SMILES and installed openff-2.2.1.offxml; no method substitution is performed.')
+    output = workspace_path(args.get('output_directory'), 'output_directory')
+    command = [os.environ.get('SCIENTIFIC_OPENFF_PYTHON', '/opt/openff/bin/python'),
+               os.environ.get('SCIENTIFIC_OPENFF_HELPER', '/opt/bionemo/prepare-openff.py'),
+               '--smiles', smiles]
+    index_dir = ROOT / 'openff-index'
+    index_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    identity = hashlib.sha256(json.dumps({'smiles': smiles, 'force_field': force_field,
+        'output': str(output)}, sort_keys=True).encode()).hexdigest()
+    index = index_dir / (hashlib.sha256(str(output).encode()).hexdigest() + '.json')
+    with index.with_suffix('.lock').open('w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        previous = json.loads(index.read_text()) if index.exists() else None
+        if previous:
+            if previous['identity'] != identity:
+                raise ValueError('This output directory belongs to another preparation. Preserve it and choose a new directory.')
+            return {**read_job({'job_id': previous['job_id'], 'wait_seconds': 0}),
+                    'output_directory': str(output), 'reused_existing_job': True}
+        if output.exists() and any(output.iterdir()):
+            raise ValueError('Output already contains files. Inspect/deliver those files; do not overwrite or recompute them.')
+        checked = subprocess.run(command + ['--inspect-identity'], capture_output=True, text=True, timeout=15)
+        if checked.returncode:
+            raise ValueError('OpenFF molecular identity check failed: ' + checked.stderr[-1500:])
+        identity_result = json.loads(checked.stdout)
+        if identity_result.get('status') == 'needs_user_input':
+            return identity_result  # No files, jobs or charges before a stereo decision.
+        if identity_result.get('status') != 'identity_defined':
+            raise ValueError('OpenFF identity check did not confirm the requested molecule.')
+        command += ['--force-field', force_field, '--output', str(output)]
+        started = execute({'command': shlex.join(command), 'cwd': str(Path(WORKSPACE).resolve()),
+                           'timeout_seconds': 0, 'wait_seconds': 5},
+                          on_admit=lambda job_id: save(index, {'identity': identity, 'job_id': job_id}))
+        return {**started, 'output_directory': str(output), 'reused_existing_job': False,
+                'guidance': 'Observe this same job_id with read_execution. When completed, deliver_scientific_results with kind=openff and this output_directory validates the saved files and supplies exact facts and links. No GPU or model service is used.'}
+
+
+def deliver_scientific_results(args):
+    from scientific_verified_results import deliver
+    return deliver(args, WORKSPACE)
 
 
 def study_argument(value):
@@ -453,6 +502,19 @@ def compose_scientific_workflow(arguments):
 
 
 TOOLS = [
+    {'name': 'prepare_openff_ligand',
+     'description': 'Prepare one standalone ligand on CPU using the installed OpenFF Sage 2.2.1 and AmberTools AM1-BCC helper. Supply exact SMILES, explicit force field and a fresh output directory. Preserves charge/stereo; undefined stereo returns a question without preparing anything. Repeated identical calls return the same job, never recompute. Observe that job with read_execution. Not solvated, not a protein/membrane system and not MD validation. For other methods report the unsupported choice rather than substituting.',
+     'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': False},
+     'inputSchema': {'type': 'object', 'additionalProperties': False,
+        'required': ['smiles', 'force_field', 'output_directory'], 'properties': {
+            'smiles': TEXT, 'force_field': {'const': 'openff-2.2.1.offxml'}, 'output_directory': TEXT}}},
+    {'name': 'deliver_scientific_results',
+     'description': 'Finish a supported factual result delivery using real files, without rewriting measurements or links. mmcif: path to input .cif, read-only inventory. openff: completed helper output directory, hashes/charge/version facts. native-md: completed batch receipt directory containing receipt.json and native-files.json, engine facts and native downloads. Returns a verified report that the client displays as the final answer verbatim. Call alone, only after all requested work is complete; not midway through a compound task or instead of requested custom analysis. No inference is submitted. Missing/changed results return an error, not a completion claim.',
+     'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
+     'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['results'], 'properties': {
+        'results': {'type': 'array', 'minItems': 1, 'items': {'type': 'object', 'additionalProperties': False,
+            'required': ['kind', 'path'], 'properties': {'kind': {'enum': ['mmcif', 'openff', 'native-md']},
+            'path': {**TEXT, 'description': 'Existing workspace file/directory, never inline output or invented measurements.'}}}}}}},
     {'name': 'compose_scientific_workflow',
      'description': 'Build the existing scientific-workflow/v2 plan in compact typed groups, without shell/JSON serialization or inference. Create with draft_directory, title and initial steps/deliverables. Subsequent edits use expected_sha256=current_sha256 from the latest receipt; upsert steps by id and deliverables by name. Include several related steps per call, not one call per step. finalize=true may accompany the last group and runs the SAME complete-plan validator as admission. Only finalized=true is ready: pass returned immutable plan_file to run_scientific_workflow with final output_directory. Draft-directory-only reads recover a lost reply; exact repeated edits reuse their revision, never roll the head back. Scripts remain existing workspace file references, never inline programs. Original model settings, call identities, budgets and admission behavior are unchanged.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': False},
@@ -532,6 +594,8 @@ def main():
             elif method == 'tools/call':
                 params = request['params']
                 handler = {'execute_command': execute, 'read_execution': read_job,
+                           'prepare_openff_ligand': prepare_openff_ligand,
+                           'deliver_scientific_results': deliver_scientific_results,
                            'compose_scientific_workflow': compose_scientific_workflow,
                            'describe_scientific_workflow': lambda args: describe_workflow(args.get('methods')),
                            'run_scientific_workflow': run_scientific_workflow,

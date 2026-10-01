@@ -89,3 +89,4 @@ studyAdmissionAcknowledgement.patchGraph = function patchGraph(source) {
 };
 
 module.exports = studyAdmissionAcknowledgement;
+module.exports.isHostBudgetNotice = isHostBudgetNotice;

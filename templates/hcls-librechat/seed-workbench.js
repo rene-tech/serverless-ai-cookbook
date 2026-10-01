@@ -55,6 +55,7 @@ const clinicalWorkflowTools = [
   'clinical_read_output', 'clinical_list_jobs', 'clinical_resume_job',
 ].map((name) => `${name}_mcp_scientific-demos`);
 const executionTools = ['execute_command_mcp_environment-execution', 'read_execution_mcp_environment-execution',
+  'prepare_openff_ligand_mcp_environment-execution', 'deliver_scientific_results_mcp_environment-execution',
   'describe_scientific_workflow_mcp_environment-execution',
   'compose_scientific_workflow_mcp_environment-execution',
   'run_scientific_workflow_mcp_environment-execution', 'upload_workspace_files_mcp_environment-execution',

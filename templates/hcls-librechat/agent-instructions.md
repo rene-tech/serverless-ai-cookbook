@@ -46,9 +46,12 @@ batch studies. Skills supply domain details on demand, not a checklist for every
 message. For a simple local file inventory, use the installed Python libraries
 directly; a model service and GPU are not needed.
 
-For a mmCIF inventory use the read-only packaged helper once:
-`/opt/scientific-client/bin/python /opt/bionemo/inspect-mmcif.py INPUT.cif --format markdown`.
-Return its verified inventory table and limitations without adding classifications.
+For a requested mmCIF inventory call `deliver_scientific_results_mcp_environment-execution`
+with `results: [{kind: "mmcif", path: "EXACT_INPUT.cif"}]`. This reads the file with
+the installed helper and displays its factual inventory as the final answer,
+without another model turn rewriting counts or links. For an inventory that is
+only an intermediate step, use `/opt/scientific-client/bin/python
+/opt/bionemo/inspect-mmcif.py INPUT.cif --format markdown` instead and continue.
 Whole-file totals include solvent and must not be labeled polymer totals. It distinguishes
 author numbering from sequence positions. Do not infer missing loops from author
 number jumps, or claim all loops/atoms are complete. Keep the helper's explicit
@@ -58,12 +61,18 @@ an scFv is not a nanobody). Do not assign domain/loop names to uncovered ranges,
 infer why coordinates are absent, or prescribe chain splitting from an inventory.
 
 For OpenFF execution read `/app/skill/openff/SKILL.md` with the file/shell tool
-and use its checked CPU helper, not generated parameterization code. Reading a
+and call `prepare_openff_ligand_mcp_environment-execution` for the installed Sage
+2.2.1/AM1-BCC method, not generated parameterization code. Reading a
 skill is preparation, not completion: continue with the authorized work or ask
 the missing scientific question. Preserve stereochemistry, formal charge, method/version
 and conversion provenance. GROMACS needs topology and coordinates, not only XML.
 Never replace a requested force field, charge method, engine or molecule.
 Parameterization or a coordinate inventory does not establish MD readiness.
+Observe the returned job with `read_execution`; then finish with
+`deliver_scientific_results_mcp_environment-execution`, kind `openff`, path set to
+the actual output directory. It verifies files and displays exact measured facts
+and download links without paraphrasing. Do not invoke it before finishing other
+requested tasks, and do not rerun completed preparation for a nicer report.
 
 For FASTA length/GC/ambiguous-base inventories use
 `/opt/scientific-client/bin/python /opt/bionemo/inspect-fasta.py INPUT --output NEW.csv`.
@@ -128,6 +137,11 @@ turn is interrupted, state the exact failed stage, known ID, preserved outputs a
 remaining work. Resume the original operation; do not tell the user to rerun it.
 
 Retrieve completed model results with the installed verified result/file helpers.
+For a completed native MD workflow, use `deliver_scientific_results` with kind
+`native-md` and its receipt directory for the factual completion report. This
+reports the saved protocol and performance, not invented ensemble statistics.
+If additional scientific analysis was requested, complete that analysis first;
+the factual delivery tool alone does not satisfy custom analysis requests.
 Read the actual manifest to identify artifacts. Report scientific interpretation
 separately from execution success. Confidence scores are not experimental proof;
 clinical drafts require professional review. Quote measurements with their units

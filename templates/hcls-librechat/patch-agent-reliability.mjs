@@ -28,7 +28,19 @@ export function patchProviderRecovery(source) {
 \t\t\t} catch (primaryError) {`, 'empty provider recovery end');
 }
 
+export function patchVerifiedDelivery(source) {
+  source = replaceOnce(source,
+    "const studyAdmissionText = require('/opt/hcls-librechat/scientific-study-admission.cjs')(messages);",
+    "const verifiedDeliveryText = require('/opt/hcls-librechat/scientific-verified-delivery.cjs')(messages);\n" +
+    "\t\t\tconst studyAdmissionText = verifiedDeliveryText ?? require('/opt/hcls-librechat/scientific-study-admission.cjs')(messages);",
+    'verified delivery boundary');
+  return replaceOnce(source,
+    'response_metadata: { scientific_admission_acknowledgement: true }',
+    'response_metadata: { scientific_admission_acknowledgement: verifiedDeliveryText === null, scientific_verified_delivery: verifiedDeliveryText !== null }',
+    'verified delivery provenance');
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const path = '/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs';
-  await writeFile(path, patchProviderRecovery(await readFile(path, 'utf8')));
+  await writeFile(path, patchVerifiedDelivery(patchProviderRecovery(await readFile(path, 'utf8'))));
 }

@@ -1,11 +1,34 @@
 # syntax=docker/dockerfile:1.7
 # Additive qualification/release over the immutable shared OpenFF workbench.
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d
+FROM ${WORKBENCH_BASE} AS assembled
+USER root
+COPY templates/hcls-librechat/ /tmp/agent-reliability/
+RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliability/scientific-verified-delivery.cjs /tmp/agent-reliability/scientific-study-admission.cjs /tmp/agent-reliability/scientific-tool-options.cjs /tmp/agent-reliability/patch-agent-reliability.mjs /tmp/agent-reliability/patch-execution-ui.mjs /opt/hcls-librechat/ \
+ && cp /tmp/agent-reliability/execution-mcp.py /tmp/agent-reliability/scientific_verified_results.py /opt/bionemo/ \
+ && cp /tmp/agent-reliability/agent-instructions.md /app/agent-instructions.md \
+ && cp /tmp/agent-reliability/seed-workbench.js /app/seed-hcls-workbench.js \
+ && cp /tmp/agent-reliability/ScientificExecutionOutput.tsx /tmp/agent-reliability/ScientificExecutionOutput.test.tsx /app/client/src/components/Chat/Messages/Content/ \
+ && node /opt/hcls-librechat/patch-agent-reliability.mjs \
+ && node /opt/hcls-librechat/patch-execution-ui.mjs \
+ && node --check /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
+ && node --check /app/seed-hcls-workbench.js \
+ && python3 -m py_compile /opt/bionemo/execution-mcp.py /opt/bionemo/scientific_verified_results.py
+WORKDIR /app/client
+RUN /app/node_modules/.bin/jest --runInBand --watch=false src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build
+
+# Publish only changed files in one layer: the retained image is close to the
+# Docker overlay layer limit. Never copy the whole dependency tree again.
 FROM ${WORKBENCH_BASE}
 USER root
-COPY templates/hcls-librechat/scientific-provider-recovery.cjs templates/hcls-librechat/patch-agent-reliability.mjs /opt/hcls-librechat/
-RUN node /opt/hcls-librechat/patch-agent-reliability.mjs \
- && node --check /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs
+RUN --mount=type=bind,from=assembled,source=/,target=/assembled \
+    cp /assembled/opt/hcls-librechat/scientific-provider-recovery.cjs /assembled/opt/hcls-librechat/scientific-verified-delivery.cjs /assembled/opt/hcls-librechat/scientific-study-admission.cjs /assembled/opt/hcls-librechat/scientific-tool-options.cjs /assembled/opt/hcls-librechat/patch-agent-reliability.mjs /assembled/opt/hcls-librechat/patch-execution-ui.mjs /opt/hcls-librechat/ \
+ && cp /assembled/opt/bionemo/execution-mcp.py /assembled/opt/bionemo/scientific_verified_results.py /opt/bionemo/ \
+ && cp /assembled/app/agent-instructions.md /assembled/app/seed-hcls-workbench.js /app/ \
+ && cp /assembled/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
+ && cp /assembled/app/client/src/components/Chat/Messages/Content/ToolCallInfo.tsx /assembled/app/client/src/components/Chat/Messages/Content/ScientificExecutionOutput.tsx /app/client/src/components/Chat/Messages/Content/ \
+ && cp -a /assembled/app/client/dist/. /app/client/dist/
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
