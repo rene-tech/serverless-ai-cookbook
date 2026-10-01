@@ -15,7 +15,7 @@ RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliab
  && node --check /app/seed-hcls-workbench.js \
  && python3 -m py_compile /opt/bionemo/execution-mcp.py /opt/bionemo/scientific_verified_results.py
 WORKDIR /app/client
-RUN /app/node_modules/.bin/jest --runInBand --watch=false src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
+RUN NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --forceExit src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build
 
 # Publish only changed files in one layer: the retained image is close to the
