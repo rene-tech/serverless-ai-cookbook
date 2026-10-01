@@ -41,6 +41,8 @@ def main():
     p.add_argument('--image', required=True)
     p.add_argument('--label', required=True)
     p.add_argument('--port', type=int, required=True)
+    p.add_argument('--context-audit', action='store_true',
+                   help='Retain only provider counts/finish reasons in this isolated QA workspace')
     a = p.parse_args()
     os.umask(0o077)
     root = a.root / a.label
@@ -65,6 +67,8 @@ def main():
     if a.platform_key:
         handover = json.loads(a.platform_key.read_text())
         env['SCIENTIFIC_MODELS_API_KEY'] = handover.get('secret') or handover.get('token') or handover['api_key']
+    if a.context_audit:
+        env['SCIENTIFIC_CONTEXT_AUDIT_PATH'] = '/workspace/qualification-provider-counts.json'
     (root / 'runtime.env').write_text(''.join(f'{k}={v}\n' for k, v in env.items()))
     private_json(root / 'login.json', {'email': email, 'password': password})
     name = 'fs2-default-release-' + a.label
