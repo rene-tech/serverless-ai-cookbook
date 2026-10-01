@@ -14,6 +14,34 @@ COPY templates/hcls-librechat/openff/verify-runtime.py /opt/verify-openff-runtim
 RUN micromamba create --yes --no-rc --root-prefix /tmp/openff-build --prefix /opt/openff --file /opt/openff-runtime.lock \
  && /opt/openff/bin/python /opt/verify-openff-runtime.py
 
+# Release images retain the upstream client source. Rebuild the versioned UI
+# with the speech microphone modes, chat audio/file uploads and history playback,
+# then brand the bundle exactly as the parent release did.
+FROM ${WORKBENCH_BASE} AS speech-client
+USER root
+COPY templates/hcls-librechat/ /tmp/client-source/
+RUN cd /tmp/client-source \
+ && cp ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx \
+ && cp ScientificGettingStarted.tsx WorkspaceInlineCode.tsx /app/client/src/components/ \
+ && cp PoweredByFooter.tsx /app/client/src/components/Chat/Footer.tsx \
+ && node patch-client.mjs \
+ && cp demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
+ && cp demos/comparison.ts /app/client/src/components/scientific-comparison.ts \
+ && cp demos/run-display.ts /app/client/src/components/scientific-run-display.ts \
+ && node demos/patch.mjs client \
+ && cp speech/AudioRecorder.tsx /app/client/src/components/Chat/Input/AudioRecorder.tsx \
+ && cp speech/LiveSpeech.tsx speech/ClinicalSoap.tsx speech/workshop-client.js speech/speech-state.js /app/client/src/components/ \
+ && node speech/patch.mjs client \
+ && cp uploads/workspace-files.js uploads/save-attachment.js uploads/WorkspaceAttachments.tsx uploads/MessageAttachments.tsx uploads/attachment-only.tsx /app/client/src/components/ \
+ && node uploads/patch.mjs
+WORKDIR /app/client
+RUN NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build \
+ && mkdir -p /app/client/dist/scientific-speech \
+ && cp /tmp/client-source/speech/pcm-worklet.js /app/client/dist/scientific-speech/pcm-worklet.js
+RUN cp /tmp/client-source/assets/nebius-logo.svg /app/client/dist/assets/logo.svg \
+ && cp /tmp/client-source/assets/token-factory.svg /app/client/dist/assets/token-factory.svg \
+ && node /tmp/client-source/brand-client.mjs /app/client/dist
+
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
 COPY --from=openff-runtime /opt/openff /opt/openff
@@ -30,12 +58,30 @@ COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librec
 RUN node /opt/hcls-librechat/patch-title-options.mjs \
  && node /opt/hcls-librechat/patch-skill-result.mjs \
  && node --check /app/api/server/controllers/agents/client.js
+# Chat audio uploads, workspace files, speech relay/diarization routes and the
+# transcription MCP tools. All speech backends are environment-configured; an
+# instance without SCIENTIFIC_*_SPEECH_* settings keeps the base English route only.
+COPY templates/hcls-librechat/demos/service.cjs templates/hcls-librechat/demos/worker.cjs templates/hcls-librechat/demos/mcp.cjs \
+     templates/hcls-librechat/demos/analysis.cjs templates/hcls-librechat/demos/seed.cjs templates/hcls-librechat/demos/workshop-example.json /opt/hcls-librechat/demos/
+COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
+COPY templates/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/scientific-tool-options.cjs
+COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/dual-stream.cjs \
+     templates/hcls-librechat/speech/stream-receipt.cjs templates/hcls-librechat/speech/native-file.cjs templates/hcls-librechat/speech/chat-transcribe.cjs \
+     templates/hcls-librechat/speech/soap.cjs templates/hcls-librechat/speech/fact-review.cjs templates/hcls-librechat/speech/speech-state.js \
+     templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/medical-mcp.py templates/hcls-librechat/speech/patch.mjs \
+     templates/hcls-librechat/speech/test-installed-config.cjs templates/hcls-librechat/speech/test-installed-seed.cjs /opt/hcls-librechat/speech/
+RUN node /opt/hcls-librechat/speech/patch.mjs server \
+ && node --check /app/api/server/index.js \
+ && node --check /app/api/server/routes/scientific-demos.js \
+ && node -e "require('/opt/hcls-librechat/speech/native-file.cjs')"
 COPY --from=core-skills /core/ /app/skill/
 COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
 RUN /opt/openff/bin/python /opt/openff-release/verify-runtime.py \
  && node /tmp/test-skills-installed.cjs \
  && node --check /app/seed-hcls-workbench.js \
- && node --check /opt/hcls-librechat/render-config.mjs
+ && node --check /opt/hcls-librechat/render-config.mjs \
+ && node /opt/hcls-librechat/speech/test-installed-config.cjs \
+ && node /opt/hcls-librechat/speech/test-installed-seed.cjs
 
 # The retained workbench has a long layer history. Copy the assembled runtime
 # roots in eight layers instead of shipping every intermediate COPY/RUN layer;
@@ -51,14 +97,18 @@ COPY --from=assembled /app/skill /app/skill
 COPY --from=assembled /app/agent-instructions.md /app/seed-hcls-workbench.js /app/
 COPY --from=assembled /app/packages/api/dist/index.cjs /app/packages/api/dist/index.cjs
 COPY --from=assembled /app/api/server/controllers/agents/client.js /app/api/server/controllers/agents/client.js
+COPY --from=assembled /app/api/server/index.js /app/api/server/index.js
+COPY --from=assembled /app/api/server/routes/scientific-demos.js /app/api/server/routes/scientific-demos.js
+COPY --from=speech-client /app/client/dist /app/client/dist
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
-      ai.nebius.scientific.skills.version="2026.10.01.4" \
+      ai.nebius.scientific.skills.version="2026.10.01.5" \
       ai.nebius.scientific.skills.revision="${HCLS_IMAGE_REVISION}" \
       ai.nebius.scientific.operation-polling.revision="${HCLS_IMAGE_REVISION}" \
       ai.nebius.scientific.openff.interpreter="/opt/openff/bin/python" \
-      ai.nebius.scientific.release="general-openff-20261001"
+      ai.nebius.scientific.release="general-speech-20261001" \
+      ai.nebius.scientific.clinical-speech.revision="${HCLS_IMAGE_REVISION}"
 # Retain the approved GLM model. Bound conversational reasoning independently
 # of scientific methods or workflow-specific patient/clinician/judge models.
 ENV SCIENTIFIC_CHAT_REASONING_EFFORT=low

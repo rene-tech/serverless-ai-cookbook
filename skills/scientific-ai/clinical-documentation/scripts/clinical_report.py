@@ -58,6 +58,70 @@ class NoSupportedClinicalFacts(ValueError):
         super().__init__(self.detail)
 
 
+BOUNDED_GENERATION = {
+    "version": "clinical-bounded-generation/v1", "max_array_items": 8,
+    "instruction": "Bounded response: emit each supported fact ONCE, never repeat facts or references to fill an array. At most eight distinct facts and eight uncertainties per extraction. Empty or absent clinical sections are valid; never invent evidence. Finish the complete JSON object after the supported unique items, then stop. Missing/cap-limited content remains incomplete and requires review.",
+}
+OPTIONAL_QUESTION_POLICY = {"version": "optional-questions/v1", "context_overflow": "omit_questions_with_explicit_warning_only", "facts_truncated": False}
+
+
+class ContextBudgetExceeded(ValueError):
+    """Exact tokenizer preflight rejected the request before model admission."""
+    def __init__(self, stage, budget):
+        self.stage, self.budget = stage, budget
+        super().__init__("clinical_context_budget_exceeded: source retained unchanged; choose a larger context or a separately versioned smaller-chunk run")
+
+
+def optional_questions(reporter, data, facts, uncertainties):
+    try:
+        return validate_questions(reporter.complete("questions", QUESTIONS, data), facts)
+    except ContextBudgetExceeded as exc:
+        if exc.stage != "questions":
+            raise
+        warning = {"stage": "questions", "code": "optional_questions_context_budget_exceeded",
+                   "detail": "Optional follow-up questions were not generated: the complete fact set exceeded the exact context budget. No facts were truncated and no question-generation request was admitted. Review the retained source, accepted facts and uncertainties manually.",
+                   "context_budget": exc.budget, "provider_request_admitted": False}
+        reporter.generation_warnings.append(warning)
+        uncertainties.append({"description": warning["detail"], "kind": "optional_stage_omitted", "evidence": []})
+        return []
+
+
+def bounded_completion_schema(stage, data):
+    schema = completion_schema(stage, data)
+    def visit(node):
+        if isinstance(node, dict):
+            if node.get("type") == "array":
+                node["maxItems"] = min(node.get("maxItems", 8), max(8, node.get("minItems", 0)))
+            for item in node.values():
+                visit(item)
+        elif isinstance(node, list):
+            for item in node:
+                visit(item)
+    visit(schema)
+    # All supplied segments can still receive exclusion/coverage assessments.
+    if stage.startswith("extract"):
+        schema["properties"]["excluded_segments"]["maxItems"] = len(data["segments"])
+    return schema
+
+
+def generation_warnings(stage, value):
+    """Expose capacity/repetition, never repair or accept truncated responses."""
+    if not stage.startswith("extract"):
+        return []
+    warnings = []
+    for field in ("facts", "uncertainties"):
+        items = value.get(field, [])
+        if len(items) >= BOUNDED_GENERATION["max_array_items"]:
+            warnings.append({"stage": stage, "code": "bounded_generation_capacity_reached", "field": field,
+                             "count": len(items), "detail": "Generation capacity reached; completeness is not established. Review the entire source and omitted content."})
+    facts = value.get("facts", [])
+    duplicate_count = len(facts) - len({digest(fact) for fact in facts})
+    if duplicate_count:
+        warnings.append({"stage": stage, "code": "repeated_extraction_candidates", "count": duplicate_count,
+                         "detail": "The provider repeated candidates; output may omit other facts. Raw responses remain retained; clinical completeness is not established."})
+    return warnings
+
+
 def save(path, value):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     content = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, indent=2) + "\n"
@@ -209,10 +273,31 @@ def parse_completion(response):
     return result
 
 
+def report_limits():
+    """Optional operator limits; never truncate a clinical source to fit."""
+    limits = {}
+    for key, variable, minimum, maximum in (
+        ("max_output_tokens", "CLINICAL_REPORT_MAX_OUTPUT_TOKENS", 256, 16384),
+        ("context_tokens", "CLINICAL_REPORT_CONTEXT_TOKENS", 2048, 131072),
+        ("chunk_chars", "CLINICAL_REPORT_CHUNK_CHARS", 1000, 8500),
+        ("review_workers", "CLINICAL_REPORT_REVIEW_WORKERS", 1, 3),
+    ):
+        if os.getenv(variable):
+            value = int(os.environ[variable])
+            if not minimum <= value <= maximum:
+                raise ValueError(f"{variable} outside supported bounds")
+            limits[key] = value
+    return limits
+
+
 class Reporter:
     def __init__(self, platform, model, provider_url=None, provider_key=None):
         self.platform, self.model = platform, model
         self.provider = None
+        self.limits = report_limits()
+        self.chunk_chars = self.limits.get("chunk_chars", 8500)
+        self.review_workers = self.limits.get("review_workers", 3)
+        self.generation_warnings = []
         if provider_url:
             if not provider_key:
                 raise ValueError("CLINICAL_REPORT_API_KEY is required for an explicitly selected external report provider")
@@ -222,22 +307,53 @@ class Reporter:
             ids = {x["id"] for x in check(self.provider.get("models")).json()["data"]}
             if model not in ids:
                 raise ValueError("report model absent from the selected provider catalog")
+        if self.limits.get("context_tokens") and not self.provider:
+            raise ValueError("A context-limited report backend must expose an authenticated /tokenize route")
 
     def complete(self, stage, prompt, data):
+        bounded = bool(self.limits.get("context_tokens"))
+        if bounded:
+            prompt += "\n\n" + BOUNDED_GENERATION["instruction"]
         body = {"model": self.model, "messages": [{"role": "system", "content": prompt},
                 {"role": "user", "content": json.dumps(data, ensure_ascii=False)}],
                 "temperature": 0, "max_tokens": 7000 if stage.startswith("extract") else 1800, "stream": False,
                 "response_format": {"type": "json_schema", "json_schema": {
                     "name": "clinical_documentation", "strict": True,
-                    "schema": completion_schema(stage, data)}}}
+                    "schema": bounded_completion_schema(stage, data) if bounded else completion_schema(stage, data)}}}
         if self.model in {"qwen3-8b", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"}:
             body["chat_template_kwargs"] = {"enable_thinking": False}
+        if self.limits.get("max_output_tokens"):
+            body["max_tokens"] = min(body["max_tokens"], self.limits["max_output_tokens"])
+        budget = None
+        if self.limits.get("context_tokens"):
+            # vLLM's tokenizer applies the actual deployed chat template. Do not
+            # estimate medical text by character count or silently cut evidence.
+            body["chat_template_kwargs"] = {"enable_thinking": False}
+            parsed = urlparse(str(self.provider.base_url))
+            tokenize_url = parsed._replace(path="/tokenize", params="", query="", fragment="").geturl()
+            counted = check(self.provider.post(tokenize_url, json={
+                "model": self.model, "messages": body["messages"],
+                "add_generation_prompt": True, "chat_template_kwargs": body["chat_template_kwargs"]})).json()
+            count, capacity = counted.get("count"), counted.get("max_model_len")
+            if type(count) is not int or type(capacity) is not int or count < 0 or capacity <= 0:
+                raise ValueError("Report tokenizer did not return a valid exact context count")
+            budget = {"input_tokens": count, "max_output_tokens": body["max_tokens"],
+                      "context_tokens": min(capacity, self.limits["context_tokens"]), "reserve_tokens": 64}
+            if count + body["max_tokens"] + 64 > budget["context_tokens"]:
+                if stage == "questions":
+                    save(self.platform.output / "calls" / stage / "preflight-rejected.json",
+                         {"stage": stage, "status": "not_admitted", "context_budget": budget,
+                          "request_sha256": digest(body), "provider": str(self.provider.base_url),
+                          "policy": OPTIONAL_QUESTION_POLICY})
+                raise ContextBudgetExceeded(stage, budget)
         if not self.provider:
             response = self.platform.operation(stage, "/v1/chat/completions", body)
         else:
             folder = self.platform.output / "calls" / stage
             cache = folder / "response.json"
             request = {"body": body, "provider": str(self.provider.base_url)}
+            if budget:
+                request["context_budget"] = budget
             if cache.exists():
                 if read(folder / "request.json") != request:
                     raise ValueError("provider request changed")
@@ -250,7 +366,10 @@ class Reporter:
                 save(cache, response)
                 save(folder / "state.json", {"elapsed_seconds": time.monotonic() - started,
                                               "provider": str(self.provider.base_url)})
-        return parse_completion(response)
+        value = parse_completion(response)
+        if bounded:
+            self.generation_warnings.extend(generation_warnings(stage, value))
+        return value
 
     def close(self):
         if self.provider:
@@ -262,7 +381,7 @@ def document_transcript(text, language, reporter, output):
         raise ValueError("empty transcript: no consultation report generated")
     facts, uncertainties, rejected, kinds, coverage = [], [], [], [], []
     next_id = 1
-    for index, chunk in enumerate(chunks(text)):
+    for index, chunk in enumerate(chunks(text, size=getattr(reporter, "chunk_chars", 8500))):
         chunk["segments"] = source_segments(chunk)
         data = {"language": language, "segments": [{"id": s["id"], "text": s["text"]} for s in chunk["segments"]]}
         value = reporter.complete(f"extract-{index:03}", EXTRACT, data)
@@ -308,7 +427,7 @@ def document_transcript(text, language, reporter, output):
                 return kept, dropped
 
             # Bounded client parallelism, not a platform/provider quota change.
-            with ThreadPoolExecutor(max_workers=3) as pool:
+            with ThreadPoolExecutor(max_workers=getattr(reporter, "review_workers", 3)) as pool:
                 checked = list(pool.map(review_one, current))
             current = [fact for kept, _ in checked for fact in kept]
             rejected.extend(item for _, dropped in checked for item in dropped)
@@ -339,7 +458,8 @@ def document_transcript(text, language, reporter, output):
     facts = list(unique.values())
     excerpts = source_excerpt_fallbacks(rejected)
     if not facts and not excerpts:
-        save(output / "review.json", {"rejected": rejected, "kinds": kinds, "uncertainties": uncertainties})
+        save(output / "review.json", {"rejected": rejected, "kinds": kinds, "uncertainties": uncertainties,
+                                     "generation_warnings": getattr(reporter, "generation_warnings", [])})
         raise NoSupportedClinicalFacts()
     # Ask about the entire fact set, not separate chunks that could contain answers.
     question_data = {"language": language, "facts": facts, "uncertainties": [
@@ -351,18 +471,22 @@ def document_transcript(text, language, reporter, output):
         questions = []
         uncertainties.append({"description": "Question synthesis omitted: full fact set exceeds the configured context budget.", "evidence": []})
     else:
-        questions = validate_questions(reporter.complete("questions", QUESTIONS, question_data), facts)
+        questions = optional_questions(reporter, question_data, facts, uncertainties)
     document = {"schema": VERSION, "kind": "consultation" if "consultation" in kinds else kinds[0],
                 "language": language, "transcript_sha256": digest(text), "facts": facts,
                 "uncertainties": uncertainties, "questions": questions, "rejected": rejected,
                 "source_excerpts": excerpts,
                 "source_coverage": coverage,
+                "generation_warnings": getattr(reporter, "generation_warnings", []),
                 "draft_mode": "facts_and_review" if facts else "source_review_only_no_accepted_facts",
                 "validation": "facts constructed only from validated exact source-language phrases, with literal declared medication/dose anchors and automated contextual review; withheld wording retained as review-only source excerpts, not accepted facts; quote selection/context can be wrong and completeness is not established; not clinical validation"}
     report, followup = render(document, language)
+    warnings_text = "".join("- " + item["code"] + ": " + item["detail"] + "\n" for item in document["generation_warnings"])
+    if warnings_text:
+        report = "GENERATION INCOMPLETENESS — human review required\n\n" + warnings_text + "\n" + report
     save(output / "document.json", document)
-    save(output / "review.json", {"uncertainties": uncertainties, "rejected": rejected})
-    save(output / "review.md", render_review(document, language))
+    save(output / "review.json", {"uncertainties": uncertainties, "rejected": rejected, "generation_warnings": document["generation_warnings"]})
+    save(output / "review.md", ("GENERATION INCOMPLETENESS\n\n" + warnings_text + "\n" if warnings_text else "") + render_review(document, language))
     save(output / "report.md", report)
     save(output / "follow-up.md", followup)
     return document
@@ -378,6 +502,12 @@ def run(args, key=None, provider_key=None):
               "language": args.language, "asr_model": asr_model, "report_model": args.report_model,
               "report_provider": args.report_provider, "platform": args.base_url,
               "prompt_sha256": digest([EXTRACT, VERIFY, QUESTIONS, LOCATE]), "chunk_size": 8500}
+    if limits := report_limits():
+        config.update(report_limits=limits, chunk_size=limits.get("chunk_chars", 8500))
+        if limits.get("context_tokens"):
+            config.update(generation_contract=BOUNDED_GENERATION,
+                          optional_question_policy=OPTIONAL_QUESTION_POLICY,
+                          prompt_sha256=digest([EXTRACT, VERIFY, QUESTIONS, LOCATE, BOUNDED_GENERATION]))
     output = args.output
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
     manifest_path = output / "run.json"

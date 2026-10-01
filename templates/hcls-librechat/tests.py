@@ -16,6 +16,7 @@ def render_config(tmp_path, catalog=None, **overrides):
     env = {key: value for key, value in os.environ.items()
            if key not in {"SCIENTIFIC_MODELS_API_KEY", "NEBIUS_API_KEY"}}
     env.update(SCIENTIFIC_AGENT_INSTRUCTIONS_PATH=str(INSTRUCTIONS),
+               SCIENTIFIC_CORE_INSTRUCTIONS_PATH=str(ROOT / "agent-instructions.md"),
                SCIENTIFIC_DISCOVER_CHAT_MODELS="false")
     env.update(overrides)
     output = tmp_path / "librechat.yaml"
@@ -51,6 +52,17 @@ def test_previously_curated_model_is_not_accepted_when_live_catalog_removes_it(t
     with pytest.raises(subprocess.CalledProcessError):
         render_config(tmp_path, catalog={'data': [{'id': 'provider/new-model'}]},
                       SCIENTIFIC_CHAT_MODEL='Qwen/Qwen3-235B-A22B-Instruct-2507')
+
+
+def test_speech_is_a_default_feature_without_a_workshop_mode(tmp_path):
+    config, _ = render_config(tmp_path, SCIENTIFIC_SPEECH_WORKSHOP='true', SCIENTIFIC_SPEECH_CHAT_MODEL='Qwen/Qwen3.8-27B')
+    specs = config['modelSpecs']['list']
+    assert not any(spec['name'] == 'speech-workshop' for spec in specs)
+    default = [spec for spec in specs if spec.get('default')]
+    assert [spec['name'] for spec in default] == ['nebius-scientific-ai-agent']
+    provider = next(item for item in config['endpoints']['custom'] if item['name'] == 'Nebius Token Factory')
+    assert 'Qwen/Qwen3.8-27B' not in provider['models']['default']
+    assert provider['titleModel'] == DEFAULT_CHAT_MODEL
 
 
 def test_no_credentials_are_baked_into_the_image_context() -> None:

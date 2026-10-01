@@ -176,6 +176,17 @@ const config = {
   },
   modelSpecs: { prioritize: true, enforce: false, list: modelSpecs },
   mcpServers: {
+    ...(process.env.SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL && process.env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY ? {
+      'medical-speech': {
+        title: 'Medical Nemotron Speech - dedicated endpoint',
+        description: 'Fine-tuned clinical ASR: direct workspace audio upload, typed MCP submission, durable status/results/cancel. Separate from the base-model platform Apps.',
+        type: 'stdio', command: '/opt/scientific-client/bin/python', args: ['/opt/hcls-librechat/speech/medical-mcp.py'],
+        startup: true, initTimeout: 30000, timeout: 150000, serverInstructions: true,
+        env: { SCIENTIFIC_WORKSPACE: '/workspace',
+          SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL: '${SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL}',
+          SCIENTIFIC_MEDICAL_SPEECH_API_KEY: '${SCIENTIFIC_MEDICAL_SPEECH_API_KEY}' },
+      },
+    } : {}),
     'scientific-demos': {
       title: 'Scientific workbench', description: 'Durable run tracking, workspace files, clinical drafts and conversation evaluation.',
       type: 'stdio', command: 'node', args: ['/opt/hcls-librechat/demos/mcp.cjs'],
@@ -183,7 +194,19 @@ const config = {
       env: { LIBRECHAT_USER_ID: '{{LIBRECHAT_USER_ID}}',
         SCIENTIFIC_MODELS_API_KEY: '{{SCIENTIFIC_MODELS_API_KEY}}',
         SCIENTIFIC_MODELS_API_BASE_URL: '${SCIENTIFIC_MODELS_API_BASE_URL}',
-        NEBIUS_API_KEY: '${NEBIUS_API_KEY}' },
+        NEBIUS_API_KEY: '${NEBIUS_API_KEY}',
+        SCIENTIFIC_WORKSPACE: '/workspace',
+        SCIENTIFIC_MODELS_MCP_URL: '${SCIENTIFIC_MODELS_MCP_URL}',
+        ...Object.fromEntries(['SCIENTIFIC_ENGLISH_SPEECH_URL', 'SCIENTIFIC_ENGLISH_SPEECH_UPSTREAM_MODEL',
+          'SCIENTIFIC_ENGLISH_SPEECH_API_KEY', 'SCIENTIFIC_ENGLISH_SPEECH_AUTH_MODE',
+          'SCIENTIFIC_ENGLISH_SPEECH_EXPECTED_CHECKPOINT_SHA256',
+          'SCIENTIFIC_MEDICAL_SPEECH_URL', 'SCIENTIFIC_MEDICAL_SPEECH_MODEL',
+          'SCIENTIFIC_MEDICAL_SPEECH_API_KEY', 'SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE',
+          'SCIENTIFIC_MEDICAL_SPEECH_LABEL', 'SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256']
+          .filter((name) => process.env[name]).map((name) => [name, '${' + name + '}'])),
+        ...Object.fromEntries(['CLINICAL_REPORT_API_KEY', 'CLINICAL_REPORT_BASE_URL', 'CLINICAL_REPORT_MODEL',
+          'CLINICAL_REPORT_PROVIDER_LABEL', 'CLINICAL_REPORT_MAX_OUTPUT_TOKENS', 'CLINICAL_REPORT_CONTEXT_TOKENS',
+          'CLINICAL_REPORT_CHUNK_CHARS', 'CLINICAL_REPORT_REVIEW_WORKERS'].filter((name) => process.env[name]).map((name) => [name, '${' + name + '}'])) },
       customUserVars: { SCIENTIFIC_MODELS_API_KEY: {
         title: 'Scientific AI API key', description: 'Your personal platform key, also configurable in the Apps panel.', sensitive: true,
       } }, serverInstructions: true,
@@ -201,6 +224,9 @@ const config = {
         ...(process.env.SCIENTIFIC_STUDY_OWNER ? { SCIENTIFIC_STUDY_OWNER: '${SCIENTIFIC_STUDY_OWNER}' } : {}),
         ...(process.env.SEED_DEFAULT_USER_EMAIL ? { SEED_DEFAULT_USER_EMAIL: '${SEED_DEFAULT_USER_EMAIL}' } : {}),
         ...(process.env.CLINICAL_REPORT_API_KEY ? { CLINICAL_REPORT_API_KEY: '${CLINICAL_REPORT_API_KEY}' } : {}),
+        ...Object.fromEntries(['CLINICAL_REPORT_BASE_URL', 'CLINICAL_REPORT_MODEL', 'CLINICAL_REPORT_MAX_OUTPUT_TOKENS',
+          'CLINICAL_REPORT_CONTEXT_TOKENS', 'CLINICAL_REPORT_CHUNK_CHARS', 'CLINICAL_REPORT_REVIEW_WORKERS']
+          .filter((name) => process.env[name]).map((name) => [name, '${' + name + '}'])),
         ...(process.env.NEBIUS_API_KEY ? { NEBIUS_API_KEY: '${NEBIUS_API_KEY}' } : {}),
         ...(process.env.CLINICAL_REPORT_API_KEY_FILE ? { CLINICAL_REPORT_API_KEY_FILE: '${CLINICAL_REPORT_API_KEY_FILE}' } : {}),
         ...(sharedGatewayKey ? { SCIENTIFIC_MODELS_API_KEY: '${SCIENTIFIC_MODELS_API_KEY}' } : {}),

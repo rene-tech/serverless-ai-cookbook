@@ -6,9 +6,27 @@ const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const ROOT = process.env.SCIENTIFIC_DEMOS_DIR || '/data/hcls-demos';
 const PLATFORM = (process.env.SCIENTIFIC_MODELS_API_BASE_URL || 'https://89.169.99.188/v1').replace(/\/v1\/?$/, '');
-const REPORT_MODEL = 'Qwen/Qwen3-235B-A22B-Instruct-2507';
-const REPORT_PROVIDER = 'https://api.tokenfactory.nebius.com/v1';
-const FILES = ['report.md', 'transcript.txt', 'follow-up.md', 'review.md', 'document.json', 'review.json', 'run.json'];
+const REPORT_MODEL = process.env.CLINICAL_REPORT_MODEL || 'Qwen/Qwen3-235B-A22B-Instruct-2507';
+const REPORT_PROVIDER = process.env.CLINICAL_REPORT_BASE_URL || 'https://api.tokenfactory.nebius.com/v1';
+const REPORT_PROVIDER_LABEL = process.env.CLINICAL_REPORT_PROVIDER_LABEL || (process.env.CLINICAL_REPORT_BASE_URL ? 'Dedicated clinical report endpoint' : 'Nebius Token Factory');
+const REPORT_LIMITS = Object.fromEntries(Object.entries({
+  CLINICAL_REPORT_MAX_OUTPUT_TOKENS: process.env.CLINICAL_REPORT_MAX_OUTPUT_TOKENS || (process.env.CLINICAL_REPORT_BASE_URL ? '2048' : ''),
+  CLINICAL_REPORT_CONTEXT_TOKENS: process.env.CLINICAL_REPORT_CONTEXT_TOKENS || (process.env.CLINICAL_REPORT_BASE_URL ? '8192' : ''),
+  CLINICAL_REPORT_CHUNK_CHARS: process.env.CLINICAL_REPORT_CHUNK_CHARS || (process.env.CLINICAL_REPORT_BASE_URL ? '3500' : ''),
+  CLINICAL_REPORT_REVIEW_WORKERS: process.env.CLINICAL_REPORT_REVIEW_WORKERS || (process.env.CLINICAL_REPORT_BASE_URL ? '1' : ''),
+}).filter(([, value]) => value));
+function reportCredential() {
+  // Never send a Token Factory key to an explicitly selected external endpoint.
+  return process.env.CLINICAL_REPORT_API_KEY || (!process.env.CLINICAL_REPORT_BASE_URL ? process.env.NEBIUS_API_KEY : '') || '';
+}
+function englishAsrBackend(kind = 'audio', language = 'en') {
+  if (kind !== 'audio' || language !== 'en' || !process.env.SCIENTIFIC_ENGLISH_SPEECH_URL) return undefined;
+  return { type: 'isolated-native-ws-file', url: require('../speech/relay.cjs').socketUrl(process.env.SCIENTIFIC_ENGLISH_SPEECH_URL),
+    model: process.env.SCIENTIFIC_ENGLISH_SPEECH_UPSTREAM_MODEL || 'nemotron-speech-en-0.6b',
+    declared_model_revision: process.env.SCIENTIFIC_ENGLISH_SPEECH_MODEL_REVISION || null,
+    timing: 'unpaced batch, not real-time playback', max_audio_seconds: 1800 };
+}
+const FILES = ['report.md', 'transcript.txt', 'follow-up.md', 'review.md', 'document.json', 'review.json', 'run.json', 'asr-receipt.json'];
 const WORKSPACE = process.env.SCIENTIFIC_WORKSPACE || '/workspace';
 const RUN_ID = /^[a-f0-9-]{36}$/i;
 const TERMINAL_STATES = new Set(['succeeded', 'completed', 'failed', 'cancelled', 'preempted', 'expired']);
@@ -589,11 +607,13 @@ async function status(owner, id) {
     try { await fs.access(path.join(dir, 'output', name)); available.push(name); } catch { /* not produced */ }
   }
   const request = await read(path.join(dir, 'request.json')).catch(() => ({}));
+  const document = available.includes('document.json') ? await read(path.join(dir, 'output', 'document.json')) : {};
   return { id, status: receipt.status, created_at: receipt.created_at, finished_at: receipt.finished_at,
     error: receipt.error, ...(receipt.error_code ? { error_code: receipt.error_code } : {}),
-    files: available, model: REPORT_MODEL,
+    files: available, model: request.report_model || REPORT_MODEL,
+    generation_warnings: document.generation_warnings || [],
     input_provenance: { kind: request.kind, sha256: request.input_sha256,
-      size_bytes: request.input_size_bytes, workspace_file: request.source_workspace },
+      size_bytes: request.input_size_bytes, workspace_file: request.source_workspace, asr_backend: request.asr_backend },
     url: `/demos?tab=clinical&job=${id}`, clinical_validation: false };
 }
 async function list(owner) {
@@ -606,6 +626,9 @@ async function start(owner, key, id) {
   const dir = directory(owner, id);
   const request = await read(path.join(dir, 'request.json'));
   if (request.key_hash !== hash(privateKey(key))) throw failure('Resume with the original submitting platform key.', 409);
+  if (request.report_model !== REPORT_MODEL || request.report_provider !== REPORT_PROVIDER) throw failure('Report backend changed. Restore its original configuration to resume this job; do not mix model outputs.', 409);
+  if (JSON.stringify(request.report_limits || {}) !== JSON.stringify(REPORT_LIMITS)) throw failure('Report context/output limits changed. Restore the original settings or use a new job.', 409);
+  if (JSON.stringify(request.asr_backend) !== JSON.stringify(englishAsrBackend(request.kind, request.language))) throw failure('ASR backend changed. Restore the original configuration; do not mix transcripts.', 409);
   let lock;
   try { lock = await fs.open(path.join(dir, 'launch.lock'), 'wx', 0o600); }
   catch { throw failure('A launch is already in progress. Refresh job status.', 409); }
@@ -615,7 +638,9 @@ async function start(owner, key, id) {
     await fs.unlink(path.join(dir, 'launched')).catch(() => {});
     const worker = spawn(process.execPath, [path.join(__dirname, 'worker.cjs'), dir], {
       detached: true, stdio: 'ignore', env: { PATH: process.env.PATH, LANG: 'C.UTF-8',
-        FS2_API_KEY: key, CLINICAL_REPORT_API_KEY: process.env.NEBIUS_API_KEY || process.env.CLINICAL_REPORT_API_KEY || '',
+        FS2_API_KEY: key, CLINICAL_REPORT_API_KEY: reportCredential(),
+        ...(request.asr_backend ? { SCIENTIFIC_ENGLISH_SPEECH_API_KEY: process.env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY } : {}),
+        ...REPORT_LIMITS,
         SCIENTIFIC_CLINICAL_PYTHON: process.env.SCIENTIFIC_CLINICAL_PYTHON || '/opt/clinical-client/bin/python',
         SCIENTIFIC_CLINICAL_SCRIPT: process.env.SCIENTIFIC_CLINICAL_SCRIPT || '/app/skill/clinical-documentation/scripts/clinical_report.py' },
     });
@@ -633,16 +658,42 @@ async function clinical(owner, key, input) {
   privateKey(key);
   if (!['en', 'de'].includes(input.language)) throw failure('Choose English or German.');
   if (!['audio', 'transcript'].includes(input.kind)) throw failure('Choose audio or transcript.');
+  const asrBackend = englishAsrBackend(input.kind, input.language);
+  if (asrBackend) {
+    if (!process.env.SCIENTIFIC_ENGLISH_SPEECH_API_KEY) throw failure('The operator must configure the isolated English speech credential.', 503);
+    const catalog = await platform(key, 'GET', '/v1/models');
+    if (!catalog.data?.some(item => (item.id || item.model_id) === 'nemotron-speech-en-0-6b')) throw failure('Your platform key does not grant English speech.', 403);
+  }
   if (!/^[A-Za-z0-9_.:-]{1,160}$/.test(input.idempotency_key || '')) throw failure('Supply an idempotency key.');
-  if (!process.env.NEBIUS_API_KEY && !process.env.CLINICAL_REPORT_API_KEY) throw failure('The operator must configure the report provider credential.', 503);
+  if (!reportCredential()) throw failure('The operator must configure the selected report provider credential.', 503);
+  const reportUrl = new URL(REPORT_PROVIDER);
+  if (reportUrl.protocol !== 'https:' || reportUrl.username || reportUrl.password || reportUrl.search || reportUrl.hash) throw failure('The report endpoint requires credential-free HTTPS configuration.', 503);
   const ext = path.extname(input.filename || '').toLowerCase();
   if (!(input.kind === 'audio' ? ['.wav', '.flac', '.mp3', '.ogg', '.m4a', '.mp4', '.webm'] : ['.txt', '.json']).includes(ext)) throw failure('Unsupported input format.');
   const size = input.local_path ? (await fs.stat(input.local_path)).size : input.bytes?.length;
   if (!size || size > 512 * 1024 * 1024 || (!input.local_path && !Buffer.isBuffer(input.bytes))) throw failure('Upload a nonempty file, at most 512 MiB.');
+  let reviewedSource;
+  if (input.reviewed_source) {
+    if (input.kind !== 'transcript') throw failure('Live review provenance requires a transcript.');
+    const supplied = JSON.parse(input.reviewed_source);
+    if (supplied.reviewed !== true) throw failure('Explicit transcript review is required.');
+    if (typeof supplied.speaker_job !== 'string' || !/^[a-f0-9]{32}$/.test(supplied.speaker_job)) throw failure('A completed owned speaker job is required for live review provenance.');
+    const source = await require('../speech/diarization.cjs').reviewSource(owner, supplied.speaker_job);
+    const roles = Object.fromEntries(Object.entries(supplied.roles || {}).filter(([name, role]) => /^speaker_[0-3]$/.test(name) && ['Clinician', 'Patient', 'Other'].includes(role)));
+    reviewedSource = { ...source, roles, reviewer_user: hash(owner), reviewed_at: new Date().toISOString(),
+      attestation: 'User marked transcript reviewed for demonstration; not clinical sign-off.' };
+    if (supplied.previous_draft) {
+      const previous = await read(path.join(directory(owner, supplied.previous_draft), 'request.json'));
+      if (!previous.reviewed_source?.speaker_job || previous.reviewed_source.speaker_job !== source.speaker_job) throw failure('Regenerated draft must retain the same reviewed audio source.');
+      reviewedSource.previous_draft = supplied.previous_draft;
+      reviewedSource.previous_input_sha256 = previous.input_sha256;
+    }
+  }
   const id = hash(input.idempotency_key).slice(0, 32);
   const dir = directory(owner, id);
   const inputDigest = input.local_path ? await fileHash(input.local_path) : hash(input.bytes);
-  const signature = hash(JSON.stringify([inputDigest, input.kind, input.language]));
+  const signature = hash(JSON.stringify([inputDigest, input.kind, input.language,
+    ...(input.reviewed_source ? [input.reviewed_source] : [])]));
   await fs.mkdir(path.dirname(dir), { recursive: true, mode: 0o700 });
   try { await fs.mkdir(dir, { mode: 0o700 }); }
   catch (error) {
@@ -660,7 +711,9 @@ async function clinical(owner, key, input) {
   await save(path.join(dir, 'request.json'), { source, kind: input.kind, language: input.language,
     signature, key_hash: hash(key), created_at: new Date().toISOString(), platform: PLATFORM,
     input_sha256: inputDigest, input_size_bytes: size, source_workspace: input.source_workspace,
-    report_model: REPORT_MODEL, report_provider: REPORT_PROVIDER });
+    ...(reviewedSource ? { reviewed_source: reviewedSource } : {}),
+    ...(asrBackend ? { asr_backend: asrBackend } : {}),
+    report_model: REPORT_MODEL, report_provider: REPORT_PROVIDER, report_limits: REPORT_LIMITS });
   await save(path.join(dir, 'status.json'), { id, status: 'prepared', created_at: new Date().toISOString() });
   return start(owner, key, id);
 }
@@ -678,6 +731,74 @@ async function output(owner, id, filename) {
   try { return await fs.readFile(path.join(directory(owner, id), 'output', filename)); }
   catch (error) { if (error.code === 'ENOENT') throw failure('This report file has not been produced. Check job status.', 409); throw error; }
 }
+async function optionalReviewFile(filename) {
+  try { const bytes = await fs.readFile(filename); return { value: JSON.parse(bytes), sha256: hash(bytes) }; }
+  catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw failure('Saved review evidence is unreadable; preserve it for inspection.', 409);
+  }
+}
+async function createReviewFile(filename, value) {
+  // Publish complete immutable bytes atomically; no partial read or overwrite.
+  const temporary = `${filename}.${crypto.randomUUID()}.tmp`;
+  await fs.writeFile(temporary, JSON.stringify(value), { mode: 0o600, flag: 'wx' });
+  try { await fs.link(temporary, filename); }
+  catch (error) { if (error.code !== 'EEXIST') throw error; }
+  finally { await fs.unlink(temporary); }
+  return optionalReviewFile(filename);
+}
+async function soap(owner, id) {
+  if ((await status(owner, id)).status !== 'completed') throw failure('Wait for the accepted document before opening SOAP.', 409);
+  const dir = directory(owner, id);
+  const [documentBytes, transcriptBytes, request] = await Promise.all([output(owner, id, 'document.json'), output(owner, id, 'transcript.txt'), read(path.join(dir, 'request.json'))]);
+  const document = JSON.parse(documentBytes);
+  const identity = {
+    job_id: id, document_sha256: hash(documentBytes), transcript_sha256: hash(transcriptBytes),
+    submitted_input_sha256: request.input_sha256, report_model: request.report_model,
+    report_provider: request.report_provider, reviewed_source: request.reviewed_source || null };
+  const saved = await optionalReviewFile(path.join(dir, 'fact-review-v1.json'));
+  if (saved) require('../speech/fact-review.cjs').validateReview(saved.value, identity, (document.facts || []).map((fact) => fact.id), hash(owner));
+  const value = require('../speech/soap.cjs').buildSoap(document, transcriptBytes.toString('utf8'), identity, saved?.value || null);
+  value.fact_review_sha256 = saved?.sha256 || null;
+  const acknowledgement = await optionalReviewFile(path.join(dir, 'demo-review-v2.json'));
+  value.demo_review = acknowledgement?.value || null;
+  if (value.demo_review && (!saved || Object.keys(value.demo_review).sort().join(',') !== 'actor_user,attestation,clinical_signoff,document_sha256,fact_review_sha256,job_id,reviewed_at,reviewer_kind,schema,transcript_sha256'
+      || value.demo_review.schema !== 'clinical-demo/review/v2'
+      || value.demo_review.actor_user !== hash(owner) || value.demo_review.job_id !== id
+      || value.demo_review.document_sha256 !== identity.document_sha256
+      || value.demo_review.transcript_sha256 !== identity.transcript_sha256
+      || value.demo_review.fact_review_sha256 !== saved.sha256
+      || value.demo_review.reviewer_kind !== saved.value.reviewer_kind
+      || typeof value.demo_review.reviewed_at !== 'string' || !Number.isFinite(Date.parse(value.demo_review.reviewed_at))
+      || value.demo_review.attestation !== 'reviewed-demo-draft-not-clinical-signoff'
+      || value.demo_review.clinical_signoff !== false)) throw failure('Saved acknowledgement does not bind the exact complete fact review.', 409);
+  const legacy = await optionalReviewFile(path.join(dir, 'demo-review.json'));
+  value.legacy_demo_review = legacy ? { ...legacy.value, qualifies_current_projection: false } : null;
+  return value;
+}
+async function reviewSoapFacts(owner, id, input) {
+  const current = await soap(owner, id);
+  const policy = require('../speech/fact-review.cjs');
+  const snapshot = policy.makeReview(input, current.provenance, current.review_candidates.map((fact) => fact.id), hash(owner));
+  const file = path.join(directory(owner, id), 'fact-review-v1.json');
+  const saved = await createReviewFile(file, snapshot);
+  policy.validateReview(saved.value, current.provenance, current.review_candidates.map((fact) => fact.id), hash(owner));
+  if (saved.value.request_sha256 !== snapshot.request_sha256) throw failure('A different immutable fact review already exists; preserve both source and saved review, do not overwrite.', 409);
+  return soap(owner, id);
+}
+async function reviewSoap(owner, id, input) {
+  const current = await soap(owner, id);
+  if (!input || Object.keys(input).sort().join(',') !== 'attestation,document_sha256,fact_review_sha256'
+      || input.attestation !== 'reviewed-demo-draft-not-clinical-signoff' || input.document_sha256 !== current.provenance.document_sha256
+      || !current.review_complete || !current.fact_review_sha256 || input.fact_review_sha256 !== current.fact_review_sha256) throw failure('A complete exact fact review is required before this demo-only acknowledgement.', 409);
+  const file = path.join(directory(owner, id), 'demo-review-v2.json');
+  const review = { schema: 'clinical-demo/review/v2', job_id: id, actor_user: hash(owner),
+    document_sha256: input.document_sha256, transcript_sha256: current.provenance.transcript_sha256,
+    fact_review_sha256: current.fact_review_sha256, reviewer_kind: current.fact_review.reviewer_kind,
+    reviewed_at: new Date().toISOString(), attestation: input.attestation, clinical_signoff: false };
+  await createReviewFile(file, review);
+  return (await soap(owner, id)).demo_review;
+}
 async function clinicalOutput(owner, key, id, filename) {
   const bytes = await output(owner, id, filename);
   const workspace_file = await retainWorkspaceBytes(key,
@@ -691,5 +812,5 @@ async function analyzeWorkspace(kind, key, args) {
     : kind === 'docking-batch' ? analysis.dockingBatch(key, args, { workspaceGet, retainWorkspaceBytes })
     : analysis.compare(kind, key, args, { workspaceGet, retainWorkspaceBytes });
 }
-module.exports = { platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
-  workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL };
+module.exports = { platform, platformBytes, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, soap, reviewSoap, reviewSoapFacts, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
+  workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL, REPORT_PROVIDER_LABEL, reportCredential, englishAsrBackend };

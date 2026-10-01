@@ -1,0 +1,35 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+const { hash } = require('./soap.cjs');
+test('review acknowledgement is user-scoped, hash-bound and does not mutate report/source', async()=>{
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(),'clinical-soap-test-'));
+  process.env.SCIENTIFIC_DEMOS_DIR=directory;
+  const service=require('../demos/service.cjs');
+  const owner='synthetic-user', id='a'.repeat(32), source='No fever.';
+  const dir=path.join(directory,hash(owner),id), output=path.join(dir,'output');
+  await fs.mkdir(output,{recursive:true});
+  const document={transcript_sha256:hash(source),facts:[],rejected:[],generation_warnings:[{code:'bounded_generation_capacity_reached',detail:'Bounded extraction reached the fact limit; review source coverage.'}]};
+  const request={created_at:'2026-09-25T00:00:00Z',kind:'transcript',input_sha256:hash(source),report_model:'test-model',report_provider:'https://report.test/v1',reviewed_source:{speaker_job:'b'.repeat(32),previous_draft:'c'.repeat(32),previous_input_sha256:'d'.repeat(64)}};
+  await service.save(path.join(dir,'request.json'),request);
+  await service.save(path.join(dir,'status.json'),{status:'completed',created_at:request.created_at});
+  await fs.writeFile(path.join(output,'document.json'),JSON.stringify(document));
+  await fs.writeFile(path.join(output,'transcript.txt'),source);
+  const first=await service.soap(owner,id);
+  assert.deepEqual(first.generation_warnings,document.generation_warnings);
+  assert.deepEqual((await service.status(owner,id)).generation_warnings,document.generation_warnings);
+  assert.equal(first.demo_review,null);
+  assert.deepEqual(first.provenance.reviewed_source,request.reviewed_source);
+  await assert.rejects(service.soap('another-user',id),/not found/);
+  await assert.rejects(service.reviewSoap(owner,id,{document_sha256:'wrong',attestation:'reviewed-demo-draft-not-clinical-signoff'}),/complete exact fact review/);
+  const reviewed=await service.reviewSoapFacts(owner,id,{document_sha256:first.provenance.document_sha256,transcript_sha256:first.provenance.transcript_sha256,expected_review_sha256:null,reviewer_kind:'ai_engineering',decisions:[]});
+  const review=await service.reviewSoap(owner,id,{document_sha256:first.provenance.document_sha256,fact_review_sha256:reviewed.fact_review_sha256,attestation:'reviewed-demo-draft-not-clinical-signoff'});
+  assert.equal(review.clinical_signoff,false); assert.equal(review.actor_user,hash(owner));
+  const again=await service.reviewSoap(owner,id,{document_sha256:first.provenance.document_sha256,fact_review_sha256:reviewed.fact_review_sha256,attestation:'reviewed-demo-draft-not-clinical-signoff'});
+  assert.deepEqual(review,again);
+  assert.equal(await fs.readFile(path.join(output,'transcript.txt'),'utf8'),source);
+  assert.equal(hash(await fs.readFile(path.join(output,'document.json'))),first.provenance.document_sha256);
+  await fs.rm(directory,{recursive:true}); // Exact mkdtemp-owned synthetic test tree only.
+});

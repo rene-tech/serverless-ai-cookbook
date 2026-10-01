@@ -15,6 +15,13 @@ const catalogRoutingInstructions = `FINAL CATALOG ROUTING RULE: when the current
 const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/LibreChat';
 const serviceEmail = 'nebius-scientific-ai-agent@localhost.invalid';
 const provider = process.env.SCIENTIFIC_CHAT_PROVIDER || 'Nebius Token Factory';
+const speechTranscriptionTools = ['workbench_transcribe_audio', 'workbench_get_transcription']
+  .map((name) => `${name}_mcp_scientific-demos`);
+// Chat-attached audio is a regular workbench feature: the recording is uploaded
+// to /workspace by the composer, rendered with a player in the user's message,
+// and transcribed only when the user asks. Models resolve to the configured
+// speech runtime; an unconfigured model returns speech_not_configured.
+const speechTranscriptionInstructions = `AUDIO ATTACHMENTS: a user message may end with an [Uploaded audio] metadata block giving workspace_path, sha256, audio_name and a fresh request_id for that turn. The chat already shows the recording with a player; playback needs no model call. When the user asks to transcribe attached audio, call workbench_transcribe_audio_mcp_scientific-demos exactly once with ONLY workspace_path, model and request_id copied from this turn's metadata (if the attachment metadata carries no request_id, generate one fresh UUID for this turn). The model value MUST be exactly "english" for the default Nemotron, exactly "medical" for the fine-tuned Nemotron, and exactly "medical-speakers" for speaker detection; never pass a model name. If the tool schema is not loaded, use tool_search once for that exact tool and reuse the schema afterwards. Each new request runs fresh inference; reuse the attached audio for follow-ups, not a previous transcript. If the returned status is pending, queued or running, call workbench_get_transcription_mcp_scientific-demos with the same run_id and wait_seconds=20 until it is terminal; never resubmit to poll. Return the raw transcript verbatim, or the returned speaker turns for speaker detection. Never correct medical words yourself, infer doctor/patient identities from anonymous speakers, or invent output. If a tool returns an error, report it briefly and stop. Do not add catalog tours, code, notebooks, accuracy analysis or report drafts unless the user asks.`;
 // Product-owner decision: GLM-5.3-Flash is the conversational default. Do not
 // change this default or introduce an automatic fallback without explicit approval.
 const model = process.env.SCIENTIFIC_CHAT_MODEL || 'zai-org/GLM-5.3-Flash';
@@ -170,14 +177,16 @@ For evaluations, specify cohort definition, train/test separation, protected dat
     {
       id: 'agent_audio_transcription_tutorial',
       name: 'Speech & Clinical Documentation',
-      description: 'Long-form and streaming transcription with reviewable medical report drafts.',
+      description: 'Upload or record audio, play it back, transcribe it with the default or fine-tuned Nemotron, add speaker detection, and draft reviewable medical reports.',
       instructions: `You are the Nebius Scientific AI Agent Speech & Clinical Documentation guide. First inspect the live scientific model catalog and its exact audio limits. Offer only speech operations actually authorized for this caller. The Clinical Report panel can turn an English or German recording or transcript into a source-linked draft; it is not clinically validated and requires clinician review.
 
 For acceptance, use complete representative recordings and reference transcripts where licensing permits. Measure WER or MER, terminology accuracy, diarization if supported, real-time factor, partial/final latency, failures and long-session behavior. Preserve transcript evidence and unanswered questions. Do not diagnose or silently repair uncertain source speech.`,
       tools: [...['list_models', 'list_scientific_models', 'get_model_schema'].map(mcpTool), ...workbenchTools],
       mcpServerNames: [scientificAppsServerName, 'scientific-demos', 'tavily'],
       conversation_starters: [
-        'Show the real-time transcription requirements and how a connected model would be evaluated.',
+        'Transcribe this with Nemotron',
+        'Now transcribe it with the fine-tuned Nemotron',
+        'Now add speaker detection',
         'Which live Scientific AI Apps currently support audio transcription?',
       ],
     },
@@ -185,6 +194,26 @@ For acceptance, use complete representative recordings and reference transcripts
 }
 
 async function seedAgent({ agents: collection, aclEntries, owner, now, definition }) {
+  if (['agent_nebius_scientific_ai', 'agent_audio_transcription_tutorial'].includes(definition.id)) {
+    definition.tools = [...definition.tools, ...speechTranscriptionTools];
+    definition.instructions += `\n\n${speechTranscriptionInstructions}`;
+  }
+  if (process.env.SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE === 'platform'
+      && ['agent_nebius_scientific_ai', 'agent_audio_transcription_tutorial'].includes(definition.id)) {
+    definition.tools = [...definition.tools, ...scientificCatalogTools];
+    definition.instructions += `\n\nThis clinical-speech release uses shared Scientific AI Apps with the current user's ordinary key: nemotron-speech-en-0-6b is the untuned English default; nemotron-speech-en-medical-0-6b is the selected English fine-tuned App. Read each selected App's live schema and runtime identity before batch/API/MCP use; never replace the medical App with the base App or a dedicated demo bearer. Transfer real workspace audio with the existing authenticated artifact helpers, submit the discovered typed tool or documented generic invoke_model envelope once, and poll the retained operation. The microphone's third choice uses the SAME fine-tuned checkpoint and runs Sortformer after Stop; it does not promise live speaker labels. Anonymous channels are not clinician/patient identities. For a fine-tuned recording-to-report workflow, first retain the selected App's completed transcript, then explicitly review it and submit that transcript to the clinical draft workflow. The ordinary Clinical Report audio upload is a separate language-routed path; do not imply that choosing a microphone model changes that batch route. The selected model still has known medication, dose and meaning failures; clinical gate rejection and absent clinician validation remain. User selection for this engineering demonstration is not a clinical safety approval.`;
+  }
+  if (process.env.SCIENTIFIC_ENGLISH_SPEECH_URL
+      && ['agent_nebius_scientific_ai', 'agent_audio_transcription_tutorial'].includes(definition.id)) {
+    definition.instructions += `\n\nThis isolated clinical-speech demo has a separately configured English runtime. For the English batch demo, direct the user to Clinical Report (/demos?tab=clinical), choose Recording and English, and upload the full audio there: this explicitly uses the isolated English file-over-WebSocket adapter. The English microphone uses the same isolated runtime. Do not call the legacy platform English App or recording_pipeline route for this demo: its cancellation/recovery failure remains unresolved on that protected service. The generic catalog still correctly lists its unchanged grant; catalog visibility is not qualification. Do not alter grants, silently reroute calls, or treat isolated-runtime success as validation of those legacy routes. German legacy batch is a separate platform-backed path and needs separate evidence. Explain this distinction before choosing any speech tool.`;
+  }
+  if (process.env.SCIENTIFIC_MEDICAL_SPEECH_HTTP_URL && process.env.SCIENTIFIC_MEDICAL_SPEECH_API_KEY
+      && ['agent_nebius_scientific_ai', 'agent_audio_transcription_tutorial'].includes(definition.id)) {
+    definition.tools = [...definition.tools, ...['describe_clinical_asr', 'upload_clinical_workspace_audio',
+      'transcribe_clinical_audio', 'get_clinical_transcription', 'cancel_clinical_transcription'].map((name) => `${name}_mcp_medical-speech`)];
+    definition.mcpServerNames = [...definition.mcpServerNames, 'medical-speech'];
+    definition.instructions += `\n\nFor the fine-tuned medical Nemotron demo, use the separately configured medical-speech MCP, not the existing base-model Apps. First call describe_clinical_asr_mcp_medical-speech and state its actual checkpoint identity. Read an existing workspace WAV with upload_clinical_workspace_audio_mcp_medical-speech; it transfers bytes directly without base64 or LLM copying. Pass only its immutable artifact to transcribe_clinical_audio_mcp_medical-speech with one stable idempotency key, then poll get_clinical_transcription_mcp_medical-speech. This operation belongs to the dedicated medical Serverless endpoint, not the Scientific AI platform operation service. Use its saved transcript and authenticated Workspace links; if requested, generate a physician-reviewed draft with clinical_report_from_workspace. The existing English microphone remains the default. Do not claim model improvement or held-out status without measured split/checkpoint evidence.`;
+  }
   await collection.updateOne(
     { id: definition.id },
     {
@@ -194,7 +223,7 @@ async function seedAgent({ agents: collection, aclEntries, owner, now, definitio
         // procedures are loaded through skills only when the task needs them.
         // Preserve the separate tutorial agents until their own replay gates pass.
         instructions: definition.id === 'agent_nebius_scientific_ai'
-          ? coreAgentInstructions
+          ? definition.instructions
           : `${definition.instructions}\n\n${gettingStartedInstructions}\n\n${gatewayInstructions}\n\n${catalogRoutingInstructions}`,
         skills_enabled: true,
         artifacts: 'default',

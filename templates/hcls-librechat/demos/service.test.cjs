@@ -9,6 +9,7 @@ let root;
 const setup = (async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), 'clinical-demos-test-'));
   process.env.SCIENTIFIC_DEMOS_DIR = root;
+  process.env.SCIENTIFIC_SPEECH_JOBS_DIR = path.join(root, 'speaker-jobs');
   process.env.NEBIUS_API_KEY = 'fixture-provider-not-real';
   process.env.SCIENTIFIC_CLINICAL_PYTHON = process.execPath;
   process.env.SCIENTIFIC_CLINICAL_SCRIPT = path.join(__dirname, 'worker-fixture.cjs');
@@ -419,7 +420,10 @@ test('workspace clinical input captures full bytes and exposes immutable source 
   const job = await service.clinicalFromWorkspace('user-a', 'test-platform-key', relative, 'en', 'full-workspace-fixture');
   await complete(service, job.id);
   const done = await service.status('user-a', job.id);
-  assert.deepEqual(done.input_provenance, { kind: 'transcript',
+  // The authenticated JSON API omits optional undefined ASR metadata for an
+  // already-transcribed source; it must never imply a new audio invocation.
+  assert.equal(done.input_provenance.asr_backend, undefined);
+  assert.deepEqual(JSON.parse(JSON.stringify(done.input_provenance)), { kind: 'transcript',
     sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
     size_bytes: bytes.length, workspace_file: relative });
   const captured = path.join(root, crypto.createHash('sha256').update('user-a').digest('hex'), job.id, 'input.json');
@@ -428,5 +432,50 @@ test('workspace clinical input captures full bytes and exposes immutable source 
   await fs.writeFile(file, Buffer.from('{"text":"different input"}'));
   await assert.rejects(service.clinicalFromWorkspace('user-a', 'test-platform-key', relative, 'en', 'full-workspace-fixture'), /different input/);
   await assert.rejects(service.clinicalFromWorkspace('user-a', 'test-platform-key', '../outside.txt', 'en', 'bad-path-fixture'), /path/);
+});
+test('live corrections require completed owned immutable speaker evidence and explicit same-source lineage', async () => {
+  const service = await setup;
+  const digest = value => crypto.createHash('sha256').update(value).digest('hex');
+  const id = 'f'.repeat(32), other = 'e'.repeat(32), owner = 'user-a';
+  const folder = path.join(process.env.SCIENTIFIC_SPEECH_JOBS_DIR, digest(owner), id);
+  const audio = Buffer.from('synthetic audio fixture; never submitted');
+  const source = { schema: 'scientific-clinical/browser-asr-source/v1', raw_transcript: 'No fever.',
+    segments: [{ id: '0', text: 'No fever.', final: true, revision: 1 }],
+    timings: Object.fromEntries(['ready_at', 'audio_start_at', 'input_end_at', 'completed_at'].map(name => [name, '2026-09-25T00:00:00Z'])) };
+  const words = [{ text: 'No fever.', start_seconds: 0, end_seconds: 1 }];
+  const request = { source_receipt: source, audio_sha256: digest(audio), words, asr_model: 'fixture-model' };
+  const result = { turns: [{ speaker: 'speaker_0', text: 'No fever.' }], words, operation_id: 'fixture-diarization' };
+  const live = (name, extra = {}) => ({ ...input(name), reviewed_source: JSON.stringify({ reviewed: true, ...extra }) });
+  await assert.rejects(service.clinical(owner, 'test-platform-key', live('missing-source')), /completed owned speaker/);
+  await assert.rejects(service.clinical(owner, 'test-platform-key', live('invalid-source', { speaker_job: '../elsewhere' })), /completed owned speaker/);
+  await fs.mkdir(folder, { recursive: true });
+  await fs.writeFile(path.join(folder, 'input.wav'), audio);
+  await service.save(path.join(folder, 'request.json'), request);
+  await service.save(path.join(folder, 'status.json'), { state: 'pending' });
+  await assert.rejects(service.clinical(owner, 'test-platform-key', live('pending-source', { speaker_job: id })), /Complete the owned speaker/);
+  await service.save(path.join(folder, 'result.json'), result);
+  await assert.rejects(service.clinical('user-b', 'test-platform-key', live('foreign-source', { speaker_job: id })), /not found for this account/);
+  const job = await service.clinical(owner, 'test-platform-key', live('reviewed-source-1', { speaker_job: id }));
+  assert.equal((await complete(service, job.id)).status, 'completed');
+  const recorded = await service.read(path.join(root, digest(owner), job.id, 'request.json'));
+  assert.equal(recorded.reviewed_source.raw_asr_transcript_sha256, digest(source.raw_transcript));
+  assert.equal(recorded.reviewed_source.audio_sha256, digest(audio));
+  assert.equal(recorded.reviewed_source.acoustic_words_sha256, digest(JSON.stringify(words)));
+  assert.deepEqual(recorded.reviewed_source.browser_timings, source.timings);
+  const next = await service.clinical(owner, 'test-platform-key', { ...live('reviewed-source-2', { speaker_job: id, previous_draft: job.id }), bytes: Buffer.from('Explicit corrected source.') });
+  assert.equal((await complete(service, next.id)).status, 'completed');
+  const corrected = await service.read(path.join(root, digest(owner), next.id, 'request.json'));
+  assert.equal(corrected.reviewed_source.previous_draft, job.id);
+  assert.equal(corrected.reviewed_source.previous_input_sha256, recorded.input_sha256);
+  const otherFolder = path.join(process.env.SCIENTIFIC_SPEECH_JOBS_DIR, digest(owner), other);
+  await fs.cp(folder, otherFolder, { recursive: true });
+  await assert.rejects(service.clinical(owner, 'test-platform-key', live('mismatched-source', { speaker_job: other, previous_draft: job.id })), /same reviewed audio source/);
+  const plain = await service.clinical(owner, 'test-platform-key', input('plain-source-available'));
+  await complete(service, plain.id);
+  await assert.rejects(service.clinical(owner, 'test-platform-key', live('undefined-previous-source', { speaker_job: id, previous_draft: plain.id })), /same reviewed audio source/);
+  assert.deepEqual(await service.read(path.join(folder, 'request.json')), request);
+  assert.deepEqual(await fs.readFile(path.join(folder, 'input.wav')), audio);
+  await fs.writeFile(path.join(folder, 'input.wav'), Buffer.from('changed'));
+  await assert.rejects(service.clinical(owner, 'test-platform-key', live('tampered-source', { speaker_job: id })), /incomplete or changed/);
 });
 after(async () => { await setup; await fs.rm(root, { recursive: true }); });
