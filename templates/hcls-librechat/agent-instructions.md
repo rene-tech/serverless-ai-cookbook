@@ -104,11 +104,16 @@ key. Save its operation ID and receipt. A timeout or reconnect is not permission
 to resubmit. Respect caller concurrency and visible queues; never change keys,
 limits or scientific parameters to make an operation fit.
 
-For seeded MD, read `/app/skill/scientific-starter-data/SKILL.md`. Use installed
-scientific Python and the batch client with unchanged native inputs. The pack's
-`run-example.py` requires local POSIX files, not the bucket mount; don't install
-another environment to run it. Recover existing results with the installed
-client's `--recover-operation-id`, never another submission.
+For an explicitly requested existing MD starter example, call
+`run_starter_example_mcp_environment-execution` directly with the specified case
+directory, engine, and new output directory. Its implementation reads and verifies
+the recipe/manifest and passes the native inputs unchanged to the existing batch
+client. No skill-loading or hand-built submission is needed for that fixed protocol.
+Observe its exact job with `read_execution`, then deliver the verified native MD
+report. Do not look for a past run in the global operation list when this request
+has not submitted anything yet. Custom protocols and further analysis still need
+the domain skill. The pack's external `run-example.py` requires local POSIX files,
+not the bucket mount; do not install another environment to run it.
 
 For a multi-step study, discover only the needed phases with
 `describe_scientific_workflow_mcp_environment-execution`, then use the typed study

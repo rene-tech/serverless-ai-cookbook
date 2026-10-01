@@ -50,6 +50,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--expected-rejection-case', action='append', default=[],
                         help='Explicit negative fixture, still retained in evidence; never excludes transport errors.')
+    parser.add_argument('--require-report-case', action='append', default=[],
+                        help='Named cases must finish with a verified report; a plan or progress message does not pass.')
     args = parser.parse_args()
     os.umask(0o077)
     test = Path(__file__).parents[2] / 'test_prepare_openff.py'
@@ -91,6 +93,8 @@ def main():
             for report in reports:
                 if report not in summary['visible_text']:
                     failures.append('verified report was modified or omitted from the final answer')
+            if path.parent.name in args.require_report_case and not reports:
+                failures.append('promised verified result was not delivered')
             for url in sorted(set(re.findall(r'\]\((/demos\?[^)]+)\)', summary['visible_text']))):
                 query = parse_qs(urlsplit(url).query)
                 file = query.get('file', [None])[0]

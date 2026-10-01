@@ -19,6 +19,7 @@ const alwaysReady = new Set([
   'workbench_assemble_report_mcp_scientific-demos',
   'execute_command_mcp_environment-execution',
   'read_execution_mcp_environment-execution',
+  'run_starter_example_mcp_environment-execution',
   'prepare_openff_ligand_mcp_environment-execution',
   'deliver_scientific_results_mcp_environment-execution',
   'tavily_search_mcp_tavily',

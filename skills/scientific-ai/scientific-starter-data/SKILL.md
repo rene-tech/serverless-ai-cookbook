@@ -23,6 +23,16 @@ Use the durable file clients; local paths are not already-finalized artifacts.
 
 ## Molecular-dynamics examples in the hosted workbench
 
+When the workbench exposes `run_starter_example_mcp_environment-execution`, use
+it for a requested existing MD example: give `case_directory`, the selected
+`model`, and a new `output_directory`. It performs the manifest/hash/recipe
+checks below and passes unchanged inputs to the existing batch client. Follow
+its job ID with `read_execution`, then use `deliver_scientific_results` with
+`kind: native-md` and the returned output directory. Do not search unrelated
+historical runs or reconstruct the submission in a shell. Custom protocols and
+additional scientific analyses still use the relevant engine/workflow skill.
+The following CLI procedure is for clients without that typed launcher.
+
 The pack README's `run-example.py` assumes downloaded POSIX files. Do not run
 that script directly on the `/workspace` Object Storage mount, or install a
 new Python environment inside a chat. Use the already installed, bucket-aware

@@ -253,6 +253,32 @@ def deliver_scientific_results(args):
     return deliver(args, WORKSPACE)
 
 
+def run_starter_example(args):
+    from scientific_starter import resolve
+    plan = resolve(args.get('case_directory'), args.get('model'), args.get('output_directory'), WORKSPACE,
+                   os.environ.get('SCIENTIFIC_CLIENT_PYTHON', '/opt/scientific-client/bin/python'),
+                   os.environ.get('SCIENTIFIC_BATCH_CLIENT', '/opt/bionemo/invoke-scientific-batch.py'))
+    index_dir = ROOT / 'starter-index'
+    index_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    output = Path(plan['output_directory'])
+    index = index_dir / (hashlib.sha256(str(output).encode()).hexdigest() + '.json')
+    with index.with_suffix('.lock').open('w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        previous = json.loads(index.read_text()) if index.exists() else None
+        if previous:
+            if previous['identity'] != plan['identity']:
+                raise ValueError('Output belongs to another request. Preserve it and select a new directory.')
+            result = read_job({'job_id': previous['job_id'], 'wait_seconds': 0})
+        else:
+            if output.exists() and any(output.iterdir()):
+                raise ValueError('Output already contains files. Inspect or recover that operation, never overwrite it.')
+            result = execute({'command': plan['command'], 'timeout_seconds': 0, 'wait_seconds': 5},
+                             on_admit=lambda job: save(index, {**plan, 'job_id': job}))
+        return {**result, 'output_directory': str(output), 'reused_existing_job': previous is not None,
+                'pack_provenance': plan['provenance'], 'sampling_limitations': plan['sampling_limitations'],
+                'guidance': 'Follow this exact job_id with read_execution. When completed, deliver_scientific_results kind=native-md at output_directory returns the verified engine checks, actual performance and links. Do not inspect unrelated past operations or launch again.'}
+
+
 def study_argument(value):
     """Decode the two advertised representations, without repairing a plan."""
     if isinstance(value, str):
@@ -504,6 +530,13 @@ def compose_scientific_workflow(arguments):
 
 
 TOOLS = [
+    {'name': 'run_starter_example',
+     'description': 'Run one explicitly requested installed molecular-dynamics starter example with unchanged packaged inputs. Preferred over loading skills or assembling shell commands for an existing example: this validates its manifest, recipe, native parameters and hashes, then invokes the existing authorized batch client for live schema checks, admission, polling and result publication. Supply the case directory, exact engine and a fresh output directory. One job/idempotency identity is retained; identical calls observe it, never rerun it. No cross-tenant lookup or model/force-field substitution. After completion use deliver_scientific_results kind=native-md. These short examples do not establish converged sampling. For custom protocols/analysis use the native workflow tools and domain skill.',
+     'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': True},
+     'inputSchema': {'type': 'object', 'additionalProperties': False,
+        'required': ['case_directory', 'model', 'output_directory'], 'properties': {
+            'case_directory': TEXT, 'model': {'type': 'string', 'enum': ['gromacs', 'namd', 'amber', 'lammps']},
+            'output_directory': TEXT}}},
     {'name': 'prepare_openff_ligand',
      'description': 'Prepare one standalone ligand on CPU using the installed OpenFF Sage 2.2.1 and AmberTools AM1-BCC helper. Supply exact SMILES, explicit force field and a fresh output directory. Preserves charge/stereo; undefined stereo returns a question without preparing anything. Repeated identical calls return the same job, never recompute. Observe that job with read_execution. Not solvated, not a protein/membrane system and not MD validation. For other methods report the unsupported choice rather than substituting.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': False},
@@ -595,6 +628,7 @@ def handle_line(line):
         elif method == 'tools/call':
             params = request['params']
             handler = {'execute_command': execute, 'read_execution': read_job,
+                       'run_starter_example': run_starter_example,
                        'prepare_openff_ligand': prepare_openff_ligand,
                        'deliver_scientific_results': deliver_scientific_results,
                        'compose_scientific_workflow': compose_scientific_workflow,
