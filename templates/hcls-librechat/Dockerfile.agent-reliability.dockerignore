@@ -13,6 +13,16 @@
 !templates/hcls-librechat/ScientificExecutionOutput.tsx
 !templates/hcls-librechat/ScientificExecutionOutput.test.tsx
 !templates/hcls-librechat/patch-execution-ui.mjs
+!templates/hcls-librechat/patch-client.mjs
+!templates/hcls-librechat/ScientificLanding.tsx
+!templates/hcls-librechat/ScientificGettingStarted.tsx
+!templates/hcls-librechat/PoweredByFooter.tsx
+!templates/hcls-librechat/WorkspaceInlineCode.tsx
+!templates/hcls-librechat/demos
+!templates/hcls-librechat/demos/Demos.tsx
+!templates/hcls-librechat/demos/comparison.ts
+!templates/hcls-librechat/demos/run-display.ts
+!templates/hcls-librechat/demos/patch.mjs
 !skills
 !skills/scientific-ai
 !skills/scientific-ai/**

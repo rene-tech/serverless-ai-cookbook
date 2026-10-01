@@ -12,7 +12,16 @@ RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliab
  && cp /tmp/agent-reliability/execution-mcp.py /tmp/agent-reliability/scientific_verified_results.py /opt/bionemo/ \
  && cp /tmp/agent-reliability/agent-instructions.md /app/agent-instructions.md \
  && cp /tmp/agent-reliability/seed-workbench.js /app/seed-hcls-workbench.js \
+ && cp /tmp/agent-reliability/ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx \
+ && cp /tmp/agent-reliability/ScientificGettingStarted.tsx /app/client/src/components/ScientificGettingStarted.tsx \
+ && cp /tmp/agent-reliability/PoweredByFooter.tsx /app/client/src/components/Chat/Footer.tsx \
+ && cp /tmp/agent-reliability/WorkspaceInlineCode.tsx /app/client/src/components/WorkspaceInlineCode.tsx \
+ && cp /tmp/agent-reliability/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
+ && cp /tmp/agent-reliability/demos/comparison.ts /app/client/src/components/scientific-comparison.ts \
+ && cp /tmp/agent-reliability/demos/run-display.ts /app/client/src/components/scientific-run-display.ts \
  && cp /tmp/agent-reliability/ScientificExecutionOutput.tsx /tmp/agent-reliability/ScientificExecutionOutput.test.tsx /app/client/src/components/Chat/Messages/Content/ \
+ && node /tmp/agent-reliability/patch-client.mjs \
+ && node /tmp/agent-reliability/demos/patch.mjs client \
  && node /opt/hcls-librechat/patch-agent-reliability.mjs \
  && node /opt/hcls-librechat/patch-execution-ui.mjs \
  && node --check /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
@@ -31,7 +40,7 @@ RUN mkdir -p /release/opt/hcls-librechat /release/opt/bionemo /release/app/skill
  && cp /app/skill/openff/SKILL.md /release/app/skill/openff/SKILL.md \
  && cp /app/skill/manifest.json /app/skill/files.sha256.json /release/app/skill/ \
  && cp /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs /release/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
- && cp /app/client/src/components/Chat/Messages/Content/ToolCallInfo.tsx /app/client/src/components/Chat/Messages/Content/ScientificExecutionOutput.tsx /release/app/client/src/components/Chat/Messages/Content/ \
+ && cp -a /app/client/src/. /release/app/client/src/ \
  && cp -a /app/client/dist /release/app/client/dist
 
 FROM ${WORKBENCH_BASE}
