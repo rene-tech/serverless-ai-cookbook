@@ -40,6 +40,12 @@ from native_md_artifacts import materialize_native_outputs
 
 
 TERMINAL = {"failed", "cancelled", "expired", "preempted"}
+
+
+class ToolAvailabilityError(RuntimeError):
+    """An authorized catalog does not expose the requested submission tool."""
+
+
 ARTIFACT_CHUNK_BYTES = 1024 * 1024
 ARTIFACT_DOWNLOAD_ATTEMPTS = 4
 ARTIFACT_DOWNLOAD_WORKERS = 4
@@ -709,7 +715,7 @@ async def run(args) -> dict:
         leaf = error
         while isinstance(leaf, BaseExceptionGroup) and len(leaf.exceptions) == 1:
             leaf = leaf.exceptions[0]
-        if isinstance(leaf, (ParameterPreflightError, SourcePreflightError)):
+        if isinstance(leaf, (ParameterPreflightError, SourcePreflightError, ToolAvailabilityError)):
             raise leaf from error
         raise
 
@@ -745,7 +751,15 @@ async def _run(args) -> dict:
                     tools = (await client.list_tools()).tools
                     tool = next((item for item in tools if item.name == args.tool), None)
                     if tool is None:
-                        raise RuntimeError("Requested scientific-batch tool is unavailable.")
+                        detail = {'code': 'tool_not_in_authorized_catalog', 'model_id': args.model,
+                            'tool_name': args.tool, 'uploads_submitted_this_invocation': False,
+                            'inference_submitted_this_invocation': False,
+                            'message': f'The MCP catalog returned for this API key does not expose {args.tool} '
+                                f'for {args.model}. Check this key\'s model grants and the published model catalog. '
+                                'This is not evidence of a transient connection failure or a missing MCP server. '
+                                'Nothing was uploaded or submitted; do not retry unchanged, switch keys or substitute an engine.'}
+                        save(args.output / 'tool-availability-error.json', detail)
+                        raise ToolAvailabilityError(detail['message'])
                     save(args.output / "contract.json", tool.model_dump(mode="json", by_alias=True))
                     discovery = await call(client, 'get_model_schema', {'model_id': args.model,
                                                                        'protocol': 'scientific-batch-v1'})
@@ -867,8 +881,12 @@ def main() -> None:
     parser.add_argument("--wait-seconds", type=float, default=1800)
     parser.add_argument("--poll-seconds", type=float, default=10)
     args = parser.parse_args()
-    with receipt_lock(args.output):
-        result = asyncio.run(run(args))
+    try:
+        with receipt_lock(args.output):
+            result = asyncio.run(run(args))
+    except ToolAvailabilityError as error:
+        print(json.dumps({'status': 'failed', 'code': 'tool_not_in_authorized_catalog', 'message': str(error)}))
+        raise SystemExit(1) from None
     # An observation timeout is a resumable incomplete operation, not shell
     # success. This also prevents `first && second` from overlapping admissions.
     raise SystemExit(0 if result['state'] == 'verified' else 75)

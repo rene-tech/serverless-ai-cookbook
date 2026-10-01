@@ -1,7 +1,8 @@
 // Only an explicit finish tool may bypass paraphrasing. Intermediate tools,
 // failures, concurrent calls and later user messages never end the workflow.
 const { isHostBudgetNotice } = require('./scientific-study-admission.cjs');
-const toolName = 'deliver_scientific_results_mcp_environment-execution';
+const finishTools = new Set(['deliver_scientific_results_mcp_environment-execution',
+  'inspect_mmcif_inventory_mcp_environment-execution']);
 const messageType = (message) => message?.getType?.() ?? message?._getType?.();
 
 module.exports = function verifiedDelivery(messages) {
@@ -10,10 +11,12 @@ module.exports = function verifiedDelivery(messages) {
   const result = messages[end - 1];
   const request = messages[end - 2];
   if (messageType(result) !== 'tool' || messageType(request) !== 'ai' ||
-      result.name !== toolName || result.status === 'error') return null;
+      !finishTools.has(result.name) || result.status === 'error') return null;
   const calls = request.tool_calls;
-  if (!Array.isArray(calls) || calls.length !== 1 || calls[0].name !== toolName ||
+  if (!Array.isArray(calls) || calls.length !== 1 || calls[0].name !== result.name ||
       !calls[0].id || calls[0].id !== result.tool_call_id) return null;
+  if (result.name === 'inspect_mmcif_inventory_mcp_environment-execution' &&
+      calls[0].args?.finish_request !== true) return null;
   let content = result.content;
   if (Array.isArray(content)) {
     if (content.length !== 1 || content[0]?.type !== 'text') return null;

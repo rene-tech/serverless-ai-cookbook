@@ -137,3 +137,31 @@ def test_cancellation_is_not_changed(monkeypatch):
     monkeypatch.setattr(batch, '_run', fail)
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(batch.run(None))
+
+
+def test_ungranted_tool_remains_a_catalog_failure_not_a_transient_server_error(tmp_path, monkeypatch):
+    class Context:
+        async def __aenter__(self): return self
+        async def __aexit__(self, kind, error, trace):
+            if error:
+                raise ExceptionGroup('MCP cleanup', [error])
+    class MCP(Context):
+        async def list_tools(self): return SimpleNamespace(tools=[])
+    async def forbidden(*args, **kwargs):
+        raise AssertionError('No upload or inference is allowed without a tool')
+    monkeypatch.setenv('SCIENTIFIC_MODELS_MCP_URL', 'https://fixture.invalid/mcp')
+    monkeypatch.setenv('SCIENTIFIC_MODELS_API_KEY', 'fixture-not-a-secret')
+    monkeypatch.setattr(batch.httpx2, 'AsyncClient', lambda **kwargs: Context())
+    monkeypatch.setattr(batch, 'streamable_http_client', lambda *args, **kwargs: None)
+    monkeypatch.setattr(batch, 'Client', lambda *args, **kwargs: MCP())
+    monkeypatch.setattr(batch, 'upload', forbidden)
+    monkeypatch.setattr(batch, 'call', forbidden)
+    source, params = tmp_path / 'source', tmp_path / 'parameters.json'
+    source.write_bytes(b'{}'); params.write_text('{}')
+    args = argparse.Namespace(source=source, parameters=params, model='fixture', output=tmp_path / 'run',
+        idempotency_key='original', tool='submit_fixture', operation='run-workflow')
+    with pytest.raises(batch.ToolAvailabilityError, match='model grants'):
+        asyncio.run(batch.run(args))
+    receipt = json.loads((args.output / 'tool-availability-error.json').read_text())
+    assert receipt['code'] == 'tool_not_in_authorized_catalog'
+    assert receipt['inference_submitted_this_invocation'] is False

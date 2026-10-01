@@ -12,6 +12,7 @@ RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliab
  && cp /tmp/core-skills/manifest.json /tmp/core-skills/files.sha256.json /app/skill/ \
  && cp /tmp/agent-reliability/execution-mcp.py /tmp/agent-reliability/scientific_verified_results.py /opt/bionemo/ \
  && cp /tmp/agent-reliability/scientific_starter.py /opt/bionemo/ \
+ && cp /tmp/agent-reliability/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
  && cp /tmp/agent-reliability/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py \
  && chmod 0755 /opt/bionemo/inspect-mmcif.py \
  && cp /tmp/agent-reliability/agent-instructions.md /app/agent-instructions.md \
@@ -41,6 +42,7 @@ RUN mkdir -p /release/opt/hcls-librechat /release/opt/bionemo /release/app/skill
  && cp /opt/hcls-librechat/scientific-provider-recovery.cjs /opt/hcls-librechat/scientific-verified-delivery.cjs /opt/hcls-librechat/scientific-study-admission.cjs /opt/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/patch-agent-reliability.mjs /opt/hcls-librechat/patch-execution-ui.mjs /release/opt/hcls-librechat/ \
  && cp /opt/bionemo/execution-mcp.py /opt/bionemo/scientific_verified_results.py /release/opt/bionemo/ \
  && cp /opt/bionemo/scientific_starter.py /release/opt/bionemo/ \
+ && cp /opt/bionemo/invoke-scientific-batch.py /release/opt/bionemo/ \
  && cp -p /opt/bionemo/inspect-mmcif.py /release/opt/bionemo/ \
  && cp /app/agent-instructions.md /app/seed-hcls-workbench.js /release/app/ \
  && cp /app/skill/openff/SKILL.md /release/app/skill/openff/SKILL.md \

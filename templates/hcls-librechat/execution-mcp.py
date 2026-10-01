@@ -253,6 +253,16 @@ def deliver_scientific_results(args):
     return deliver(args, WORKSPACE)
 
 
+def inspect_mmcif_inventory(args):
+    if set(args) != {'path', 'finish_request'} or not isinstance(args['finish_request'], bool):
+        raise ValueError('Supply path and explicit boolean finish_request; false for intermediate inspection.')
+    result = deliver_scientific_results({'results': [{'kind': 'mmcif', 'path': args['path']}]})
+    if not args['finish_request']:
+        result['schema'] = 'scientific-mmcif-inventory/v1'
+        result['guidance'] = 'Intermediate measured inventory only. Continue the other requested work; this is not preparation or MD validation.'
+    return result
+
+
 def run_starter_example(args):
     from scientific_starter import resolve
     plan = resolve(args.get('case_directory'), args.get('model'), args.get('output_directory'), WORKSPACE,
@@ -530,6 +540,13 @@ def compose_scientific_workflow(arguments):
 
 
 TOOLS = [
+    {'name': 'inspect_mmcif_inventory',
+     'description': 'Read a workspace mmCIF and report exactly what it contains: chains, recorded entities, coordinate/sequence coverage, ligands, solvent and atom records. Uses the installed Gemmi inspector; no simulation, preparation, inferred biology or recommendations. Set finish_request=true only when the user asks for this inventory as the whole current request (even if they mention future MD): the client shows the measured report verbatim as the final answer. Set false for intermediate inspection before other requested work. Prefer this tool over shell parsers or rewriting an inventory in prose.',
+     'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
+     'inputSchema': {'type': 'object', 'additionalProperties': False,
+        'required': ['path', 'finish_request'], 'properties': {
+            'path': {**TEXT, 'description': 'Exact existing workspace mmCIF file path.'},
+            'finish_request': {'type': 'boolean', 'description': 'True only if the inventory completes the entire current request; false if preparation, simulation or other analysis must follow.'}}}},
     {'name': 'run_starter_example',
      'description': 'Run one explicitly requested installed molecular-dynamics starter example with unchanged packaged inputs. Preferred over loading skills or assembling shell commands for an existing example: this validates its manifest, recipe, native parameters and hashes, then invokes the existing authorized batch client for live schema checks, admission, polling and result publication. Supply the case directory, exact engine and a fresh output directory. One job/idempotency identity is retained; identical calls observe it, never rerun it. No cross-tenant lookup or model/force-field substitution. After completion use deliver_scientific_results kind=native-md. These short examples do not establish converged sampling. For custom protocols/analysis use the native workflow tools and domain skill.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': True},
@@ -628,6 +645,7 @@ def handle_line(line):
         elif method == 'tools/call':
             params = request['params']
             handler = {'execute_command': execute, 'read_execution': read_job,
+                       'inspect_mmcif_inventory': inspect_mmcif_inventory,
                        'run_starter_example': run_starter_example,
                        'prepare_openff_ligand': prepare_openff_ligand,
                        'deliver_scientific_results': deliver_scientific_results,

@@ -1,0 +1,8 @@
+{
+  "scope": "Unchanged native packaged examples through the actual seeded agent; technical delivery, not converged scientific sampling",
+  "cases": [
+    {"case_id":"starter-namd", "prompt":"Run the alanine introductory example from /workspace/examples/v3/molecular-dynamics/alanine-quickstart/ using NAMD. Keep its native protocol unchanged. Save outputs in {output}, follow the job to completion, and give me the operation ID, native completion checks and downloadable files. Do not run another engine or claim converged sampling."},
+    {"case_id":"starter-amber", "prompt":"Run the alanine introductory example from /workspace/examples/v3/molecular-dynamics/alanine-quickstart/ using Amber. Keep its native protocol unchanged. Save outputs in {output}, follow the job to completion, and give me the operation ID, native completion checks and downloadable files. Do not run another engine or claim converged sampling."},
+    {"case_id":"starter-lammps", "prompt":"Run the alanine introductory example from /workspace/examples/v3/molecular-dynamics/alanine-quickstart/ using LAMMPS. Keep its native protocol unchanged. Save outputs in {output}, follow the job to completion, and give me the operation ID, native completion checks and downloadable files. Do not run another engine or claim converged sampling."}
+  ]
+}

@@ -1,4 +1,5 @@
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
@@ -105,3 +106,24 @@ def test_md_reports_actual_config_not_longer_run_or_invented_statistics(tmp_path
 def test_no_model_authored_fields_accepted(tmp_path):
     with pytest.raises(ValueError, match='exactly'):
         deliver({'results': [{'kind': 'mmcif', 'path': 'file', 'atoms': 500}]}, tmp_path)
+
+
+def test_typed_inventory_uses_only_measured_files_and_explicit_finish(monkeypatch):
+    spec = importlib.util.spec_from_file_location('inventory_execution', Path(__file__).with_name('execution-mcp.py'))
+    execution = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(execution)
+    seen = []
+    def measured(args):
+        seen.append(args)
+        return {'schema': 'scientific-verified-delivery/v1', 'report_markdown': 'Measured fixture',
+                'status': 'completed', 'result_count': 1, 'inference_submitted': False}
+    monkeypatch.setattr(execution, 'deliver_scientific_results', measured)
+    final = execution.inspect_mmcif_inventory({'path': 'exact.cif', 'finish_request': True})
+    intermediate = execution.inspect_mmcif_inventory({'path': 'exact.cif', 'finish_request': False})
+    assert final['schema'] == 'scientific-verified-delivery/v1'
+    assert intermediate['schema'] == 'scientific-mmcif-inventory/v1'
+    assert seen == [{'results': [{'kind': 'mmcif', 'path': 'exact.cif'}]}] * 2
+    for invalid in ({'path': 'exact.cif'}, {'path': 'exact.cif', 'finish_request': 'true'},
+                    {'path': 'exact.cif', 'finish_request': True, 'report': 'invented'}):
+        with pytest.raises(ValueError, match='explicit boolean'):
+            execution.inspect_mmcif_inventory(invalid)
