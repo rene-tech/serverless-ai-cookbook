@@ -10,8 +10,8 @@ function replaceOnce(source, before, after, name) {
 
 export function patchProviderRecovery(source) {
   source = replaceOnce(source,
-    '\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(',
-    "\t\t\t\tresult = await require('/opt/hcls-librechat/scientific-provider-recovery.cjs').invokeWithRecovery({\n" +
+    '\n\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(',
+    "\n\t\t\t\tresult = await require('/opt/hcls-librechat/scientific-provider-recovery.cjs').invokeWithRecovery({\n" +
     '\t\t\t\t\tinvoke: () => require_langfuseRuntimeScope.withLangfuseRuntimeScope(',
     'empty provider recovery start');
   return replaceOnce(source,

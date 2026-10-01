@@ -58,11 +58,13 @@ test('provider errors propagate to the existing error/fallback implementation', 
 
 test('the pinned patch is exact and refuses duplicate installation', async () => {
   const { patchProviderRecovery } = await import('./patch-agent-reliability.mjs');
-  const fixture = '\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(\n' +
-    '\t\t\t\t}, invokeConfig));\n\t\t\t} catch (primaryError) {';
+  const fixture = '\n\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(\n' +
+    '\t\t\t\t}, invokeConfig));\n\t\t\t} catch (primaryError) {\n' +
+    '\t\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(fallback);';
   const patched = patchProviderRecovery(fixture);
   assert.match(patched, /invokeWithRecovery/);
   assert.match(patched, /signal: invokeConfig.signal/);
+  assert.match(patched, /withLangfuseRuntimeScope\(fallback\)/);
   assert.throws(() => patchProviderRecovery(patched));
   assert.throws(() => patchProviderRecovery('unrecognized source'));
 });
