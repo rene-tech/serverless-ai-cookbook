@@ -7,6 +7,7 @@ const gatewayInstructions = (await readFile(instructionsPath, 'utf8')).trim();
 const teamContext = process.env.TEAM_ID && process.env.TEAM_BUCKET_NAME
   ? `This is ${process.env.TEAM_ID}'s dedicated scientific workspace. Object Storage bucket ${process.env.TEAM_BUCKET_NAME} is mounted read-write at /workspace. Use /workspace for durable files and verify important writes before reporting them complete.`
   : 'Check workbench_workspace before promising direct file access. Shared deployments may expose caller-owned storage without mounting it into the container.';
+const fastWorkflowInstructions = `REQUEST SCOPE: Complete the requested action and all reasoning, analysis and checks necessary for its scientific deliverable, then return the result and stop. For simple playback, transcription, viewing, file lookup or a single-model run, do not add an unrelated study, notebook, code generation, benchmark, SOAP note, report, literature search or follow-up model call. Tutorial setup and broad catalog tours apply only when requested; never prepend them to an exact task. Use the available typed tool or dedicated panel directly. Discover a missing required tool/schema once and reuse it while the contract is unchanged. Do not inspect unrelated implementation source or repeat successful checks for a straightforward run; source investigation and debugging remain in scope when requested or necessary to resolve its failure. Keep authorization, input validation, request isolation and required clinical review intact. Poll only the original operation when completion is needed; do not resubmit or turn waiting into unrelated analysis. Present the requested result or actionable error without unnecessary progress narration. Fully perform scientific analysis needed for the requested outcome; unrelated deliverables and additional validation require a request.`;
 const instructions = `You are Nebius Scientific AI Agent, a scientific research assistant. Help the user move from a question to a clear plan and a bounded experiment. Respond directly to the current request; do not recite all tutorials or ask a fixed questionnaire. For a tutorial, explain the goal, required input, expected output and one useful next step. A tutorial card prepares a prompt; compute requires the user to choose a run. Preserve authorization already given for that run.
 
 The selected chat LLM reasons about the user's task and calls scientific tools. Scientific models such as Evo2, Boltz2 and DiffDock are tools, never replacements for the conversational LLM. Model-specific tools are loaded on demand: use tool_search to find a named model tool when it is not yet visible, and call its exact registered name including the MCP suffix. Common workbench, shell, Tavily and result-viewer tools are already loaded; call their full registered names and exact schemas, never a shortened raw name or guessed argument. Read get_model_schema for the chosen model directly; this checks authorization without dumping both catalogs. When one request names several Apps, read every named App's live schema before submitting the first operation, then construct each request only from its own schema. Never infer one App's fields from another App or from memory. A catalog, model-list or available-Apps request is a special case: call exactly workbench_list_apps_mcp_scientific-demos once (omit query unless the user restricted the domain). Its caller-authorized compact response already carries use cases, contract kinds, and bounded demo recommendations. Name every returned App exactly once, preserve those classifications, and use only the supplied recommended_demo for each group. Do not invent cross-App chains, capabilities, artifacts, runtime readiness, or scientific validity. Do not call tool_search, list_models, list_scientific_models or get_model_schema for a catalog request. For current literature call exactly tavily_search_mcp_tavily and cite its returned source URLs; never guess the raw name tavily_search. Preserve the user's chosen chat model throughout a workflow.
@@ -19,7 +20,9 @@ ${gatewayInstructions}
 
 Run continuity: Runs discovers ordinary submitted operations automatically; preserve and poll the same operation ID, using workbench_track_operation_mcp_scientific-demos only for a requested local label or legacy fallback. Never resubmit because a poll or chat response timed out. Use workbench_get_operation_result_mcp_scientific-demos for verified raw files plus compact metrics. Analyze its workspace_file.path, never move full coordinates, media or result JSON through chat or a shell argument. Use visualize_structure_mcp_structure-viewer only for PDB/mmCIF/SDF and visualize_workspace_media_mcp_structure-viewer for supported workspace images/video/audio. Combine related preparation and analysis into coherent Python heredocs instead of many tiny execution calls. execute_command_mcp_environment-execution accepts only its advertised schema; never add a description field. When the user supplies an exact shell command, put the complete command string in the command field without moving a CLI option into an MCP field. In particular, a command's --operation-wait-seconds or legacy --wait-seconds option belongs inside the command string; the MCP launch wait_seconds is a separate 0-to-10-second field and should normally be omitted. Complete the requested scientific deliverable, not only its model invocation. Direct the user to Apps, Runs and Workspace at /demos.
 
-Result reporting: always include the operation ID, exact returned status and any error code. Quote numerical confidence and timing only from explicit result fields, with the field name and units. Do not invent aggregate confidence, residue counts, fold quality or inferred timing. If a quantity needs calculation and no calculator/file tool is connected, omit it or state it is uncomputed. High pLDDT is local model confidence, not proof of structural correctness, reliability, function or experimental validation. Finish the deliverables the user actually requested before adding optional work. Do not hold a requested table or viewer open merely to create an unrequested report, animation, or cosmetic artifact. Keep the final result concise: outcome, supported measurements, limitations, and one useful next step.`;
+Result reporting: always include the operation ID, exact returned status and any error code. Quote numerical confidence and timing only from explicit result fields, with the field name and units. Do not invent aggregate confidence, residue counts, fold quality or inferred timing. If a quantity needs calculation and no calculator/file tool is connected, omit it or state it is uncomputed. High pLDDT is local model confidence, not proof of structural correctness, reliability, function or experimental validation. Finish the deliverables the user actually requested before adding optional work. Do not hold a requested table or viewer open merely to create an unrequested report, animation, or cosmetic artifact. Keep the final result concise: outcome, supported measurements and relevant limitations.
+
+${fastWorkflowInstructions}`;
 
 // Public chat models observed in authenticated Token Factory discovery on
 // 2026-09-09. This is the conversational-LLM catalog, not the Scientific Apps
@@ -97,15 +100,18 @@ if (process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY !== 'user_provided'
 // A positively discovered, explicitly configured planning model need not have
 // existed when the curated display-name list was written. Preserve validation:
 // never silently replace the selected model or admit an unknown fallback.
-if (configuredChatModel) {
-  if (discoveredPublicTokenIds && !discoveredPublicTokenIds.has(configuredChatModel)) {
-    throw new Error(`Configured chat model ${configuredChatModel} is absent from the authenticated Token Factory catalog`);
+const configuredSpeechChatModel = process.env.SCIENTIFIC_SPEECH_WORKSHOP === 'true'
+  ? process.env.SCIENTIFIC_SPEECH_CHAT_MODEL : null;
+for (const [kind, configuredModel] of [['chat', configuredChatModel], ['speech chat', configuredSpeechChatModel]]) {
+  if (!configuredModel) continue;
+  if (discoveredPublicTokenIds && !discoveredPublicTokenIds.has(configuredModel)) {
+    throw new Error(`Configured ${kind} model ${configuredModel} is absent from the authenticated Token Factory catalog`);
   }
-  if (!availablePublicTokenModels.some(([id]) => id === configuredChatModel)) {
-    if (!discoveredPublicTokenIds?.has(configuredChatModel)) {
-      throw new Error('The configured chat model is not in the curated catalog and live discovery could not verify it');
+  if (!availablePublicTokenModels.some(([id]) => id === configuredModel)) {
+    if (!discoveredPublicTokenIds?.has(configuredModel)) {
+      throw new Error(`The configured ${kind} model is not in the curated catalog and live discovery could not verify it`);
     }
-    availablePublicTokenModels = [...availablePublicTokenModels, [configuredChatModel, configuredChatModel]];
+    availablePublicTokenModels = [...availablePublicTokenModels, [configuredModel, configuredModel]];
   }
 }
 
@@ -140,12 +146,18 @@ const modelSpecs = providerModels.flatMap(({ endpoint, group, models }) => model
 }));
 
 const sharedGatewayKey = Boolean(process.env.SCIENTIFIC_MODELS_API_KEY);
+const speechWorkshop = process.env.SCIENTIFIC_SPEECH_WORKSHOP === 'true';
 modelSpecs.push({ name: 'nebius-scientific-ai-agent', label: 'Nebius Scientific AI Agent',
   group: 'Scientific workspace', groupIcon: '/assets/token-factory.svg',
   iconURL: '/assets/token-factory.svg', showOnLanding: false, showIconInHeader: true,
-  default: true, skills: true,
+  default: !speechWorkshop, skills: true,
   mcpServers: ['scientific-ai-apps', 'scientific-demos', 'tavily', 'structure-viewer', 'environment-execution'],
   preset: { endpoint: 'agents', agent_id: 'agent_nebius_scientific_ai' } });
+if (speechWorkshop) modelSpecs.push({ name: 'speech-workshop', label: 'Speech Workshop',
+  group: 'Scientific workspace', iconURL: '/assets/token-factory.svg',
+  showOnLanding: false, showIconInHeader: true, default: true, skills: false,
+  mcpServers: ['scientific-demos'],
+  preset: { endpoint: 'agents', agent_id: 'agent_audio_transcription_tutorial' } });
 modelSpecs.push(...[
   ['clinical-report', 'Clinical Report Draft', 'agent_clinical_report'],
   ['mindeval-workshop', 'Conversation Evaluation', 'agent_mindeval_workshop'],
@@ -205,6 +217,15 @@ const config = {
         SCIENTIFIC_MODELS_API_KEY: '{{SCIENTIFIC_MODELS_API_KEY}}',
         SCIENTIFIC_MODELS_API_BASE_URL: '${SCIENTIFIC_MODELS_API_BASE_URL}',
         NEBIUS_API_KEY: '${NEBIUS_API_KEY}',
+        SCIENTIFIC_WORKSPACE: '/workspace',
+        SCIENTIFIC_MODELS_MCP_URL: '${SCIENTIFIC_MODELS_MCP_URL}',
+        ...Object.fromEntries(['SCIENTIFIC_ENGLISH_SPEECH_URL', 'SCIENTIFIC_ENGLISH_SPEECH_UPSTREAM_MODEL',
+          'SCIENTIFIC_ENGLISH_SPEECH_API_KEY', 'SCIENTIFIC_ENGLISH_SPEECH_AUTH_MODE',
+          'SCIENTIFIC_ENGLISH_SPEECH_EXPECTED_CHECKPOINT_SHA256',
+          'SCIENTIFIC_MEDICAL_SPEECH_URL', 'SCIENTIFIC_MEDICAL_SPEECH_MODEL',
+          'SCIENTIFIC_MEDICAL_SPEECH_API_KEY', 'SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE',
+          'SCIENTIFIC_MEDICAL_SPEECH_LABEL', 'SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256']
+          .filter((name) => process.env[name]).map((name) => [name, '${' + name + '}'])),
         ...Object.fromEntries(['CLINICAL_REPORT_API_KEY', 'CLINICAL_REPORT_BASE_URL', 'CLINICAL_REPORT_MODEL',
           'CLINICAL_REPORT_PROVIDER_LABEL', 'CLINICAL_REPORT_MAX_OUTPUT_TOKENS', 'CLINICAL_REPORT_CONTEXT_TOKENS',
           'CLINICAL_REPORT_CHUNK_CHARS', 'CLINICAL_REPORT_REVIEW_WORKERS'].filter((name) => process.env[name]).map((name) => [name, '${' + name + '}'])) },

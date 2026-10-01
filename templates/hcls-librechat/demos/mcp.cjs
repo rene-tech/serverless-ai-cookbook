@@ -1,4 +1,35 @@
 /* Typed tools for the same durable workflows as the authenticated demo panels. */
+// An operator-owned same-instance overlay allows MCP reinitialization without
+// restarting the API process or changing a user's key/identity. Never log it.
+function loadSpeechRuntimeEnv({ filename = '/data/hcls-librechat/workshop-speech-env.json', env = process.env } = {}) {
+  const fs = require('node:fs');
+  const allowed = new Set([
+    'SCIENTIFIC_ENGLISH_SPEECH_URL', 'SCIENTIFIC_ENGLISH_SPEECH_API_KEY',
+    'SCIENTIFIC_ENGLISH_SPEECH_UPSTREAM_MODEL', 'SCIENTIFIC_ENGLISH_SPEECH_EXPECTED_CHECKPOINT_SHA256',
+    'SCIENTIFIC_MEDICAL_SPEECH_URL', 'SCIENTIFIC_MEDICAL_SPEECH_API_KEY', 'SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE',
+    'SCIENTIFIC_MEDICAL_SPEECH_MODEL', 'SCIENTIFIC_MEDICAL_SPEECH_LABEL', 'SCIENTIFIC_MEDICAL_SPEECH_EXPECTED_CHECKPOINT_SHA256',
+    'SCIENTIFIC_MODELS_MCP_URL',
+  ]);
+  let fd;
+  try {
+    const before = fs.lstatSync(filename);
+    if (!before.isFile() || before.isSymbolicLink()) throw new Error('invalid_file');
+    fd = fs.openSync(filename, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    const stat = fs.fstatSync(fd);
+    if (!stat.isFile() || stat.dev !== before.dev || stat.ino !== before.ino || (stat.mode & 0o7777) !== 0o600
+      || ![0, process.getuid()].includes(stat.uid) || stat.size > 65536) throw new Error('invalid_permissions');
+    const values = JSON.parse(fs.readFileSync(fd, 'utf8'));
+    if (!values || typeof values !== 'object' || Array.isArray(values)
+      || Object.entries(values).some(([name, value]) => !allowed.has(name) || typeof value !== 'string'
+        || value.length > 8192 || value.includes('\0'))) throw new Error('invalid_fields');
+    for (const [name, value] of Object.entries(values)) if (env[name] === undefined) env[name] = value;
+    return { loaded: true };
+  } catch (error) {
+    if (error.code === 'ENOENT' && fd === undefined) return { loaded: false };
+    throw new Error('Private workshop speech configuration is invalid. Ask the operator to repair its fields, ownership and permissions.');
+  } finally { if (fd !== undefined) fs.closeSync(fd); }
+}
+loadSpeechRuntimeEnv();
 const readline = require('node:readline');
 const service = require('./service.cjs');
 const owner = process.env.LIBRECHAT_USER_ID;
@@ -10,6 +41,8 @@ const chainMap = { ...array, items: { type: 'string', pattern: '^[^:]+:[^:]+$',
   description: 'REF:PRED — the chain ID in reference_file first, then the corresponding chain ID in prediction_file/result_file. Do not reverse the direction.' } };
 const dockingThresholds = { type: 'array', maxItems: 20, description: 'Optional explicit descriptive queries, never default scientific pass criteria. Strict comparisons use unrounded values.', items: schema({ confidence_above: { type: 'number' }, rmsd_below_angstrom: { type: 'number', exclusiveMinimum: 0 } }, ['confidence_above', 'rmsd_below_angstrom']) };
 const definitions = [
+  ['workbench_transcribe_audio', 'Transcribe exactly one uploaded workspace audio file with the explicitly selected speech pipeline. english=base English Nemotron; medical=selected fine-tuned English Nemotron; medical-speakers=the same fine-tuned Nemotron plus Sortformer anonymous speakers. Every NEW request_id starts fresh inference, even on identical audio. Reuse request_id only to recover the SAME request. Use the attachment workspace_path and per-turn request_id provided by the client; never inspect files, discover other models, create SOAP notes, rewrite medical terms or run another pipeline unless asked. Returns raw transcript and real session/run IDs; if running, call workbench_get_transcription with its run_id. Audio limit: 64 MB / 10 minutes. Anonymous speakers are not identities or clinician/patient roles.', schema({ workspace_path: { type: 'string', minLength: 1, maxLength: 1024 }, model: { type: 'string', enum: ['english', 'medical', 'medical-speakers'] }, request_id: { type: 'string', minLength: 1, maxLength: 100, pattern: '^[A-Za-z0-9_.:-]+$' } }, ['workspace_path', 'model', 'request_id'])],
+  ['workbench_get_transcription', 'Observe the SAME accepted speech run for up to 20 seconds and return its actual raw transcript/speaker turns when complete. This never transcribes again. Use only the returned run_id; do not invent one or submit another run because waiting expired.', schema({ run_id: { type: 'string', pattern: '^[a-f0-9]{32}$' }, wait_seconds: { type: 'integer', minimum: 0, maximum: 20, default: 20 } }, ['run_id'])],
   ['workbench_list_apps', 'Compact caller-authorized Apps grouped by use case with explicit native, chat, or scientific-batch contract kinds and one bounded recommended demo per group. For a catalog answer, name every returned App exactly once and do not invent cross-App chains, capabilities, artifacts, or readiness claims. Filter by query only when the user restricted the domain; no parameter schemas or large catalog records are returned. If the user already chose a known App, directly read its get_model_schema instead.', schema({ query: string })],
   ['workbench_track_operation', 'Optionally attach a local label to an accessible operation, or retain it for an older server without caller operation history. Current Runs automatically discovers caller operations: do not call this once per completed request just to register already-discoverable runs. Keep original IDs and receipts; this tool never submits inference.', schema({ operation_id: string, model_id: string, label: string }, ['operation_id'])],
   ['workbench_list_operations', 'Discover this caller’s durable model operations automatically, most recent first. Includes scientific batches and inference from chat or API. Follow next_cursor for older runs. Reconnect to existing IDs instead of resubmitting work.', schema({ cursor: string, limit: { type: 'integer', minimum: 1, maximum: 200, default: 50 } })],
@@ -56,6 +89,8 @@ async function dispatch(name, args) {
   if (!owner) throw service.failure('LibreChat user identity is missing.');
   const request = (method, url, body, id) => service.platform(key, method, `/v1/workshop/${url}`, body, id);
   switch (name) {
+    case 'workbench_transcribe_audio': return require('../speech/chat-transcribe.cjs').submit(owner, key, args);
+    case 'workbench_get_transcription': return require('../speech/chat-transcribe.cjs').observe(owner, key, args.run_id, args.wait_seconds ?? 20);
     case 'workbench_list_apps': return service.listApps(key, args.query);
     case 'workbench_track_operation': return service.track(owner, key, args.operation_id, {
       model_id: args.model_id, label: args.label, source: 'agent',
@@ -132,4 +167,4 @@ async function main() {
   }
 }
 if (require.main === module) main();
-module.exports = { tools, dispatch };
+module.exports = { tools, dispatch, loadSpeechRuntimeEnv };

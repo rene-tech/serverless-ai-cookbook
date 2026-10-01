@@ -7,10 +7,15 @@ const gatewayInstructions = readFileSync(
 ).trim();
 const gettingStartedInstructions = `For a new user, offer the Getting started guide at /demos?tab=getting-started. A workspace tour checks Apps and /workspace/examples/v1/README.md and manifest.json without model inference. The pack contains licensed/public/synthetic inputs and typed recipes, not user results. Read the relevant case and the live model schema; never invent paths or assume every key has every model. Keep input examples unchanged and save actual results in a new /workspace/my-studies/ directory. Explain the input and expected deliverable before running an example. Preserve any already authorized run and recover its original ID instead of resubmitting after a timeout. Keys belong in settings, never chat. The ordinary attachment picker is not a model artifact upload bridge; use Workspace and the installed file helpers.`;
 const catalogRoutingInstructions = `FINAL CATALOG ROUTING RULE: when the current user asks for the catalog, a model list, available models, or available Apps, call workbench_list_apps_mcp_scientific-demos exactly once and answer only from that result. Do not call tool_search, get_model_schema, list_models, or list_scientific_models for that request. Name every returned App exactly once under the supplied use_case and contract_kind. Use only each group's supplied recommended_demo; do not invent cross-App chains, capabilities, artifacts, runtime readiness, or scientific validity. A failed schema probe is not evidence that an App is unavailable.`;
+const fastWorkflowInstructions = `REQUEST SCOPE: Complete the requested action and all reasoning, analysis and checks necessary for its scientific deliverable, then return the result and stop. For simple playback, transcription, viewing, file lookup or a single-model run, do not add an unrelated study, notebook, code generation, benchmark, SOAP note, report, literature search or follow-up model call. Tutorial setup and broad catalog tours apply only when requested; never prepend them to an exact task. Use the available typed tool or dedicated panel directly. Discover a missing required tool/schema once and reuse it while the contract is unchanged. Do not inspect unrelated implementation source or repeat successful checks for a straightforward run; source investigation and debugging remain in scope when requested or necessary to resolve its failure. Keep authorization, input validation, request isolation and required clinical review intact. Poll only the original operation when completion is needed; do not resubmit or turn waiting into unrelated analysis. Present the requested result or actionable error without unnecessary progress narration. Fully perform scientific analysis needed for the requested outcome; unrelated deliverables and additional validation require a request.`;
 
 const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/LibreChat';
 const serviceEmail = 'nebius-scientific-ai-agent@localhost.invalid';
 const provider = process.env.SCIENTIFIC_CHAT_PROVIDER || 'Nebius Token Factory';
+const speechWorkshop = process.env.SCIENTIFIC_SPEECH_WORKSHOP === 'true';
+const speechWorkshopTools = ['workbench_transcribe_audio', 'workbench_get_transcription']
+  .map((name) => `${name}_mcp_scientific-demos`);
+const speechWorkshopInstructions = `Transcribe only the user's attached audio with the requested model. Attachment metadata provides workspace_path and a fresh request_id for this turn; reuse that audio for follow-ups, not a previous transcript. Before your first transcription, use tool_search once for the exact tool workbench_transcribe_audio_mcp_scientific-demos to load its schema. Reuse that schema for later turns. Then call that tool once with ONLY these three fields: workspace_path, model, request_id. The model value MUST be exactly "english" for "Nemotron"; exactly "medical" for "fine-tuned Nemotron" or "finetuned"; exactly "medical-speakers" for "add speaker detection" or "with speakers". Never use "nemotron" or any model name as the model value. Copy workspace_path and request_id from this turn's attachment metadata; do not pass sha256, audio_name or other fields. Each new user request runs fresh inference. If the returned status is pending, queued or running, load the exact workbench_get_transcription_mcp_scientific-demos schema once if needed, then call it with the same run_id and wait_seconds=20 until terminal. Never resubmit to poll. If any tool returns an error, report it briefly and stop; do not guess parameters, retry validation errors, or invoke unrelated tools. Return the actual transcript verbatim, or the returned speaker turns for speaker detection. Never correct medical words yourself, infer doctor/patient identities from anonymous speakers, or invent output. Ask for an audio upload only if no audio is attached. Do not browse, inspect catalogs, create code/notebooks, analyze accuracy, or write a SOAP note unless asked. Playback uses the audio player and needs no model call.`;
 // Product-owner decision: GLM-5.3-Flash is the conversational default. Do not
 // change this default or introduce an automatic fallback without explicit approval.
 const model = process.env.SCIENTIFIC_CHAT_MODEL || 'zai-org/GLM-5.3-Flash';
@@ -205,6 +210,10 @@ For acceptance, use complete representative recordings and reference transcripts
 }
 
 async function seedAgent({ agents: collection, aclEntries, owner, now, definition }) {
+  const isSpeechWorkshop = speechWorkshop && definition.id === 'agent_audio_transcription_tutorial';
+  // An explicit workshop-only trial never changes the general chat model or
+  // other tutorials. With no override, preserve the existing selected model.
+  const selectedModel = isSpeechWorkshop ? process.env.SCIENTIFIC_SPEECH_CHAT_MODEL || model : model;
   if (process.env.SCIENTIFIC_MEDICAL_SPEECH_AUTH_MODE === 'platform'
       && ['agent_nebius_scientific_ai', 'agent_audio_transcription_tutorial'].includes(definition.id)) {
     definition.tools = [...definition.tools, ...scientificCatalogTools];
@@ -226,19 +235,23 @@ async function seedAgent({ agents: collection, aclEntries, owner, now, definitio
     {
       $set: {
         ...definition,
-        // Keep the small deterministic routing rule last. The gateway guide is
-        // intentionally comprehensive; placing this rule after it prevents a
-        // generic deferred-tool hint from outweighing the catalog contract.
-        instructions: `${definition.instructions}\n\n${gettingStartedInstructions}\n\n${gatewayInstructions}\n\n${catalogRoutingInstructions}`,
-        skills_enabled: true,
+        // Final rules constrain the comprehensive tutorial/gateway guidance to
+        // the user's request, without weakening authorization or result checks.
+        instructions: isSpeechWorkshop ? speechWorkshopInstructions
+          : `${definition.instructions}\n\n${gettingStartedInstructions}\n\n${gatewayInstructions}\n\n${catalogRoutingInstructions}\n\n${fastWorkflowInstructions}`,
+        ...(isSpeechWorkshop ? { name: 'Speech Workshop',
+          description: 'Upload audio, play it, and ask for Nemotron, fine-tuned Nemotron, or speaker detection.',
+          conversation_starters: ['Transcribe this with Nemotron', 'Now transcribe it with the fine-tuned Nemotron', 'Now add speaker detection'] } : {}),
+        skills_enabled: !isSpeechWorkshop,
         artifacts: 'default',
-        tools: [...new Set([...(definition.tools || []), ...workbenchTools, ...executionTools,
+        tools: isSpeechWorkshop ? speechWorkshopTools : [...new Set([...(definition.tools || []), ...workbenchTools, ...executionTools,
           'tavily_search_mcp_tavily', 'visualize_structure_mcp_structure-viewer',
           'visualize_workspace_media_mcp_structure-viewer'])],
-        mcpServerNames: [...new Set([...(definition.mcpServerNames || []), 'scientific-demos', 'structure-viewer', 'environment-execution'])],
+        mcpServerNames: isSpeechWorkshop ? ['scientific-demos']
+          : [...new Set([...(definition.mcpServerNames || []), 'scientific-demos', 'structure-viewer', 'environment-execution'])],
         provider,
-        model,
-        model_parameters: { model, max_tokens: completionTokens,
+        model: selectedModel,
+        model_parameters: { model: selectedModel, max_tokens: completionTokens,
           ...(contextTokens ? { maxContextTokens: contextTokens } : {}),
           ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}) },
         category: 'life-science',

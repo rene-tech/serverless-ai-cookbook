@@ -53,6 +53,29 @@ def test_previously_curated_model_is_not_accepted_when_live_catalog_removes_it(t
                       SCIENTIFIC_CHAT_MODEL='Qwen/Qwen3-235B-A22B-Instruct-2507')
 
 
+def test_speech_model_override_is_discovered_without_changing_general_default(tmp_path):
+    model = 'Qwen/Qwen3.8-27B'
+    config, _ = render_config(tmp_path, catalog={'data': [{'id': DEFAULT_CHAT_MODEL}, {'id': model}]},
+                              SCIENTIFIC_SPEECH_WORKSHOP='true', SCIENTIFIC_SPEECH_CHAT_MODEL=model)
+    provider = next(item for item in config['endpoints']['custom'] if item['name'] == 'Nebius Token Factory')
+    assert model in provider['models']['default']
+    assert provider['titleModel'] == DEFAULT_CHAT_MODEL
+
+
+@pytest.mark.parametrize('catalog', [None, {'data': [{'id': DEFAULT_CHAT_MODEL}]}])
+def test_unverified_speech_model_override_is_rejected(tmp_path, catalog):
+    with pytest.raises(subprocess.CalledProcessError):
+        render_config(tmp_path, catalog=catalog, SCIENTIFIC_SPEECH_WORKSHOP='true',
+                      SCIENTIFIC_SPEECH_CHAT_MODEL='Qwen/Qwen3.8-27B')
+
+
+def test_disabled_workshop_does_not_admit_speech_override(tmp_path):
+    config, _ = render_config(tmp_path, SCIENTIFIC_SPEECH_WORKSHOP='false',
+                              SCIENTIFIC_SPEECH_CHAT_MODEL='Qwen/Qwen3.8-27B')
+    provider = next(item for item in config['endpoints']['custom'] if item['name'] == 'Nebius Token Factory')
+    assert 'Qwen/Qwen3.8-27B' not in provider['models']['default']
+
+
 def test_no_credentials_are_baked_into_the_image_context() -> None:
     combined = "\n".join(
         path.read_text(encoding="utf-8")

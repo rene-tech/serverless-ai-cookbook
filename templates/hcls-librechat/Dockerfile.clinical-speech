@@ -16,17 +16,20 @@ RUN cd /tmp/clinical-client-source \
  && cp demos/run-display.ts /app/client/src/components/scientific-run-display.ts \
  && node demos/patch.mjs client \
  && cp speech/AudioRecorder.tsx /app/client/src/components/Chat/Input/AudioRecorder.tsx \
- && cp speech/LiveSpeech.tsx speech/ClinicalSoap.tsx speech/speech-state.js /app/client/src/components/ \
- && node speech/patch.mjs client
+ && cp speech/LiveSpeech.tsx speech/ClinicalSoap.tsx speech/workshop-client.js speech/speech-state.js /app/client/src/components/ \
+ && node speech/patch.mjs client \
+ && cp uploads/workspace-files.js uploads/save-attachment.js uploads/WorkspaceAttachments.tsx uploads/MessageAttachments.tsx uploads/attachment-only.tsx /app/client/src/components/ \
+ && node uploads/patch.mjs
 WORKDIR /app/client
 RUN NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build
 
 FROM ${SPEECH_BASE}
 USER root
 COPY --from=client /app/client/dist /app/client/dist
-COPY templates/hcls-librechat/demos/service.cjs templates/hcls-librechat/demos/worker.cjs /opt/hcls-librechat/demos/
+COPY templates/hcls-librechat/demos/service.cjs templates/hcls-librechat/demos/worker.cjs templates/hcls-librechat/demos/mcp.cjs /opt/hcls-librechat/demos/
 COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
 COPY templates/hcls-librechat/render-config.mjs templates/hcls-librechat/seed-workbench.js /opt/hcls-librechat/
+COPY templates/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/scientific-tool-options.cjs
 COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
 COPY skills/scientific-ai/ /app/skill/
 COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/speaker-finalize.py templates/hcls-librechat/speech/medical-mcp.py templates/hcls-librechat/speech/soap.cjs templates/hcls-librechat/speech/patch.mjs templates/hcls-librechat/speech/test-installed-config.cjs templates/hcls-librechat/speech/native-file.cjs templates/hcls-librechat/speech/speech-state.js /opt/hcls-librechat/speech/
@@ -35,6 +38,7 @@ COPY templates/hcls-librechat/assets/nebius-logo.svg /app/client/dist/assets/log
 COPY templates/hcls-librechat/assets/token-factory.svg /app/client/dist/assets/token-factory.svg
 COPY templates/hcls-librechat/speech/test-installed-seed.cjs /opt/hcls-librechat/speech/
 COPY templates/hcls-librechat/speech/dual-stream.cjs templates/hcls-librechat/speech/stream-receipt.cjs /opt/hcls-librechat/speech/
+COPY templates/hcls-librechat/speech/chat-transcribe.cjs /opt/hcls-librechat/speech/
 RUN node /opt/hcls-librechat/speech/patch.mjs server \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist \
  && node /opt/hcls-librechat/speech/test-installed-config.cjs \

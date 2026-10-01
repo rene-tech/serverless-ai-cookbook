@@ -6,6 +6,8 @@
 const alwaysReady = new Set([
   'get_model_schema_mcp_scientific-ai-apps',
   'workbench_list_apps_mcp_scientific-demos',
+  'workbench_transcribe_audio_mcp_scientific-demos',
+  'workbench_get_transcription_mcp_scientific-demos',
   'workbench_track_operation_mcp_scientific-demos',
   'workbench_list_operations_mcp_scientific-demos',
   'workbench_get_operation_mcp_scientific-demos',
