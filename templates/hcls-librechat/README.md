@@ -43,7 +43,7 @@ export NEBIUS_SUBNET_ID='vpcsubnet-...'
 export SCIENTIFIC_MODELS_API_KEY_SECRET_SELECTOR='nebius-scientific-model-gateway'
 export TOKEN_FACTORY_SECRET_SELECTOR='<secret selector with NEBIUS_API_KEY>'
 export TAVILY_SECRET_SELECTOR='<secret selector with TAVILY_API_KEY>'
-# IMAGE is optional: the deployment script defaults to the tested skills release.
+# IMAGE is optional: the deployment script selects the shared workbench release.
 # Set it only when choosing a separately qualified runtime override.
 # Only for a user who has no active study supervisor:
 export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
@@ -51,9 +51,9 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:gromacs-p2-20260923-r1`,
-digest `sha256:4155dd171ecb2e3c178695a66efe426c75ea8d219dfaceb8757735774dbe8a36`.
-Its 32 canonical customer skills (80 installed including the pinned ClawBio
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:general-openff-20261001-r4`,
+digest `sha256:3b8a3c21385a7cdcff216f94ef7f102f5eeac1473f9c513acae4b1f71f9ab116`.
+Its 36 canonical customer skills (84 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. Operators maintain this selection in
@@ -62,6 +62,19 @@ this default changes; upgrading their application requires a separate controlled
 rollout preserving chats, credentials and workspace bindings. In particular,
 this image extends the qualified recording workbench; it is not a skills-only
 replacement for an older v11 runtime.
+
+New installations include the shared compact agent instructions and the actual
+[OpenFF CPU runtime](openff/README.md), not just its skill. Standalone ligand
+preparation uses `/opt/openff/bin/python` with pinned Sage and AM1-BCC dependencies;
+no interactive conda/pip installation or GPU is required. GLM-5.3-Flash remains
+the selected model, with `SCIENTIFIC_CHAT_REASONING_EFFORT=low` by default (an
+explicit `high` or `max` override remains possible). The title call also uses
+bounded reasoning. This is a general-purpose release, not a customer overlay.
+
+`NEBIUS_CLI` can select a specific installed CLI executable, and
+`SERVERLESS_DRY_RUN=true` validates the same deployment request without creating
+an endpoint. Secrets, user identity and bucket binding still need to be supplied
+as shown in the dedicated-user example below.
 
 The script creates a public CPU D3 endpoint on port `3080`; LibreChat keeps its
 own email/password sign-in page reachable. Dedicated deployments mount a user or team's
