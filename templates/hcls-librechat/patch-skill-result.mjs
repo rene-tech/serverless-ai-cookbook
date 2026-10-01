@@ -19,7 +19,19 @@ export function patchSkillResult(source) {
   return source.replace(before, after);
 }
 
+export function patchInstalledSkillPaths(source) {
+  const before = 'async function handleReadFileCall(tc, mergedConfigurable, options, req, onSandboxReadSuccess, signal) {';
+  const after = before + `
+\t// scientific-ai: installed read-only skill path aliases, same upstream ACLs.
+\tif (typeof tc.args?.path === 'string' && tc.args.path.startsWith('/app/skill/')) {
+\t\ttc = {...tc, args: {...tc.args, path: tc.args.path.slice('/app/skill/'.length)}};
+\t}`;
+  if (source.includes(after)) throw new Error('Installed skill paths already patched');
+  if (source.split(before).length !== 2) throw new Error('Unsupported pinned file handler');
+  return source.replace(before, after);
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const path = '/app/packages/api/dist/index.cjs';
-  await writeFile(path, patchSkillResult(await readFile(path, 'utf8')));
+  await writeFile(path, patchInstalledSkillPaths(patchSkillResult(await readFile(path, 'utf8'))));
 }

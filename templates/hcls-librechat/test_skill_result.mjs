@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { patchSkillResult } from './patch-skill-result.mjs';
+import { patchSkillResult, patchInstalledSkillPaths } from './patch-skill-result.mjs';
 
 const fixture = `async function handler(args, skill) {
   if (!skill.accessible) throw new Error('No access');
@@ -28,4 +28,21 @@ test('model-invoked skill is returned completely as reference tool content', asy
 test('upstream drift and double patching are rejected', () => {
   assert.throws(() => patchSkillResult('different upstream'), /Unsupported/);
   assert.throws(() => patchSkillResult(patchSkillResult(fixture)), /already patched/);
+});
+
+test('installed skill aliases retain ACLs and never read arbitrary host files', async () => {
+  const source = `async function handleReadFileCall(tc, mergedConfigurable, options, req, onSandboxReadSuccess, signal) {
+    if (!options.authorized) throw new Error('No access');
+    return tc.args;
+  }`;
+  const handler = new Function(patchInstalledSkillPaths(source) + '; return handleReadFileCall;')();
+  const original = {args:{path:'/app/skill/openff/SKILL.md', start_line:4}};
+  assert.deepEqual(await handler(original, {}, {authorized:true}), {path:'openff/SKILL.md', start_line:4});
+  assert.equal(original.args.path, '/app/skill/openff/SKILL.md');
+  await assert.rejects(handler(original, {}, {authorized:false}), /No access/);
+  for (const path of ['/etc/passwd', '/workspace/data.csv', 'gromacs/references/a.md']) {
+    assert.equal((await handler({args:{path}}, {}, {authorized:true})).path, path);
+  }
+  assert.throws(() => patchInstalledSkillPaths(patchInstalledSkillPaths(source)), /already patched/);
+  assert.throws(() => patchInstalledSkillPaths('different upstream'), /Unsupported/);
 });
