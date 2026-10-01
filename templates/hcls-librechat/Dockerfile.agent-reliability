@@ -4,7 +4,11 @@ ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:06d0ca
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
 COPY templates/hcls-librechat/ /tmp/agent-reliability/
+COPY skills/scientific-ai/ /tmp/core-skills/
 RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliability/scientific-verified-delivery.cjs /tmp/agent-reliability/scientific-study-admission.cjs /tmp/agent-reliability/scientific-tool-options.cjs /tmp/agent-reliability/patch-agent-reliability.mjs /tmp/agent-reliability/patch-execution-ui.mjs /opt/hcls-librechat/ \
+ && python3 /tmp/core-skills/bundle.py verify \
+ && cp /tmp/core-skills/openff/SKILL.md /app/skill/openff/SKILL.md \
+ && cp /tmp/core-skills/manifest.json /tmp/core-skills/files.sha256.json /app/skill/ \
  && cp /tmp/agent-reliability/execution-mcp.py /tmp/agent-reliability/scientific_verified_results.py /opt/bionemo/ \
  && cp /tmp/agent-reliability/agent-instructions.md /app/agent-instructions.md \
  && cp /tmp/agent-reliability/seed-workbench.js /app/seed-hcls-workbench.js \
@@ -15,20 +19,24 @@ RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliab
  && node --check /app/seed-hcls-workbench.js \
  && python3 -m py_compile /opt/bionemo/execution-mcp.py /opt/bionemo/scientific_verified_results.py
 WORKDIR /app/client
-RUN NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --forceExit src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
+RUN NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build
 
-# Publish only changed files in one layer: the retained image is close to the
-# Docker overlay layer limit. Never copy the whole dependency tree again.
+# Stage only changed files so the final layer stays small, without hashing or
+# copying the full multi-GB dependency tree on every additive release.
+RUN mkdir -p /release/opt/hcls-librechat /release/opt/bionemo /release/app/skill/openff /release/app/node_modules/@librechat/agents/dist/cjs/graphs /release/app/client/src/components/Chat/Messages/Content \
+ && cp /opt/hcls-librechat/scientific-provider-recovery.cjs /opt/hcls-librechat/scientific-verified-delivery.cjs /opt/hcls-librechat/scientific-study-admission.cjs /opt/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/patch-agent-reliability.mjs /opt/hcls-librechat/patch-execution-ui.mjs /release/opt/hcls-librechat/ \
+ && cp /opt/bionemo/execution-mcp.py /opt/bionemo/scientific_verified_results.py /release/opt/bionemo/ \
+ && cp /app/agent-instructions.md /app/seed-hcls-workbench.js /release/app/ \
+ && cp /app/skill/openff/SKILL.md /release/app/skill/openff/SKILL.md \
+ && cp /app/skill/manifest.json /app/skill/files.sha256.json /release/app/skill/ \
+ && cp /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs /release/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
+ && cp /app/client/src/components/Chat/Messages/Content/ToolCallInfo.tsx /app/client/src/components/Chat/Messages/Content/ScientificExecutionOutput.tsx /release/app/client/src/components/Chat/Messages/Content/ \
+ && cp -a /app/client/dist /release/app/client/dist
+
 FROM ${WORKBENCH_BASE}
 USER root
-RUN --mount=type=bind,from=assembled,source=/,target=/assembled \
-    cp /assembled/opt/hcls-librechat/scientific-provider-recovery.cjs /assembled/opt/hcls-librechat/scientific-verified-delivery.cjs /assembled/opt/hcls-librechat/scientific-study-admission.cjs /assembled/opt/hcls-librechat/scientific-tool-options.cjs /assembled/opt/hcls-librechat/patch-agent-reliability.mjs /assembled/opt/hcls-librechat/patch-execution-ui.mjs /opt/hcls-librechat/ \
- && cp /assembled/opt/bionemo/execution-mcp.py /assembled/opt/bionemo/scientific_verified_results.py /opt/bionemo/ \
- && cp /assembled/app/agent-instructions.md /assembled/app/seed-hcls-workbench.js /app/ \
- && cp /assembled/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
- && cp /assembled/app/client/src/components/Chat/Messages/Content/ToolCallInfo.tsx /assembled/app/client/src/components/Chat/Messages/Content/ScientificExecutionOutput.tsx /app/client/src/components/Chat/Messages/Content/ \
- && cp -a /assembled/app/client/dist/. /app/client/dist/
+COPY --from=assembled /release/ /
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \

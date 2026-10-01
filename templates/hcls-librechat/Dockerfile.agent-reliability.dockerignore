@@ -13,3 +13,6 @@
 !templates/hcls-librechat/ScientificExecutionOutput.tsx
 !templates/hcls-librechat/ScientificExecutionOutput.test.tsx
 !templates/hcls-librechat/patch-execution-ui.mjs
+!skills
+!skills/scientific-ai
+!skills/scientific-ai/**

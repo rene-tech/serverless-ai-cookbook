@@ -38,6 +38,19 @@ energy are checks, not proof of molecule-specific predictive accuracy.
 
 ## Hosted workbench path
 
+When the workbench exposes `prepare_openff_ligand`, use that typed tool for
+Sage 2.2.1/AM1-BCC SMILES-only preparation. Supply exact `smiles`,
+`force_field: "openff-2.2.1.offxml"` and a fresh `output_directory`. It performs
+the identity check, returns computed stereo choices when needed, and reuses
+the same job on repeated calls. Observe its `job_id` with `read_execution`.
+On completion use `deliver_scientific_results` with
+`results: [{kind: "openff", path: "ACTUAL_OUTPUT_DIRECTORY"}]`; this validates
+the files and renders exact measurements and links without paraphrasing.
+Call the delivery tool only when the requested work is complete, not midway
+through a larger workflow. MCP tool names may carry the client's server suffix.
+
+For external/older clients without those tools, use the same installed helper:
+
 1. Check once for `/opt/openff/bin/python` and the packaged
    `/opt/bionemo/prepare-openff.py`. If absent, report that precise dependency.
    Do not search arbitrary temporary environments or install conda/pip packages.

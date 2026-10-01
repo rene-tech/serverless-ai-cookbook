@@ -9,6 +9,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import subprocess
 from urllib.parse import urlencode
 
@@ -70,7 +71,11 @@ def openff_card(folder, root):
             ('CPU reference energy (kJ/mol)', f"{data['cpu_reference_energy_kj_mol']:.8g}"),
             ('Charge assignment (s)', f"{data['charge_seconds']:.2f}"),
             ('Preparation (s)', f"{data['elapsed_seconds']:.2f}")]
-    text = ['### Standalone ligand prepared', '', f"Input SMILES: `{cell(data['input_smiles'])}`.", '',
+    # Backslashes are chemical stereo syntax and literal inside a code span.
+    # Markdown table escaping here would silently alter the displayed molecule.
+    smiles = str(data['input_smiles'])
+    fence = '`' * (max((len(part) for part in re.findall(r'`+', smiles)), default=0) + 1)
+    text = ['### Standalone ligand prepared', '', f"Input SMILES: {fence}{smiles}{fence}.", '',
             '| Measured or recorded field | Value |', '|---|---|']
     text += [f'| {label} | {cell(value)} |' for label, value in rows]
     text += ['', 'Versions: ' + ', '.join(f'{cell(k)} {cell(v)}' for k, v in data['versions'].items()) + '.', '',

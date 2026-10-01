@@ -49,9 +49,9 @@ directly; a model service and GPU are not needed.
 For a requested mmCIF inventory call `deliver_scientific_results_mcp_environment-execution`
 with `results: [{kind: "mmcif", path: "EXACT_INPUT.cif"}]`. This reads the file with
 the installed helper and displays its factual inventory as the final answer,
-without another model turn rewriting counts or links. For an inventory that is
-only an intermediate step, use `/opt/scientific-client/bin/python
-/opt/bionemo/inspect-mmcif.py INPUT.cif --format markdown` instead and continue.
+without another model turn rewriting counts or links. If inspection is only an
+intermediate step of a larger preparation/analysis request, use the installed
+Gemmi inventory helper and continue instead of ending the task there.
 Whole-file totals include solvent and must not be labeled polymer totals. It distinguishes
 author numbering from sequence positions. Do not infer missing loops from author
 number jumps, or claim all loops/atoms are complete. Keep the helper's explicit

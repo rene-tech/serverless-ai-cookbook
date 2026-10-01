@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isEmptyStoppedResponse, invokeWithRecovery } = require('./scientific-provider-recovery.cjs');
+const { isEmptyStoppedResponse, invokeWithRecovery, recoveryMessages } = require('./scientific-provider-recovery.cjs');
 const response = (fields = {}) => ({ messages: [{ getType: () => 'ai', content: '',
   response_metadata: { finish_reason: 'stop' }, ...fields }] });
 
@@ -23,13 +23,25 @@ test('recognizes only empty or reasoning-only normal stops', () => {
 });
 
 test('retries the invocation once and retains failed-attempt evidence', async () => {
-  let calls = 0; const observed = [];
+  let calls = 0; const observed = []; const attempts = [];
   const good = response({ content: 'Measured result' });
-  const result = await invokeWithRecovery({ invoke: async () => ++calls === 1 ? response() : good,
+  const result = await invokeWithRecovery({ invoke: async (recover) => { attempts.push(recover); return ++calls === 1 ? response() : good; },
     canRetry: () => true, observeEmpty: (message) => observed.push(message) });
   assert.equal(result, good);
   assert.equal(calls, 2); assert.equal(observed.length, 1);
+  assert.deepEqual(attempts, [false, true]);
   assert.equal(result.messages[0].response_metadata.scientific_empty_response_retries, 1);
+});
+
+test('recovery notice is host-authored, retains results, and does not invent a user continuation', () => {
+  const history = [{ role: 'tool', content: 'existing operation result' }];
+  class SystemMessage { constructor(fields) { Object.assign(this, fields); } }
+  const messages = recoveryMessages(history, SystemMessage);
+  assert.equal(history.length, 1); assert.equal(messages.length, 2);
+  assert.equal(messages[0], history[0]);
+  assert.ok(messages[1] instanceof SystemMessage);
+  assert.equal(messages[1].additional_kwargs.source, 'scientific-empty-recovery');
+  assert.match(messages[1].content, /instead of resubmitting/);
 });
 
 test('a second empty response stays incomplete, never loops indefinitely', async () => {
@@ -59,11 +71,13 @@ test('provider errors propagate to the existing error/fallback implementation', 
 test('the pinned patch is exact and refuses duplicate installation', async () => {
   const { patchProviderRecovery } = await import('./patch-agent-reliability.mjs');
   const fixture = '\n\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(\n' +
+    'request: preparedRequest,\n' +
     '\t\t\t\t}, invokeConfig));\n\t\t\t} catch (primaryError) {\n' +
     '\t\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(fallback);';
   const patched = patchProviderRecovery(fixture);
   assert.match(patched, /invokeWithRecovery/);
   assert.match(patched, /signal: invokeConfig.signal/);
+  assert.match(patched, /recovery.measurement\?\.fits/);
   assert.match(patched, /withLangfuseRuntimeScope\(fallback\)/);
   assert.throws(() => patchProviderRecovery(patched));
   assert.throws(() => patchProviderRecovery('unrecognized source'));

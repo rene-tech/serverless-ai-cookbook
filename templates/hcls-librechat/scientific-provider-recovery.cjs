@@ -1,5 +1,5 @@
 // Recover one empty, normally stopped provider generation. This retries only
-// the LLM invocation with its unchanged history; it never calls a tool, replays
+// the LLM invocation with its retained history; it never calls a tool, replays
 // a command, changes models or resubmits scientific work.
 'use strict';
 
@@ -28,12 +28,12 @@ function isEmptyStoppedResponse(result) {
 }
 
 async function invokeWithRecovery({ invoke, signal, canRetry, observeEmpty }) {
-  const first = await invoke();
+  const first = await invoke(false);
   if (!isEmptyStoppedResponse(first) || signal?.aborted || !canRetry()) return first;
   observeEmpty(first.messages[0]);
   // Exactly one additional attempt. The existing request/context/output/step
   // ceilings, cancellation signal and provider error handling remain in force.
-  const second = await invoke();
+  const second = await invoke(true);
   const message = second?.messages?.[0];
   if (message) {
     message.response_metadata = { ...message.response_metadata,
@@ -42,4 +42,12 @@ async function invokeWithRecovery({ invoke, signal, canRetry, observeEmpty }) {
   return second;
 }
 
-module.exports = { hasVisibleContent, isEmptyStoppedResponse, invokeWithRecovery };
+function recoveryMessages(messages, SystemMessage) {
+  return [...messages, new SystemMessage({
+    content: 'Your previous generation stopped without an answer or a tool call. This is a host recovery notice, not a new user request. Continue the original authorized task from the tool results already present. If work remains, perform the next necessary step; if it is complete, provide the result. Do not just repeat the plan or reread a loaded skill. Preserve existing jobs and operation IDs: observe or recover them instead of resubmitting computation.',
+    additional_kwargs: { source: 'scientific-empty-recovery', injected: true, isMeta: true,
+      provenance: { version: 1, parts: [{ attribution: 'synthetic' }] } },
+  })];
+}
+
+module.exports = { hasVisibleContent, isEmptyStoppedResponse, invokeWithRecovery, recoveryMessages };

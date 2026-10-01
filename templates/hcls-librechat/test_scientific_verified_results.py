@@ -59,6 +59,19 @@ def test_charge_totals_cannot_be_invented_even_with_updated_manifest(tmp_path):
         deliver({'results': [{'kind': 'openff', 'path': str(folder)}]}, tmp_path)
 
 
+def test_smiles_backslashes_remain_literal_in_code_span(tmp_path):
+    folder = tmp_path / 'ligand'
+    ligand(folder)
+    data = json.loads((folder / 'preparation.json').read_text())
+    data['input_smiles'] = r'F/C=C\F'
+    meta = save(folder / 'preparation.json', data)
+    manifest = json.loads((folder / 'manifest.json').read_text())
+    manifest['files']['preparation.json'] = meta
+    save(folder / 'manifest.json', manifest)
+    text = deliver({'results': [{'kind': 'openff', 'path': str(folder)}]}, tmp_path)['report_markdown']
+    assert r'Input SMILES: `F/C=C\F`.' in text
+
+
 def md_fixture(folder):
     native = folder / 'native/result-00'
     native.mkdir(parents=True)

@@ -12,8 +12,24 @@ export function patchProviderRecovery(source) {
   source = replaceOnce(source,
     '\n\t\t\t\tresult = await require_langfuseRuntimeScope.withLangfuseRuntimeScope(',
     "\n\t\t\t\tresult = await require('/opt/hcls-librechat/scientific-provider-recovery.cjs').invokeWithRecovery({\n" +
-    '\t\t\t\t\tinvoke: () => require_langfuseRuntimeScope.withLangfuseRuntimeScope(',
+    '\t\t\t\t\tinvoke: (recover) => require_langfuseRuntimeScope.withLangfuseRuntimeScope(',
     'empty provider recovery start');
+  source = replaceOnce(source,
+    'request: preparedRequest,',
+    `request: recover ? (() => {
+\t\t\t\t\t\tconst recoveryMessages = require('/opt/hcls-librechat/scientific-provider-recovery.cjs').recoveryMessages(beforeFinalProviderProjection, _langchain_core_messages.SystemMessage);
+\t\t\t\t\t\tconst recovery = require_prepareProviderRequest.prepareProviderRequest({
+\t\t\t\t\t\t\tmodel: this.overrideModel ?? model, messages: recoveryMessages,
+\t\t\t\t\t\t\tprovider: agentContext.provider, context: this, config,
+\t\t\t\t\t\t\tmaxToolResultChars: maxProviderToolResultChars, measure: measureProviderPayload
+\t\t\t\t\t\t});
+\t\t\t\t\t\tif (!recovery.measurement?.fits) throw createProviderPayloadOverflowError({
+\t\t\t\t\t\t\tprojection: recovery.measurement, provider: agentContext.provider,
+\t\t\t\t\t\t\tinfo: 'Empty-response recovery does not fit the unchanged context budget.'
+\t\t\t\t\t\t});
+\t\t\t\t\t\treturn recovery;
+\t\t\t\t\t})() : preparedRequest,`,
+    'bounded recovery notice');
   return replaceOnce(source,
     '\t\t\t\t}, invokeConfig));\n\t\t\t} catch (primaryError) {',
     `\t\t\t\t}, invokeConfig)),
