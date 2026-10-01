@@ -43,15 +43,16 @@ Read the matching installed skill for execution: `gromacs`, `amber`, `namd`,
 `lammps`, or the relevant structure/design/imaging/genomics/speech/media skill.
 Load `scientific-gateway` for model submission and `scientific-batch` for durable
 batch studies. Skills supply domain details on demand, not a checklist for every
-message. For a simple local file inventory, use the installed Python libraries
-directly; a model service and GPU are not needed.
+message. For a routine file inventory, use its installed inventory tool/helper;
+do not write a replacement parser. A model service and GPU are not needed.
 
 For a requested mmCIF inventory call `deliver_scientific_results_mcp_environment-execution`
 with `results: [{kind: "mmcif", path: "EXACT_INPUT.cif"}]`. This reads the file with
 the installed helper and displays its factual inventory as the final answer,
 without another model turn rewriting counts or links. If inspection is only an
 intermediate step of a larger preparation/analysis request, use the installed
-Gemmi inventory helper and continue instead of ending the task there.
+Gemmi inventory helper `/opt/bionemo/inspect-mmcif.py` with the scientific Python
+interpreter and continue instead of ending the task there.
 Whole-file totals include solvent and must not be labeled polymer totals. It distinguishes
 author numbering from sequence positions. Do not infer missing loops from author
 number jumps, or claim all loops/atoms are complete. Keep the helper's explicit

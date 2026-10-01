@@ -15,6 +15,8 @@ import subprocess
 import sys
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from scientific_study_schema import STUDY_SCHEMA, DRAFT_SCHEMA, PHASE_OUTPUTS, describe_workflow
 
 ROOT = Path(os.environ.get('SCIENTIFIC_EXECUTION_DIR', '/data/hcls-execution'))
@@ -576,45 +578,61 @@ TOOLS = [
 ]
 
 
+def handle_line(line):
+    request = None
+    try:
+        request = json.loads(line)
+        if 'id' not in request:
+            return None
+        method = request.get('method')
+        if method == 'initialize':
+            result = {'protocolVersion': '2024-11-05', 'capabilities': {'tools': {}},
+                      'serverInfo': {'name': 'environment-execution', 'version': '1.0'}}
+        elif method == 'ping':
+            result = {}
+        elif method == 'tools/list':
+            result = {'tools': TOOLS}
+        elif method == 'tools/call':
+            params = request['params']
+            handler = {'execute_command': execute, 'read_execution': read_job,
+                       'prepare_openff_ligand': prepare_openff_ligand,
+                       'deliver_scientific_results': deliver_scientific_results,
+                       'compose_scientific_workflow': compose_scientific_workflow,
+                       'describe_scientific_workflow': lambda args: describe_workflow(args.get('methods')),
+                       'run_scientific_workflow': run_scientific_workflow,
+                       'recover_scientific_results': recover_scientific_results,
+                       'upload_workspace_files': upload_workspace_files}[params['name']]
+            try:
+                value = handler(params.get('arguments', {}))
+                result = {'content': [{'type': 'text', 'text': json.dumps(value)}],
+                          'isError': value.get('status') in ('failed', 'timed_out', 'interrupted') or
+                              (params['name'] == 'compose_scientific_workflow' and value.get('validation_error') is not None)}
+            except (ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
+                result = {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}
+        else:
+            raise ValueError('Unknown MCP method.')
+        reply = {'jsonrpc': '2.0', 'id': request['id'], 'result': result}
+    except Exception:
+        reply = {'jsonrpc': '2.0', 'id': request.get('id') if isinstance(request, dict) else None,
+                 'error': {'code': -32602, 'message': 'Invalid execution request.'}}
+    return reply
+
+
 def main():
-    for line in sys.stdin:
-        request = None
-        try:
-            request = json.loads(line)
-            if 'id' not in request:
-                continue
-            method = request.get('method')
-            if method == 'initialize':
-                result = {'protocolVersion': '2024-11-05', 'capabilities': {'tools': {}},
-                          'serverInfo': {'name': 'environment-execution', 'version': '1.0'}}
-            elif method == 'ping':
-                result = {}
-            elif method == 'tools/list':
-                result = {'tools': TOOLS}
-            elif method == 'tools/call':
-                params = request['params']
-                handler = {'execute_command': execute, 'read_execution': read_job,
-                           'prepare_openff_ligand': prepare_openff_ligand,
-                           'deliver_scientific_results': deliver_scientific_results,
-                           'compose_scientific_workflow': compose_scientific_workflow,
-                           'describe_scientific_workflow': lambda args: describe_workflow(args.get('methods')),
-                           'run_scientific_workflow': run_scientific_workflow,
-                           'recover_scientific_results': recover_scientific_results,
-                           'upload_workspace_files': upload_workspace_files}[params['name']]
-                try:
-                    value = handler(params.get('arguments', {}))
-                    result = {'content': [{'type': 'text', 'text': json.dumps(value)}],
-                              'isError': value.get('status') in ('failed', 'timed_out', 'interrupted') or
-                                  (params['name'] == 'compose_scientific_workflow' and value.get('validation_error') is not None)}
-                except (ValueError, KeyError, OSError) as error:
-                    result = {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}
-            else:
-                raise ValueError('Unknown MCP method.')
-            reply = {'jsonrpc': '2.0', 'id': request['id'], 'result': result}
-        except Exception:
-            reply = {'jsonrpc': '2.0', 'id': request.get('id') if isinstance(request, dict) else None,
-                     'error': {'code': -32602, 'message': 'Invalid execution request.'}}
-        print(json.dumps(reply), flush=True)
+    # One shared stdio connection can serve overlapping chats. A bounded
+    # observation must not hold the input loop and starve another tool until
+    # its unchanged MCP deadline expires. IDs bind out-of-order responses.
+    output_lock = Lock()
+
+    def respond(line):
+        reply = handle_line(line)
+        if reply is not None:
+            with output_lock:
+                print(json.dumps(reply), flush=True)
+
+    with ThreadPoolExecutor(max_workers=16, thread_name_prefix='scientific-mcp') as workers:
+        for line in sys.stdin:
+            workers.submit(respond, line)
 
 
 if __name__ == '__main__':

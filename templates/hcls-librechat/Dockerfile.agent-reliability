@@ -49,4 +49,5 @@ COPY --from=assembled /release/ /
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      ai.nebius.scientific.skills.version="2026.10.01.5" \
       ai.nebius.scientific.agent-reliability.revision="${HCLS_IMAGE_REVISION}"

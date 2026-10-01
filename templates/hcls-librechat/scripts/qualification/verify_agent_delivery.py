@@ -27,6 +27,20 @@ def read_tool_output(value):
         return {}
 
 
+def tool_failures(calls):
+    """A later answer must not hide failed commands or MCP transport errors."""
+    failures = []
+    for call in calls:
+        output = read_tool_output(call.get('output'))
+        raw = str(call.get('output', ''))
+        if (output.get('status') in {'failed', 'timed_out', 'interrupted'} or
+                output.get('isError') is True or call.get('isError') is True or
+                re.search(r'MCP error -?\d+|McpError|Request timed out|Error executing tool', raw)):
+            failures.append({'tool': call.get('name'), 'status': output.get('status', 'tool_error'),
+                             'job_id': output.get('job_id'), 'exit_code': output.get('exit_code')})
+    return failures
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--replay', type=Path, required=True)
@@ -34,6 +48,8 @@ def main():
     parser.add_argument('--login', type=Path, required=True)
     parser.add_argument('--container', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--expected-rejection-case', action='append', default=[],
+                        help='Explicit negative fixture, still retained in evidence; never excludes transport errors.')
     args = parser.parse_args()
     os.umask(0o077)
     test = Path(__file__).parents[2] / 'test_prepare_openff.py'
@@ -53,6 +69,15 @@ def main():
             calls = [p['tool_call'] for p in parts if p.get('type') == 'tool_call']
             reports, directories, downloads = [], set(), []
             failures = list(summary['errors'])
+            observed_failures = tool_failures(calls)
+            for error in observed_failures:
+                expected = (path.parent.name in args.expected_rejection_case and
+                            error['status'] == 'failed' and error['exit_code'] is not None)
+                if not expected:
+                    failures.append('unexpected failed tool: ' + str(error['tool']))
+            warnings_path = path.parent / 'transport-warnings.json'
+            if warnings_path.exists() and json.loads(warnings_path.read_text()):
+                failures.append('replay transport warnings')
             if summary['empty_answer'] or summary['unfinished']:
                 failures.append('incomplete agent answer')
             for call in calls:
@@ -103,6 +128,7 @@ def main():
                                      'hash_verified_http_downloads': verified})
             rows.append({'case_id': path.parent.name, 'verified_report_count': len(reports),
                          'delivered_links': downloads, 'preparations': preparations,
+                         'observed_tool_failures': observed_failures,
                          'failures': failures, 'technical_delivery_pass': not failures})
     result = {'scope': 'technical delivery, not scientific accuracy/convergence', 'cases': rows,
               'passed': bool(rows) and all(r['technical_delivery_pass'] for r in rows)}
