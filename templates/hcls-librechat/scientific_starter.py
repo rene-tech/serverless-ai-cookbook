@@ -17,6 +17,11 @@ def resolve(case_directory, model, output, workspace, python, client):
         raise ValueError('Input and output paths must be inside the mounted workspace.')
     if not case.is_dir() or model not in {'gromacs', 'namd', 'amber', 'lammps'}:
         raise ValueError('Select an existing installed MD example and one of its supported engines.')
+    # Both the case folder shown in the catalog and its explicit engine folder
+    # identify the same recipe. Normalize only this unambiguous direct child;
+    # never search arbitrary parents for a different protocol.
+    if case.name == model and not (case / 'recipes.json').exists() and (case.parent / 'recipes.json').is_file():
+        case = case.parent
     pack = next((p for p in [case, *case.parents] if p.is_relative_to(workspace) and
                  (p / 'manifest.json').is_file() and
                  json.loads((p / 'manifest.json').read_text()).get('schema') ==

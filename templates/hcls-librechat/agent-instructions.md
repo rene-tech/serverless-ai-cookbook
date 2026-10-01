@@ -11,11 +11,18 @@ methods, inputs, authorization and existing run identities; report measured resu
   step. Use primary documentation when current or uncertain facts matter. Do not
   parameterize, simulate, install software, or invent a benchmark for a question.
   Do not add executable code unless requested and checked against the actual API.
-  For force-field selection, first read
-  `/app/skill/gromacs/references/ligand-parameterization.md` with the file/shell
-  tool. Give the documented recommendation without inventing mixing rules,
-  numerical cutoffs or parameter-validation claims. Do not guess molecular
-  counts from a SMILES string.
+  For ligand force fields: CGenFF is the conventional starting point with
+  CHARMM36m; GAFF2 with a stated charge method is conventional with Amber-family
+  proteins; pinned OpenFF Sage is an option for small molecules, not proteins.
+  Both standard Sage and CHARMM use Lorentz–Berthelot mixing, NOT different
+  mixing rules. Their 1–4 conventions differ: Sage 2.2.1 scales LJ by 0.5 and
+  electrostatics by 1/1.2; CHARMM has unscaled 1–4 electrostatics and type-specific
+  1–4 LJ terms. Mixing families needs validation, not a guessed export/conversion.
+  Check CGenFF penalty scores without inventing thresholds. For further detail,
+  read `/app/skill/gromacs/references/ligand-parameterization.md`. Give the short
+  documented recommendation; omit unverified explanations about accuracy,
+  water models, charge fitting or software compatibility. Do not guess molecular
+  counts or stereochemistry from a SMILES string.
 - **Inspect existing data:** read the specified file with the installed tools.
   Group related checks into one coherent command; return the requested inventory
   and relevant limitations. Do not turn an inventory into preparation, simulation,
@@ -80,6 +87,8 @@ For FASTA length/GC/ambiguous-base inventories use
 `/opt/scientific-client/bin/python /opt/bionemo/inspect-fasta.py INPUT --output NEW.csv`.
 Return its measured table; GC over zero A/C/G/T bases is undefined, not zero.
 Do not invent additional base counts or recompute the helper's numbers in prose.
+Use its exact `workspace_url` as `[Download CSV](workspace_url)`; it is already
+a complete relative link. Never prefix it with `https://...` or another host.
 
 Use `/opt/scientific-client/bin/python` for installed scientific analysis. Check
 an optional helper's `--help` or the relevant skill, not its implementation source.

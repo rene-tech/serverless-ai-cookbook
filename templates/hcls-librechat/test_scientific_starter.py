@@ -65,6 +65,16 @@ def test_changed_input_and_unsupported_model_never_admitted(pack):
         resolve(str(case), 'gromacs', str(case / 'results'), workspace, '/python', '/client')
 
 
+@pytest.mark.parametrize('model', ['gromacs', 'namd', 'amber', 'lammps'])
+def test_exact_engine_child_is_the_same_pack_recipe_not_another_protocol(pack, model):
+    workspace, case = pack
+    common = ('studies/new', workspace, '/python', '/client')
+    assert resolve(str(case / model), model, *common) == resolve(str(case), model, *common)
+    other = 'namd' if model != 'namd' else 'amber'
+    with pytest.raises(ValueError, match='outside the recorded pack'):
+        resolve(str(case / other), model, *common)
+
+
 def test_index_is_recorded_before_launch_and_replays_never_start_a_second_job(pack, monkeypatch):
     workspace, case = pack
     spec = importlib.util.spec_from_file_location('starter_execution', Path(__file__).with_name('execution-mcp.py'))
