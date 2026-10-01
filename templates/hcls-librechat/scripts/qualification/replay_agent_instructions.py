@@ -45,6 +45,30 @@ def summarize(messages):
     }
 
 
+def observe_get(client, path, warnings, pause=time.sleep):
+    """Retry only observation GETs, never chat submission or scientific work.
+
+    Preserve every transient response in evidence. Recovery does not turn a
+    cohort with unexpected transport warnings into a clean acceptance pass.
+    """
+    for attempt in range(3):
+        response = client.get(path)
+        if response.status_code not in (429, 502, 503, 504):
+            response.raise_for_status()
+            return response
+        try:
+            body = response.json()
+            code = str(body.get('code', ''))[:80] if isinstance(body, dict) else None
+        except ValueError:
+            code = None
+        warnings.append({'method': 'GET', 'path': path, 'code': code,
+                         'retry_after': response.headers.get('Retry-After'),
+                         'http_status': response.status_code, 'attempt': attempt + 1})
+        if attempt == 2:
+            response.raise_for_status()
+        pause(attempt + 1)
+
+
 def run_case(args, token, original, case, model):
     variant = model.replace('/', '_')
     if args.reasoning_effort:
@@ -92,9 +116,10 @@ def run_case(args, token, original, case, model):
         # Status reads do not submit inference. The real client uses this same
         # durable generation when reconnecting; no synthetic assistant loop.
         watchdog = False
+        transport_warnings = []
         while True:
-            status_response = client.get('/api/agents/chat/status/' + cid)
-            status_response.raise_for_status()
+            status_response = observe_get(client, '/api/agents/chat/status/' + cid, transport_warnings)
+            save(directory / 'transport-warnings.json', transport_warnings)
             status = status_response.json()
             save(directory / 'status.json', status)
             if not status.get('active'):
@@ -105,8 +130,7 @@ def run_case(args, token, original, case, model):
                 watchdog = True
                 break
             time.sleep(3)
-        messages_response = client.get('/api/messages/' + cid)
-        messages_response.raise_for_status()
+        messages_response = observe_get(client, '/api/messages/' + cid, transport_warnings)
         messages = messages_response.json()
         save(directory / 'messages.json', messages)
         result = {'case_id': case['case_id'], 'model': model, 'conversation_id': cid,
@@ -114,6 +138,7 @@ def run_case(args, token, original, case, model):
             'reasoning_effort': (original.get('model_parameters', {}).get('reasoning_effort')
                                  if args.use_seeded_agent else args.reasoning_effort),
             'seeded_agent': args.use_seeded_agent, 'output_directory': output_directory,
+            'transport_warnings': transport_warnings,
             'seconds': round(time.monotonic() - start, 3), 'watchdog_aborted': watchdog,
             'instructions_sha256': hashlib.sha256(instructions.encode()).hexdigest(),
             'core_instructions_sha256': hashlib.sha256(args.instruction_text.encode()).hexdigest(),

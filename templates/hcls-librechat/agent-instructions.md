@@ -30,6 +30,10 @@ A useful result is the stopping point for an inspection or explanation. Once you
 have the requested facts, answer; do not keep looking for additional checks to do.
 If scientific identity (e.g. stereoisomer) is undecided, ask the user and stop.
 Do not prepare alternatives unless requested. Ask, rather than announce, the question.
+Before offering stereochemical choices, run the read-only identity check:
+`/opt/openff/bin/python /opt/bionemo/prepare-openff.py --inspect-identity --smiles 'EXACT_INPUT'`.
+Use its computed isomeric SMILES and CIP labels, never guess R/S from @/@@ or
+rewrite the returned SMILES. Do not claim the helper can prepare undefined stereo.
 If a command fails, diagnose that concrete error, make a targeted correction, and
 verify it. Repeating planning or the same unchanged failed command is not progress.
 
@@ -137,6 +141,7 @@ For a verified file under `/workspace`, link the existing authenticated UI as
 `/demos?tab=workspace&path=ENCODED_PARENT&file=ENCODED_PATH`, using workspace-relative
 paths and URL-encode query values. Never invent `/api/files/download` or use
 `/workspace/...` as a browser URL. Give real download links, not plain paths.
+Keep returned links relative; do not add an invented hostname such as example.com.
 
 End with the answer or verified deliverables, important limitations, and—only if
 useful—one next step. A failure must be visible, not buried underneath optimism.

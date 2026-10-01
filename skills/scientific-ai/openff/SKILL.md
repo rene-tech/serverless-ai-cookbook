@@ -22,6 +22,11 @@ not a reason to leave a turn indefinitely thinking.
 - **Parameterization:** preserve the exact chemical identity, stereochemistry,
   protonation/formal charge, input conformer when supplied, and requested method.
   Undefined stereochemistry or an unresolved chemical choice requires a question.
+  First run `/opt/openff/bin/python /opt/bionemo/prepare-openff.py --inspect-identity --smiles 'EXACT_INPUT'`.
+  This read-only probe computes isomeric SMILES and CIP labels without creating
+  files, assigning charges or choosing an isomer. Ask using those computed choices;
+  never label @/@@ as R/S from memory or manually rewrite the returned SMILES.
+  The preparation helper rejects undefined stereo; do not offer it as a valid route.
 - **MD simulation:** parameterization is only one preparation stage. Hand the
   resulting files and provenance to the selected engine skill after checking
   protein/lipid/water compatibility. Never call a ligand bundle MD-ready.

@@ -22,6 +22,29 @@ OPENFF_AVAILABLE = (importlib.util.find_spec('openff') is not None
 
 @unittest.skipUnless(OPENFF_AVAILABLE, 'optional OpenFF environment required')
 class PreparationTests(unittest.TestCase):
+    def test_stereo_choices_are_computed_not_guessed_from_at_signs(self):
+        from rdkit import Chem
+        result = HELPER.inspect_identity('CC(O)CC')
+        self.assertEqual(result['status'], 'needs_user_input')
+        self.assertFalse(result['outputs_created'])
+        self.assertEqual(len(result['choices']), 2)
+        labels = set()
+        for choice in result['choices']:
+            actual = Chem.FindMolChiralCenters(Chem.MolFromSmiles(choice['isomeric_smiles']),
+                                               useLegacyImplementation=False)
+            self.assertEqual(choice['chiral_centers_zero_based'], actual)
+            labels.update(label for _, label in actual)
+        self.assertEqual(labels, {'R','S'})
+        self.assertEqual(HELPER.inspect_identity('C[C@H](O)CC')['chiral_centers'][0][1], 'S')
+        self.assertEqual(HELPER.inspect_identity('C[C@@H](O)CC')['chiral_centers'][0][1], 'R')
+
+    def test_identity_probe_preserves_charge_and_rejects_invalid_input(self):
+        result = HELPER.inspect_identity('C[NH3+]')
+        self.assertEqual(result['formal_charge_e'], 1)
+        self.assertEqual(result['status'], 'identity_defined')
+        with self.assertRaises(ValueError):
+            HELPER.inspect_identity('invalid-not-a-smiles')
+
     def test_undefined_stereochemistry_is_not_silently_assigned(self):
         from openff.toolkit.utils.exceptions import UndefinedStereochemistryError
         with tempfile.TemporaryDirectory() as folder:

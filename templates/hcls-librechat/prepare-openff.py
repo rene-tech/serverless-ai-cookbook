@@ -29,6 +29,46 @@ def package_version(name):
         return matching[0]['version']
 
 
+def inspect_identity(smiles):
+    """Compute stereochemical choices without choosing, parameterizing or writing files."""
+    from rdkit import Chem
+    from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
+
+    molecule = Chem.MolFromSmiles(smiles)
+    if molecule is None:
+        raise ValueError('RDKit could not parse the supplied SMILES')
+    potential = Chem.FindPotentialStereo(molecule)
+    unresolved = [item for item in potential if item.specified == Chem.StereoSpecified.Unspecified]
+    result = {'input_smiles': smiles, 'outputs_created': False,
+              'canonical_isomeric_smiles': Chem.MolToSmiles(molecule, isomericSmiles=True),
+              'formal_charge_e': Chem.GetFormalCharge(molecule),
+              'unresolved_stereo_elements': len(unresolved), 'choices': []}
+    if not unresolved:
+        result.update(status='identity_defined', chiral_centers=Chem.FindMolChiralCenters(
+            molecule, includeUnassigned=True, includeCIP=True, useLegacyImplementation=False))
+        return result
+    # Listing a small choice set is not preparation. Avoid an exponential
+    # enumeration when many stereocentres/bonds need a customer decision.
+    if len(unresolved) <= 3:
+        for isomer in EnumerateStereoisomers(molecule,
+                options=StereoEnumerationOptions(onlyUnassigned=True, unique=True, maxIsomers=8)):
+            canonical = Chem.MolToSmiles(isomer, isomericSmiles=True)
+            # Compute labels on the actual serialized SMILES, not a manually
+            # rewritten atom order. @ and @@ are not synonyms for R and S.
+            parsed = Chem.MolFromSmiles(canonical)
+            centers = Chem.FindMolChiralCenters(parsed, includeUnassigned=True,
+                                                includeCIP=True, useLegacyImplementation=False)
+            result['choices'].append({'isomeric_smiles': canonical,
+                                      'chiral_centers_zero_based': centers})
+    result.update(status='needs_user_input', code='undefined_stereochemistry',
+        question='Which stereoisomer should be used? Choose a computed isomeric SMILES below, or supply your own fully specified isomeric SMILES.',
+        next_step='Ask the user; no stereoisomer has been selected or parameterized.',
+        enumeration_complete=len(unresolved) <= 3)
+    if not result['choices']:
+        result['question'] = 'Please supply fully specified isomeric SMILES; there are too many unresolved stereo elements to enumerate a short choice list.'
+    return result
+
+
 def prepare(smiles, output, force_field):
     # AmberTools subprocesses must resolve from the same provisioned environment
     # as this interpreter, not the web server's unrelated system PATH.
@@ -140,17 +180,21 @@ def prepare(smiles, output, force_field):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--smiles', required=True)
-    parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--force-field', required=True)
+    parser.add_argument('--output', type=Path)
+    parser.add_argument('--force-field')
+    parser.add_argument('--inspect-identity', action='store_true',
+                        help='Read-only RDKit stereochemistry inspection; no charges, files or parameterization')
     args = parser.parse_args()
+    if args.inspect_identity:
+        print(json.dumps(inspect_identity(args.smiles), allow_nan=False))
+        return 0
+    if args.output is None or args.force_field is None:
+        parser.error('Parameterization requires --output and --force-field')
     from openff.toolkit.utils.exceptions import UndefinedStereochemistryError
     try:
         result = prepare(args.smiles, args.output, args.force_field)
     except UndefinedStereochemistryError:
-        print(json.dumps({'status': 'needs_user_input', 'code': 'undefined_stereochemistry',
-            'question': 'Which stereoisomer should be used? Please supply isomeric SMILES or an explicit stereoisomer choice.',
-            'next_step': 'Ask the user before preparation; do not assign or enumerate stereoisomers without their choice.',
-            'outputs_created': False}))
+        print(json.dumps(inspect_identity(args.smiles), allow_nan=False))
         return 2
     print(json.dumps(result, allow_nan=False))
     return 0
