@@ -41,6 +41,18 @@ def tool_failures(calls):
     return failures
 
 
+def workspace_selection(url):
+    """Match Demos.tsx workspaceSelection, including supported basename links."""
+    query = parse_qs(urlsplit(url).query)
+    def relative(value):
+        return re.sub(r'^/workspace(?:/|$)', '', value).lstrip('/')
+    directory = relative(query.get('path', [''])[0])
+    file = relative(query.get('file', [''])[0])
+    if file and '/' not in file and directory:
+        file = directory + '/' + file
+    return directory, file
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--replay', type=Path, required=True)
@@ -96,15 +108,14 @@ def main():
             if path.parent.name in args.require_report_case and not reports:
                 failures.append('promised verified result was not delivered')
             for url in sorted(set(re.findall(r'\]\((/demos\?[^)]+)\)', summary['visible_text']))):
-                query = parse_qs(urlsplit(url).query)
-                file = query.get('file', [None])[0]
+                directory, file = workspace_selection(url)
                 if not file:
-                    response = client.get('/api/scientific-demos/workspace', params={'path': query.get('path', [''])[0]})
+                    response = client.get('/api/scientific-demos/workspace', params={'path': directory})
                 else:
                     response = client.get('/api/scientific-demos/workspace/file', params={'path': file})
                 if response.status_code != 200:
                     failures.append(f'delivered workspace link returned HTTP {response.status_code}')
-                downloads.append({'path': file or query.get('path', [''])[0], 'http_status': response.status_code,
+                downloads.append({'path': file or directory, 'http_status': response.status_code,
                                   'bytes': len(response.content), 'sha256': hashlib.sha256(response.content).hexdigest()})
             preparations = []
             for directory in sorted(directories):
