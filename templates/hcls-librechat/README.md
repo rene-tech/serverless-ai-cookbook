@@ -76,6 +76,12 @@ See the [release evidence and limitations](docs/general-openff-release-20261001.
 before making a customer-readiness claim; installed tools do not eliminate
 scientific inaccuracies or intermittent incomplete replies from a chat model.
 
+The subsequent [agent-reliability candidate](docs/agent-reliability-20261001.md)
+adds typed execution/results, concurrent observations and clearer execution UI.
+It is deployed to system QA only; repeated empty turns still block customer
+promotion. Its source and candidate image must not be mistaken for a qualified
+new default.
+
 `NEBIUS_CLI` can select a specific installed CLI executable, and
 `SERVERLESS_DRY_RUN=true` validates the same deployment request without creating
 an endpoint. Secrets, user identity and bucket binding still need to be supplied
