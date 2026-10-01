@@ -1,0 +1,5 @@
+**
+!templates
+!templates/hcls-librechat
+!templates/hcls-librechat/scientific-agent-budget.cjs
+!templates/hcls-librechat/patch-bounded-reasoning.mjs

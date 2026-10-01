@@ -2,6 +2,8 @@
 !templates
 !templates/hcls-librechat
 !templates/hcls-librechat/scientific-provider-recovery.cjs
+!templates/hcls-librechat/scientific-agent-budget.cjs
+!templates/hcls-librechat/patch-bounded-reasoning.mjs
 !templates/hcls-librechat/patch-agent-reliability.mjs
 !templates/hcls-librechat/scientific-study-admission.cjs
 !templates/hcls-librechat/scientific-verified-delivery.cjs

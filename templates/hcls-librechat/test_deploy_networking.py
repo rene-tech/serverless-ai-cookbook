@@ -11,13 +11,15 @@ SCRIPT = Path(__file__).parent / 'scripts/deploy.sh'
 
 
 def command(tmp_path, public_ip=None, ssh=False, s3_profile=None, reasoning_effort=None,
-            image_override=True, dry_run=False):
+            image_override=True, dry_run=False, model_deadline=None):
     executable = tmp_path / 'nebius'
     executable.write_text('#!/usr/bin/env python3\nimport json,sys\nprint(json.dumps(sys.argv[1:]))\n')
     executable.chmod(0o700)
     environment = {key: value for key, value in os.environ.items()
                    if key not in {'SERVERLESS_PUBLIC_IP', 'SSH_PUBLIC_KEY_FILE', 'NEBIUS_PROFILE',
                                   'SCIENTIFIC_CHAT_REASONING_EFFORT', 'NEBIUS_CLI',
+                                  'SCIENTIFIC_AGENT_MODEL_DEADLINE_MS', 'SCIENTIFIC_AGENT_MODEL_TIME_MS',
+                                  'SCIENTIFIC_AGENT_REPEAT_ROUNDS',
                                   'SERVERLESS_DRY_RUN', 'IMAGE'}}
     environment.update(PATH=str(tmp_path) + os.pathsep + os.environ['PATH'],
         NEBIUS_PROJECT_ID='project-fixture', NEBIUS_SUBNET_ID='subnet-fixture',
@@ -36,6 +38,8 @@ def command(tmp_path, public_ip=None, ssh=False, s3_profile=None, reasoning_effo
         environment['S3_AWS_PROFILE'] = s3_profile
     if reasoning_effort is not None:
         environment['SCIENTIFIC_CHAT_REASONING_EFFORT'] = reasoning_effort
+    if model_deadline is not None:
+        environment['SCIENTIFIC_AGENT_MODEL_DEADLINE_MS'] = model_deadline
     if ssh:
         key = tmp_path / 'fixture.pub'
         key.write_text('ssh-ed25519 public-fixture test-only\n')
@@ -76,6 +80,17 @@ def test_recording_completion_budget_is_explicit(tmp_path):
     assert result.returncode == 0 and result.stderr == ''
     arguments = json.loads(result.stdout)
     assert 'SCIENTIFIC_CHAT_MAX_OUTPUT_TOKENS=16384' in arguments
+
+
+@pytest.mark.parametrize('deadline', [None, '60000'])
+def test_reasoning_time_budgets_are_forwarded_without_changing_model(tmp_path, deadline):
+    result = command(tmp_path, model_deadline=deadline)
+    assert result.returncode == 0
+    arguments = json.loads(result.stdout)
+    assert f'SCIENTIFIC_AGENT_MODEL_DEADLINE_MS={deadline or "90000"}' in arguments
+    assert 'SCIENTIFIC_AGENT_MODEL_TIME_MS=300000' in arguments
+    assert 'SCIENTIFIC_AGENT_REPEAT_ROUNDS=2' in arguments
+    assert 'SCIENTIFIC_CHAT_MODEL=zai-org/GLM-5.3-Flash' in arguments
 
 
 @pytest.mark.parametrize('override,expected', [(None, 'low'), ('high', 'high')])

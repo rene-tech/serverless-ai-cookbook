@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1.7
+# Isolated qualification overlay. The shared/client release selector is unchanged.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:16815c8cf0d0b8d3c343c56f90559bca1fea26d8c93e7294d544a826ec636af9
+FROM ${WORKBENCH_BASE}
+USER root
+COPY templates/hcls-librechat/scientific-agent-budget.cjs templates/hcls-librechat/patch-bounded-reasoning.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-bounded-reasoning.mjs \
+ && node --check /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
+ && node --check /app/node_modules/@librechat/agents/dist/cjs/llm/invoke.cjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL ai.nebius.scientific.bounded-reasoning.revision="${HCLS_IMAGE_REVISION}"

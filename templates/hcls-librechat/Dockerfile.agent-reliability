@@ -6,6 +6,7 @@ USER root
 COPY templates/hcls-librechat/ /tmp/agent-reliability/
 COPY skills/scientific-ai/ /tmp/core-skills/
 RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliability/scientific-verified-delivery.cjs /tmp/agent-reliability/scientific-study-admission.cjs /tmp/agent-reliability/scientific-tool-options.cjs /tmp/agent-reliability/patch-agent-reliability.mjs /tmp/agent-reliability/patch-execution-ui.mjs /opt/hcls-librechat/ \
+ && cp /tmp/agent-reliability/scientific-agent-budget.cjs /tmp/agent-reliability/patch-bounded-reasoning.mjs /opt/hcls-librechat/ \
  && python3 /tmp/core-skills/bundle.py verify \
  && cp /tmp/core-skills/openff/SKILL.md /app/skill/openff/SKILL.md \
  && cp /tmp/core-skills/scientific-starter-data/SKILL.md /app/skill/scientific-starter-data/SKILL.md \
@@ -28,8 +29,10 @@ RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliab
  && node /tmp/agent-reliability/patch-client.mjs \
  && node /tmp/agent-reliability/demos/patch.mjs client \
  && node /opt/hcls-librechat/patch-agent-reliability.mjs \
+ && node /opt/hcls-librechat/patch-bounded-reasoning.mjs \
  && node /opt/hcls-librechat/patch-execution-ui.mjs \
  && node --check /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
+ && node --check /app/node_modules/@librechat/agents/dist/cjs/llm/invoke.cjs \
  && node --check /app/seed-hcls-workbench.js \
  && python3 -m py_compile /opt/bionemo/execution-mcp.py /opt/bionemo/scientific_verified_results.py
 WORKDIR /app/client
@@ -39,6 +42,9 @@ RUN NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --covera
 # Stage only changed files so the final layer stays small, without hashing or
 # copying the full multi-GB dependency tree on every additive release.
 RUN mkdir -p /release/opt/hcls-librechat /release/opt/bionemo /release/app/skill/openff /release/app/skill/scientific-starter-data /release/app/node_modules/@librechat/agents/dist/cjs/graphs /release/app/client/src/components/Chat/Messages/Content \
+ && mkdir -p /release/app/node_modules/@librechat/agents/dist/cjs/llm \
+ && cp /opt/hcls-librechat/scientific-agent-budget.cjs /opt/hcls-librechat/patch-bounded-reasoning.mjs /release/opt/hcls-librechat/ \
+ && cp /app/node_modules/@librechat/agents/dist/cjs/llm/invoke.cjs /release/app/node_modules/@librechat/agents/dist/cjs/llm/ \
  && cp /opt/hcls-librechat/scientific-provider-recovery.cjs /opt/hcls-librechat/scientific-verified-delivery.cjs /opt/hcls-librechat/scientific-study-admission.cjs /opt/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/patch-agent-reliability.mjs /opt/hcls-librechat/patch-execution-ui.mjs /release/opt/hcls-librechat/ \
  && cp /opt/bionemo/execution-mcp.py /opt/bionemo/scientific_verified_results.py /release/opt/bionemo/ \
  && cp /opt/bionemo/scientific_starter.py /release/opt/bionemo/ \

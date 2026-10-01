@@ -82,6 +82,12 @@ It is deployed to system QA only; repeated empty turns still block customer
 promotion. Its source and candidate image must not be mistaken for a qualified
 new default.
 
+The isolated [bounded-reasoning candidate](docs/bounded-reasoning-20261001.md)
+adds absolute model-response deadlines, accumulated model-time budgets and
+unchanged-tool-loop detection without cancelling scientific work. It is wired
+into the reliability build, not yet the shared release selector. See its exact
+test scope and remaining promotion checks before deploying it to users.
+
 `NEBIUS_CLI` can select a specific installed CLI executable, and
 `SERVERLESS_DRY_RUN=true` validates the same deployment request without creating
 an endpoint. Secrets, user identity and bucket binding still need to be supplied

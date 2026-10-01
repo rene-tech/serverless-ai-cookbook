@@ -1,0 +1,53 @@
+2026-10-01 isolated side-conversation candidate
+Image: sha256:4bd14b9787853fe95da17d784f5d17dda6df115e77b20af3b4eed927b85f5f96
+Targeted checks only; see ../../bounded-reasoning-20261001.md for retained failures and promotion limits.
+
+Node unit + installed-runtime + existing regression checks:
+✔ installed patch fails closed on duplicate installation or upstream drift (2.799771ms)
+✔ actual compiled graph stops a continuously streaming reasoning turn visibly (163.983454ms)
+✔ actual ToolNode loop stops after original read plus two unchanged rounds (40.610985ms)
+✔ changing results continue normally rather than being mistaken for a tool loop (37.280498ms)
+✔ actual graph accumulates model time across changing tool rounds (366.573033ms)
+✔ a late tool chunk from a provider ignoring abort is never executed (429.065434ms)
+✔ submitted durable work outlives a thinking timeout with no replay or cancellation (358.878845ms)
+✔ a slow ToolNode is outside the clock; a separate run is not blocked (372.147265ms)
+✔ real OpenAI-compatible HTTP stream is aborted even while reasoning chunks arrive (676.502915ms)
+✔ configuration is explicit, bounded and rejects accidentally disabled limits (1.422464ms)
+✔ an endless active reasoning stream reaches an absolute deadline (40.973297ms)
+✔ a provider ignoring cancellation cannot hold the caller open or yield a late result (41.084847ms)
+✔ empty response recovery shares one deadline and preserves submitted work (40.48922ms)
+✔ ordinary tools and long scientific waits consume no model time (0.596397ms)
+✔ external cancellation and exceptions remove listeners without a synthetic pause (0.436695ms)
+✔ the existing fallback/error route cannot obtain a fresh deadline (0.272195ms)
+✔ each concurrent run has its own budget, and disposal/reset clears it (0.23057ms)
+✔ unchanged repeats, alternating loops and repeated errors stop; new evidence resets the count (1.215579ms)
+✔ JSON key order is irrelevant; a new file or changed operation state is evidence (0.414211ms)
+✔ parallel tool rounds only count once fully resolved; tool payloads cannot reset the turn (0.344054ms)
+✔ pause describes incomplete work without inventing results or exposing earlier turns (0.362612ms)
+✔ reasoning-only or empty answers stay visibly incomplete (1.223441ms)
+✔ visible answers, provider errors and actual media are unchanged (0.176038ms)
+✔ earlier progress does not hide an interrupted tool or reasoning turn (0.166544ms)
+✔ recognizes only empty or reasoning-only normal stops (0.855111ms)
+✔ retries the invocation once and retains failed-attempt evidence (0.694828ms)
+✔ recovery notice is host-authored, retains results, and does not invent a user continuation (0.316371ms)
+✔ a second empty response stays incomplete, never loops indefinitely (0.174005ms)
+✔ cancellation, emitted content and pending tools prevent recovery (0.208518ms)
+✔ provider errors propagate to the existing error/fallback implementation (0.401782ms)
+✔ the pinned patch is exact and refuses duplicate installation (2.795033ms)
+✔ explicit delivery retains exact scientific facts and URLs (0.783001ms)
+✔ typed inventory ends only an explicitly finished inventory, never intermediate work (0.17738ms)
+✔ intermediate, failed, pending, mismatched and parallel tools do not finish (0.331805ms)
+✔ never scans past a later customer message; exact host budget notice is transparent (0.168336ms)
+✔ patch keeps upstream event/persistence boundary, and fails closed on drift (2.714551ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2920.663143
+
+Deployment forwarding tests and source/worktree checks:
+...............                                                          [100%]
+15 passed in 0.39s
