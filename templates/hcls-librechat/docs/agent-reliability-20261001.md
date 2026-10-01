@@ -163,3 +163,9 @@ operation `38d9ad06-e03f-4da5-b139-f8d65a3a4796`, upload
 `c92a2830-8fe9-5599-b523-18f529431345`, plus finalized source artifact
 `2312e6cf-2af4-498a-a9fe-6c5ee11fd2b8`. These exact identities remain recorded
 for supported retention/cleanup; no bucket-wide deletion is authorized.
+
+Closeout: task-owned local R10 was stopped after all 44 execution records were
+terminal; prior local candidates are also stopped. Their data remains available
+for reproduction. No qualification worker remains running for this ticket.
+Only the existing cloud QA replacement is retained, with the expiry above;
+the customer endpoint was not stopped or modified.
