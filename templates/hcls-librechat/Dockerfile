@@ -17,6 +17,9 @@ COPY templates/hcls-librechat/PoweredByFooter.tsx /app/client/src/components/Cha
 COPY templates/hcls-librechat/WorkspaceInlineCode.tsx /app/client/src/components/WorkspaceInlineCode.tsx
 COPY templates/hcls-librechat/patch-client.mjs /tmp/patch-client.mjs
 RUN node /tmp/patch-client.mjs
+COPY templates/hcls-librechat/ScientificExecutionOutput.tsx /app/client/src/components/Chat/Messages/Content/ScientificExecutionOutput.tsx
+COPY templates/hcls-librechat/patch-execution-ui.mjs /tmp/patch-execution-ui.mjs
+RUN node /tmp/patch-execution-ui.mjs
 COPY templates/hcls-librechat/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx
 COPY templates/hcls-librechat/demos/comparison.ts /app/client/src/components/scientific-comparison.ts
 COPY templates/hcls-librechat/demos/run-display.ts /app/client/src/components/scientific-run-display.ts
@@ -78,6 +81,7 @@ COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific
 COPY templates/hcls-librechat/tavily-mcp.mjs /opt/bionemo/tavily-mcp.mjs
 COPY templates/hcls-librechat/structure-mcp.py /opt/bionemo/structure-mcp.py
 COPY templates/hcls-librechat/execution-mcp.py /opt/bionemo/execution-mcp.py
+COPY templates/hcls-librechat/scientific_verified_results.py /opt/bionemo/scientific_verified_results.py
 COPY templates/hcls-librechat/invoke-native.py /opt/bionemo/invoke-native.py
 COPY templates/hcls-librechat/scientific_receipts.py /opt/bionemo/scientific_receipts.py
 COPY templates/hcls-librechat/recording_pipeline.py /opt/bionemo/recording_pipeline.py
@@ -121,6 +125,8 @@ RUN python3 -m venv /opt/scientific-client \
 COPY life-science/bionemo-librechat/viewer-mcp.py /opt/bionemo/viewer-mcp.py
 COPY life-science/bionemo-librechat/3dmol.js /opt/bionemo/3dmol.js
 RUN node /opt/hcls-librechat/patch-server.mjs
+COPY templates/hcls-librechat/scientific-provider-recovery.cjs templates/hcls-librechat/scientific-verified-delivery.cjs templates/hcls-librechat/patch-agent-reliability.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-agent-reliability.mjs
 COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librechat/patch-title-options.mjs templates/hcls-librechat/patch-skill-result.mjs /opt/hcls-librechat/
 RUN node /opt/hcls-librechat/patch-title-options.mjs \
  && node /opt/hcls-librechat/patch-skill-result.mjs
