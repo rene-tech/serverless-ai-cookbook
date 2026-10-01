@@ -53,6 +53,10 @@ COPY --from=assembled /app/packages/api/dist/index.cjs /app/packages/api/dist/in
 COPY --from=assembled /app/api/server/controllers/agents/client.js /app/api/server/controllers/agents/client.js
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      ai.nebius.scientific.skills.version="2026.10.01.4" \
+      ai.nebius.scientific.skills.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.operation-polling.revision="${HCLS_IMAGE_REVISION}" \
       ai.nebius.scientific.openff.interpreter="/opt/openff/bin/python" \
       ai.nebius.scientific.release="general-openff-20261001"
 # Retain the approved GLM model. Bound conversational reasoning independently
