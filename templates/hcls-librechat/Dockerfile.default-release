@@ -22,6 +22,7 @@ COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
 COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
 COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
 COPY templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
+COPY templates/hcls-librechat/inspect-fasta.py /opt/bionemo/inspect-fasta.py
 COPY templates/hcls-librechat/prepare-openff.py /opt/bionemo/prepare-openff.py
 COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librechat/patch-title-options.mjs /opt/hcls-librechat/
 RUN node /opt/hcls-librechat/patch-title-options.mjs \

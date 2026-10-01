@@ -14,6 +14,7 @@ import shutil
 import tempfile
 import time
 import sys
+from urllib.parse import urlencode
 
 
 def package_version(name):
@@ -125,7 +126,12 @@ def prepare(smiles, output, force_field):
             files[name] = {'sha256': hashlib.sha256(data).hexdigest(), 'bytes': len(data)}
         manifest = {'schema': 'scientific-openff-files/v1', 'files': files}
         (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-    return {'status': 'completed', 'output_directory': str(output), 'atom_count': molecule.n_atoms,
+    links = {}
+    if output.is_absolute() and output.is_relative_to('/workspace'):
+        for name in files:
+            relative = (output / name).relative_to('/workspace')
+            links[name] = '/demos?' + urlencode({'tab': 'workspace', 'path': str(relative.parent), 'file': str(relative)})
+    return {'status': 'completed', 'output_directory': str(output), 'workspace_links': links, 'atom_count': molecule.n_atoms,
             'charge_sum_e': float(charges.sum()), 'charge_seconds': charge_seconds,
             'force_field': force_field, 'files': list(files),
             'limitation': measurements['scope'] + '; GROMACS preprocessing/energy equivalence untested'}
@@ -137,8 +143,18 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--force-field', required=True)
     args = parser.parse_args()
-    print(json.dumps(prepare(args.smiles, args.output, args.force_field), allow_nan=False))
+    from openff.toolkit.utils.exceptions import UndefinedStereochemistryError
+    try:
+        result = prepare(args.smiles, args.output, args.force_field)
+    except UndefinedStereochemistryError:
+        print(json.dumps({'status': 'needs_user_input', 'code': 'undefined_stereochemistry',
+            'question': 'Which stereoisomer should be used? Please supply isomeric SMILES or an explicit stereoisomer choice.',
+            'next_step': 'Ask the user before preparation; do not assign or enumerate stereoisomers without their choice.',
+            'outputs_created': False}))
+        return 2
+    print(json.dumps(result, allow_nan=False))
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

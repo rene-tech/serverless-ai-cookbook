@@ -129,6 +129,7 @@ RUN node /opt/hcls-librechat/demos/patch.mjs server \
 COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
 COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
 COPY templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
+COPY templates/hcls-librechat/inspect-fasta.py /opt/bionemo/inspect-fasta.py
 COPY templates/hcls-librechat/prepare-openff.py /opt/bionemo/prepare-openff.py
 COPY life-science/bionemo-librechat/scientific-agent-instructions.md /app/scientific-agent-instructions.md
 COPY templates/hcls-librechat/entrypoint.sh /usr/local/bin/hcls-librechat-entrypoint
