@@ -5,9 +5,10 @@ scientific parameter changes occur here; raw artifacts remain untouched.
 """
 import json
 from pathlib import Path, PurePosixPath
+import shutil
 from urllib.parse import urlencode
 
-from scientific_receipts import persist_local_file, save, verify_file
+from scientific_receipts import staged_output, save, verify_file
 
 RESULT_TYPES = {f'{engine}-workflow-result/v1': engine
                 for engine in ('gromacs', 'namd', 'amber', 'lammps')}
@@ -66,7 +67,11 @@ def materialize_native_outputs(output: Path, artifacts: list[dict]) -> dict:
     # Validate every mapping before publishing any named files. Equal bytes may
     # legitimately have multiple native names; hashes, not positions, identify them.
     for source, target, entry, reference, document in plans:
-        published = persist_local_file(source, target)
+        # Copy to seekable scratch before the publisher: a POSIX hard link to
+        # the raw artifact would let later native-file edits alter provenance.
+        with staged_output(target) as staged:
+            shutil.copyfile(source, staged.path)
+        published = staged.receipt
         verify_file(target, entry)
         document['files'].append({**published, 'native_path': entry['path'],
             'artifact_id': reference['artifact_id'], 'workspace_url': workspace_url(target)})

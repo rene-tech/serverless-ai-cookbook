@@ -38,6 +38,8 @@ def test_shuffled_native_files_and_equal_byte_aliases(tmp_path, engine):
     assert materialize_native_outputs(tmp_path, artifacts)['native_outputs']['file_count'] == 3
     manifest = json.loads((tmp_path / 'native-files.json').read_text())
     assert [a['native_path'] for a in manifest['results'][0]['files']] == [f['path'] for f in result['files']]
+    (tmp_path / 'native/result-00/trajectory.xtc').write_bytes(b'edited native file')
+    assert Path(artifacts[1]['path']).read_bytes() == b'binary trajectory'
 
 
 def test_non_md_outputs_are_not_reinterpreted(tmp_path):
