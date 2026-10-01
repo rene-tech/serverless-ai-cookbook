@@ -94,6 +94,12 @@ key. Save its operation ID and receipt. A timeout or reconnect is not permission
 to resubmit. Respect caller concurrency and visible queues; never change keys,
 limits or scientific parameters to make an operation fit.
 
+For seeded MD, read `/app/skill/scientific-starter-data/SKILL.md`. Use installed
+scientific Python and the batch client with unchanged native inputs. The pack's
+`run-example.py` requires local POSIX files, not the bucket mount; don't install
+another environment to run it. Recover existing results with the installed
+client's `--recover-operation-id`, never another submission.
+
 For a multi-step study, discover only the needed phases with
 `describe_scientific_workflow_mcp_environment-execution`, then use the typed study
 executor and its current schema. Reuse its deterministic preparation, analysis
