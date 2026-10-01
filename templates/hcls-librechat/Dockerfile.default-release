@@ -14,7 +14,7 @@ COPY templates/hcls-librechat/openff/verify-runtime.py /opt/verify-openff-runtim
 RUN micromamba create --yes --no-rc --root-prefix /tmp/openff-build --prefix /opt/openff --file /opt/openff-runtime.lock \
  && /opt/openff/bin/python /opt/verify-openff-runtime.py
 
-FROM ${WORKBENCH_BASE}
+FROM ${WORKBENCH_BASE} AS assembled
 USER root
 COPY --from=openff-runtime /opt/openff /opt/openff
 COPY templates/hcls-librechat/openff/ /opt/openff-release/
@@ -36,6 +36,21 @@ RUN /opt/openff/bin/python /opt/openff-release/verify-runtime.py \
  && node /tmp/test-skills-installed.cjs \
  && node --check /app/seed-hcls-workbench.js \
  && node --check /opt/hcls-librechat/render-config.mjs
+
+# The retained workbench has a long layer history. Copy the assembled runtime
+# roots in eight layers instead of shipping every intermediate COPY/RUN layer;
+# Docker must still be able to create a container over the resulting rootfs.
+# These roots preserve the parent's sibling features and pinned extensions.
+FROM ${WORKBENCH_BASE}
+USER root
+COPY --from=assembled /opt/openff /opt/openff
+COPY --from=assembled /opt/openff-release /opt/openff-release
+COPY --from=assembled /opt/bionemo /opt/bionemo
+COPY --from=assembled /opt/hcls-librechat /opt/hcls-librechat
+COPY --from=assembled /app/skill /app/skill
+COPY --from=assembled /app/agent-instructions.md /app/seed-hcls-workbench.js /app/
+COPY --from=assembled /app/packages/api/dist/index.cjs /app/packages/api/dist/index.cjs
+COPY --from=assembled /app/api/server/controllers/agents/client.js /app/api/server/controllers/agents/client.js
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       ai.nebius.scientific.openff.interpreter="/opt/openff/bin/python" \
