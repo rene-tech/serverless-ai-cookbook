@@ -10,20 +10,26 @@ import pytest
 SCRIPT = Path(__file__).parent / 'scripts/deploy.sh'
 
 
-def command(tmp_path, public_ip=None, ssh=False, s3_profile=None, reasoning_effort=None):
+def command(tmp_path, public_ip=None, ssh=False, s3_profile=None, reasoning_effort=None,
+            image_override=True, dry_run=False):
     executable = tmp_path / 'nebius'
     executable.write_text('#!/usr/bin/env python3\nimport json,sys\nprint(json.dumps(sys.argv[1:]))\n')
     executable.chmod(0o700)
     environment = {key: value for key, value in os.environ.items()
                    if key not in {'SERVERLESS_PUBLIC_IP', 'SSH_PUBLIC_KEY_FILE', 'NEBIUS_PROFILE',
-                                  'SCIENTIFIC_CHAT_REASONING_EFFORT'}}
+                                  'SCIENTIFIC_CHAT_REASONING_EFFORT', 'NEBIUS_CLI',
+                                  'SERVERLESS_DRY_RUN', 'IMAGE'}}
     environment.update(PATH=str(tmp_path) + os.pathsep + os.environ['PATH'],
         NEBIUS_PROJECT_ID='project-fixture', NEBIUS_SUBNET_ID='subnet-fixture',
         SCIENTIFIC_MODELS_API_KEY_SECRET_SELECTOR='secret-fixture',
         TOKEN_FACTORY_SECRET_SELECTOR='secret-fixture', TAVILY_SECRET_SELECTOR='secret-fixture',
         S3_CREDENTIAL_SECRET_SELECTOR='secret-fixture', USER_PASSWORD_SECRET_SELECTOR='secret-fixture',
-        IMAGE='example.invalid/image:fixture', SCIENTIFIC_STUDY_OWNER_MODE='first-instance',
+        SCIENTIFIC_STUDY_OWNER_MODE='first-instance',
         SEED_DEFAULT_USER_EMAIL='fixture@example.invalid', TEAM_BUCKET_NAME='fixture-bucket', TEAM_ID='fixture')
+    if image_override:
+        environment['IMAGE'] = 'example.invalid/image:fixture'
+    if dry_run:
+        environment['SERVERLESS_DRY_RUN'] = 'true'
     if public_ip is not None:
         environment['SERVERLESS_PUBLIC_IP'] = public_ip
     if s3_profile is not None:
@@ -77,6 +83,23 @@ def test_reasoning_default_and_explicit_override(tmp_path, override, expected):
     result = command(tmp_path, 'false', reasoning_effort=override)
     assert result.returncode == 0
     assert 'SCIENTIFIC_CHAT_REASONING_EFFORT=' + expected in json.loads(result.stdout)
+
+
+def test_new_installation_uses_shared_release_without_image_override(tmp_path):
+    result = command(tmp_path, image_override=False)
+    assert result.returncode == 0
+    arguments = json.loads(result.stdout)
+    release = SCRIPT.with_name('release-image.sh').read_text()
+    selected = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
+                    if line.startswith('SCIENTIFIC_AI_RELEASE_IMAGE='))
+    assert arguments[arguments.index('--image') + 1] == selected
+    assert ':general-openff-' in selected
+
+
+def test_dry_run_uses_the_same_deployment_path(tmp_path):
+    result = command(tmp_path, dry_run=True)
+    assert result.returncode == 0
+    assert json.loads(result.stdout).count('--dry-run') == 1
 
 
 def test_private_explicit_ssh_is_not_silently_removed(tmp_path):
