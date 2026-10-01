@@ -53,6 +53,8 @@ COPY templates/hcls-librechat/demos/service.cjs templates/hcls-librechat/demos/w
      templates/hcls-librechat/demos/analysis.cjs templates/hcls-librechat/demos/seed.cjs templates/hcls-librechat/demos/workshop-example.json /opt/hcls-librechat/demos/
 COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
 COPY templates/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/scientific-tool-options.cjs
+# The installed-seed gate and the clinical layout read the seed script from here too.
+COPY templates/hcls-librechat/seed-workbench.js /opt/hcls-librechat/seed-workbench.js
 COPY templates/hcls-librechat/speech/relay.cjs templates/hcls-librechat/speech/diarization.cjs templates/hcls-librechat/speech/dual-stream.cjs \
      templates/hcls-librechat/speech/stream-receipt.cjs templates/hcls-librechat/speech/native-file.cjs templates/hcls-librechat/speech/chat-transcribe.cjs \
      templates/hcls-librechat/speech/soap.cjs templates/hcls-librechat/speech/fact-review.cjs templates/hcls-librechat/speech/speech-state.js \
