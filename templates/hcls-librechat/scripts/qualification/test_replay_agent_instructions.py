@@ -52,3 +52,30 @@ def test_persistent_observation_failure_remains_failed_and_bounded():
         with pytest.raises(httpx.HTTPStatusError):
             replay.observe_get(client, '/existing', warnings, pause=lambda _:None)
     assert len(warnings) == 3
+
+
+def test_expired_qa_session_reauthenticates_once_without_resubmitting_work():
+    requests = []
+    def respond(request):
+        requests.append((request.method, request.url.path))
+        if request.url.path == '/api/auth/login':
+            return httpx.Response(200, json={'token': 'replacement-test-token'})
+        return httpx.Response(200 if request.headers.get('Authorization') ==
+                              'Bearer replacement-test-token' else 401, json={'active': False})
+    warnings = []
+    with httpx.Client(base_url='https://qa.invalid', transport=httpx.MockTransport(respond)) as client:
+        result = replay.observe_get(client, '/api/agents/chat/status/existing-id', warnings,
+            reauthenticate=lambda: replay.authenticate(client, {'email': 'qa@example.invalid'}))
+    assert result.json() == {'active': False}
+    assert requests == [('GET', '/api/agents/chat/status/existing-id'),
+                        ('POST', '/api/auth/login'), ('GET', '/api/agents/chat/status/existing-id')]
+    assert warnings[0]['kind'] == 'qualification_session_expired'
+
+
+def test_persistent_401_is_not_an_authentication_loop():
+    refreshes = []
+    with httpx.Client(base_url='https://qa.invalid', transport=httpx.MockTransport(
+            lambda _: httpx.Response(401))) as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            replay.observe_get(client, '/existing', [], reauthenticate=lambda: refreshes.append(True))
+    assert refreshes == [True]

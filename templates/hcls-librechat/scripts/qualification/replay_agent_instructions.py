@@ -45,14 +45,29 @@ def summarize(messages):
     }
 
 
-def observe_get(client, path, warnings, pause=time.sleep):
+def authenticate(client, credentials):
+    """Use the same account login as the browser; never print its session."""
+    response = client.post('/api/auth/login', json=credentials)
+    response.raise_for_status()
+    client.headers['Authorization'] = 'Bearer ' + response.json()['token']
+
+
+def observe_get(client, path, warnings, pause=time.sleep, reauthenticate=None):
     """Retry only observation GETs, never chat submission or scientific work.
 
     Preserve every transient response in evidence. Recovery does not turn a
     cohort with unexpected transport warnings into a clean acceptance pass.
     """
+    refreshed = False
     for attempt in range(3):
         response = client.get(path)
+        if response.status_code == 401 and reauthenticate is not None and not refreshed:
+            warnings.append({'method': 'GET', 'path': path, 'http_status': 401,
+                             'kind': 'qualification_session_expired', 'attempt': attempt + 1})
+            reauthenticate()
+            refreshed = True
+            # Only retry this observation, not the original chat/job POST.
+            response = client.get(path)
         if response.status_code not in (429, 502, 503, 504):
             response.raise_for_status()
             return response
@@ -79,6 +94,10 @@ def run_case(args, token, original, case, model):
     directory.mkdir(parents=True, mode=0o700)
     headers = {'Origin': args.base_url, 'User-Agent': UA, 'Authorization': 'Bearer ' + token}
     with httpx.Client(base_url=args.base_url, headers=headers, timeout=45) as client:
+        credentials = json.loads(args.login.read_text()) if args.login else None
+        refresh = (lambda: authenticate(client, credentials)) if credentials else None
+        if refresh:
+            refresh()
         instructions = args.instruction_text
         output_directory = f'/workspace/replays/{args.cohort_id}/{variant}/{case["case_id"]}'
         instructions += ('\n\nFor this isolated replay, put new output files under '
@@ -118,7 +137,8 @@ def run_case(args, token, original, case, model):
         watchdog = False
         transport_warnings = []
         while True:
-            status_response = observe_get(client, '/api/agents/chat/status/' + cid, transport_warnings)
+            status_response = observe_get(client, '/api/agents/chat/status/' + cid, transport_warnings,
+                                          reauthenticate=refresh)
             save(directory / 'transport-warnings.json', transport_warnings)
             status = status_response.json()
             save(directory / 'status.json', status)
@@ -130,7 +150,8 @@ def run_case(args, token, original, case, model):
                 watchdog = True
                 break
             time.sleep(3)
-        messages_response = observe_get(client, '/api/messages/' + cid, transport_warnings)
+        messages_response = observe_get(client, '/api/messages/' + cid, transport_warnings,
+                                        reauthenticate=refresh)
         messages = messages_response.json()
         save(directory / 'messages.json', messages)
         result = {'case_id': case['case_id'], 'model': model, 'conversation_id': cid,
@@ -153,6 +174,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base-url', required=True)
     parser.add_argument('--session', type=Path, required=True)
+    parser.add_argument('--login', type=Path,
+                        help='Private QA login file: fresh session per case, bounded GET-only renewal')
     parser.add_argument('--agent', type=Path, required=True)
     parser.add_argument('--instructions', type=Path, required=True)
     parser.add_argument('--manifest', type=Path, required=True)
