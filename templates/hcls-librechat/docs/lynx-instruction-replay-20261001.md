@@ -1,5 +1,10 @@
 # Lynx workflow instruction replay — 1 October 2026
 
+Historical investigation. The later **general-purpose** packaging, deployment
+and broader tests are in [the shared OpenFF release report](general-openff-release-20261001.md).
+The local-only and missing-installed-runtime statements below describe this
+earlier experiment, not the new image. No customer-specific fork was created.
+
 ## Decision and release scope
 
 **Candidate only; production is unchanged.** The primary-agent instruction

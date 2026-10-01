@@ -51,8 +51,8 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:general-openff-20261001-r4`,
-digest `sha256:3b8a3c21385a7cdcff216f94ef7f102f5eeac1473f9c513acae4b1f71f9ab116`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:general-openff-20261001-r11`,
+digest `sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d`.
 Its 36 canonical customer skills (84 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
@@ -70,6 +70,11 @@ no interactive conda/pip installation or GPU is required. GLM-5.3-Flash remains
 the selected model, with `SCIENTIFIC_CHAT_REASONING_EFFORT=low` by default (an
 explicit `high` or `max` override remains possible). The title call also uses
 bounded reasoning. This is a general-purpose release, not a customer overlay.
+Native skill loading returns the instructions as tool content, and installed
+`/app/skill/` paths resolve through the existing authorized skill reader.
+See the [release evidence and limitations](docs/general-openff-release-20261001.md)
+before making a customer-readiness claim; installed tools do not eliminate
+scientific inaccuracies or intermittent incomplete replies from a chat model.
 
 `NEBIUS_CLI` can select a specific installed CLI executable, and
 `SERVERLESS_DRY_RUN=true` validates the same deployment request without creating

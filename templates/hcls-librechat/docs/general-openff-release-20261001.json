@@ -1,0 +1,390 @@
+{
+  "schema": "scientific-ai/default-workbench-release-evidence/v1",
+  "recorded_at": "2026-10-01T12:25:21Z",
+  "scope": "Shared LibreChat instructions, installed OpenFF CPU runtime and bounded workflow regression; not all-App or unattended-scientist qualification",
+  "image": {
+    "tag": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:general-openff-20261001-r11",
+    "digest": "sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d",
+    "source_revision": "4239aa4a6ed2c02ee3ed392b1a3242266c4ec82e",
+    "parent_digest": "sha256:16b34a377caf015553d4d51ef78721ce1eb142d6e5c9a57ccd7cffdf7b9cdc65",
+    "skills_version": "2026.10.01.4",
+    "runtime_layers": 121
+  },
+  "deployment": {
+    "endpoint_id": "aiendpoint-e00z6jxa9wfcs7gcks",
+    "project": "project-e00rene",
+    "region": "eu-north1",
+    "identity": "system/qa",
+    "url": "https://port3080-ep8rp3bgcyjva6y.tunnel.applications.eu-north1.nebius.cloud",
+    "state": "RUNNING",
+    "default_deploy_without_image_override": true,
+    "apps": [
+      "boltz2",
+      "openfold2",
+      "gromacs",
+      "gromacs-mpi"
+    ],
+    "key_concurrency": 2,
+    "existing_customer_instances_modified": false
+  },
+  "configuration": {
+    "model": "zai-org/GLM-5.3-Flash",
+    "reasoning_effort": "low",
+    "model_switched": false,
+    "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+    "openff_python": "/opt/openff/bin/python",
+    "gpu_required_for_openff": false
+  },
+  "checks": {
+    "real_sdk_client_diagnostics_native_files": {
+      "passed": 43
+    },
+    "instructions_seed_renderer_deployment_replay": {
+      "passed": 20
+    },
+    "skill_adapter": {
+      "passed": 3
+    },
+    "installed_openff": {
+      "checks_per_fixture": 5,
+      "hosted_ligand_fixtures": 4,
+      "local_larger_ligand_fixtures": 1,
+      "all_passed": true
+    },
+    "http_s3_byte_identical_files": {
+      "core_cohort_1": 25,
+      "core_cohort_2": 25,
+      "gromacs_cohort_1": 136
+    },
+    "browser": {
+      "login": true,
+      "nebius_branding": true,
+      "authorized_apps": 4,
+      "inline_plot": true,
+      "summary_download_sha256": "e97e865d5098f60052383f2ea015bf7f8bc82167ce13c9e5bb5c23f9461e7174",
+      "native_manifest_download_sha256": "5b825978ed55ac844a1cc7736b489fc805897172ce554a04dfca584e0a18d67b",
+      "downloads_match_http_and_s3": true,
+      "console_errors": 0
+    }
+  },
+  "gpu_workflow": {
+    "operation_id": "f7e29d77-6802-4b78-9f3d-d07ff807d58c",
+    "terminal_status": "succeeded",
+    "pool": "h100-ondemand-1x",
+    "gpus": 1,
+    "attempts": 1,
+    "runtime_image_digest": "sha256:14ffdae0f0389c7771bae8791c56a5e21736ece630bd11dfb0f3b6a78f8cd643",
+    "accepted_to_terminal_seconds": 82.372,
+    "chat_seconds": 144.037,
+    "raw_artifacts_verified": 56,
+    "native_paths_hash_verified": 55,
+    "scientific_convergence_claim": false
+  },
+  "known_issues": [
+    {
+      "cohort": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "case_id": "force-field-advice",
+      "issue": "Incorrect CGenFF penalty threshold in prose; official guidance linked in report"
+    },
+    {
+      "cohort": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "case_id": "data-plot",
+      "issue": "Correct descriptive outputs, but an overly broad claim about small-n significance testing"
+    },
+    {
+      "cohort": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "case_id": "openff-aspirin",
+      "issue": "Verified files named in answer, but clickable links omitted"
+    },
+    {
+      "cohort": "3642cc72822a4bedaeb74c654d53201a",
+      "case_id": "hosted-gromacs",
+      "issue": "Incomplete after skill loading; no model operation submitted and no output artifacts"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "structure-inventory",
+      "cohort_id": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "conversation_id": "d24f99d8-e4e6-5f5f-9980-850f04f2df97",
+      "seconds": 6.735,
+      "tool_calls": 1,
+      "tool_seconds": 0.292,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "force-field-advice",
+      "cohort_id": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "conversation_id": "1d898d70-a6a2-57c3-98ba-d07d18eda29e",
+      "seconds": 34.588,
+      "tool_calls": 1,
+      "tool_seconds": 0.006,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "openff-aspirin",
+      "cohort_id": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "conversation_id": "c2152867-b9bb-5d9b-acc5-b9af8f2a3c2e",
+      "seconds": 84.725,
+      "tool_calls": 8,
+      "tool_seconds": 63.156,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "openff-cation",
+      "cohort_id": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "conversation_id": "fa966d71-0024-5830-b6de-8166756f9fbd",
+      "seconds": 56.274,
+      "tool_calls": 4,
+      "tool_seconds": 40.98,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "undefined-stereochemistry",
+      "cohort_id": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "conversation_id": "b1ecb3c5-1c3d-5954-bcbc-548e3d3b90fe",
+      "seconds": 22.164,
+      "tool_calls": 2,
+      "tool_seconds": 16.246,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "sequence-analysis",
+      "cohort_id": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "conversation_id": "031a5ac0-9f65-5f1e-a78c-541802b768c1",
+      "seconds": 22.161,
+      "tool_calls": 1,
+      "tool_seconds": 15.528,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "data-plot",
+      "cohort_id": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "conversation_id": "e68a73f9-37e1-5daa-ac0d-2d98c44fa143",
+      "seconds": 31.576,
+      "tool_calls": 3,
+      "tool_seconds": 22.883,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "missing-file",
+      "cohort_id": "d7025ee3137c42a4a2a75e0bc59883d4",
+      "conversation_id": "daac08e4-e27f-576a-9a54-63d9ff7ab108",
+      "seconds": 25.198,
+      "tool_calls": 1,
+      "tool_seconds": 20.411,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "structure-inventory",
+      "cohort_id": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "conversation_id": "ab85b993-f482-568f-a870-a0d7040ed8c7",
+      "seconds": 6.676,
+      "tool_calls": 1,
+      "tool_seconds": 0.159,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "force-field-advice",
+      "cohort_id": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "conversation_id": "02821c0c-a08f-54ca-aaf2-13c4abfb73f7",
+      "seconds": 6.68,
+      "tool_calls": 1,
+      "tool_seconds": 0.004,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "openff-aspirin",
+      "cohort_id": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "conversation_id": "57e61db1-64f3-5970-8f8f-807a46f96012",
+      "seconds": 59.469,
+      "tool_calls": 6,
+      "tool_seconds": 10.579,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "openff-cation",
+      "cohort_id": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "conversation_id": "52ef03d9-2e2a-50ab-8457-b583516b4cfa",
+      "seconds": 50.12,
+      "tool_calls": 4,
+      "tool_seconds": 8.921,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "undefined-stereochemistry",
+      "cohort_id": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "conversation_id": "ae96a64b-ae97-5ede-84b3-3900527d655d",
+      "seconds": 6.698,
+      "tool_calls": 1,
+      "tool_seconds": 0.249,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "sequence-analysis",
+      "cohort_id": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "conversation_id": "3c7fdc2d-c430-59d7-9d00-4852b4670601",
+      "seconds": 6.683,
+      "tool_calls": 1,
+      "tool_seconds": 0.322,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "data-plot",
+      "cohort_id": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "conversation_id": "45c7a04e-860d-5fa5-990c-64ec7660cea6",
+      "seconds": 37.751,
+      "tool_calls": 4,
+      "tool_seconds": 1.266,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "missing-file",
+      "cohort_id": "0ec0edc4c4384eea96ffd0262e5f9406",
+      "conversation_id": "59d2a7e9-dced-5236-a511-6f2b976c6aa2",
+      "seconds": 3.583,
+      "tool_calls": 1,
+      "tool_seconds": 0.116,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "authorized-catalog",
+      "cohort_id": "a2e23bd8d4b340948580ef0797307ead",
+      "conversation_id": "3192f059-0ad8-5ba1-bdc9-9a5b8d408c99",
+      "seconds": 6.699,
+      "tool_calls": 1,
+      "tool_seconds": 2.072,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "hosted-gromacs",
+      "cohort_id": "a2e23bd8d4b340948580ef0797307ead",
+      "conversation_id": "e433b855-dd0c-5c9d-b23a-629835128c10",
+      "seconds": 144.037,
+      "tool_calls": 11,
+      "tool_seconds": 115.971,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "authorized-catalog",
+      "cohort_id": "3642cc72822a4bedaeb74c654d53201a",
+      "conversation_id": "2ecde286-3e5e-577f-8711-e488286af161",
+      "seconds": 9.77,
+      "tool_calls": 1,
+      "tool_seconds": 2.053,
+      "empty_answer": false,
+      "unfinished": false,
+      "errors": [],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    },
+    {
+      "case_id": "hosted-gromacs",
+      "cohort_id": "3642cc72822a4bedaeb74c654d53201a",
+      "conversation_id": "a6190ed5-7f37-5e8b-bca1-8c2e2d7caaaa",
+      "seconds": 3.572,
+      "tool_calls": 1,
+      "tool_seconds": 0.007,
+      "empty_answer": true,
+      "unfinished": true,
+      "errors": [
+        "This turn ended without a usable answer. It is incomplete. Any submitted jobs may still be running: open Runs to recover their status and operation IDs, and ask to resume the existing work. Do not submit the same jobs again."
+      ],
+      "instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9",
+      "scientific_pass": null
+    }
+  ],
+  "verdict": {
+    "build_publish_deploy": true,
+    "improvement_observed": true,
+    "core_conversational_completions": 16,
+    "core_attempts": 16,
+    "total_conversational_completions": 19,
+    "total_attempts": 20,
+    "two_clean_unchanged_cohorts": false,
+    "unattended_scientist_ready": false,
+    "note": "Conversation completion and valid artifact transport are not scientific correctness. Earlier failures retained in report/private evidence."
+  },
+  "cleanup": {
+    "local_qa_containers_stopped": true,
+    "stopped_backed_up_endpoints": [
+      "aiendpoint-e00qh8akarevfwqb93",
+      "aiendpoint-e00tgjvxqph1s686gw",
+      "aiendpoint-e00rpmeqwn43j4k4z6"
+    ],
+    "retained_endpoint": "aiendpoint-e00z6jxa9wfcs7gcks",
+    "histories_and_bucket_preserved": true
+  }
+}
