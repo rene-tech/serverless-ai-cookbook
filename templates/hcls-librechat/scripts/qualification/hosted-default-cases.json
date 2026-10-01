@@ -1,0 +1,7 @@
+{
+  "scope": "Scoped catalog and real existing hosted MD route through the general workbench; not all-App qualification",
+  "cases": [
+    {"case_id": "authorized-catalog", "prompt": "Which Apps can I use with my configured Scientific AI key? List the complete authorized catalog by its supplied categories; do not submit any model work."},
+    {"case_id": "hosted-gromacs", "prompt": "Run the alanine introductory run example from /workspace/examples/v3/molecular-dynamics/alanine-quickstart/ using GROMACS. Follow its README and packaged native parameters unchanged. Save the run receipt and recovered outputs in {output}, follow the same operation to completion, and report its operation ID, native completion checks and sampling limitations. Do not run the other engines or extend the simulation."}
+  ]
+}
