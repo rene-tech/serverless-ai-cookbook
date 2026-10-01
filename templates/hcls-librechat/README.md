@@ -222,6 +222,27 @@ its image to work around this limitation.
   and expired key handling, new-chat subagent polling, deferred tool options, and
   bounded title fallback. Revalidate them when upgrading the base image.
 
+## Speech, audio uploads and transcription
+
+Every instance built from `Dockerfile.default-release` includes the speech features
+that were first shown in the September 2026 clinical speech workshop:
+
+- **Attach file → Upload file** (or drag and drop) uploads WAV, MP3, M4A, OGG, FLAC,
+  WebM and general files into `/workspace`. Sending with an empty composer stores a
+  playable recording in the user's history message without calling any model.
+- Prompts such as `Transcribe this with nemotron`, `Now transcribe it with the
+  finetuned nemotron` and `Now add speaker detection` run fresh inference through
+  `workbench_transcribe_audio` / `workbench_get_transcription` on the attached audio.
+  The primary agent and the Speech & Clinical Documentation agent carry these tools.
+- The composer microphone offers the English Nemotron, the fine-tuned Nemotron, and
+  the fine-tuned Nemotron plus Sortformer speaker channels.
+
+Speech backends are configured through the `SCIENTIFIC_ENGLISH_SPEECH_*` and
+`SCIENTIFIC_MEDICAL_SPEECH_*` variables documented in [speech/README.md](speech/README.md).
+Without them the base English route is the only speech model; a request for an
+unconfigured model returns `speech_not_configured`. Speaker labels are anonymous
+channels, never names or clinical roles.
+
 ## Verify
 
 The public customer skill source is now `skills/scientific-ai`; it includes the

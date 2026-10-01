@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.7
-# Additive demo only. Existing deployed instances must not be replaced.
+# Historical additive demo build (September 2026 workshop). Since 2026-10-01 the
+# speech features ship in Dockerfile.default-release; use that for new instances.
 ARG SPEECH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d
 FROM ${SPEECH_BASE} AS client
 USER root

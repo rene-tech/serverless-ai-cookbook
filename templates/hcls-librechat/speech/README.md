@@ -1,8 +1,19 @@
-# Clinical speech demo overlay
+# Speech, audio uploads and transcription
 
-This is an additive **new-instance** overlay on the operation-polling release
-`sha256:81a2f3b54a98299933d487ccca4e9eb3fbea3130257a5a818a83940127429a4d`.
-Do not replace, restart, or resize any retained endpoint to deploy it.
+Since 2026-10-01 these features are part of the default release image built by
+`Dockerfile.default-release`: the composer's three microphone modes, chat uploads of
+WAV and general files through **Attach file → Upload file** or drag and drop, a
+playable recording in the user's history message after a file-only Send, and the
+`workbench_transcribe_audio` / `workbench_get_transcription` tools that every
+primary and Speech & Clinical Documentation agent carries. There is no separate
+workshop instance or `SCIENTIFIC_SPEECH_WORKSHOP` mode. Speech backends remain
+environment-configured as described under **Configuration** below; an instance
+without them keeps the base English route only, and an unconfigured model
+answers `speech_not_configured` instead of falling back.
+
+`Dockerfile.clinical-speech` is the historical additive demo path on the
+operation-polling release `sha256:81a2f3b5…` and is kept for the September
+2026 workshop evidence only.
 
 ## Per-fact review projection (source change; deployment qualification required)
 
