@@ -83,6 +83,7 @@ COPY templates/hcls-librechat/scientific_receipts.py /opt/bionemo/scientific_rec
 COPY templates/hcls-librechat/recording_pipeline.py /opt/bionemo/recording_pipeline.py
 COPY templates/hcls-librechat/upload-artifact.py /opt/bionemo/upload-artifact.py
 COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py
+COPY templates/hcls-librechat/native_md_artifacts.py /opt/bionemo/native_md_artifacts.py
 COPY templates/hcls-librechat/structure-analysis.py /opt/bionemo/structure-analysis.py
 COPY templates/hcls-librechat/molecule-analysis.py /opt/bionemo/molecule-analysis.py
 COPY templates/hcls-librechat/genmol-generate.py /opt/bionemo/genmol-generate.py

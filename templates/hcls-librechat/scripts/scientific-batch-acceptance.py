@@ -36,6 +36,7 @@ from scientific_receipts import (
     save,
     verify_file as verify_artifact_file,
 )
+from native_md_artifacts import materialize_native_outputs
 
 
 TERMINAL = {"failed", "cancelled", "expired", "preempted"}
@@ -325,6 +326,8 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                                         'inference_submitted': False} if recovery else
                                        {'model': args.model, 'operation_id': operation_id, 'state': 'verified',
                                         'artifacts': len(receipt['verified_artifacts'])})
+                            if receipt.get('native_outputs'):
+                                summary['native_outputs'] = receipt['native_outputs']
                             print(json.dumps(summary), flush=True)
                             return receipt
                         failures = 0
@@ -565,7 +568,9 @@ async def collect_outputs(http, result: dict, output: Path) -> dict:
     """One flat published manifest, using the existing hash-verified transport."""
     if result.get('terminal_status') != 'succeeded' or result.get('semantic_validation', {}).get('status') != 'passed':
         raise RuntimeError('Published result did not pass semantic validation.')
-    return await collect_manifest(http, result['output_manifest'], output)
+    collected = await collect_manifest(http, result['output_manifest'], output)
+    collected.update(materialize_native_outputs(output, collected['verified_artifacts']))
+    return collected
 
 
 async def collect_manifest(http, reference: dict, output: Path, *, diagnostics=False) -> dict:

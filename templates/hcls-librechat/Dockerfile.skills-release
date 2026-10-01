@@ -12,6 +12,7 @@ USER root
 # directories or replace its seeded-agent instructions with an older copy.
 COPY --from=core-skills /core/ /app/skill/
 COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py
+COPY templates/hcls-librechat/native_md_artifacts.py /opt/bionemo/native_md_artifacts.py
 COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
 RUN node /tmp/test-skills-installed.cjs
 LABEL ai.nebius.scientific.skills.version="2026.09.23.5" \

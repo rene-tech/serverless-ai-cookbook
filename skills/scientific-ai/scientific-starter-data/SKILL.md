@@ -55,9 +55,13 @@ Choose a new output directory and stable idempotency identity once. Adapt only
 the paths and discovered transport metadata for other installed cases/engines.
 Use `execute_command` and follow its durable execution identity. The client
 checks the live schema, retains admission state, and streams hash-verified
-results back to the bucket using local seekable staging. Its `output-NN.artifact`
-names map to native files through `output-manifest.json` and the engine result;
-do not guess their extensions or rerun the simulation to recover a file.
+results back to the bucket using local seekable staging. The client also writes
+verified native filenames under `native/result-00/` (one directory per result),
+with exact byte hashes and authenticated workspace links in `native-files.json`.
+Use the returned `native_outputs` directory/link and that manifest. Do not rename
+`output-NN.artifact`, reconstruct mappings by array position, base64-encode links,
+or rewrite the native files. The transport order is not the engine's file order.
+Do not rerun the simulation to recover a file.
 
 If an earlier runner already completed the operation but could not save files:
 

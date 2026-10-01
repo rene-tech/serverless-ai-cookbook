@@ -141,7 +141,11 @@ Download the completed platform result and every promised artifact using the
 verified file helpers. `result.json` records exact inputs/runtime, commands,
 native checkpoint generations, step outcomes, file names/hashes and available
 performance. The outer batch client's `output-NN.artifact` names are transport
-names, not native file names; use the output manifest and native result mapping.
+names, not native file names. The installed client materializes verified native
+paths by matching hashes into `native/result-00/` and writes `native-files.json`
+with per-file hashes and workspace links. Use its returned `native_outputs`;
+never guess mappings by array order or rename raw transport artifacts. Existing
+completed runs can be recovered with `--recover-operation-id` into a new directory.
 
 Report simulation duration/steps, atoms, trajectories/frames, temperature and
 energy sanity checks, warnings, achieved ns/day, wall and queue time separately.
