@@ -94,7 +94,8 @@ def existing_endpoint(tmp_path):
     manifest, person, args, source, _ = fixture(tmp_path)
     args.wait_seconds = 1800
     state = {**source, 'image': args.image, 'endpoint_id': 'endpoint-fixture',
-             'endpoint_name': args.name_prefix + '-' + person['id'], 'state': 'endpoint_created'}
+             'endpoint_name': args.name_prefix + '-' + person['id'], 'state': 'endpoint_created',
+             'chat_model': 'moonshotai/Kimi-K3', 'reasoning_effort': 'high', 'context_tokens': 131072}
     path = args.output / person['id'] / 'deployment.json'
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps(state))

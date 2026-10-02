@@ -90,10 +90,11 @@ def test_reasoning_time_budgets_are_forwarded_without_changing_model(tmp_path, d
     assert f'SCIENTIFIC_AGENT_MODEL_DEADLINE_MS={deadline or "90000"}' in arguments
     assert 'SCIENTIFIC_AGENT_MODEL_TIME_MS=300000' in arguments
     assert 'SCIENTIFIC_AGENT_REPEAT_ROUNDS=2' in arguments
-    assert 'SCIENTIFIC_CHAT_MODEL=zai-org/GLM-5.3-Flash' in arguments
+    assert 'SCIENTIFIC_CHAT_MODEL=moonshotai/Kimi-K3' in arguments
+    assert 'SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072' in arguments
 
 
-@pytest.mark.parametrize('override,expected', [(None, 'low'), ('high', 'high')])
+@pytest.mark.parametrize('override,expected', [(None, 'high'), ('low', 'low')])
 def test_reasoning_default_and_explicit_override(tmp_path, override, expected):
     result = command(tmp_path, 'false', reasoning_effort=override)
     assert result.returncode == 0
@@ -115,6 +116,16 @@ def test_dry_run_uses_the_same_deployment_path(tmp_path):
     result = command(tmp_path, dry_run=True)
     assert result.returncode == 0
     assert json.loads(result.stdout).count('--dry-run') == 1
+
+
+def test_explicit_preview_study_namespace_is_forwarded(tmp_path, monkeypatch):
+    monkeypatch.setenv('SCIENTIFIC_STUDY_OWNER', 'owner-preview-fixture')
+    result = command(tmp_path, dry_run=True)
+    assert result.returncode == 0
+    arguments = json.loads(result.stdout)
+    assert 'SCIENTIFIC_STUDY_OWNER=owner-preview-fixture' in arguments
+    assert 'TEAM_ID=fixture' in arguments
+    assert 'SCIENTIFIC_STUDY_OWNER_MODE=first-instance' in arguments
 
 
 def test_private_explicit_ssh_is_not_silently_removed(tmp_path):

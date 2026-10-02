@@ -177,7 +177,8 @@ LABEL org.opencontainers.image.title="Nebius Scientific AI Agent" \
       org.opencontainers.image.licenses="MIT"
 
 ENV HOST=0.0.0.0 \
-    SCIENTIFIC_CHAT_REASONING_EFFORT=low \
+    SCIENTIFIC_CHAT_REASONING_EFFORT=high \
+    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072 \
     PORT=3080 \
     NODE_ENV=production \
     APP_TITLE="Nebius Scientific AI Agent" \

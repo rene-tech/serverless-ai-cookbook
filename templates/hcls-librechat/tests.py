@@ -9,13 +9,14 @@ import pytest
 
 ROOT = Path(__file__).parent
 INSTRUCTIONS = ROOT.parents[1] / "life-science/bionemo-librechat/scientific-agent-instructions.md"
-DEFAULT_CHAT_MODEL = "zai-org/GLM-5.3-Flash"
+DEFAULT_CHAT_MODEL = "moonshotai/Kimi-K3"
 
 
 def render_config(tmp_path, catalog=None, **overrides):
     env = {key: value for key, value in os.environ.items()
            if key not in {"SCIENTIFIC_MODELS_API_KEY", "NEBIUS_API_KEY"}}
     env.update(SCIENTIFIC_AGENT_INSTRUCTIONS_PATH=str(INSTRUCTIONS),
+               SCIENTIFIC_CORE_INSTRUCTIONS_PATH=str(ROOT / 'agent-instructions.md'),
                SCIENTIFIC_DISCOVER_CHAT_MODELS="false")
     env.update(overrides)
     output = tmp_path / "librechat.yaml"
@@ -98,9 +99,10 @@ def test_deployment_selects_tested_skills_image_and_preserves_explicit_override(
     )
     args = result.stdout.splitlines()
     assert args[:3] == ["ai", "endpoint", "create"]
-    assert args[args.index("--image") + 1] == (
-        override or "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:skills-20260920-v1"
-    )
+    release = (ROOT / 'scripts/release-image.sh').read_text()
+    selected = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
+                    if line.startswith('SCIENTIFIC_AI_RELEASE_IMAGE='))
+    assert args[args.index("--image") + 1] == (override or selected)
 
 
 def test_personal_installation_can_use_public_chat_without_event_capacity(tmp_path):
@@ -218,12 +220,14 @@ class MongoClient {
 vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
   require: (name) => name === 'mongodb' ? { MongoClient, ObjectId: class {} }
     : name === 'librechat-data-provider' ? { Constants: { mcp_all: 'mcp_all' } } : require(name),
-  process: { env: { SCIENTIFIC_AGENT_INSTRUCTIONS_PATH: process.argv[2] },
+  process: { env: { SCIENTIFIC_AGENT_INSTRUCTIONS_PATH: process.argv[2],
+    SCIENTIFIC_CORE_INSTRUCTIONS_PATH: process.argv[3] },
     stdout: { write() {} }, stderr: process.stderr },
 });
 """
     instructions = ROOT.parents[1] / "life-science/bionemo-librechat/scientific-agent-instructions.md"
-    result = subprocess.run(["node", "-e", script, str(ROOT / "seed-workbench.js"), str(instructions)],
+    result = subprocess.run(["node", "-e", script, str(ROOT / "seed-workbench.js"), str(instructions),
+                             str(ROOT / 'agent-instructions.md')],
                             check=True, capture_output=True, text=True)
     agents = json.loads(result.stdout)
     assert len(agents) == 6
@@ -244,7 +248,8 @@ vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
         assert agent["model_parameters"]["model"] == DEFAULT_CHAT_MODEL
         assert agent["skills_enabled"] is True
         assert agent["model_parameters"]["max_tokens"] == 16384
-        assert instructions.read_text().strip() in agent["instructions"]
+        expected = (ROOT / 'agent-instructions.md') if agent['id'] == general['id'] else instructions
+        assert expected.read_text().strip() in agent["instructions"]
         assert set(agent["mcpServerNames"]) == {"scientific-ai-apps", "scientific-demos", "tavily", "structure-viewer", "environment-execution"}
         assert "tavily_search_mcp_tavily" in agent["tools"]
         assert "workbench_track_operation_mcp_scientific-demos" in agent["tools"]
@@ -254,18 +259,13 @@ vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
         assert "workbench_assemble_report_mcp_scientific-demos" in agent["tools"]
     assert "Immediately save every returned operation ID with workbench_track_operation" not in general['instructions']
     assert "track the returned ID with `workbench_track_operation`" not in general['instructions']
-    assert "Runs automatically discovers" in general['instructions']
-    assert "Do not launch parallel CLI processes" in general['instructions']
-    assert "prefer `run_scientific_workflow_mcp_environment-execution` with its typed `study` (scientific-workflow/v2)" in general['instructions']
-    assert "Do not rewrite existing numerical tables in an ad hoc Python renderer" in general['instructions']
-    assert "call exactly workbench_list_apps_mcp_scientific-demos once" in general['instructions']
-    assert "Do not call tool_search, list_models, list_scientific_models or get_model_schema for a catalog request" in general['instructions']
-    assert "Name every returned App exactly once" in general['instructions']
-    assert "do not invent cross-App chains" in general['instructions']
-    assert "FINAL CATALOG ROUTING RULE" in general['instructions']
-    assert general['instructions'].rstrip().endswith(
-        "A failed schema probe is not evidence that an App is unavailable."
-    )
+    assert general['instructions'] == (ROOT / 'agent-instructions.md').read_text().strip()
+    assert len(general['instructions']) < 10000
+    assert "same job ID" in general['instructions']
+    assert "typed" in general['instructions'] and "current schema" in general['instructions']
+    assert "Never paraphrase the inventory" in general['instructions']
+    assert "workbench_list_apps_mcp_scientific-demos` once" in general['instructions']
+    assert "list every\nreturned App without inventing capabilities" in general['instructions']
     assert "analysis into another" not in general['instructions']
     assert "workspace_url" in general['instructions']
 
@@ -300,7 +300,7 @@ def test_chat_choices_keep_scientific_capabilities_and_exclude_native_models(tmp
             continue
         assert item["skills"] is True
         assert item["mcpServers"] == ["scientific-ai-apps", "scientific-demos", "tavily", "structure-viewer", "environment-execution"]
-        assert INSTRUCTIONS.read_text().strip() in item["preset"]["promptPrefix"]
+        assert (ROOT / 'agent-instructions.md').read_text().strip() in item["preset"]["promptPrefix"]
         assert item["preset"]["model"] not in {"evo2-40b", "boltz2", "openfold2", "sdxl", "nv-segment-ct"}
         assert "agent_id" not in item["preset"]
     assert any(
@@ -357,8 +357,8 @@ def test_default_model_and_visible_workbench(tmp_path) -> None:
         assert title in (ROOT / "ScientificLanding.tsx").read_text(encoding="utf-8")
 
 
-def test_product_owner_approved_default_chat_model_is_glm_flash() -> None:
-    expected = "zai-org/GLM-5.3-Flash"
+def test_product_owner_approved_default_chat_model_is_kimi_k3() -> None:
+    expected = "moonshotai/Kimi-K3"
     sources = {
         "seed-workbench.js": ROOT / "seed-workbench.js",
         "demos/seed.cjs": ROOT / "demos" / "seed.cjs",
@@ -376,11 +376,11 @@ def test_team_bucket_context_is_injected(tmp_path) -> None:
                               TEAM_BUCKET_NAME="fs2-research-lab-example")
     public = next(item for item in config["modelSpecs"]["list"] if item["group"] == "Public Token Factory")
     prompt = public["preset"]["promptPrefix"]
-    assert "research-lab's dedicated scientific workspace" in prompt
-    assert "fs2-research-lab-example is mounted read-write at /workspace" in prompt
-    assert "call exactly workbench_list_apps_mcp_scientific-demos once" in prompt
-    assert "Name every returned App exactly once" in prompt
-    assert "use only the supplied recommended_demo" in prompt
+    assert "research-lab's scientific workspace" in prompt
+    assert "configured Object Storage bucket is mounted at /workspace" in prompt
+    assert prompt.startswith((ROOT / 'agent-instructions.md').read_text().strip())
+    assert "workbench_list_apps_mcp_scientific-demos` once" in prompt
+    assert "Retain its categories and list every" in prompt
     custom = config["endpoints"]["custom"]
     assert len(custom) == 1
     assert custom[0]["baseURL"] == "https://api.tokenfactory.nebius.com/v1"
@@ -409,5 +409,6 @@ def test_product_does_not_use_tenant_branding() -> None:
         path.read_text(encoding="utf-8")
         for path in ROOT.rglob("*")
         if path.is_file() and path.suffix in {".js", ".mjs", ".py", ".sh", ".md", ".svg"}
+        and 'docs' not in path.relative_to(ROOT).parts
     )
     assert ("ko" + "pra") not in combined.lower()

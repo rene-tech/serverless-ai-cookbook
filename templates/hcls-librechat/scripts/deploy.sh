@@ -47,9 +47,9 @@ CREATE_CMD=(
   --env "SCIENTIFIC_STUDY_OWNER_MODE=$SCIENTIFIC_STUDY_OWNER_MODE"
   # Product-owner-approved default. Keep overrides explicit and never change the
   # fallback model without approval.
-  --env "SCIENTIFIC_CHAT_MODEL=${SCIENTIFIC_CHAT_MODEL:-zai-org/GLM-5.3-Flash}"
-  --env "SCIENTIFIC_CHAT_REASONING_EFFORT=${SCIENTIFIC_CHAT_REASONING_EFFORT:-low}"
-  --env "SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=${SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS:-}"
+  --env "SCIENTIFIC_CHAT_MODEL=${SCIENTIFIC_CHAT_MODEL:-moonshotai/Kimi-K3}"
+  --env "SCIENTIFIC_CHAT_REASONING_EFFORT=${SCIENTIFIC_CHAT_REASONING_EFFORT:-high}"
+  --env "SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=${SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS:-131072}"
   --env "SCIENTIFIC_CHAT_MAX_OUTPUT_TOKENS=${SCIENTIFIC_CHAT_MAX_OUTPUT_TOKENS:-16384}"
   # Model-time limits do not limit durable scientific job runtime.
   --env "SCIENTIFIC_AGENT_MODEL_DEADLINE_MS=${SCIENTIFIC_AGENT_MODEL_DEADLINE_MS:-90000}"
@@ -62,6 +62,12 @@ CREATE_CMD=(
   --auth none
   --format json
 )
+# Explicit stable run ownership permits an owner-requested parallel preview to
+# use a separate study namespace in the same bucket. It never changes API grants.
+# Replacements must retain their predecessor's namespace after it is stopped.
+if [[ -n "${SCIENTIFIC_STUDY_OWNER:-}" ]]; then
+  CREATE_CMD+=(--env "SCIENTIFIC_STUDY_OWNER=$SCIENTIFIC_STUDY_OWNER")
+fi
 if [[ "${SERVERLESS_PUBLIC_IP:-true}" == true ]]; then
   CREATE_CMD+=(--public)
 else

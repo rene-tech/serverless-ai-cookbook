@@ -8,6 +8,11 @@ templates/hcls-librechat/**
 !templates/hcls-librechat/execution-mcp.py
 !templates/hcls-librechat/inspect-mmcif.py
 !templates/hcls-librechat/agent-instructions.md
+!templates/hcls-librechat/seed-workbench.js
+!templates/hcls-librechat/render-config.mjs
+!templates/hcls-librechat/demos
+templates/hcls-librechat/demos/**
+!templates/hcls-librechat/demos/seed.cjs
 !templates/hcls-librechat/scientific_verified_results.py
 !templates/hcls-librechat/scripts
 templates/hcls-librechat/scripts/**

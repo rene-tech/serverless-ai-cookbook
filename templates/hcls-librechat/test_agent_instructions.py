@@ -70,7 +70,9 @@ Promise.resolve(vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), con
             agents = json.loads(run.stdout)
             primary = next(a for a in agents if a['id'] == 'agent_nebius_scientific_ai')
             self.assertEqual(primary['instructions'], (HERE / 'agent-instructions.md').read_text().strip())
-            self.assertEqual(primary['model'], 'zai-org/GLM-5.3-Flash')
+            self.assertEqual(primary['model'], 'moonshotai/Kimi-K3')
+            self.assertEqual(primary['model_parameters']['reasoning_effort'], 'high')
+            self.assertEqual(primary['model_parameters']['maxContextTokens'], 131072)
             self.assertTrue(primary['skills_enabled'])
             self.assertGreater(len(agents), 1)
 

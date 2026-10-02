@@ -63,9 +63,9 @@ const makeTokenConfig = (models) => Object.fromEntries(models.map(([id]) => [id,
 let availablePublicTokenModels = publicTokenFactoryModels;
 let discoveredPublicTokenIds = null;
 // Product-owner-approved conversational default. Title generation follows the
-// same model so a nominally GLM conversation never makes a hidden Qwen call.
+// same model so a conversation never makes a hidden call to another family.
 // Do not change this default without explicit product-owner approval.
-const configuredChatModel = process.env.SCIENTIFIC_CHAT_MODEL || 'zai-org/GLM-5.3-Flash';
+const configuredChatModel = process.env.SCIENTIFIC_CHAT_MODEL || 'moonshotai/Kimi-K3';
 if (process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY !== 'user_provided'
     && process.env.SCIENTIFIC_DISCOVER_CHAT_MODELS !== 'false') {
   try {

@@ -59,6 +59,7 @@ LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       ai.nebius.scientific.operation-polling.revision="${HCLS_IMAGE_REVISION}" \
       ai.nebius.scientific.openff.interpreter="/opt/openff/bin/python" \
       ai.nebius.scientific.release="general-openff-20261001"
-# Retain the approved GLM model. Bound conversational reasoning independently
+# Use the approved conversational default. Bound reasoning independently
 # of scientific methods or workflow-specific patient/clinician/judge models.
-ENV SCIENTIFIC_CHAT_REASONING_EFFORT=low
+ENV SCIENTIFIC_CHAT_REASONING_EFFORT=high \
+    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072

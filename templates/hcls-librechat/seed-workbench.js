@@ -15,13 +15,15 @@ const catalogRoutingInstructions = `FINAL CATALOG ROUTING RULE: when the current
 const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/LibreChat';
 const serviceEmail = 'nebius-scientific-ai-agent@localhost.invalid';
 const provider = process.env.SCIENTIFIC_CHAT_PROVIDER || 'Nebius Token Factory';
-// Product-owner decision: GLM-5.3-Flash is the conversational default. Do not
+// Product-owner decision (2026-10-02): Kimi K3 is the conversational default. Do not
 // change this default or introduce an automatic fallback without explicit approval.
-const model = process.env.SCIENTIFIC_CHAT_MODEL || 'zai-org/GLM-5.3-Flash';
-const reasoningEffort = process.env.SCIENTIFIC_CHAT_REASONING_EFFORT;
+const model = process.env.SCIENTIFIC_CHAT_MODEL || 'moonshotai/Kimi-K3';
+const reasoningEffort = process.env.SCIENTIFIC_CHAT_REASONING_EFFORT ||
+  (model === 'moonshotai/Kimi-K3' ? 'high' : undefined);
 if (reasoningEffort && !['low', 'high', 'max'].includes(reasoningEffort)) throw new Error('Unsupported explicit reasoning effort');
 const contextTokens = process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS
-  ? Number(process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS) : undefined;
+  ? Number(process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS)
+  : (model === 'moonshotai/Kimi-K3' ? 131072 : undefined);
 if (contextTokens !== undefined && (!Number.isInteger(contextTokens) || contextTokens < 1024)) {
   throw new Error('Explicit context ceiling must be an integer of at least 1024 tokens');
 }

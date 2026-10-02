@@ -4,7 +4,7 @@ const { MongoClient, ObjectId } = appRequire('mongodb');
 const { tools: demoTools } = require('./mcp.cjs');
 // Keep specialized workflow agents on the product-owner-approved conversational
 // default. Backend report/judge model selections remain explicit and separate.
-const defaultChatModel = process.env.SCIENTIFIC_CHAT_MODEL || 'zai-org/GLM-5.3-Flash';
+const defaultChatModel = process.env.SCIENTIFIC_CHAT_MODEL || 'moonshotai/Kimi-K3';
 const common = 'Use only the scientific-demos MCP tools for these workflows. Never invent results or silently start another run after a timeout. Save job/run IDs and poll existing work. Keep provider and platform credentials out of chat. The authenticated control panels are at /demos?tab=clinical and /demos?tab=mindeval. Keys are configured there or in scientific-demos MCP Settings. Inference is served by Nebius, without regional routing. Discover currently authorized models; never assume access to a private customer endpoint or substitute a classifier for a conversational model.';
 const definitions = [
   { id: 'agent_clinical_report', name: 'Clinical Report Draft',
