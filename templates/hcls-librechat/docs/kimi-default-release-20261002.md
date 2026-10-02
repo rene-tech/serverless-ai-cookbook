@@ -132,3 +132,8 @@ completion on these workflows, but model choice is not scientific validation.
 Existing customer instances do not auto-upgrade when `release-image.sh` changes.
 Before any later replacement, preserve account state, chats, uploads, credentials
 and bucket bindings. A Serverless stop destroys its local disk; it is not rollback.
+
+Subsequent explicitly authorized migration: [Lynx, October 2](lynx-kimi-migration-20261002.md).
+That report preserves its full account-state restore evidence and one recovered
+Gemmi command error in the customer-input cohort; do not equate it with a clean
+all-workflows qualification or silently inherit the public-fixture result above.
