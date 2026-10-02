@@ -136,6 +136,8 @@ RUN node /opt/hcls-librechat/demos/patch.mjs server \
  && python3 -m venv /opt/clinical-client \
  && /opt/clinical-client/bin/pip install --no-cache-dir httpx==0.28.1
 COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
+COPY templates/hcls-librechat/seed-merge.cjs /app/seed-merge.cjs
+COPY templates/hcls-librechat/state-supervisor.py /opt/hcls-librechat/state-supervisor.py
 COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
 COPY --chmod=0755 templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
 COPY templates/hcls-librechat/inspect-fasta.py /opt/bionemo/inspect-fasta.py
@@ -202,4 +204,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \
   CMD ["wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3080/health"]
 # The operator explicitly enables root command execution in this environment.
 USER root
-ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/hcls-librechat-entrypoint"]
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "python3", "/opt/hcls-librechat/state-supervisor.py", "--", "/usr/local/bin/hcls-librechat-entrypoint"]

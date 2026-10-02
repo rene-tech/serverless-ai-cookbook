@@ -20,6 +20,7 @@ COPY --from=openff-runtime /opt/openff /opt/openff
 COPY templates/hcls-librechat/openff/ /opt/openff-release/
 COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
 COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
+COPY templates/hcls-librechat/seed-merge.cjs /app/seed-merge.cjs
 COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
 COPY --chmod=0755 templates/hcls-librechat/inspect-mmcif.py /opt/bionemo/inspect-mmcif.py
 COPY templates/hcls-librechat/inspect-fasta.py /opt/bionemo/inspect-fasta.py
@@ -48,7 +49,7 @@ COPY --from=assembled /opt/openff-release /opt/openff-release
 COPY --from=assembled /opt/bionemo /opt/bionemo
 COPY --from=assembled /opt/hcls-librechat /opt/hcls-librechat
 COPY --from=assembled /app/skill /app/skill
-COPY --from=assembled /app/agent-instructions.md /app/seed-hcls-workbench.js /app/
+COPY --from=assembled /app/agent-instructions.md /app/seed-hcls-workbench.js /app/seed-merge.cjs /app/
 COPY --from=assembled /app/packages/api/dist/index.cjs /app/packages/api/dist/index.cjs
 COPY --from=assembled /app/api/server/controllers/agents/client.js /app/api/server/controllers/agents/client.js
 ARG HCLS_IMAGE_REVISION=unknown

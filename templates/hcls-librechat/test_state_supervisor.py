@@ -75,3 +75,6 @@ def test_restore_preserves_displaced_data(tmp_path):
     assert (data / 'WiredTiger').read_bytes() == b'original'
     displaced = list((tmp_path / 'snapshots').glob('displaced-operation-1-*/db/WiredTiger'))
     assert len(displaced) == 1 and displaced[0].read_bytes() == b'changed'
+    (data / 'WiredTiger').write_bytes(b'new customer data after recovery')
+    module.restore(tmp_path, 'operation-1')
+    assert (data / 'WiredTiger').read_bytes() == b'new customer data after recovery'

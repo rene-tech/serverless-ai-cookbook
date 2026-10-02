@@ -80,6 +80,9 @@ def restore(root: Path, name: str) -> None:
     if not name or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in name):
         raise ValueError('Invalid snapshot identity')
     source = root / 'snapshots' / (name + '.tar.gz')
+    completed = root / 'snapshots' / (name + '.restored')
+    if completed.exists():
+        return
     if not source.is_file():
         raise RuntimeError('Requested state snapshot is missing; nothing was changed')
     # Restore into a staging directory before moving anything. Keep failed/newer
@@ -95,6 +98,10 @@ def restore(root: Path, name: str) -> None:
     for path in stage.iterdir():
         shutil.move(str(path), str(root / path.name))
     stage.rmdir()
+    with completed.open('x') as receipt:
+        receipt.write('completed\n')
+        receipt.flush()
+        os.fsync(receipt.fileno())
 
 
 def supervise(root: Path, command: list[str]) -> int:
@@ -108,6 +115,9 @@ def supervise(root: Path, command: list[str]) -> int:
             raise RuntimeError('Another LibreChat runtime owns this filesystem; no second writer started') from exc
         if os.environ.get('SCIENTIFIC_STATE_RESTORE'):
             restore(root, os.environ['SCIENTIFIC_STATE_RESTORE'])
+        optional_restore = os.environ.get('SCIENTIFIC_STATE_RESTORE_IF_PRESENT')
+        if optional_restore and (root / 'snapshots' / (optional_restore + '.tar.gz')).is_file():
+            restore(root, optional_restore)
         if os.environ.get('SCIENTIFIC_STATE_SNAPSHOT'):
             snapshot(root, os.environ['SCIENTIFIC_STATE_SNAPSHOT'])
         data = root / 'hcls-librechat'

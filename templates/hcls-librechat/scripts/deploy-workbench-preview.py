@@ -65,9 +65,12 @@ def create_args(request, s3_profile):
     for key in spec['ssh_authorized_keys']:
         args += ['--ssh-key', key]
     for mount in spec['volumes']:
-        ref = mount['s3_config']['mysterybox_secret']
         mode = {'READ_WRITE': 'rw', 'READ_ONLY': 'ro'}[mount['mode']]
-        args += ['--volume', f"{mount['source']}:{mount['container_path']}:{mode}:{s3_profile}@{ref['secret_id']}@{ref['version_id']}"]
+        if mount['source'].startswith('computefilesystem-'):
+            args += ['--volume', f"{mount['source']}:{mount['container_path']}:{mode}"]
+        else:
+            ref = mount['s3_config']['mysterybox_secret']
+            args += ['--volume', f"{mount['source']}:{mount['container_path']}:{mode}:{s3_profile}@{ref['secret_id']}@{ref['version_id']}"]
     for var in spec['environment_variables']:
         if 'mysterybox_secret' in var:
             ref = var['mysterybox_secret']
@@ -86,6 +89,7 @@ def main():
     p.add_argument('--ssh-public-key', required=True, type=Path)
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--apply', action='store_true')
+    p.add_argument('--state-filesystem', help='Dedicated empty QA state filesystem; never share the source state')
     a = p.parse_args()
     os.umask(0o077)
     a.output.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -105,6 +109,13 @@ def main():
     if source['metadata']['parent_id'] != a.project:
         raise ValueError('Source endpoint belongs to a different project')
     request = preview(source, a.name, a.image, a.study_owner, a.ssh_public_key.read_text().strip())
+    if a.state_filesystem:
+        if not a.state_filesystem.startswith('computefilesystem-'):
+            raise ValueError('State must use a Nebius filesystem')
+        if any(m['source'] == a.state_filesystem or m['container_path'] == '/data' for m in request['spec']['volumes']):
+            raise ValueError('A parallel preview must never mount the predecessor state filesystem')
+        request['spec']['volumes'].append({'source': a.state_filesystem, 'container_path': '/data', 'mode': 'READ_WRITE'})
+        request['spec']['environment_variables'].append({'name': 'SCIENTIFIC_REQUIRE_PERSISTENT_STATE', 'value': 'true'})
     save(a.output / 'request-private.json', request)
     listing = cloud(['ai', 'endpoint', 'list', '--parent-id', a.project], 'inventory')
     if listing.get('next_page_token'):

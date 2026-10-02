@@ -18,6 +18,7 @@ RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliab
  && chmod 0755 /opt/bionemo/inspect-mmcif.py \
  && cp /tmp/agent-reliability/agent-instructions.md /app/agent-instructions.md \
  && cp /tmp/agent-reliability/seed-workbench.js /app/seed-hcls-workbench.js \
+ && cp /tmp/agent-reliability/seed-merge.cjs /app/seed-merge.cjs \
  && cp /tmp/agent-reliability/ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx \
  && cp /tmp/agent-reliability/ScientificGettingStarted.tsx /app/client/src/components/ScientificGettingStarted.tsx \
  && cp /tmp/agent-reliability/PoweredByFooter.tsx /app/client/src/components/Chat/Footer.tsx \
@@ -50,7 +51,7 @@ RUN mkdir -p /release/opt/hcls-librechat /release/opt/bionemo /release/app/skill
  && cp /opt/bionemo/scientific_starter.py /release/opt/bionemo/ \
  && cp /opt/bionemo/invoke-scientific-batch.py /release/opt/bionemo/ \
  && cp -p /opt/bionemo/inspect-mmcif.py /release/opt/bionemo/ \
- && cp /app/agent-instructions.md /app/seed-hcls-workbench.js /release/app/ \
+ && cp /app/agent-instructions.md /app/seed-hcls-workbench.js /app/seed-merge.cjs /release/app/ \
  && cp /app/skill/openff/SKILL.md /release/app/skill/openff/SKILL.md \
  && cp /app/skill/scientific-starter-data/SKILL.md /release/app/skill/scientific-starter-data/SKILL.md \
  && cp /app/skill/manifest.json /app/skill/files.sha256.json /release/app/skill/ \

@@ -9,6 +9,7 @@ templates/hcls-librechat/**
 !templates/hcls-librechat/inspect-mmcif.py
 !templates/hcls-librechat/agent-instructions.md
 !templates/hcls-librechat/seed-workbench.js
+!templates/hcls-librechat/seed-merge.cjs
 !templates/hcls-librechat/render-config.mjs
 !templates/hcls-librechat/demos
 templates/hcls-librechat/demos/**

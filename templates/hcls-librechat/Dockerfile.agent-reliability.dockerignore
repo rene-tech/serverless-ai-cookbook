@@ -12,6 +12,7 @@
 !templates/hcls-librechat/execution-mcp.py
 !templates/hcls-librechat/agent-instructions.md
 !templates/hcls-librechat/seed-workbench.js
+!templates/hcls-librechat/seed-merge.cjs
 !templates/hcls-librechat/ScientificExecutionOutput.tsx
 !templates/hcls-librechat/ScientificExecutionOutput.test.tsx
 !templates/hcls-librechat/patch-execution-ui.mjs

@@ -231,8 +231,8 @@ async function seedAgent({ agents: collection, aclEntries, owner, now, definitio
   await aclEntries.updateOne(
     { principalType: 'public', resourceType: 'agent', resourceId: agent._id },
     {
-      $set: { permBits: 1, grantedBy: owner._id, grantedAt: now, updatedAt: now },
       $setOnInsert: {
+        permBits: 1, grantedBy: owner._id, grantedAt: now, updatedAt: now,
         _id: new ObjectId(), principalType: 'public', resourceType: 'agent', resourceId: agent._id, createdAt: now,
       },
     },
