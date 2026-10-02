@@ -13,7 +13,7 @@ from test_scientific_batch_client import client
 OPERATION = '4e333485-573f-42ac-af81-a919cdf20913'
 
 
-def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_status'):
+def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_status', states=()):
     """Use the real SDK and an isolated mock HTTP server, including handshakes."""
     args = argparse.Namespace(source=tmp_path / 'source', parameters=tmp_path / 'parameters',
                               model='fixture', output=tmp_path / 'run', idempotency_key='original-key',
@@ -37,6 +37,7 @@ def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_sta
                   'artifact_id': 'manifest', 'sha256': client.digest(data), 'size_bytes': len(data)}}
     calls, sessions, delays = [], [], []
     fault_queue = list(faults)
+    state_queue = list(states)
 
     def rpc_response(request, message, body, *, error=False, headers=None):
         return client.httpx2.Response(200, request=request, headers=headers,
@@ -87,8 +88,9 @@ def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_sta
                 return rpc_response(request, message, fault['rpc'], error=True)
             return rpc_response(request, message, {'isError': True, 'content': [{
                 'type': 'text', 'text': json.dumps({'error': fault})}]})
-        document = ({'operation': {'id': OPERATION, 'status': 'succeeded'},
-                     'batch': {'result_published': True}}
+        state = state_queue.pop(0) if name == 'get_scientific_status' and state_queue else 'succeeded'
+        document = ({'operation': {'id': OPERATION, 'status': state},
+                     'batch': {'result_published': state == 'succeeded'}}
                     if name == 'get_scientific_status' else result)
         return rpc_response(request, message, {'content': [{'type': 'text', 'text': json.dumps(document)}]})
 
@@ -106,6 +108,19 @@ def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_sta
     monkeypatch.setattr(client.asyncio, 'sleep', pause)
     monkeypatch.setattr(client, 'upload', forbidden_upload)
     return args, original, previous, calls, sessions, delays
+
+
+def test_progress_reports_state_changes_once_without_payloads_or_extra_submissions(tmp_path, monkeypatch, capsys):
+    args, _, _, calls, _, _ = resumed_run(tmp_path, monkeypatch, [],
+        states=['queued', 'queued', 'running', 'running', 'succeeded'])
+    assert asyncio.run(client.run(args))['state'] == 'verified'
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    progress = [event for event in events if event.get('observation') == 'state_changed']
+    assert [event['state'] for event in progress] == ['queued', 'running', 'succeeded']
+    assert all(event['operation_id'] == OPERATION for event in events)
+    assert all(set(event) == {'operation_id', 'state', 'observation'} for event in progress)
+    assert calls == ['get_scientific_status'] * 5 + ['get_scientific_result', 'artifact-read']
+    assert 'synthetic-key-never-in-receipts' not in json.dumps(events)
 
 
 @pytest.mark.parametrize('fault', [408, 429, 500, 502, 503, 504, 404,

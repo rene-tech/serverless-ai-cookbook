@@ -292,6 +292,7 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
     """
     deadline = time.monotonic() + (180 if recovery else max(0, args.wait_seconds))
     failures, operation_id = 0, receipt['operation_id']
+    announced_state = None
     observation = OperationReadHTTP(operation_id)
     while True:
         phase, observation.failure = 'connect', None
@@ -309,6 +310,13 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                         operation = status.get('operation', status)
                         receipt['state'] = operation['status']
                         save(receipt_path, receipt)
+                        if receipt['state'] != announced_state:
+                            # User-visible progress from authoritative state, not
+                            # another LLM inference or a heartbeat every poll.
+                            print(json.dumps({'operation_id': operation_id,
+                                              'state': receipt['state'],
+                                              'observation': 'state_changed'}), flush=True)
+                            announced_state = receipt['state']
                         if recovery and (operation['status'] != 'succeeded'
                                 or not status.get('batch', {}).get('result_published')):
                             raise RuntimeError('Existing operation is not a published successful result: '

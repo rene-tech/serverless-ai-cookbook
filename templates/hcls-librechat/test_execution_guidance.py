@@ -116,5 +116,9 @@ def test_actual_packaged_and_seeded_instructions_distinguish_tools():
     assert "'/app/scientific-agent-instructions.md'" in seed
     assert "execute_command_mcp_environment-execution" in seed
     assert "read_execution_mcp_environment-execution" in seed
-    rendered = (ROOT / "render-config.mjs").read_text()
-    assert "a command's --operation-wait-seconds" in rendered
+    # The shared core now feeds both rendered endpoints and the seeded agent;
+    # testing the former hard-coded render-config prose missed actual drift.
+    core = (ROOT / "agent-instructions.md").read_text()
+    assert "`wait_seconds` is 0–10 (default 5)" in core
+    assert "`read_execution` waits 0–30 (default 15)" in core
+    assert "`--operation-wait-seconds` into the tool's `wait_seconds`" in core

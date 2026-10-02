@@ -45,6 +45,13 @@ Parallel tool rounds are counted after their results arrive. This is conservativ
 exact-evidence detection, **not** an LLM judging scientific progress. Changed but
 still-useless arguments can escape it; the model-time and recursion limits remain.
 
+October 2 correction: bounded `read_execution` observations of a matching saved
+job in `pending`/`running` state are exempt from the repeat detector. A real GPU
+run showed that three identical long-poll receipts can be healthy waiting. The
+exception checks the exact helper name, matching UUID, requested/effective wait
+and nonterminal/error-free state. Terminal rereads, zero-wait loops and arbitrary
+tools remain bounded. Observations never reset accumulated model time.
+
 Budgets are isolated by graph object/run identity and discarded on graph cleanup.
 The accumulated clock is process-local, not a customer quota or durable billing
 counter. A new explicit customer turn gets a new budget; it must reuse existing

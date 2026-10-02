@@ -12,11 +12,11 @@ function messages(changes = {}) {
 test('explicit delivery retains exact scientific facts and URLs', () => {
   assert.equal(deliver(messages()), 'Measured **31 atoms**. [Files](/demos?tab=workspace)');
 });
-test('typed inventory ends only an explicitly finished inventory, never intermediate work', () => {
+test('inspection never ends a compound request, even with a legacy finish flag', () => {
   const value = messages();
   value[0].tool_calls[0].name = value[1].name = 'inspect_mmcif_inventory_mcp_environment-execution';
   value[0].tool_calls[0].args = { path: '/workspace/input.cif', finish_request: true };
-  assert.equal(deliver(value), deliver(messages()));
+  assert.equal(deliver(value), null);
   value[0].tool_calls[0].args.finish_request = false;
   assert.equal(deliver(value), null);
   delete value[0].tool_calls[0].args;

@@ -254,12 +254,19 @@ def deliver_scientific_results(args):
 
 
 def inspect_mmcif_inventory(args):
-    if set(args) != {'path', 'finish_request'} or not isinstance(args['finish_request'], bool):
-        raise ValueError('Supply path and explicit boolean finish_request; false for intermediate inspection.')
+    if (not isinstance(args, dict) or not isinstance(args.get('path'), str) or
+            not args['path'].strip() or set(args) - {'path', 'finish_request'} or
+            ('finish_request' in args and not isinstance(args['finish_request'], bool))):
+        raise ValueError('Supply the exact input path; legacy finish_request must be boolean if present.')
     result = deliver_scientific_results({'results': [{'kind': 'mmcif', 'path': args['path']}]})
-    if not args['finish_request']:
-        result['schema'] = 'scientific-mmcif-inventory/v1'
-        result['guidance'] = 'Intermediate measured inventory only. Continue the other requested work; this is not preparation or MD validation.'
+    # Accept a saved client's old argument, but never let inspection bypass
+    # continuation and silently drop a requested CSV, plot or later analysis.
+    result['schema'] = 'scientific-mmcif-inventory/v1'
+    result['guidance'] = ('Measured inventory only, not completion of the whole request or MD validation. '
+                          'Continue any requested exports or analysis. Once those are complete, call '
+                          'deliver_scientific_results with this mmcif path and every requested output '
+                          'as kind=file. For inventory-only requests just deliver this mmcif. '
+                          'Do not rewrite counts or invent structural interpretations.')
     return result
 
 
@@ -541,12 +548,12 @@ def compose_scientific_workflow(arguments):
 
 TOOLS = [
     {'name': 'inspect_mmcif_inventory',
-     'description': 'Read a workspace mmCIF and report exactly what it contains: chains, recorded entities, coordinate/sequence coverage, ligands, solvent and atom records. Uses the installed Gemmi inspector; no simulation, preparation, inferred biology or recommendations. Set finish_request=true only when the user asks for this inventory as the whole current request (even if they mention future MD): the client shows the measured report verbatim as the final answer. Set false for intermediate inspection before other requested work. Prefer this tool over shell parsers or rewriting an inventory in prose.',
+     'description': 'Read a workspace mmCIF and return measured chains, recorded entities, coordinate/sequence coverage, ligands, solvent and atom records. Uses the installed Gemmi inspector; no simulation, preparation, inferred biology or recommendations. Inspection never ends the conversation: complete any other requested files or analysis before answering. For a requested CSV export, the installed inspect-mmcif.py also supports --csv OUTPUT. Prefer this tool over writing a replacement parser. Return measured facts, not invented structural conclusions.',
      'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
      'inputSchema': {'type': 'object', 'additionalProperties': False,
-        'required': ['path', 'finish_request'], 'properties': {
+        'required': ['path'], 'properties': {
             'path': {**TEXT, 'description': 'Exact existing workspace mmCIF file path.'},
-            'finish_request': {'type': 'boolean', 'description': 'True only if the inventory completes the entire current request; false if preparation, simulation or other analysis must follow.'}}}},
+            'finish_request': {'type': 'boolean', 'deprecated': True, 'description': 'Legacy argument accepted for saved conversations; no longer ends the request.'}}}},
     {'name': 'run_starter_example',
      'description': 'Run one explicitly requested installed molecular-dynamics starter example with unchanged packaged inputs. Preferred over loading skills or assembling shell commands for an existing example: this validates its manifest, recipe, native parameters and hashes, then invokes the existing authorized batch client for live schema checks, admission, polling and result publication. Supply the case directory, exact engine and a fresh output directory. One job/idempotency identity is retained; identical calls observe it, never rerun it. No cross-tenant lookup or model/force-field substitution. After completion use deliver_scientific_results kind=native-md. These short examples do not establish converged sampling. For custom protocols/analysis use the native workflow tools and domain skill.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': True},
@@ -561,11 +568,11 @@ TOOLS = [
         'required': ['smiles', 'force_field', 'output_directory'], 'properties': {
             'smiles': TEXT, 'force_field': {'const': 'openff-2.2.1.offxml'}, 'output_directory': TEXT}}},
     {'name': 'deliver_scientific_results',
-     'description': 'Finish a supported factual result delivery using real files, without rewriting measurements or links. mmcif: path to input .cif, read-only inventory. openff: completed helper output directory, hashes/charge/version facts. native-md: completed batch receipt directory containing receipt.json and native-files.json, engine facts and native downloads. Returns a verified report that the client displays as the final answer verbatim. Call alone, only after all requested work is complete; not midway through a compound task or instead of requested custom analysis. No inference is submitted. Missing/changed results return an error, not a completion claim.',
+     'description': 'Finish factual delivery using real files, without rewriting measurements or links. mmcif: input .cif measured inventory. openff: completed helper directory with measured facts. native-md: completed batch receipt directory containing receipt.json and native-files.json. file: any additional requested output file (CSV, plot, etc.), verified existence/hash and download link; not scientific validation. Include ALL requested outputs in this one call, not just the first result. The client shows the verified report verbatim as the final answer. Call alone only after every requested computation/export/analysis is complete. No inference is submitted. Missing/changed files fail rather than claiming completion.',
      'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['results'], 'properties': {
         'results': {'type': 'array', 'minItems': 1, 'items': {'type': 'object', 'additionalProperties': False,
-            'required': ['kind', 'path'], 'properties': {'kind': {'enum': ['mmcif', 'openff', 'native-md']},
+            'required': ['kind', 'path'], 'properties': {'kind': {'enum': ['mmcif', 'openff', 'native-md', 'file']},
             'path': {**TEXT, 'description': 'Existing workspace file/directory, never inline output or invented measurements.'}}}}}}},
     {'name': 'compose_scientific_workflow',
      'description': 'Build the existing scientific-workflow/v2 plan in compact typed groups, without shell/JSON serialization or inference. Create with draft_directory, title and initial steps/deliverables. Subsequent edits use expected_sha256=current_sha256 from the latest receipt; upsert steps by id and deliverables by name. Include several related steps per call, not one call per step. finalize=true may accompany the last group and runs the SAME complete-plan validator as admission. Only finalized=true is ready: pass returned immutable plan_file to run_scientific_workflow with final output_directory. Draft-directory-only reads recover a lost reply; exact repeated edits reuse their revision, never roll the head back. Scripts remain existing workspace file references, never inline programs. Original model settings, call identities, budgets and admission behavior are unchanged.',

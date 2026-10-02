@@ -97,6 +97,14 @@ def mmcif_card(path, root):
     return completed.stdout.strip() + f'\n\n[Source file]({link(path, root)})'
 
 
+def file_card(path, root):
+    if not path.is_file():
+        raise ValueError('Requested output file does not exist: ' + path.name)
+    return (f'[{cell(path.name)}]({link(path, root)}) — {path.stat().st_size} bytes; '
+            f'SHA-256 `{digest(path)}`.\n\n'
+            'File existence and bytes verified; this is not a scientific validation of its contents.')
+
+
 def md_card(folder, root):
     receipt = json.loads((folder / 'receipt.json').read_text())
     if receipt.get('state') != 'verified' or not receipt.get('operation_id'):
@@ -185,7 +193,8 @@ def deliver(args, workspace):
     for item in results:
         if not isinstance(item, dict) or set(item) != {'kind', 'path'}:
             raise ValueError('Each result needs exactly kind and path.')
-        handler = {'mmcif': mmcif_card, 'openff': openff_card, 'native-md': md_card}.get(item['kind'])
+        handler = {'mmcif': mmcif_card, 'openff': openff_card,
+                   'native-md': md_card, 'file': file_card}.get(item['kind'])
         if handler is None:
             raise ValueError('Unsupported verified result kind.')
         cards.append(handler(within(item['path'], root), root))

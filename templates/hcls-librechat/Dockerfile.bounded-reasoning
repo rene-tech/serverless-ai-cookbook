@@ -1,11 +1,31 @@
 # syntax=docker/dockerfile:1.7
 # Isolated qualification overlay. The shared/client release selector is unchanged.
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:16815c8cf0d0b8d3c343c56f90559bca1fea26d8c93e7294d544a826ec636af9
+FROM ${WORKBENCH_BASE} AS assembled
+USER root
+COPY templates/hcls-librechat/ /tmp/completion-release/
+RUN cp /tmp/completion-release/scientific-agent-budget.cjs /tmp/completion-release/patch-bounded-reasoning.mjs /tmp/completion-release/scientific-verified-delivery.cjs /opt/hcls-librechat/ \
+ && cp /tmp/completion-release/execution-mcp.py /tmp/completion-release/inspect-mmcif.py /tmp/completion-release/scientific_verified_results.py /opt/bionemo/ \
+ && cp /tmp/completion-release/agent-instructions.md /app/agent-instructions.md \
+ && cp /tmp/completion-release/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
+ && node /opt/hcls-librechat/patch-bounded-reasoning.mjs \
+ && node --check /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
+ && node --check /app/node_modules/@librechat/agents/dist/cjs/llm/invoke.cjs \
+ && python3 -m py_compile /opt/bionemo/execution-mcp.py /opt/bionemo/inspect-mmcif.py /opt/bionemo/invoke-scientific-batch.py \
+ && mkdir -p /release/opt/hcls-librechat /release/opt/bionemo /release/app/node_modules/@librechat/agents/dist/cjs/graphs /release/app/node_modules/@librechat/agents/dist/cjs/llm \
+ && cp /opt/hcls-librechat/scientific-agent-budget.cjs /opt/hcls-librechat/patch-bounded-reasoning.mjs /opt/hcls-librechat/scientific-verified-delivery.cjs /release/opt/hcls-librechat/ \
+ && cp /opt/bionemo/execution-mcp.py /opt/bionemo/inspect-mmcif.py /opt/bionemo/scientific_verified_results.py /opt/bionemo/invoke-scientific-batch.py /release/opt/bionemo/ \
+ && cp /app/agent-instructions.md /release/app/ \
+ && cp /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs /release/app/node_modules/@librechat/agents/dist/cjs/graphs/ \
+ && cp /app/node_modules/@librechat/agents/dist/cjs/llm/invoke.cjs /release/app/node_modules/@librechat/agents/dist/cjs/llm/
+
+# One changed runtime layer; the old base is already 122 layers. A sequence of
+# additive COPY instructions can build successfully yet exceed Docker's 128-layer
+# runtime limit. Do not stack this overlay on previous completion candidates.
 FROM ${WORKBENCH_BASE}
 USER root
-COPY templates/hcls-librechat/scientific-agent-budget.cjs templates/hcls-librechat/patch-bounded-reasoning.mjs /opt/hcls-librechat/
-RUN node /opt/hcls-librechat/patch-bounded-reasoning.mjs \
- && node --check /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
- && node --check /app/node_modules/@librechat/agents/dist/cjs/llm/invoke.cjs
+COPY --from=assembled /release/ /
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL ai.nebius.scientific.bounded-reasoning.revision="${HCLS_IMAGE_REVISION}"
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook"

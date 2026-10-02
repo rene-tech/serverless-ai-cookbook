@@ -1,5 +1,14 @@
 **
 !templates
 !templates/hcls-librechat
+templates/hcls-librechat/**
 !templates/hcls-librechat/scientific-agent-budget.cjs
 !templates/hcls-librechat/patch-bounded-reasoning.mjs
+!templates/hcls-librechat/scientific-verified-delivery.cjs
+!templates/hcls-librechat/execution-mcp.py
+!templates/hcls-librechat/inspect-mmcif.py
+!templates/hcls-librechat/agent-instructions.md
+!templates/hcls-librechat/scientific_verified_results.py
+!templates/hcls-librechat/scripts
+templates/hcls-librechat/scripts/**
+!templates/hcls-librechat/scripts/scientific-batch-acceptance.py

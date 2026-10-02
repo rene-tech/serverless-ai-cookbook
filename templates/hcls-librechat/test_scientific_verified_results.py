@@ -108,7 +108,24 @@ def test_no_model_authored_fields_accepted(tmp_path):
         deliver({'results': [{'kind': 'mmcif', 'path': 'file', 'atoms': 500}]}, tmp_path)
 
 
-def test_typed_inventory_uses_only_measured_files_and_explicit_finish(monkeypatch):
+def test_compound_delivery_includes_all_files_and_fails_if_any_is_missing(tmp_path, monkeypatch):
+    import scientific_verified_results as reports
+    monkeypatch.setattr(reports, 'mmcif_card', lambda path, root: 'Measured fixture inventory')
+    (tmp_path / 'requested.csv').write_text('chain,count\nA,76\n')
+    args = {'results': [{'kind': 'mmcif', 'path': 'source.cif'},
+                        {'kind': 'file', 'path': 'requested.csv'}]}
+    result = deliver(args, tmp_path)
+    assert result['result_count'] == 2
+    assert 'Measured fixture inventory' in result['report_markdown']
+    assert '[requested.csv](/demos?' in result['report_markdown']
+    assert hashlib.sha256((tmp_path / 'requested.csv').read_bytes()).hexdigest() in result['report_markdown']
+    assert 'not a scientific validation' in result['report_markdown']
+    args['results'].append({'kind': 'file', 'path': 'missing.png'})
+    with pytest.raises(ValueError, match='does not exist'):
+        deliver(args, tmp_path)
+
+
+def test_typed_inventory_preserves_measured_files_without_ending_request(monkeypatch):
     spec = importlib.util.spec_from_file_location('inventory_execution', Path(__file__).with_name('execution-mcp.py'))
     execution = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(execution)
@@ -120,10 +137,13 @@ def test_typed_inventory_uses_only_measured_files_and_explicit_finish(monkeypatc
     monkeypatch.setattr(execution, 'deliver_scientific_results', measured)
     final = execution.inspect_mmcif_inventory({'path': 'exact.cif', 'finish_request': True})
     intermediate = execution.inspect_mmcif_inventory({'path': 'exact.cif', 'finish_request': False})
-    assert final['schema'] == 'scientific-verified-delivery/v1'
+    current = execution.inspect_mmcif_inventory({'path': 'exact.cif'})
+    assert final['schema'] == 'scientific-mmcif-inventory/v1'
     assert intermediate['schema'] == 'scientific-mmcif-inventory/v1'
-    assert seen == [{'results': [{'kind': 'mmcif', 'path': 'exact.cif'}]}] * 2
-    for invalid in ({'path': 'exact.cif'}, {'path': 'exact.cif', 'finish_request': 'true'},
+    assert current['schema'] == 'scientific-mmcif-inventory/v1'
+    assert 'Continue any requested exports' in current['guidance']
+    assert seen == [{'results': [{'kind': 'mmcif', 'path': 'exact.cif'}]}] * 3
+    for invalid in ({}, {'path': ''}, {'path': 'exact.cif', 'finish_request': 'true'},
                     {'path': 'exact.cif', 'finish_request': True, 'report': 'invented'}):
-        with pytest.raises(ValueError, match='explicit boolean'):
+        with pytest.raises(ValueError, match='exact input path'):
             execution.inspect_mmcif_inventory(invalid)

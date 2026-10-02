@@ -13,12 +13,14 @@ import json
 import os
 from pathlib import Path
 import time
+import threading
 import uuid
 from urllib.parse import urlsplit
 
 import httpx
 
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36'
+AUTH_LOCK = threading.Lock()
 
 
 def save(path, value):
@@ -95,9 +97,18 @@ def run_case(args, token, original, case, model):
     headers = {'Origin': args.base_url, 'User-Agent': UA, 'Authorization': 'Bearer ' + token}
     with httpx.Client(base_url=args.base_url, headers=headers, timeout=45) as client:
         credentials = json.loads(args.login.read_text()) if args.login else None
-        refresh = (lambda: authenticate(client, credentials)) if credentials else None
-        if refresh:
-            refresh()
+        def refresh_session():
+            # Reuse the supplied browser session, just like a customer. Logging
+            # in for every case floods the login limiter, not the model server.
+            # On expiry one worker renews; its peers reuse that replacement.
+            with AUTH_LOCK:
+                current = json.loads(args.session.read_text())['token']
+                if client.headers.get('Authorization') != 'Bearer ' + current:
+                    client.headers['Authorization'] = 'Bearer ' + current
+                else:
+                    authenticate(client, credentials)
+                    save(args.session, {'token': client.headers['Authorization'][7:]})
+        refresh = refresh_session if credentials else None
         instructions = args.instruction_text
         output_directory = f'/workspace/replays/{args.cohort_id}/{variant}/{case["case_id"]}'
         instructions += ('\n\nFor this isolated replay, put new output files under '

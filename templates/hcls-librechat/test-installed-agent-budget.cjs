@@ -15,7 +15,7 @@ const { HumanMessage } = r('@langchain/core/messages');
 const { AgentBudgetStop, forRun } = require('/opt/hcls-librechat/scientific-agent-budget.cjs');
 const toolName = 'observe_fixture';
 
-async function fixture(stream, { callMs = 120, turnMs = 1000, tool = false } = {}) {
+async function fixture(stream, { callMs = 120, turnMs = 1000, tool = false, name = toolName } = {}) {
   // Each graph resolves configuration once; no mutation of a running graph.
   const oldCall = process.env.SCIENTIFIC_AGENT_MODEL_DEADLINE_MS;
   const oldTurn = process.env.SCIENTIFIC_AGENT_MODEL_TIME_MS;
@@ -25,7 +25,7 @@ async function fixture(stream, { callMs = 120, turnMs = 1000, tool = false } = {
   try {
     run = await Run.create({ runId: randomUUID(), graphConfig: { type: 'standard', agents: [{
       agentId: 'default', provider: 'openAI', clientOptions: {}, tools: [],
-      toolDefinitions: tool ? [{ name: toolName, parameters: { type: 'object', properties: {} } }] : [],
+      toolDefinitions: tool ? [{ name, parameters: { type: 'object', properties: {} } }] : [],
     }] } });
     forRun(run.Graph);
   } finally {
@@ -118,6 +118,24 @@ test('changing results continue normally rather than being mistaken for a tool l
   const result = await execute(run, () => `new state ${generations}`);
   assert.equal(result.reply.content, 'Completed fixture result');
   assert.equal(result.tools, 4);
+  assert.equal(result.reply.response_metadata.scientific_agent_incomplete, undefined);
+});
+
+test('real graph follows five unchanged bounded job observations to completion', async () => {
+  const name = 'read_execution_mcp_environment-execution';
+  const job_id = randomUUID();
+  let generations = 0;
+  const run = await fixture(async function* () {
+    generations++;
+    if (generations <= 6) yield this._createResponseChunk('', [{ name,
+      id: `poll-${generations}`, args: JSON.stringify({ job_id, wait_seconds: 30 }), index: 0 }]);
+    else yield this._createResponseChunk('The existing operation finished', undefined, { finish_reason: 'stop' });
+  }, { tool: true, name, callMs: 1000, turnMs: 2000 });
+  const result = await execute(run, () => JSON.stringify({ job_id,
+    status: generations < 6 ? 'running' : 'completed',
+    requested_wait_seconds: 30, effective_wait_seconds: 25 }));
+  assert.equal(result.tools, 6);
+  assert.equal(result.reply.content, 'The existing operation finished');
   assert.equal(result.reply.response_metadata.scientific_agent_incomplete, undefined);
 });
 

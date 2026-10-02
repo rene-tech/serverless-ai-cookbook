@@ -1,4 +1,6 @@
 import importlib.util
+import csv
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -92,6 +94,29 @@ class InventoryTest(unittest.TestCase):
         values = {1, 2, 4, 8, 9}
         self.assertEqual(MODULE.intervals(values), [[1, 2], [4, 4], [8, 9]])
         self.assertEqual(values, {1, 2, 4, 8, 9})
+
+    def test_csv_matches_measured_chains_and_does_not_overwrite(self):
+        result = self.inspect(FIXTURE)
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / 'inventory.csv'
+            receipt = MODULE.write_csv(result, target)
+            with target.open() as stream:
+                rows = list(csv.DictReader(stream))
+            self.assertEqual(receipt['rows'], 3)
+            self.assertEqual([r['label_asym_id'] for r in rows], ['A', 'B', 'C'])
+            self.assertEqual(sum(int(r['atom_records']) for r in rows), result['atom_records'])
+            self.assertEqual(rows[0]['modeled_sequence_positions'], '2')
+            self.assertEqual(json.loads(rows[0]['unmodeled_label_seq_id_ranges']), [[3, 3]])
+            self.assertEqual(rows[1]['modeled_sequence_positions'], '')
+            self.assertEqual(rows[1]['source_sha256'], result['sha256'])
+            original = target.read_bytes()
+            with self.assertRaises(FileExistsError):
+                MODULE.write_csv(result, target)
+            self.assertEqual(target.read_bytes(), original)
+            polymer = Path(folder) / 'polymer.csv'
+            self.assertEqual(MODULE.write_csv(result, polymer, polymer_only=True)['rows'], 1)
+            with polymer.open() as stream:
+                self.assertEqual([r['label_asym_id'] for r in csv.DictReader(stream)], ['A'])
 
 
 if __name__ == '__main__':

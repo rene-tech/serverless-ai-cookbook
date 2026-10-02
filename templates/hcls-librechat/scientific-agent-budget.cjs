@@ -71,6 +71,24 @@ function fingerprint(call, result) {
   }))).digest('hex');
 }
 
+function isBoundedJobObservation(call, result) {
+  // An unchanged RUNNING receipt after a real bounded wait is normal for a
+  // queued GPU operation or a long simulation, not repeated failed reasoning.
+  // Exclude only this exact trusted helper contract. Completed jobs, errors,
+  // zero-wait busy polling and arbitrary tools still count toward loop limits.
+  if (call.name !== 'read_execution_mcp_environment-execution' || result.status === 'error') return false;
+  const receipt = parseContent(result.content);
+  const jobId = call.args?.job_id;
+  const wait = call.args?.wait_seconds ?? 15;
+  return typeof jobId === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(jobId) &&
+    receipt?.job_id === jobId && ['pending', 'running'].includes(receipt.status) &&
+    receipt.exit_code == null && !receipt.isError && !receipt.error &&
+    Number.isInteger(wait) && wait > 0 && wait <= 30 &&
+    receipt.requested_wait_seconds === wait &&
+    Number.isFinite(receipt.effective_wait_seconds) && receipt.effective_wait_seconds > 0 &&
+    receipt.effective_wait_seconds <= Math.min(wait, 25);
+}
+
 function repeatedRounds(messages) {
   const seen = new Set();
   let repeats = 0;
@@ -82,8 +100,10 @@ function repeatedRounds(messages) {
       if (!pending.calls.some((call) => call.id === message.tool_call_id && call.name === message.name)) continue;
       pending.results.set(message.tool_call_id, message);
       if (pending.calls.every((call) => pending.results.has(call.id))) {
-        const hashes = pending.calls.map((call) => fingerprint(call, pending.results.get(call.id)));
-        repeats = hashes.every((hash) => seen.has(hash)) ? repeats + 1 : 0;
+        const hashes = pending.calls
+          .filter((call) => !isBoundedJobObservation(call, pending.results.get(call.id)))
+          .map((call) => fingerprint(call, pending.results.get(call.id)));
+        repeats = hashes.length && hashes.every((hash) => seen.has(hash)) ? repeats + 1 : 0;
         for (const hash of hashes) seen.add(hash);
         pending = null;
       }

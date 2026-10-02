@@ -53,11 +53,24 @@ def workspace_selection(url):
     return directory, file
 
 
+def requires_verbatim_measurements(call):
+    """File-only cards have no scientific measurements to protect.
+
+    The graph deliberately leaves parallel viewer+delivery calls to the model.
+    A formatted file link or abbreviated checksum there is not a changed
+    measurement; its actual authenticated download is verified independently.
+    Inventories, chemistry and native MD still require exact factual reports.
+    """
+    results = read_tool_output(call.get('args')).get('results')
+    return not results or any(item.get('kind') != 'file' for item in results)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--replay', type=Path, required=True)
     parser.add_argument('--base-url', required=True)
     parser.add_argument('--login', type=Path, required=True)
+    parser.add_argument('--session', type=Path, help='Reuse the replay browser session; avoid extra login requests')
     parser.add_argument('--container', required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--expected-rejection-case', action='append', default=[],
@@ -73,15 +86,18 @@ def main():
                     args.container + ':/tmp/prepare-openff.py'], check=True, stdout=subprocess.DEVNULL)
     rows = []
     with httpx.Client(base_url=args.base_url, headers={'Origin': args.base_url, 'User-Agent': UA}, timeout=60) as client:
-        login = client.post('/api/auth/login', json=json.loads(args.login.read_text()))
-        login.raise_for_status()
-        client.headers['Authorization'] = 'Bearer ' + login.json()['token']
+        if args.session:
+            client.headers['Authorization'] = 'Bearer ' + json.loads(args.session.read_text())['token']
+        else:
+            login = client.post('/api/auth/login', json=json.loads(args.login.read_text()))
+            login.raise_for_status()
+            client.headers['Authorization'] = 'Bearer ' + login.json()['token']
         for path in sorted(args.replay.glob('*/*/messages.json')):
             messages = json.loads(path.read_text())
             summary = summarize(messages)
             parts = [p for m in messages if not m.get('isCreatedByUser') for p in m.get('content', [])]
             calls = [p['tool_call'] for p in parts if p.get('type') == 'tool_call']
-            reports, directories, downloads = [], set(), []
+            reports, measured_reports, directories, downloads = [], [], set(), []
             failures = list(summary['errors'])
             observed_failures = tool_failures(calls)
             for error in observed_failures:
@@ -98,11 +114,13 @@ def main():
                 output = read_tool_output(call.get('output'))
                 if output.get('schema') == 'scientific-verified-delivery/v1':
                     reports.append(output['report_markdown'])
+                    if requires_verbatim_measurements(call):
+                        measured_reports.append(output['report_markdown'])
                 if call['name'].startswith('prepare_openff_ligand'):
                     value = read_tool_output(call['args'])
                     if output.get('status') != 'needs_user_input':
                         directories.add(output.get('output_directory') or str(Path('/workspace') / value['output_directory']))
-            for report in reports:
+            for report in measured_reports:
                 if report not in summary['visible_text']:
                     failures.append('verified report was modified or omitted from the final answer')
             if path.parent.name in args.require_report_case and not reports:

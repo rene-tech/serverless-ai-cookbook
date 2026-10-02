@@ -1,6 +1,7 @@
 #!/opt/scientific-client/bin/python
 """Read-only mmCIF inventory. Coordinate coverage is not MD readiness."""
 import argparse
+import csv
 from collections import Counter, defaultdict
 import hashlib
 import json
@@ -113,12 +114,46 @@ def markdown(result):
     return '\n'.join(lines)
 
 
+def write_csv(result, path, polymer_only=False):
+    """Export one row per model/label chain from the same measured inventory.
+
+    Empty cells mean unavailable/not applicable, not zero. Keep author chains
+    separate from label chains so a ligand sharing a protein's author ID is
+    not silently counted as part of that protein. Never overwrite user files.
+    """
+    path = Path(path)
+    fields = ['model', 'label_asym_id', 'auth_asym_ids', 'entity_id', 'entity_type',
+              'description', 'atom_records', 'modeled_sequence_positions',
+              'declared_sequence_positions', 'unmodeled_label_seq_id_ranges',
+              'residue_count', 'components', 'elements', 'source_sha256']
+    entries = result['polymer_chains'] + ([] if polymer_only else result['nonpolymer_components'])
+    with path.open('x', newline='', encoding='utf-8') as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        for item in entries:
+            row = {key: item.get(key) for key in fields}
+            for key, value in row.items():
+                if isinstance(value, (dict, list)):
+                    row[key] = json.dumps(value, separators=(',', ':'), allow_nan=False)
+            row['source_sha256'] = result['sha256']
+            writer.writerow(row)
+    # Return only after closed bytes can be read back, including on S3 mounts.
+    raw = path.read_bytes()
+    return {'path': str(path), 'size_bytes': len(raw),
+            'sha256': hashlib.sha256(raw).hexdigest(),
+            'rows': len(entries)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('input', type=Path)
     parser.add_argument('--format', choices=['json', 'markdown'], default='json')
+    parser.add_argument('--csv', type=Path, help='Also save the measured chain table; output must not exist')
+    parser.add_argument('--polymer-only', action='store_true', help='Include only polymer chains in the CSV (inventory remains complete)')
     args = parser.parse_args()
     result = inventory(args.input)
+    if args.csv:
+        result['csv'] = write_csv(result, args.csv, args.polymer_only)
     # Compact machine output fits ordinary tool responses for multi-chain
     # inventories; indentation alone previously pushed small results over the
     # response limit and forced another file-read turn.
