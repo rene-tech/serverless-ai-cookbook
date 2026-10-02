@@ -89,7 +89,15 @@ def restore(root: Path, name: str) -> None:
     # state recoverable; never delete it as a side effect of rollback.
     stage = Path(tempfile.mkdtemp(prefix='.restore-', dir=root))
     with tarfile.open(source) as archive:
-        archive.extractall(stage, filter='data')
+        # The retained LibreChat base uses Python 3.11.2, before tarfile's
+        # extraction filters. Only ordinary relative files/directories occur in
+        # our state snapshots. Validate all entries before extracting any.
+        members = archive.getmembers()
+        for member in members:
+            relative = Path(member.name)
+            if relative.is_absolute() or '..' in relative.parts or not (member.isfile() or member.isdir()):
+                raise RuntimeError('Snapshot contains an unsupported path or special file; state unchanged')
+        archive.extractall(stage, members=members)
     displaced = root / 'snapshots' / f'displaced-{name}-{time.time_ns()}'
     displaced.mkdir(mode=0o700)
     for path in list(root.iterdir()):
