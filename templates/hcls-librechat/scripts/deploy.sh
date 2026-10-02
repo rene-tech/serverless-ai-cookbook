@@ -21,6 +21,14 @@ esac
 : "${SEED_DEFAULT_USER_EMAIL:?Durable studies require one configured dedicated user}"
 : "${TEAM_BUCKET_NAME:?Durable studies require a persistent customer bucket mount}"
 
+# A workspace bucket does not preserve LibreChat's MongoDB or encryption keys.
+# New clients require their own state volume; legacy/test opt-out is explicit.
+case "${SCIENTIFIC_REQUIRE_PERSISTENT_STATE:-true}" in
+  true) : "${LIBRECHAT_STATE_FILESYSTEM_ID:?Create a dedicated filesystem with create-state-filesystem.sh, then set LIBRECHAT_STATE_FILESYSTEM_ID. Keep it for replacements.}" ;;
+  false) printf '%s\n' 'Explicit ephemeral chat state: export before stopping this endpoint. Automatic upgrades are unavailable.' >&2 ;;
+  *) printf '%s\n' 'SCIENTIFIC_REQUIRE_PERSISTENT_STATE must be true or false.' >&2; exit 2 ;;
+esac
+
 case "${SERVERLESS_PUBLIC_IP:-true}" in
   true|false) ;;
   *) printf '%s\n' 'SERVERLESS_PUBLIC_IP must be true or false.' >&2; exit 2 ;;
@@ -45,6 +53,7 @@ CREATE_CMD=(
   --env "SCIENTIFIC_MODELS_API_BASE_URL=$SCIENTIFIC_MODELS_API_BASE_URL"
   --env "SCIENTIFIC_MODELS_MCP_URL=$SCIENTIFIC_MODELS_MCP_URL"
   --env "SCIENTIFIC_STUDY_OWNER_MODE=$SCIENTIFIC_STUDY_OWNER_MODE"
+  --env "SCIENTIFIC_REQUIRE_PERSISTENT_STATE=${SCIENTIFIC_REQUIRE_PERSISTENT_STATE:-true}"
   # Product-owner-approved default. Keep overrides explicit and never change the
   # fallback model without approval.
   --env "SCIENTIFIC_CHAT_MODEL=${SCIENTIFIC_CHAT_MODEL:-moonshotai/Kimi-K3}"
@@ -75,7 +84,7 @@ else
 fi
 
 # Mount only user files on Object Storage. Mongo and credential encryption state
-# remain on the endpoint disk; they must never use the S3/FUSE mount.
+# use the independent /data filesystem; they must never use the S3/FUSE mount.
 if [[ -n "${TEAM_BUCKET_NAME:-}" ]]; then
   : "${S3_CREDENTIAL_SECRET_SELECTOR:?Set the MysteryBox selector with S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY}"
   : "${TEAM_ID:?Set TEAM_ID for the mounted workspace owner}"
@@ -94,8 +103,7 @@ if [[ -n "${LIBRECHAT_STATE_FILESYSTEM_ID:-}" ]]; then
     computefilesystem-*) ;;
     *) printf '%s\n' 'LIBRECHAT_STATE_FILESYSTEM_ID must identify a Nebius filesystem.' >&2; exit 2 ;;
   esac
-  CREATE_CMD+=(--volume "${LIBRECHAT_STATE_FILESYSTEM_ID}:/data:rw"
-    --env "SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true")
+  CREATE_CMD+=(--volume "${LIBRECHAT_STATE_FILESYSTEM_ID}:/data:rw")
 fi
 
 if [[ -n "${SEED_DEFAULT_USER_EMAIL:-}" ]]; then

@@ -16,6 +16,7 @@ RUN mkdir -p /release/app /release/opt/hcls-librechat /release/usr/local/bin \
  && python3 -m py_compile /release/opt/hcls-librechat/state-supervisor.py
 FROM ${WORKBENCH_BASE}
 USER root
+ENV SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true
 COPY --from=assembled /release/ /
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \

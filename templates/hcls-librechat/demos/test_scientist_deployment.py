@@ -13,6 +13,7 @@ spec.loader.exec_module(module)
 
 def fixture(tmp_path):
     person = {'id': 'scientist-01', 'tenant_id': 'lab', 'principal_id': 'principal',
+              'state_filesystem_id': 'computefilesystem-fixture',
               'bucket_name': 'lab-bucket', 'email': 'scientist@example.invalid', 'password': 'fixture',
               'api_key': 'fixture', 's3_access_key_id': 'fixture', 's3_secret_access_key': 'fixture'}
     manifest = {'project_id': 'project-fixture', 'subnet_id': 'subnet-fixture',
@@ -56,6 +57,7 @@ def test_candidate_records_verified_reuse_before_creating_distinct_endpoint(tmp_
     def command(command, environment):
         assert environment['ENDPOINT_NAME'] == 'qualification-v13-scientist-01'
         assert environment['SCIENTIFIC_MODELS_API_KEY_SECRET_SELECTOR'] == 'secret-existing'
+        assert environment['LIBRECHAT_STATE_FILESYSTEM_ID'] == 'computefilesystem-fixture'
         raise RuntimeError('fixture-stopped-before-cloud')
     monkeypatch.setattr(module, 'deploy_command', command)
     with pytest.raises(RuntimeError, match='fixture-stopped'):

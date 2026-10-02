@@ -114,6 +114,13 @@ def deploy(manifest: dict, person: dict, args: argparse.Namespace) -> dict:
                            "project_id": manifest["project_id"]}.items():
             if state[key] != value:
                 raise RuntimeError("Recorded deployment identity changed: " + key)
+        if not state.get("endpoint_id"):
+            filesystem = person.get("state_filesystem_id") or state.get("state_filesystem_id")
+            if not filesystem or not filesystem.startswith("computefilesystem-"):
+                raise ValueError("Set a dedicated state_filesystem_id for this person before creating a new workbench")
+            if state.get("state_filesystem_id") not in (None, filesystem):
+                raise RuntimeError("Recorded state filesystem changed; use the managed replacement workflow")
+            state["state_filesystem_id"] = filesystem
         if state["state"] == "creating_secret":
             raise RuntimeError("An interrupted create must be reconciled using its protected receipt")
         if state["state"] == "creating_endpoint":
@@ -122,6 +129,8 @@ def deploy(manifest: dict, person: dict, args: argparse.Namespace) -> dict:
         if not state.get("secret_id") and args.source_deployments:
             source_path = args.source_deployments / identifier / 'deployment.json'
             source = json.loads(source_path.read_text())
+            if source.get('state_filesystem_id') and source['state_filesystem_id'] == state.get('state_filesystem_id'):
+                raise RuntimeError('Parallel previews require a separate state filesystem; use the admin lifecycle for replacement')
             for field in ('scientist_id', 'tenant_id', 'principal_id', 'bucket_name', 'email', 'project_id'):
                 if source.get(field) != state[field]:
                     raise RuntimeError('Source deployment identity differs: ' + field)
@@ -168,6 +177,8 @@ def deploy(manifest: dict, person: dict, args: argparse.Namespace) -> dict:
                 "PLATFORM": manifest.get("platform", "cpu-d3"),
                 "PRESET": manifest.get("preset", "4vcpu-16gb"),
                 "DISK_SIZE": manifest.get("disk_size", "100Gi")}
+            environment["LIBRECHAT_STATE_FILESYSTEM_ID"] = state["state_filesystem_id"]
+            environment["SCIENTIFIC_REQUIRE_PERSISTENT_STATE"] = "true"
             for key in ("SCIENTIFIC_MODELS_API_KEY_SECRET_SELECTOR",
                         "S3_CREDENTIAL_SECRET_SELECTOR", "USER_PASSWORD_SECRET_SELECTOR"):
                 environment[key] = state["secret_id"]

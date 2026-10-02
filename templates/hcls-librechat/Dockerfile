@@ -178,7 +178,8 @@ LABEL org.opencontainers.image.title="Nebius Scientific AI Agent" \
       org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.licenses="MIT"
 
-ENV HOST=0.0.0.0 \
+ENV SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true \
+    HOST=0.0.0.0 \
     SCIENTIFIC_CHAT_REASONING_EFFORT=high \
     SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072 \
     PORT=3080 \

@@ -27,6 +27,7 @@ def command(tmp_path, public_ip=None, ssh=False, s3_profile=None, reasoning_effo
         TOKEN_FACTORY_SECRET_SELECTOR='secret-fixture', TAVILY_SECRET_SELECTOR='secret-fixture',
         S3_CREDENTIAL_SECRET_SELECTOR='secret-fixture', USER_PASSWORD_SECRET_SELECTOR='secret-fixture',
         SCIENTIFIC_STUDY_OWNER_MODE='first-instance',
+        LIBRECHAT_STATE_FILESYSTEM_ID='computefilesystem-fixture',
         SEED_DEFAULT_USER_EMAIL='fixture@example.invalid', TEAM_BUCKET_NAME='fixture-bucket', TEAM_ID='fixture')
     if image_override:
         environment['IMAGE'] = 'example.invalid/image:fixture'
@@ -116,6 +117,15 @@ def test_dry_run_uses_the_same_deployment_path(tmp_path):
     result = command(tmp_path, dry_run=True)
     assert result.returncode == 0
     assert json.loads(result.stdout).count('--dry-run') == 1
+
+
+def test_chat_state_uses_a_dedicated_filesystem_not_the_s3_workspace(tmp_path):
+    result = command(tmp_path, dry_run=True)
+    assert result.returncode == 0
+    arguments = json.loads(result.stdout)
+    assert 'computefilesystem-fixture:/data:rw' in arguments
+    assert arguments.count('SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true') == 1
+    assert 's3://fixture-bucket:/workspace:rw:default@secret-fixture' in arguments
 
 
 def test_explicit_preview_study_namespace_is_forwarded(tmp_path, monkeypatch):
