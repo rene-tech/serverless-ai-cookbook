@@ -1,7 +1,7 @@
 # Nebius Scientific AI Agent
 
 A scientific workspace built on pinned LibreChat. Public Nebius Token Factory
-with `zai-org/GLM-5.3-Flash` is the product-owner-approved default
+with `moonshotai/Kimi-K3` is the product-owner-approved default
 conversational provider/model. See [CHAT_MODEL_POLICY.md](CHAT_MODEL_POLICY.md);
 the default must not change without explicit approval. Retired event-specific endpoints are
 not part of the reusable client. Users can also bring OpenAI or Anthropic credentials. The existing
@@ -51,8 +51,8 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:general-openff-20261001-r11`,
-digest `sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:general-kimi-20261002-r1`,
+digest `sha256:e96a66501807a2c446c17413f66c042b4a6ae2bdee2c32b9b05adcd1d378fd63`.
 Its 36 canonical customer skills (84 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
@@ -66,27 +66,22 @@ replacement for an older v11 runtime.
 New installations include the shared compact agent instructions and the actual
 [OpenFF CPU runtime](openff/README.md), not just its skill. Standalone ligand
 preparation uses `/opt/openff/bin/python` with pinned Sage and AM1-BCC dependencies;
-no interactive conda/pip installation or GPU is required. GLM-5.3-Flash remains
-the selected model, with `SCIENTIFIC_CHAT_REASONING_EFFORT=low` by default (an
-explicit `high` or `max` override remains possible). The title call also uses
-bounded reasoning. This is a general-purpose release, not a customer overlay.
+no interactive conda/pip installation or GPU is required. Kimi K3 is the selected
+model, with high reasoning, a 131072-token context ceiling and a 16384-token
+completion ceiling. Explicit deployment overrides remain possible; there is no
+automatic model fallback. This is a general-purpose release, not a customer overlay.
 Native skill loading returns the instructions as tool content, and installed
 `/app/skill/` paths resolve through the existing authorized skill reader.
-See the [release evidence and limitations](docs/general-openff-release-20261001.md)
+See the [release evidence and limitations](docs/kimi-default-release-20261002.md)
 before making a customer-readiness claim; installed tools do not eliminate
 scientific inaccuracies or intermittent incomplete replies from a chat model.
 
-The subsequent [agent-reliability candidate](docs/agent-reliability-20261001.md)
-adds typed execution/results, concurrent observations and clearer execution UI.
-It is deployed to system QA only; repeated empty turns still block customer
-promotion. Its source and candidate image must not be mistaken for a qualified
-new default.
-
-The isolated [bounded-reasoning candidate](docs/bounded-reasoning-20261001.md)
-adds absolute model-response deadlines, accumulated model-time budgets and
-unchanged-tool-loop detection without cancelling scientific work. It is wired
-into the reliability build, not yet the shared release selector. See its exact
-test scope and remaining promotion checks before deploying it to users.
+The release includes typed execution/results, compound-result delivery, and the
+[bounded-reasoning implementation](docs/bounded-reasoning-20261001.md): 90 seconds
+per model invocation, 300 seconds of accumulated model time per turn, and a limit
+on unchanged tool loops. Scientific execution/waiting does not consume the model
+budget. Pausing the chat retains admitted jobs and their IDs; it neither resubmits
+nor cancels them. Earlier candidate failures remain in their dated evidence.
 
 `NEBIUS_CLI` can select a specific installed CLI executable, and
 `SERVERLESS_DRY_RUN=true` validates the same deployment request without creating
@@ -185,7 +180,7 @@ its image to work around this limitation.
 
 ## What is configured
 
-- **Chat models:** the seeded agent defaults to Qwen3 235B on public Token Factory;
+- **Chat models:** the seeded agent defaults to Kimi K3 on public Token Factory;
   deployments can explicitly select another discovered model. The public
   allowlist is intersected with authenticated discovery at startup
   (configured-list fallback). OpenAI

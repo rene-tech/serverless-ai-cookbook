@@ -109,7 +109,7 @@ def test_new_installation_uses_shared_release_without_image_override(tmp_path):
     selected = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
                     if line.startswith('SCIENTIFIC_AI_RELEASE_IMAGE='))
     assert arguments[arguments.index('--image') + 1] == selected
-    assert ':general-openff-' in selected
+    assert ':general-kimi-' in selected
 
 
 def test_dry_run_uses_the_same_deployment_path(tmp_path):
