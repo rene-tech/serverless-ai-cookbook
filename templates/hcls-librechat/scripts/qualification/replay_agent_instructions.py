@@ -186,7 +186,7 @@ def main():
     parser.add_argument('--base-url', required=True)
     parser.add_argument('--session', type=Path, required=True)
     parser.add_argument('--login', type=Path,
-                        help='Private QA login file: fresh session per case, bounded GET-only renewal')
+                        help='Private QA login file: reuse the supplied session, bounded GET-only renewal')
     parser.add_argument('--agent', type=Path, required=True)
     parser.add_argument('--instructions', type=Path, required=True)
     parser.add_argument('--manifest', type=Path, required=True)

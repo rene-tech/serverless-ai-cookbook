@@ -1,0 +1,42 @@
+{
+  "date_utc": "2026-10-02",
+  "scope": "Bounded reasoning and complete-result workbench candidate; original Lynx requests plus output and packaged-GROMACS regressions",
+  "implementation_commit": "d97546f10484625e853bfa3aad2b4ca1687f52ad",
+  "bounded_reasoning_commit": "5507b9b965cda28444f4560a15f3366a06237e2e",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:22ef9a7d50d6442cdf9066f295b17480d23d561f88662c970c157183197392d1",
+  "image_config_digest": "sha256:93411fe7d89f48d03a014d2abff1781b62d054f4eea03d03b96c287e50e3f72a",
+  "core_instructions_sha256": "b079fbe87d337a90eeba2693694f954d6992524a8d509ff2e5c58218430f35c5",
+  "candidate_kind": "local isolated client with real authorized hosted App calls",
+  "principal": {"tenant": "system", "key_id": "56130b22-ae09-42fc-a0f0-48012f22fb71", "operation_limit": 2, "matches_lynx_policy": false},
+  "provider": "Nebius Token Factory",
+  "model_default_changed": false,
+  "customer_deployment_changed": false,
+  "shared_release_selector_changed": false,
+  "exact_image_checks": {"node_installed_graph": 38, "gemmi": 8, "installed_mcp_polling_artifacts": 121, "failed": 0, "skipped": 0},
+  "seeded_default": {
+    "model": "zai-org/GLM-5.3-Flash",
+    "reasoning_effort": "low",
+    "technical_delivery_passes": 12,
+    "cases": 14,
+    "failed_cases": ["data-summary", "hosted-gromacs"],
+    "clean_cohort": false
+  },
+  "comparison": {
+    "model": "moonshotai/Kimi-K3",
+    "reasoning_effort": "high",
+    "technical_delivery_passes": 14,
+    "cases": 14,
+    "candidate_default_qualified": false,
+    "not_model_only_ab": "Comparison agent additionally pins maxContextTokens=131072 and appends a QA output-directory instruction",
+    "scientific_prose_qualified": false
+  },
+  "gromacs_operations": [
+    {"id": "5433350c-176b-4e14-8c48-e4a7773a3072", "model": "zai-org/GLM-5.3-Flash", "operation_state": "succeeded", "agent_delivery": "failed", "chat_seconds": 215.858},
+    {"id": "61a674a3-fe8e-493f-8c2a-daf292300bd9", "model": "moonshotai/Kimi-K3", "operation_state": "succeeded", "agent_delivery": "verified", "chat_seconds": 130.016}
+  ],
+  "browser": {"new_compound_request": "completed", "workspace_download": "verified", "reload_without_resubmit": "observed", "public_customer_route": "not_qualified"},
+  "cleanup": {"task_owned_clients_stopped": true, "state_exported": true, "final_execution_jobs_terminal": 38, "final_execution_jobs_completed": 34, "final_execution_jobs_failed": 4, "existing_lynx_health_http": 200},
+  "remaining_gates": ["Owner-approved conversational model choice", "Two clean cohorts with the exact selected default settings", "Customer-shaped public endpoint, credentials, storage and client acceptance", "Retain scientific-interpretation limitations"],
+  "verdict": "candidate-published-not-promoted",
+  "customer_ready": false
+}
