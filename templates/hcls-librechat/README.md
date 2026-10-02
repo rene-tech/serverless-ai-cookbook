@@ -37,9 +37,23 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A873be148673dec6dc191ba30d2933c01acee4622fd3fa14888388378539f13d3&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+
+This opens a prefilled **configuration form**, not a secret-bearing launch URL.
+Select your project and subnet, supply secret references, and mount the workspace
+bucket. The client registry is currently private: your project needs image pull
+access. The separate 32 GiB state filesystem is required. See the guide below
+before Create. `scripts/deploy-link.py` generates a pinned link for the shared release.
+
+Use the [customer Serverless lifecycle guide](docs/serverless-customer-lifecycle.md)
+for persistent chat state, managed registration, replacements and self-service.
+Create a dedicated filesystem first, then pass its ID below. The workspace
+bucket alone does not preserve chats, logins or uploads.
+
 ```bash
 export NEBIUS_PROJECT_ID='project-...'
 export NEBIUS_SUBNET_ID='vpcsubnet-...'
+export LIBRECHAT_STATE_FILESYSTEM_ID='computefilesystem-...'
 export SCIENTIFIC_MODELS_API_KEY_SECRET_SELECTOR='nebius-scientific-model-gateway'
 export TOKEN_FACTORY_SECRET_SELECTOR='<secret selector with NEBIUS_API_KEY>'
 export TAVILY_SECRET_SELECTOR='<secret selector with TAVILY_API_KEY>'
@@ -51,8 +65,10 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:general-kimi-20261002-r1`,
-digest `sha256:e96a66501807a2c446c17413f66c042b4a6ae2bdee2c32b9b05adcd1d378fd63`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:customer-state-20261002-r3`,
+digest `sha256:873be148673dec6dc191ba30d2933c01acee4622fd3fa14888388378539f13d3`.
+It adds [qualified persistent client state](docs/customer-state-release-20261002.md)
+to the exact previous Kimi client without changing its model, skills or toolchain.
 Its 36 canonical customer skills (84 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
@@ -100,7 +116,7 @@ disk-preserving rollback. A direct Compute stop does not provide a reliable
 snapshot window. Use a tested pre-stop database/filesystem backup or supported
 account export, documenting native-import limitations before replacement.
 
-### Deployment ownership: one instance per user
+### Deployment ownership
 
 Each user has a **separate LibreChat instance**, its own login, execution
 environment and scoped platform key. This is the supported deployment topology,
@@ -114,8 +130,10 @@ user identity so two workbenches sharing a bucket do not resume each other's
 work. Shared scientific files remain available according to the tenant's storage
 policy. Credentials are deployment secrets, never files in the shared workspace.
 Acceptance must exercise distinct dedicated instances and verify their request
-attribution and intentional shared storage. Shared-instance user multiplexing is
-outside this architecture and is not a release requirement.
+attribution and intentional shared storage. An explicitly owner-approved shared
+client, such as two customer logins using one tenant key, is retained as such.
+Its chat accounts remain distinct, but inference attribution and concurrency are
+shared by that key. Do not silently split or replace an existing shared client.
 
 For replacements, preserve the predecessor's chat/database state and stop its
 study supervisor before using `SCIENTIFIC_STUDY_OWNER_MODE=stopped-predecessor`.
@@ -144,8 +162,9 @@ For the S3 mount, the CLI also needs an AWS **configuration** profile with
 `S3_AWS_PROFILE` to its name; it defaults to `default` for compatibility.
 `AWS_CONFIG_FILE` can point to a task-local configuration file; no credential
 belongs in that file. The script mounts the bucket read-write at `/workspace`
-using the existing user's S3 credentials. Mongo, encrypted plugin credentials
-and clinical job working directories remain on the endpoint disk, not S3/FUSE.
+using the existing user's S3 credentials. Mongo and encrypted plugin credentials
+use the dedicated `/data` filesystem, not S3/FUSE. Clinical job directories outside
+the mounted state and workspace remain runtime-local.
 The personal login option disables open registration. The client uses public
 Token Factory models and ignores the retired dedicated-event environment flag.
 

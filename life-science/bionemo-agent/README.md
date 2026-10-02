@@ -1,4 +1,15 @@
-# BioNeMo Agent Workbench 3.4.0 on Nebius Serverless
+# Nebius Scientific AI client
+
+The current client is the **LibreChat-based Scientific AI Agent**:
+[open the current template and deployment button](../../templates/hcls-librechat/README.md).
+It includes the scientific skills, hosted Apps/MCP, tenant workspace integration
+and persistent chat state. It runs on Nebius Serverless, not a customer Kubernetes
+cluster. Use that template for new managed and customer-owned installations.
+
+The OpenClaw recipe below is retained for historical reproducibility. Its images,
+model recommendations and deployment instructions are not the LibreChat default.
+
+## Historical BioNeMo Agent Workbench 3.4.0
 
 This recipe packages a ready-to-start life-science agent environment for a
 Nebius Serverless CPU endpoint. The image contains:

@@ -1,0 +1,7 @@
+# Deliberately unhealthy QA successor. Never promote or offer to customers.
+# Takes the normal pre-upgrade snapshot, but starts no application or MongoDB.
+# Stop this exact QA endpoint after confirming its snapshot, to exercise cloud
+# failure recovery without a 15-minute health timeout.
+FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:873be148673dec6dc191ba30d2933c01acee4622fd3fa14888388378539f13d3
+LABEL ai.nebius.scientific.purpose="isolated-workbench-rollback-qualification-only"
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "python3", "/opt/hcls-librechat/state-supervisor.py", "--", "/bin/sleep", "3600"]

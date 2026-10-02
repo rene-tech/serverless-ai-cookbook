@@ -110,7 +110,8 @@ def test_new_installation_uses_shared_release_without_image_override(tmp_path):
     selected = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
                     if line.startswith('SCIENTIFIC_AI_RELEASE_IMAGE='))
     assert arguments[arguments.index('--image') + 1] == selected
-    assert ':general-kimi-' in selected
+    assert 'SCIENTIFIC_CHAT_MODEL=moonshotai/Kimi-K3' in arguments
+    assert 'SCIENTIFIC_CHAT_REASONING_EFFORT=high' in arguments
 
 
 def test_dry_run_uses_the_same_deployment_path(tmp_path):

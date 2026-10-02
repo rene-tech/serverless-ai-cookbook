@@ -131,8 +131,8 @@ def supervise(root: Path, command: list[str]) -> int:
         data = root / 'hcls-librechat'
         data.mkdir(mode=0o700, exist_ok=True)
         link_directory(Path('/app/uploads'), data / 'uploads')
-        # UI-created agents, prompts and settings live in MongoDB. The persistent
-        # overrides file supports deployment-owned non-secret config separately.
+        # UI-created agents, prompts and settings live in MongoDB. Generated
+        # deployment configuration still follows the endpoint environment.
         environment = {**os.environ, 'LIBRECHAT_DATA_DIR': str(data),
                        'LIBRECHAT_MONGO_DATA_DIR': str(root / 'db')}
         process = subprocess.Popen(command, env=environment, start_new_session=True,

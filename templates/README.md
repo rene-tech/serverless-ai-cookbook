@@ -10,6 +10,14 @@ Templates are quick-start configurations to help you serve models and run jobs i
 
 ## Endpoints
 
+### Scientific AI LibreChat
+
+[Configure the current Scientific AI LibreChat client](hcls-librechat/README.md#deploy)
+on a CPU Serverless endpoint, with scientific skills, hosted Apps/MCP, a customer
+workspace bucket and durable chat storage. This is the successor to the historical
+BioNeMo agent. Managed and self-service installations use the same template;
+customer projects currently need access to its private image registry.
+
 ### 🎨 Text-to-Image
 
 <table width="960" border="1" cellpadding="8" cellspacing="0" style="table-layout:fixed;width:960px;min-width:960px;border-collapse:collapse;">
