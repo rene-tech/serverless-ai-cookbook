@@ -87,6 +87,17 @@ if [[ -n "${TEAM_BUCKET_NAME:-}" ]]; then
     --env "TEAM_ID=$TEAM_ID" --env "TEAM_BUCKET_NAME=$TEAM_BUCKET_NAME")
 fi
 
+# One independent POSIX filesystem per workbench. Never use the tenant's S3
+# mount for MongoDB. Reuse this filesystem on replacements, not across users.
+if [[ -n "${LIBRECHAT_STATE_FILESYSTEM_ID:-}" ]]; then
+  case "$LIBRECHAT_STATE_FILESYSTEM_ID" in
+    computefilesystem-*) ;;
+    *) printf '%s\n' 'LIBRECHAT_STATE_FILESYSTEM_ID must identify a Nebius filesystem.' >&2; exit 2 ;;
+  esac
+  CREATE_CMD+=(--volume "${LIBRECHAT_STATE_FILESYSTEM_ID}:/data:rw"
+    --env "SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true")
+fi
+
 if [[ -n "${SEED_DEFAULT_USER_EMAIL:-}" ]]; then
   : "${USER_PASSWORD_SECRET_SELECTOR:?Set the MysteryBox selector containing SEED_DEFAULT_USER_PASSWORD}"
   CREATE_CMD+=(--env "SEED_DEFAULT_USER_EMAIL=$SEED_DEFAULT_USER_EMAIL"

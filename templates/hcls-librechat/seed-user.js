@@ -1,4 +1,4 @@
-/* Deployment-only convenience: create/update one local-login user when
+/* Deployment-only convenience: create one local-login user when
  * SEED_DEFAULT_USER_EMAIL and SEED_DEFAULT_USER_PASSWORD are set. Guarded so
  * normal deployments are unaffected. Runs after migrations/seed, before API. */
 const { MongoClient } = require('mongodb');
@@ -23,7 +23,7 @@ if (!email || !password) {
     const result = await users.updateOne(
       { email },
       {
-        $set: {
+        $setOnInsert: {
           email,
           emailVerified: true,
           name: email.split('@')[0],
@@ -32,8 +32,8 @@ if (!email || !password) {
           provider: 'local',
           role: 'USER',
           updatedAt: now,
+          createdAt: now,
         },
-        $setOnInsert: { createdAt: now },
       },
       { upsert: true },
     );
@@ -62,7 +62,7 @@ if (!email || !password) {
       credentialSeeded = Boolean(credential.upsertedId);
     }
     console.log(
-      `[seed-user] ${result.upsertedId ? 'created' : 'updated'} default user ${email}`,
+      `[seed-user] ${result.upsertedId ? 'created' : 'retained'} default user`,
     );
     if (process.env.SCIENTIFIC_MODELS_API_KEY) {
       console.log(`[seed-user] ${credentialSeeded ? 'seeded' : 'retained'} default user Scientific AI workbench credential`);

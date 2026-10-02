@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1.7
+# Single-layer overlay on the exact approved Kimi release. No model/prompt
+# changes and no dependency on a customer Kubernetes cluster.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:e96a66501807a2c446c17413f66c042b4a6ae2bdee2c32b9b05adcd1d378fd63
+FROM ${WORKBENCH_BASE} AS assembled
+USER root
+COPY templates/hcls-librechat/ /tmp/customer-state/
+RUN mkdir -p /release/app /release/opt/hcls-librechat /release/usr/local/bin \
+ && cp /tmp/customer-state/state-supervisor.py /release/opt/hcls-librechat/ \
+ && cp /tmp/customer-state/seed-workbench.js /release/app/seed-hcls-workbench.js \
+ && cp /tmp/customer-state/seed-user.js /tmp/customer-state/seed-merge.cjs /release/app/ \
+ && cp /tmp/customer-state/entrypoint.sh /release/usr/local/bin/hcls-librechat-entrypoint \
+ && chmod 0755 /release/usr/local/bin/hcls-librechat-entrypoint \
+ && node --check /release/app/seed-hcls-workbench.js \
+ && node --check /release/app/seed-user.js \
+ && python3 -m py_compile /release/opt/hcls-librechat/state-supervisor.py
+FROM ${WORKBENCH_BASE}
+USER root
+COPY --from=assembled /release/ /
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      ai.nebius.scientific.release="customer-state-20261002"
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "python3", "/opt/hcls-librechat/state-supervisor.py", "--", "/usr/local/bin/hcls-librechat-entrypoint"]

@@ -1,0 +1,9 @@
+**
+!templates
+!templates/hcls-librechat
+templates/hcls-librechat/**
+!templates/hcls-librechat/state-supervisor.py
+!templates/hcls-librechat/seed-workbench.js
+!templates/hcls-librechat/seed-user.js
+!templates/hcls-librechat/seed-merge.cjs
+!templates/hcls-librechat/entrypoint.sh

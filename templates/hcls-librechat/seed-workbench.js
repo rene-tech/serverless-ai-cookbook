@@ -190,10 +190,9 @@ For acceptance, use complete representative recordings and reference transcripts
 }
 
 async function seedAgent({ agents: collection, aclEntries, owner, now, definition }) {
-  await collection.updateOne(
-    { id: definition.id },
-    {
-      $set: {
+  const { mergeSeed } = require('./seed-merge.cjs');
+  const existing = await collection.findOne({ id: definition.id });
+  const next = {
         ...definition,
         // The primary agent has one compact prompt. Detailed transport/domain
         // procedures are loaded through skills only when the task needs them.
@@ -217,7 +216,12 @@ async function seedAgent({ agents: collection, aclEntries, owner, now, definitio
         author: owner._id,
         authorName: 'Nebius Scientific AI Agent',
         updatedAt: now,
-      },
+      };
+  const merged = mergeSeed(existing, existing?._scientificSeed, next);
+  await collection.updateOne(
+    { id: definition.id },
+    {
+      $set: { ...merged, _scientificSeed: next },
       $setOnInsert: { _id: new ObjectId(), createdAt: now, versions: [] },
     },
     { upsert: true },

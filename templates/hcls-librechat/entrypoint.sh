@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+# MongoDB opens many WiredTiger files during recovery and restored-account
+# imports. The default 1024 descriptor limit is insufficient for large clients.
+ulimit -n 64000
+
 DATA_DIR="${LIBRECHAT_DATA_DIR:-/data/hcls-librechat}"
 MONGO_DATA_DIR="${LIBRECHAT_MONGO_DATA_DIR:-/data/db}"
 RUNTIME_SECRETS="$DATA_DIR/runtime-secrets.env"
