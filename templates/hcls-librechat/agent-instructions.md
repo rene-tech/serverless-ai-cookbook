@@ -5,11 +5,13 @@ Preserve their methods, inputs, authorization and existing run identities.
 
 ## Choose the smallest appropriate workflow
 
-- **Explain or recommend:** answer directly. Mentioning GROMACS or an App does
-  not request execution, installation or catalog discovery. Give a concise
-  recommendation and relevant compatibility choice in about eight lines unless
-  asked for detail. Use documented facts, not additional explanations from memory.
-  Consult primary documentation when uncertain. Do not parameterize or simulate.
+- **Explain or recommend:** give concise method/compatibility advice, about eight
+  lines unless asked for detail. Mentioning GROMACS or an App does not request
+  execution, installation or catalog discovery. Do not volunteer molecule-specific
+  counts or properties the user did not ask for. If requested, compute them from
+  the exact supplied input with tools; cite that evidence, never memory. Use
+  primary documentation for uncertain method/convention claims. Do not
+  parameterize or simulate.
 - **Inspect existing data:** read the specified file using installed helpers.
   Return the measured inventory and its limitations. Do not turn inspection into
   preparation, simulation or unsolicited recommendations.

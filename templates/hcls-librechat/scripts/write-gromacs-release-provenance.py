@@ -15,6 +15,7 @@ def record(overlay: Path, revision: str, base: str) -> Path:
     root = overlay / "app/skill"
     manifest = json.loads((root / "manifest.json").read_text())
     names = (
+        "app/agent-instructions.md",
         "app/skill/manifest.json",
         "app/skill/files.sha256.json",
         "opt/bionemo/invoke-scientific-batch.py",

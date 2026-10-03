@@ -11,6 +11,7 @@ ARG HCLS_IMAGE_REVISION=unknown
 RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/source-skills,readonly \
     --mount=type=bind,source=templates/hcls-librechat,target=/tmp/source-client,readonly \
     mkdir -p /release/app/skill /release/opt/bionemo \
+ && cp /tmp/source-client/agent-instructions.md /release/app/agent-instructions.md \
  && cp -a /tmp/source-skills/. /release/app/skill/ \
  && cp /tmp/source-client/scripts/scientific-batch-acceptance.py /release/opt/bionemo/invoke-scientific-batch.py \
  && cp /tmp/source-client/native_md_artifacts.py /release/opt/bionemo/native_md_artifacts.py \

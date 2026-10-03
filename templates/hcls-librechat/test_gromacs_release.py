@@ -17,6 +17,7 @@ spec.loader.exec_module(provenance)
 
 def overlay(tmp_path):
     files = {
+        'app/agent-instructions.md': '# exact shared core instruction fixture\n',
         'app/skill/manifest.json': '{"version":"2026.10.03.4"}\n',
         'app/skill/files.sha256.json': '{}\n',
         'app/skill/gromacs/references/mpi-contract-source.json': '{"source_commit":"' + 'c' * 40 + '"}\n',
@@ -44,7 +45,7 @@ def test_provenance_binds_actual_helper_bridge_bundle_and_base(tmp_path):
     assert value['source_revision'] == 'a' * 40
     assert value['base_image'] == BASE
     assert value['skills_version'] == '2026.10.03.4'
-    assert len(value['files_sha256']) == 11
+    assert len(value['files_sha256']) == 12
     for name, expected in value['files_sha256'].items():
         assert expected == hashlib.sha256((stage / name).read_bytes()).hexdigest()
     assert value['backend_contract']['source_commit'] == 'c' * 40
@@ -52,6 +53,18 @@ def test_provenance_binds_actual_helper_bridge_bundle_and_base(tmp_path):
     with pytest.raises(FileExistsError):
         provenance.record(stage, 'b' * 40, BASE)
     assert target.read_bytes() == before
+
+
+def test_provenance_requires_and_hashes_the_actual_core_instruction_bytes(tmp_path):
+    stage = overlay(tmp_path)
+    core = stage / 'app/agent-instructions.md'
+    core.unlink()
+    with pytest.raises(FileNotFoundError):
+        provenance.record(stage, 'a' * 40, BASE)
+    assert not (stage / 'opt/hcls-librechat/gromacs-mpi-release.json').exists()
+    core.write_text('Changed advice scope, not an inherited base instruction.\n')
+    value = json.loads(provenance.record(stage, 'a' * 40, BASE).read_text())
+    assert value['files_sha256']['app/agent-instructions.md'] == hashlib.sha256(core.read_bytes()).hexdigest()
 
 
 @pytest.mark.parametrize('revision,base', [
@@ -68,6 +81,8 @@ def test_candidate_preserves_current_workbench_without_dependency_rebuild():
     assembly = source.split('FROM ${WORKBENCH_BASE}', 2)[1]
     final_stage = source.rsplit('FROM ${WORKBENCH_BASE}', 1)[1]
     assert f'ARG WORKBENCH_BASE={BASE}' in source
+    assert 'agent-instructions.md /release/app/agent-instructions.md' in source
+    assert '!templates/hcls-librechat/agent-instructions.md' in (ROOT / 'Dockerfile.gromacs-mpi-release.dockerignore').read_text()
     assert 'native_md_artifacts.py /release/opt/bionemo/native_md_artifacts.py' in source
     assert 'scientific_verified_results.py /release/opt/bionemo/scientific_verified_results.py' in source
     assert 'native_md_report.py /release/opt/bionemo/report-native-md.py' in source
