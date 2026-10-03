@@ -156,6 +156,20 @@ with per-file hashes and workspace links. Use its returned `native_outputs`;
 never guess mappings by array order or rename raw transport artifacts. Existing
 completed runs can be recovered with `--recover-operation-id` into a new directory.
 
+For an **already succeeded** operation, use this complete read-only recovery
+command, replacing `OPERATION_ID` with its original ID and choosing a new folder:
+
+```sh
+/opt/scientific-client/bin/python /opt/bionemo/invoke-scientific-batch.py \
+  --recover-operation-id OPERATION_ID --output /workspace/md/recovered
+```
+
+This recovery mode needs no model, input archive, parameter file or idempotency
+key. It does not submit, resubmit or cancel work. Do not search installed helper
+source to discover this invocation. For its exact options, append `--help` to
+the recovery command. Pending work must instead resume its original saved
+observation; do not use completed-result recovery to start or replace it.
+
 For a timing/benchmark report in the Nebius workbench, use the installed
 deterministic reporter **once after recovery** instead of writing ad-hoc Python
 or repeatedly printing the result JSON. Supply the user's actual repeat count:

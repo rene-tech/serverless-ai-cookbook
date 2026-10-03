@@ -1,4 +1,9 @@
-# Scientific AI skills 2026.10.03.2 — GROMACS multi-GPU client candidate
+# Scientific AI skills 2026.10.03.3 — GROMACS multi-GPU client candidate
+
+The GROMACS skill includes the complete read-only recovery command. The
+workbench helper's default and recovery-only help expose both modes explicitly,
+without changing submission, recovery or authentication behavior. Agents no
+longer need to inspect installed source to find the completed-result invocation.
 
 The GROMACS skill now uses the workbench's deterministic native-MD timing
 reporter after recovery, producing hash-bound JSON/CSV/Markdown without

@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Prepare isolated local baseline/candidate instances without customer data.
+"""Prepare isolated local baseline/candidate instances without customer state.
 
 Reuse provider credentials privately; never reuse the source customer's platform
 key or bucket. Supply a system QA API-key handover separately for App tests.
+Explicitly authorized input fixtures can be hash-verified and mounted read-only;
+their bytes are not copied into a bucket, repository or evidence workspace.
 """
 import argparse
+import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import secrets
 import subprocess
 import time
@@ -33,6 +36,30 @@ console.log(JSON.stringify(a));await c.close();})().catch(()=>process.exit(1));
     return json.loads(subprocess.check_output(['docker', 'exec', '-w', '/app', container, 'node', '-e', script]))
 
 
+def input_bindings(manifest):
+    """Resolve only the explicit original files in the private dispatch plan."""
+    if manifest is None:
+        return []
+    plan = json.loads(manifest.read_text())
+    records, targets = [], set()
+    for name in ('private_input_bindings', 'public_input_bindings'):
+        for row in plan.get(name, []):
+            source, target = Path(row['source']).resolve(strict=True), PurePosixPath(row['target'])
+            if (not source.is_file() or row.get('read_only') is not True
+                    or not target.is_relative_to('/workspace') or len(target.parts) < 3
+                    or '..' in target.parts or str(target) in targets
+                    or ',' in str(source) or ',' in str(target)):
+                raise ValueError('QA inputs must be distinct read-only files under /workspace.')
+            with source.open('rb') as stream:
+                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            if digest != row['sha256']:
+                raise ValueError('QA input bytes differ from the explicit dispatch-plan hash.')
+            records.append({'source': str(source), 'target': str(target), 'sha256': digest,
+                            'read_only': True, 'private': name == 'private_input_bindings'})
+            targets.add(str(target))
+    return records
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root', type=Path, required=True)
@@ -43,8 +70,11 @@ def main():
     p.add_argument('--port', type=int, required=True)
     p.add_argument('--context-audit', action='store_true',
                    help='Retain only provider counts/finish reasons in this isolated QA workspace')
+    p.add_argument('--input-bindings', type=Path,
+                   help='Private dispatch plan with explicitly authorized SHA-256-pinned read-only fixture files.')
     a = p.parse_args()
     os.umask(0o077)
+    bindings = input_bindings(a.input_bindings)
     root = a.root / a.label
     root.mkdir(parents=True, exist_ok=False)
     workspace = root / 'workspace'
@@ -55,8 +85,13 @@ def main():
     state.mkdir(mode=0o700)
     inputs = workspace / 'inputs'
     inputs.mkdir(parents=True)
-    with urllib.request.urlopen('https://files.rcsb.org/download/1UBQ.cif', timeout=45) as r:
-        (inputs / '1UBQ.cif').write_bytes(r.read())
+    if '/workspace/inputs/1UBQ.cif' not in {row['target'] for row in bindings}:
+        with urllib.request.urlopen('https://files.rcsb.org/download/1UBQ.cif', timeout=45) as r:
+            (inputs / '1UBQ.cif').write_bytes(r.read())
+    for row in bindings:
+        (workspace / PurePosixPath(row['target']).relative_to('/workspace')).parent.mkdir(parents=True, exist_ok=True)
+    if bindings:
+        private_json(root / 'input-bindings.json', bindings)
     (inputs / 'sequences.fasta').write_text('>seqA\nACGTACGTNN\n>seqB\nGGCCATTA\n>seqC\nNNNN\n')
     (inputs / 'assay.csv').write_text('condition,response\ncontrol,1\ncontrol,2\ncontrol,3\ntreated,3\ntreated,5\ntreated,7\ntreated,\n')
     allowed = {'NEBIUS_API_KEY', 'TAVILY_API_KEY'}
@@ -77,10 +112,12 @@ def main():
     (root / 'runtime.env').write_text(''.join(f'{k}={v}\n' for k, v in env.items()))
     private_json(root / 'login.json', {'email': email, 'password': password})
     name = 'fs2-default-release-' + a.label
+    mounts = [arg for row in bindings for arg in (
+        '--mount', f'type=bind,source={row["source"]},target={row["target"]},readonly')]
     subprocess.run(['docker', 'run', '-d', '--name', name, '--cpus', '4', '--memory', '12g',
                     '-p', f'127.0.0.1:{a.port}:3080', '--env-file', str(root / 'runtime.env'),
                     '--mount', f'type=bind,source={workspace},target=/workspace',
-                    '--mount', f'type=bind,source={state},target=/data', a.image],
+                    '--mount', f'type=bind,source={state},target=/data', *mounts, a.image],
                    check=True, stdout=subprocess.DEVNULL)
     base = f'http://127.0.0.1:{a.port}'
     headers = {'User-Agent': UA, 'Origin': base}

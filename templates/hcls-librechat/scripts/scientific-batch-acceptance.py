@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""Submit one real scientific-batch input and retain hash-verified evidence.
+"""Submit scientific work or recover completed outputs with hash verification.
+
+Submission/resume mode uses the model/input options listed below.
+Read-only recovery mode needs only the original operation ID and a new folder:
+  /opt/scientific-client/bin/python /opt/bionemo/invoke-scientific-batch.py \\
+    --recover-operation-id OPERATION_ID --output /workspace/md/recovered
+
+Recovery does not upload inputs, submit, resubmit or cancel work. It requires
+the existing operation to have succeeded and uses the configured credentials.
+No model, source, parameters or idempotency key is needed for recovery.
+For recovery-only help, add --help to that recovery command.
 
 The output directory is the resume boundary. Re-running it polls the saved
 operation; it never silently resubmits after ambiguous admission.
@@ -866,10 +876,13 @@ async def _run(args) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     if '--recover-operation-id' in sys.argv:
-        parser.add_argument('--recover-operation-id', required=True)
-        parser.add_argument('--output', required=True, type=Path)
+        parser.add_argument('--recover-operation-id', required=True,
+                            help='Original succeeded operation ID; retrieve its verified outputs without new admission.')
+        parser.add_argument('--output', required=True, type=Path,
+                            help='New local receipt/artifact folder; existing scientific results are not overwritten.')
         args = parser.parse_args()
         # The lock is held in the existing local receipt-lock area, not S3/FUSE.
         with receipt_lock(args.output):

@@ -17,7 +17,7 @@ spec.loader.exec_module(provenance)
 
 def overlay(tmp_path):
     files = {
-        'app/skill/manifest.json': '{"version":"2026.10.03.2"}\n',
+        'app/skill/manifest.json': '{"version":"2026.10.03.3"}\n',
         'app/skill/files.sha256.json': '{}\n',
         'app/skill/gromacs/references/mpi-contract-source.json': '{"source_commit":"' + 'c' * 40 + '"}\n',
         'opt/bionemo/invoke-scientific-batch.py': '# helper test fixture\n',
@@ -38,7 +38,7 @@ def test_provenance_binds_actual_helper_bridge_bundle_and_base(tmp_path):
     value = json.loads(target.read_text())
     assert value['source_revision'] == 'a' * 40
     assert value['base_image'] == BASE
-    assert value['skills_version'] == '2026.10.03.2'
+    assert value['skills_version'] == '2026.10.03.3'
     assert len(value['files_sha256']) == 6
     for name, expected in value['files_sha256'].items():
         assert expected == hashlib.sha256((stage / name).read_bytes()).hexdigest()
