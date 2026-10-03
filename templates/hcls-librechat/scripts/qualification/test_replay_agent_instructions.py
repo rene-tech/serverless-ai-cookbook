@@ -3,6 +3,8 @@ import importlib.util
 from pathlib import Path
 import httpx
 import pytest
+import json
+from types import SimpleNamespace
 
 spec = importlib.util.spec_from_file_location('instruction_replay',
     Path(__file__).with_name('replay_agent_instructions.py'))
@@ -79,3 +81,35 @@ def test_persistent_401_is_not_an_authentication_loop():
         with pytest.raises(httpx.HTTPStatusError):
             replay.observe_get(client, '/existing', [], reauthenticate=lambda: refreshes.append(True))
     assert refreshes == [True]
+
+
+def test_expired_session_is_checked_before_the_first_chat_post(tmp_path, monkeypatch):
+    requests = []
+    def respond(request):
+        requests.append((request.method, request.url.path))
+        if request.url.path == '/api/auth/login':
+            return httpx.Response(200, json={'token': 'replacement-test-token'})
+        if request.headers.get('Authorization') != 'Bearer replacement-test-token':
+            return httpx.Response(401)
+        if request.url.path == '/api/agents/chat':
+            return httpx.Response(200, json={'conversationId': 'qa-conversation', 'streamId': 'qa-stream'})
+        if request.url.path == '/api/agents/chat/status/qa-conversation':
+            return httpx.Response(200, json={'active': False})
+        if request.url.path == '/api/messages/qa-conversation':
+            return httpx.Response(200, json=[{'isCreatedByUser': False, 'content': [{'type': 'text', 'text': 'Measured result'}]}])
+        return httpx.Response(200, json=[])
+    original_client = httpx.Client
+    monkeypatch.setattr(replay.httpx, 'Client', lambda **kw: original_client(**kw, transport=httpx.MockTransport(respond)))
+    session, login = tmp_path / 'session.json', tmp_path / 'login.json'
+    session.write_text(json.dumps({'token': 'expired-test-token'}))
+    login.write_text(json.dumps({'email': 'qa@example.invalid', 'password': 'test-fixture-only'}))
+    args = SimpleNamespace(output=tmp_path / 'output', base_url='http://127.0.0.1:13203',
+        session=session, login=login, instruction_text='Original instructions', cohort_id='qa',
+        reasoning_effort=None, use_seeded_agent=True, deadline=30)
+    result = replay.run_case(args, 'expired-test-token', {'id': 'seeded-qa', 'model': 'test-model',
+        'instructions': 'Original instructions'}, {'case_id': 'test-case', 'prompt': 'Inspect inputs'}, 'test-model')
+    assert requests[:4] == [('GET', '/api/agents'), ('POST', '/api/auth/login'),
+                           ('GET', '/api/agents'), ('POST', '/api/agents/chat')]
+    assert requests.count(('POST', '/api/agents/chat')) == 1
+    assert result['transport_warnings'][0]['kind'] == 'qualification_session_expired'
+    assert result['scientific_pass'] is None
