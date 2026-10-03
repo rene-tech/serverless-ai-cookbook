@@ -196,3 +196,13 @@ phrases (`bounded logical` and `several related steps per edit`) absent from the
 current seed; these are recorded rather than changing seeded instructions merely
 to satisfy wording checks. Local broad structure tests additionally require
 NumPy, absent from this host test venv. Neither limitation is counted as a pass.
+
+The obsolete source-only seed assertions were subsequently corrected: tool
+registration is checked in the seed, while the detailed prose is checked in its
+actual file-backed tutorial source. The real seeded-primary regression now loads
+the existing three-way merge module, forwards seed errors out of its test sandbox,
+and verifies that the tutorial receives the legacy manual while the primary agent
+does not. No prompt, runtime or candidate-image bytes changed. The four focused
+workflow/discovery/instruction modules pass 44 tests, and all three existing
+Node seed-merge tests pass. This resolves the stale wording checks, not the
+separate host NumPy limitation or the outstanding live agent qualification.

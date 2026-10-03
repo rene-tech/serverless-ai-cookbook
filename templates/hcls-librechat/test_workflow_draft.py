@@ -61,10 +61,12 @@ def test_shared_schema_and_seed_installation():
     assert STUDY_SCHEMA['properties']['deliverables']['items'] is DELIVERABLE
     assert next(tool['inputSchema'] for tool in execution.TOOLS if tool['name'] == 'compose_scientific_workflow') is DRAFT_SCHEMA
     assert 'scientific_workflow_draft.py' in (ROOT / 'Dockerfile').read_text()
-    for path in (ROOT / 'seed-workbench.js', ROOT.parents[1] / 'life-science/bionemo-librechat/scientific-agent-instructions.md'):
-        content = path.read_text()
+    seed = (ROOT / 'seed-workbench.js').read_text()
+    instructions = (ROOT.parents[1] / 'life-science/bionemo-librechat/scientific-agent-instructions.md').read_text()
+    for content in (seed, instructions):
         assert 'compose_scientific_workflow_mcp_environment-execution' in content
-        assert 'several related steps per edit' in content.lower()
+    # Tutorial instructions are file-backed; seed-workbench.js only loads them.
+    assert 'several related steps per edit' in instructions.lower()
     selected = describe_workflow(['mindeval'])
     text = json.dumps(selected)
     assert 'state.judgment.judgment' in text and 'do NOT transform' in text

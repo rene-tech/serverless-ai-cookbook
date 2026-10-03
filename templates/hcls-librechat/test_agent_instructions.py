@@ -40,6 +40,7 @@ class AgentInstructionsTest(unittest.TestCase):
     def test_seed_primary_does_not_append_legacy_manual(self):
         script = r'''
 const vm = require('node:vm'); const fs = require('node:fs');
+const seedRequire = require('node:module').createRequire(process.argv[1]);
 const captured = [];
 class MongoClient {
   async connect() {} async close() {}
@@ -52,11 +53,14 @@ const context = { require(name) {
   if(name==='mongodb') return {MongoClient, ObjectId: class ObjectId {}};
   if(name==='librechat-data-provider') return {Constants: {mcp_all:'all'}};
   if(name==='node:fs') return fs;
+  if(name==='./seed-merge.cjs') return seedRequire(name);
   throw new Error(name);
 }, process:{env:{
   SCIENTIFIC_CORE_INSTRUCTIONS_PATH: process.argv[2],
   SCIENTIFIC_AGENT_INSTRUCTIONS_PATH: process.argv[3]
-}, stdout:{write(){}},exit(){throw new Error('seed failed');}}, console};
+}, stdout:{write(){}}, stderr:process.stderr,
+set exitCode(value){process.exitCode=value;},
+exit(){throw new Error('seed failed');}}, console};
 Promise.resolve(vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), context))
   .then(()=>console.log(JSON.stringify(captured)))
   .catch(error=>{console.error(error);process.exitCode=1;});
@@ -75,6 +79,8 @@ Promise.resolve(vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), con
             self.assertEqual(primary['model_parameters']['maxContextTokens'], 131072)
             self.assertTrue(primary['skills_enabled'])
             self.assertGreater(len(agents), 1)
+            tutorial = next(a for a in agents if a['id'] == 'agent_protein_structure')
+            self.assertIn('LEGACY_MANUAL_MUST_NOT_BE_IN_PRIMARY', tutorial['instructions'])
 
 
 if __name__ == '__main__':
