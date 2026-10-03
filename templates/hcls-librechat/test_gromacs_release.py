@@ -59,11 +59,15 @@ def test_provenance_requires_real_revision_and_immutable_base(tmp_path, revision
 
 def test_candidate_preserves_current_workbench_without_dependency_rebuild():
     source = (ROOT / 'Dockerfile.gromacs-mpi-release').read_text()
+    assembly = source.split('FROM ${WORKBENCH_BASE}', 2)[1]
     final_stage = source.rsplit('FROM ${WORKBENCH_BASE}', 1)[1]
     assert f'ARG WORKBENCH_BASE={BASE}' in source
     assert 'native_md_artifacts.py /release/opt/bionemo/native_md_artifacts.py' in source
     assert 'scientific_verified_results.py /release/opt/bionemo/scientific_verified_results.py' in source
     assert 'test-skills-installed.cjs' in source
+    assert 'COPY ' not in assembly
+    assert assembly.count('\nRUN ') == 1
+    assert 'source=skills/scientific-ai,target=/tmp/source-skills,readonly' in assembly
     assert final_stage.count('COPY ') == 1
     for forbidden in ('RUN ', '\nENTRYPOINT ', '\nCMD ', '\nENV '):
         assert forbidden not in final_stage
