@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1.7
+# Additive candidate: preserve current customer-state management, UI, OpenFF,
+# ClawBio, analysis runtimes and entrypoint. No customer configuration is baked in.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:873be148673dec6dc191ba30d2933c01acee4622fd3fa14888388378539f13d3
+FROM ${WORKBENCH_BASE} AS assembled
+USER root
+ARG WORKBENCH_BASE
+ARG HCLS_IMAGE_REVISION=unknown
+COPY skills/scientific-ai/ /release/app/skill/
+COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /release/opt/bionemo/invoke-scientific-batch.py
+COPY templates/hcls-librechat/native_md_artifacts.py /release/opt/bionemo/native_md_artifacts.py
+COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
+COPY templates/hcls-librechat/scripts/write-gromacs-release-provenance.py /tmp/write-gromacs-release-provenance.py
+RUN python3 /release/app/skill/bundle.py verify \
+ && cp -a /release/app/skill/. /app/skill/ \
+ && node /tmp/test-skills-installed.cjs \
+ && PYTHONPYCACHEPREFIX=/tmp/release-pycache python3 -m py_compile \
+      /release/opt/bionemo/invoke-scientific-batch.py /release/opt/bionemo/native_md_artifacts.py \
+ && python3 /tmp/write-gromacs-release-provenance.py \
+      --overlay /release --revision "${HCLS_IMAGE_REVISION}" --base "${WORKBENCH_BASE}"
+
+# One additional filesystem layer avoids rebuilding dependencies or exhausting
+# the retained image's layer depth. Base ENTRYPOINT/CMD/ENV remain unchanged.
+FROM ${WORKBENCH_BASE}
+USER root
+COPY --from=assembled /release/ /
+ARG WORKBENCH_BASE
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      org.opencontainers.image.base.name="${WORKBENCH_BASE}" \
+      ai.nebius.scientific.skills.version="2026.10.03.1" \
+      ai.nebius.scientific.skills.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.operation-polling.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="gromacs-mpi-client-20261003"

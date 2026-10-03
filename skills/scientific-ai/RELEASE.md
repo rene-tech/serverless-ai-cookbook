@@ -1,4 +1,21 @@
-# Scientific AI skills 2026.09.20.3 — canonical platform naming
+# Scientific AI skills 2026.10.03.1 — GROMACS multi-GPU client candidate
+
+GROMACS guidance now covers published single-node/multi-node MPI shapes,
+per-rank threads, native checkpoint identity, realistic large-output budgets,
+and matching API/MCP operations. The schema fixture is pinned to committed
+backend source; new 8/16-GPU examples are contract-tested, not a completed live
+performance qualification. A benchmark requires native runtime-result artifacts,
+the requested repeat set and real timing records; the outer platform result and
+an empty table are not sufficient.
+
+This source update prepares an additive workbench candidate preserving the
+current UI, customer-state management, OpenFF and ClawBio. It does not itself
+publish an image, change the default selector or replace customer instances.
+See the source repository's
+`templates/hcls-librechat/docs/gromacs-mpi-client-candidate-20261003.md` for
+composition, provenance, test scope and remaining live acceptance.
+
+## Previous naming integration: 2026.09.20.3
 
 The portable skills now call the complete hosted surface **Nebius Scientific AI
 Apps** and use the maintained LibreChat connection ID `scientific-ai-apps`.

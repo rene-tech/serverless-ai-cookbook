@@ -297,7 +297,13 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
     while True:
         phase, observation.failure = 'connect', None
         try:
-            timeout = min(OPERATION_READ_TIMEOUT, max(0.1, deadline - time.monotonic()))
+            # wait_seconds bounds repeated observations, not the connection.
+            # The durable study worker asks for wait_seconds=0 to check once.
+            # Giving that request 100 ms prevented a real TLS/MCP handshake,
+            # so completed remote work stayed queued indefinitely in the UI.
+            # Always permit one bounded read; the deadline below still stops
+            # further polls/retries and never re-admits the scientific job.
+            timeout = OPERATION_READ_TIMEOUT
             async with httpx2.AsyncClient(headers=headers, timeout=timeout, trust_env=False,
                     follow_redirects=False, event_hooks={'response': [observation.response]}) as mcp_http:
                 async with Client(streamable_http_client(endpoint, http_client=mcp_http),
