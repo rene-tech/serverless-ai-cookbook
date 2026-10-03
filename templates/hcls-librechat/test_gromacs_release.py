@@ -17,12 +17,13 @@ spec.loader.exec_module(provenance)
 
 def overlay(tmp_path):
     files = {
-        'app/skill/manifest.json': '{"version":"2026.10.03.1"}\n',
+        'app/skill/manifest.json': '{"version":"2026.10.03.2"}\n',
         'app/skill/files.sha256.json': '{}\n',
         'app/skill/gromacs/references/mpi-contract-source.json': '{"source_commit":"' + 'c' * 40 + '"}\n',
         'opt/bionemo/invoke-scientific-batch.py': '# helper test fixture\n',
         'opt/bionemo/native_md_artifacts.py': '# bridge test fixture\n',
         'opt/bionemo/scientific_verified_results.py': '# delivery test fixture\n',
+        'opt/bionemo/report-native-md.py': '# deterministic reporter test fixture\n',
     }
     for name, content in files.items():
         path = tmp_path / name
@@ -37,8 +38,8 @@ def test_provenance_binds_actual_helper_bridge_bundle_and_base(tmp_path):
     value = json.loads(target.read_text())
     assert value['source_revision'] == 'a' * 40
     assert value['base_image'] == BASE
-    assert value['skills_version'] == '2026.10.03.1'
-    assert len(value['files_sha256']) == 5
+    assert value['skills_version'] == '2026.10.03.2'
+    assert len(value['files_sha256']) == 6
     for name, expected in value['files_sha256'].items():
         assert expected == hashlib.sha256((stage / name).read_bytes()).hexdigest()
     assert value['backend_contract']['source_commit'] == 'c' * 40
@@ -64,6 +65,7 @@ def test_candidate_preserves_current_workbench_without_dependency_rebuild():
     assert f'ARG WORKBENCH_BASE={BASE}' in source
     assert 'native_md_artifacts.py /release/opt/bionemo/native_md_artifacts.py' in source
     assert 'scientific_verified_results.py /release/opt/bionemo/scientific_verified_results.py' in source
+    assert 'native_md_report.py /release/opt/bionemo/report-native-md.py' in source
     assert 'test-skills-installed.cjs' in source
     assert 'COPY ' not in assembly
     assert assembly.count('\nRUN ') == 1

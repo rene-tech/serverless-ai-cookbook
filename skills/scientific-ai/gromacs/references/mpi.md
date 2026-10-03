@@ -136,6 +136,16 @@ artifact hashes. Separate repeated work after recovery from unique completion.
 
 ## Read native results before reporting a benchmark
 
+In the current Nebius workbench use `/opt/bionemo/report-native-md.py` after
+the existing result client finishes. The command in `SKILL.md` produces verified
+JSON/CSV/Markdown in one local call, including multi-segment commands and exact
+source log hashes. Pass the requested repeat count, not the count observed after
+the fact. Read its `complete`/`gaps` response, then deliver the saved files; do
+not spend the analysis budget repeatedly dumping manifests or writing another
+parser. `requested_steps` is populated only from explicit native settings;
+missing counts remain unknown, and `checkpoint_step` keeps its absolute-step
+meaning. The following schema detail is for custom analysis or other clients.
+
 The helper's `result.json` is a platform scientific-run result containing
 `output_manifest` and publication/semantic-validation status. It is **not** the
 native GROMACS result. Reading a guessed `steps` field from that envelope and

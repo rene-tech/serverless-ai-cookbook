@@ -105,7 +105,8 @@ def file_card(path, root):
             'File existence and bytes verified; this is not a scientific validation of its contents.')
 
 
-def md_card(folder, root):
+def verified_md_inputs(folder, root):
+    """Resolve native results once, sharing receipt/hash checks with reporters."""
     # Read-only recovery deliberately keeps a separate receipt; it must not
     # overwrite an earlier submission receipt just to render a result card.
     receipt_path = folder / 'receipt.json'
@@ -118,7 +119,7 @@ def md_card(folder, root):
     if manifest.get('schema') != 'scientific-ai/native-md-files/v1' or not manifest.get('results'):
         raise ValueError('Native MD files are not materialized. Recover the existing operation first.')
     artifacts = receipt.get('verified_artifacts', [])
-    texts = []
+    documents = []
     for index, native in enumerate(manifest['results']):
         source = next((a for a in artifacts if a.get('sha256') == native['source_result_sha256']), None)
         if not source:
@@ -140,6 +141,17 @@ def md_card(folder, root):
             if not path.is_file() or path.stat().st_size != item['size_bytes']:
                 raise ValueError('Published native file is missing or changed: ' + item['native_path'])
             files[item['native_path']] = (path, item)
+        documents.append({'engine': engine, 'result': result, 'files': files,
+                          'native_root': native_root, 'source': {**source, 'path': str(source_path)}})
+    return receipt_path, receipt, documents
+
+
+def md_card(folder, root):
+    receipt_path, receipt, documents = verified_md_inputs(folder, root)
+    texts = []
+    for document in documents:
+        engine, result, files = document['engine'], document['result'], document['files']
+        native_root = document['native_root']
         text = [f'### {cell(engine.upper())}: completed engine operation', '',
                 f"Operation: `{receipt['operation_id']}`.",
                 f"Completed steps: {', '.join(cell(v) for v in result['completed_steps'])}.",

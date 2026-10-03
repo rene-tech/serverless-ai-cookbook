@@ -1,4 +1,11 @@
-# Scientific AI skills 2026.10.03.1 — GROMACS multi-GPU client candidate
+# Scientific AI skills 2026.10.03.2 — GROMACS multi-GPU client candidate
+
+The GROMACS skill now uses the workbench's deterministic native-MD timing
+reporter after recovery, producing hash-bound JSON/CSV/Markdown without
+agent-written parsing. Normal and recovery receipts are both supported. Exact
+native command timings, requested repeat counts and explicit unknowns replace
+empty tables or repeated inspection. The runtime helper is shipped by the
+workbench image, not installed by the portable skill bundle alone.
 
 GROMACS guidance now covers published single-node/multi-node MPI shapes,
 per-rank threads, native checkpoint identity, realistic large-output budgets,

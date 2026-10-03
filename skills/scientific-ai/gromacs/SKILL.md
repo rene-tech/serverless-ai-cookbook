@@ -155,6 +155,28 @@ paths by matching hashes into `native/result-00/` and writes `native-files.json`
 with per-file hashes and workspace links. Use its returned `native_outputs`;
 never guess mappings by array order or rename raw transport artifacts. Existing
 completed runs can be recovered with `--recover-operation-id` into a new directory.
+
+For a timing/benchmark report in the Nebius workbench, use the installed
+deterministic reporter **once after recovery** instead of writing ad-hoc Python
+or repeatedly printing the result JSON. Supply the user's actual repeat count:
+
+```sh
+/opt/scientific-client/bin/python /opt/bionemo/report-native-md.py \
+  --receipt-dir /workspace/md/receipt --output-dir /workspace/md/timing-report \
+  --expected-repeats 3
+```
+
+It reads either normal or recovery receipts, verifies native result/log hashes,
+and writes `native-timing-report.json`, `native-timings.csv` and
+`native-timing-report.md`. Read its compact JSON response: `complete: false`
+and exit 2 mean missing measurements/repeats, not success. A checkpoint's
+absolute step number is not an executed/durably completed work count; missing
+counts stay unknown. Deliver the native-MD receipt directory and these report
+files with the existing result-delivery tool; do not rename/copy receipts or
+rewrite a successful report. Extra scientific analysis can be a separate step.
+On a client without this command, the verified native schema below is the
+portable contract; this bundle alone does not install the workbench runtime.
+
 The receipt's outer `result.json` is the **platform envelope**, not the native
 GROMACS workflow result. Follow `native_outputs.results[].source_result_file`
 from the verified receipt/helper response; older clients can locate the artifact
