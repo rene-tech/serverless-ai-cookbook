@@ -33,12 +33,24 @@ def tool_failures(calls):
     for call in calls:
         output = read_tool_output(call.get('output'))
         raw = str(call.get('output', ''))
+        exception = re.search(r'^([A-Za-z][A-Za-z0-9_]*(?:Error|Exception)):', raw, re.M)
+        plain_failure = exception is not None and ('Traceback (most recent call last):' in raw
+                                                  or raw.startswith(exception.group(0)))
         if (output.get('status') in {'failed', 'timed_out', 'interrupted'} or
                 output.get('isError') is True or call.get('isError') is True or
+                plain_failure or
                 re.search(r'MCP error -?\d+|McpError|Request timed out|Error executing tool|^Error:', raw)):
             failures.append({'tool': call.get('name'), 'status': output.get('status', 'tool_error'),
-                             'job_id': output.get('job_id'), 'exit_code': output.get('exit_code')})
+                             'job_id': output.get('job_id'), 'exit_code': output.get('exit_code'),
+                             'exception_type': exception.group(1) if plain_failure else None})
     return failures
+
+
+def expected_rejection(error, case_id, expected_cases):
+    """Only named negative fixtures; transport and unrelated errors still fail."""
+    return case_id in expected_cases and (
+        (error['status'] == 'failed' and error['exit_code'] is not None)
+        or (error['status'] == 'tool_error' and error.get('exception_type') == 'FileNotFoundError'))
 
 
 def workspace_selection(url):
@@ -101,8 +113,7 @@ def main():
             failures = list(summary['errors'])
             observed_failures = tool_failures(calls)
             for error in observed_failures:
-                expected = (path.parent.name in args.expected_rejection_case and
-                            error['status'] == 'failed' and error['exit_code'] is not None)
+                expected = expected_rejection(error, path.parent.name, args.expected_rejection_case)
                 if not expected:
                     failures.append('unexpected failed tool: ' + str(error['tool']))
             warnings_path = path.parent / 'transport-warnings.json'

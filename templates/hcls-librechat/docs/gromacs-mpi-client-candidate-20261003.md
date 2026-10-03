@@ -96,13 +96,31 @@ Old reports and receipts are retained, including unsuccessful attempts.
   errors are preserved, not claimed as an entirely error-free interaction.
 - The follow-up 2026.10.03.3 skill and truthful CLI help include the complete
   recovery invocation. This addresses the observed unnecessary source-code
-  searching; no submission/recovery behavior is changed. The revised exact
-  candidate still requires a fresh first-attempt recovery/report check.
+  searching; no submission/recovery behavior is changed. Exact r4 source is
+  `a09a40c1a099bcb2e99c7e03caa644b30f78e86b`, image
+  `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:6d8b2038097b180d5edd997d7346a1b56c879a5f00b4890fcc08b81c2a96b2da`.
+  A fresh unchanged SNC prompt passed in 51.2 seconds / 12 tool calls, with
+  three independently verified native rows, successful native-MD/report
+  delivery and no failed inspections, receipt copies or GPU resubmissions.
+  The same isolated candidate is used for separate actual/assumed Lynx CPU
+  tests with original input files hash-pinned and mounted read-only.
+
+The actual three Lynx CPU requests and six separately labeled representative
+controls then passed their bounded first-attempt acceptance on exact r4. This
+includes real ligand exports, chemical identity/charge checks and authenticated
+downloads of 30 hash-verified output files. The original complex ligand took
+99.4 seconds end-to-end, including 89.1 seconds of CPU AM1-BCC; no GPU was used.
+The deliberate missing-file rejection is recorded explicitly. A source-only
+verification regression captures plain-text exceptions rather than losing them
+when a tool does not return JSON status. This does not change the r4 product
+bytes. Full evidence and scientific limitations are recorded in the backend's
+`acceptance/gromacs-mpinat-20261003/LYNX_AGENT_QUALIFICATION.md`.
 
 Private evidence is retained under
 `/home/tux/secure-handoff/fs2-gromacs-mpinat-20261003`, with separate
 `agent-recovery-candidate-r1`, `-r2` and `-r3` folders, build metadata, manifests
-and isolated state. The backend acceptance directory's
+and isolated state. R4 uses `agent-recovery-candidate-r4*`; these are separate
+from the Lynx CPU test folders. The backend acceptance directory's
 `AGENT_QUALIFICATION.md` and the Task Deck card record the final observed bounds.
 
 ## Acceptance remaining before promotion
@@ -118,10 +136,10 @@ and isolated state. The backend acceptance directory's
 4. Check a sibling OpenFF/analysis/client-state workflow on the candidate before
    selecting it for future installs. Do not replace the Lynx instance in this task.
 
-188 combined offline tests passed for the exact r3 runtime/skill source, covering
+196 combined offline tests passed for the exact r4 runtime/skill source, covering
 timing reports, recovery delivery, portable GROMACS examples/contracts, native
 artifact references, release provenance, polling, workflow/client and isolated
-persistence launcher regressions. Bundle version `2026.10.03.3` verifies
+persistence/read-only-input launcher and CLI-help regressions. Bundle version `2026.10.03.3` verifies
 36 skills / 84 files. Skill validation, Ruff and `git diff --check` pass.
 Source and bundle tests are recorded in the linked Task Deck card
 `fs2-gromacs-mcp-observation-r20261003`; a code test is not a live deployment claim.
