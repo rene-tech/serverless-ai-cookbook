@@ -5,6 +5,7 @@
 !templates/
 !templates/hcls-librechat/
 !templates/hcls-librechat/native_md_artifacts.py
+!templates/hcls-librechat/scientific_verified_results.py
 !templates/hcls-librechat/scripts/
 !templates/hcls-librechat/scripts/scientific-batch-acceptance.py
 !templates/hcls-librechat/scripts/test-skills-installed.cjs

@@ -106,7 +106,12 @@ def file_card(path, root):
 
 
 def md_card(folder, root):
-    receipt = json.loads((folder / 'receipt.json').read_text())
+    # Read-only recovery deliberately keeps a separate receipt; it must not
+    # overwrite an earlier submission receipt just to render a result card.
+    receipt_path = folder / 'receipt.json'
+    if not receipt_path.exists():
+        receipt_path = folder / 'recovery-receipt.json'
+    receipt = json.loads(receipt_path.read_text())
     if receipt.get('state') != 'verified' or not receipt.get('operation_id'):
         raise ValueError('MD operation does not have a verified completed-result receipt.')
     manifest = json.loads((folder / 'native-files.json').read_text())
@@ -175,7 +180,7 @@ def md_card(folder, root):
             text += [f"| {cell(c['step_id'])}, segment {c.get('segment', '?')} | {c['performance_ns_per_day']:.3f} | {c['wall_seconds']:.3f} |"
                      for c in performances]
         text += ['', f'[All native inputs, logs and trajectories]({link(native_root, root, directory=True)}) · '
-                 f'[Publication receipt]({link(folder / "receipt.json", root)}) · '
+                 f'[Publication receipt]({link(receipt_path, root)}) · '
                  f'[Native file manifest]({link(folder / "native-files.json", root)})', '',
                  'The engine completed; scientific equivalence, equilibration and convergence are not established by this receipt. '
                  'Temperature, pressure and density statistics require analysis of the saved trajectory/energy data; none are invented here. '

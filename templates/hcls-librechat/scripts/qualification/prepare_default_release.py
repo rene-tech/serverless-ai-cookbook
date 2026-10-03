@@ -48,6 +48,11 @@ def main():
     root = a.root / a.label
     root.mkdir(parents=True, exist_ok=False)
     workspace = root / 'workspace'
+    # Current client images require a separate POSIX state mount. Keep this
+    # across qualification restarts just like a managed Serverless instance;
+    # never disable persistence checks merely to make a local probe start.
+    state = root / 'state'
+    state.mkdir(mode=0o700)
     inputs = workspace / 'inputs'
     inputs.mkdir(parents=True)
     with urllib.request.urlopen('https://files.rcsb.org/download/1UBQ.cif', timeout=45) as r:
@@ -74,7 +79,8 @@ def main():
     name = 'fs2-default-release-' + a.label
     subprocess.run(['docker', 'run', '-d', '--name', name, '--cpus', '4', '--memory', '12g',
                     '-p', f'127.0.0.1:{a.port}:3080', '--env-file', str(root / 'runtime.env'),
-                    '--mount', f'type=bind,source={workspace},target=/workspace', a.image],
+                    '--mount', f'type=bind,source={workspace},target=/workspace',
+                    '--mount', f'type=bind,source={state},target=/data', a.image],
                    check=True, stdout=subprocess.DEVNULL)
     base = f'http://127.0.0.1:{a.port}'
     headers = {'User-Agent': UA, 'Origin': base}

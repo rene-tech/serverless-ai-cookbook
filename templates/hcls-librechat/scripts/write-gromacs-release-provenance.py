@@ -19,6 +19,7 @@ def record(overlay: Path, revision: str, base: str) -> Path:
         "app/skill/files.sha256.json",
         "opt/bionemo/invoke-scientific-batch.py",
         "opt/bionemo/native_md_artifacts.py",
+        "opt/bionemo/scientific_verified_results.py",
     )
     value = {
         "schema": "scientific-ai/gromacs-client-release/v1",

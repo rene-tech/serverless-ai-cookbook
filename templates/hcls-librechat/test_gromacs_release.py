@@ -22,6 +22,7 @@ def overlay(tmp_path):
         'app/skill/gromacs/references/mpi-contract-source.json': '{"source_commit":"' + 'c' * 40 + '"}\n',
         'opt/bionemo/invoke-scientific-batch.py': '# helper test fixture\n',
         'opt/bionemo/native_md_artifacts.py': '# bridge test fixture\n',
+        'opt/bionemo/scientific_verified_results.py': '# delivery test fixture\n',
     }
     for name, content in files.items():
         path = tmp_path / name
@@ -37,7 +38,7 @@ def test_provenance_binds_actual_helper_bridge_bundle_and_base(tmp_path):
     assert value['source_revision'] == 'a' * 40
     assert value['base_image'] == BASE
     assert value['skills_version'] == '2026.10.03.1'
-    assert len(value['files_sha256']) == 4
+    assert len(value['files_sha256']) == 5
     for name, expected in value['files_sha256'].items():
         assert expected == hashlib.sha256((stage / name).read_bytes()).hexdigest()
     assert value['backend_contract']['source_commit'] == 'c' * 40
@@ -61,6 +62,7 @@ def test_candidate_preserves_current_workbench_without_dependency_rebuild():
     final_stage = source.rsplit('FROM ${WORKBENCH_BASE}', 1)[1]
     assert f'ARG WORKBENCH_BASE={BASE}' in source
     assert 'native_md_artifacts.py /release/opt/bionemo/native_md_artifacts.py' in source
+    assert 'scientific_verified_results.py /release/opt/bionemo/scientific_verified_results.py' in source
     assert 'test-skills-installed.cjs' in source
     assert final_stage.count('COPY ') == 1
     for forbidden in ('RUN ', '\nENTRYPOINT ', '\nCMD ', '\nENV '):
