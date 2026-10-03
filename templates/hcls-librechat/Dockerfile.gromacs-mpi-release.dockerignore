@@ -7,6 +7,10 @@
 !templates/hcls-librechat/native_md_artifacts.py
 !templates/hcls-librechat/scientific_verified_results.py
 !templates/hcls-librechat/native_md_report.py
+!templates/hcls-librechat/scientific_study.py
+!templates/hcls-librechat/scientific_study_schema.py
+!templates/hcls-librechat/execution-mcp.py
+!templates/hcls-librechat/upload-artifact.py
 !templates/hcls-librechat/scripts/
 !templates/hcls-librechat/scripts/scientific-batch-acceptance.py
 !templates/hcls-librechat/scripts/test-skills-installed.cjs

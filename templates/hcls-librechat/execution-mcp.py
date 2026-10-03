@@ -453,9 +453,11 @@ def upload_workspace_files(args):
     prepared, identifiers = [], set()
     required = {'id', 'model', 'file', 'media_type', 'idempotency_key'}
     for item in files:
-        if not isinstance(item, dict) or set(item) != required or any(
+        if not isinstance(item, dict) or not required <= set(item) or set(item) - required - {'compression'} or any(
                 not isinstance(value, str) or not value for value in item.values()):
-            raise ValueError('Each file needs exactly id, model, file, media_type and idempotency_key strings.')
+            raise ValueError('Each file needs id, model, file, media_type and idempotency_key strings; optional compression is explicit.')
+        if 'compression' in item and item['compression'] not in {'none', 'gzip', 'zstd'}:
+            raise ValueError('Upload compression must be none, gzip or zstd from the live contract.')
         identifier = item['id']
         if identifier in identifiers or identifier in {'.', '..'} or '/' in identifier or '\\' in identifier:
             raise ValueError('Each upload id must be a distinct plain directory name.')
@@ -528,6 +530,8 @@ def upload_worker(plan_path):
         command = [python, helper, '--model', item['model'], '--file', str(path),
                    '--media-type', item['media_type'], '--output-dir', item['output_directory'],
                    '--idempotency-key', item['idempotency_key']]
+        if 'compression' in item:
+            command += ['--compression', item['compression']]
         # A failed or ambiguous upload stops the sequence. Explicit resume
         # delegates to the same durable receipts and idempotency keys; never
         # spin through 429s, launch parallel reservations or invent a new key.
@@ -536,7 +540,8 @@ def upload_worker(plan_path):
             raise RuntimeError('Upload stopped at ' + item['id'] + '; inspect its retained receipt before explicit resume.')
         artifact_file = Path(item['output_directory']) / 'artifact.json'
         artifact = json.loads(artifact_file.read_text())
-        if any(artifact.get(field) != item[field] for field in ('sha256', 'size_bytes', 'media_type')):
+        fields = ['sha256', 'size_bytes', 'media_type'] + (['compression'] if 'compression' in item else [])
+        if any(artifact.get(field) != item[field] for field in fields):
             raise ValueError('Finalized artifact differs from frozen source identity: ' + item['id'])
         print(json.dumps({'id': item['id'], 'artifact_file': str(artifact_file), 'artifact': artifact}), flush=True)
 
@@ -591,7 +596,7 @@ TOOLS = [
             'operation_id': {**TEXT, 'format': 'uuid'}, 'output_directory': TEXT,
             'resume': {'type': 'boolean', 'default': False}}}},
     {'name': 'upload_workspace_files',
-     'description': 'Upload one or more actual workspace files as immutable model artifacts, sequentially. Preferred over manually reserving handles or hashing/copying bytes through chat. Supply file paths and live-contract media types; the existing uploader hashes, streams, finalizes and saves exact artifact.json references. Submit all related files in one call to avoid concurrent reservations. No model inference is run. Repeated identical calls reuse this execution job; resume=true only after inspecting a failed/interrupted receipt. Observe with read_execution and reuse finalized references in native/batch inputs.',
+     'description': 'Upload one or more actual workspace files as immutable model artifacts, sequentially. Preferred over manually reserving handles or hashing/copying bytes through chat. Supply file paths, live-contract media types and explicit compression for encoded bytes; the existing uploader hashes, streams, finalizes and saves exact artifact.json references. For a new scientific batch study prefer its batch source step, which owns upload plus inference and durable analysis; do not separately upload a bundle to work around a rejected study draft. Submit all related files in one call to avoid concurrent reservations. No model inference is run. Repeated identical calls reuse this execution job; resume=true only after inspecting a failed/interrupted receipt. Observe with read_execution and reuse finalized references in native/batch inputs.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': True},
      'inputSchema': {'type': 'object', 'additionalProperties': False,
          'required': ['files', 'output_directory'], 'properties': {
@@ -601,6 +606,7 @@ TOOLS = [
                  'properties': {'id': {**TEXT, 'description': 'Distinct receipt directory name within output_directory.'},
                     'model': TEXT, 'file': {**TEXT, 'description': 'Existing mounted workspace file path, not bytes/base64/URL.'},
                     'media_type': {**TEXT, 'description': 'Actual source MIME accepted by the live model contract.'},
+                    'compression': {'enum': ['none', 'gzip', 'zstd'], 'description': 'Explicit encoding of the unchanged source bytes from the published input contract. No recompression or filename-based metadata inference.'},
                     'idempotency_key': {'type': 'string', 'minLength': 8, 'maxLength': 200}}}}}}},
     {'name': 'run_scientific_workflow',
      'description': 'Preferred whole-study launch: supply inline study (a v2 object or its complete strict JSON text) OR plan_file pointing to existing scientific-workflow/v2 JSON, plus output_directory. Both representations use identical validation and immutable identity: no duplicate keys, non-finite numbers, inferred defaults or schema conversion. Prefer compose_scientific_workflow for longer plans: small typed groups produce a validated immutable plan_file. If preflight rejects a draft, correct that same v2 plan while preserving analysis/deliverables; do not downgrade to legacy v1 or shell CLI. Include ordered preparation, native/batch/clinical, deterministic analysis and final deliverables. File references are existing workspace paths or {step,file}; native result.json and batch output-manifest.json preserve their verified sibling artifacts. Supported mindeval analysis consumes full saved record paths directly without new model calls. The worker continues after chat disconnect or process restart and publishes verified final files in Runs. Do NOT ask for mechanical continue to run declared phases. Repeating the same plan/output returns the same study; unknown admissions stop for inspection. Only explicitly requested legacy steps/v1 omit whole-study analysis. No budgets are increased; completion is not scientific validation.',

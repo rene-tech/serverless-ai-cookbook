@@ -143,3 +143,56 @@ persistence/read-only-input launcher and CLI-help regressions. Bundle version `2
 36 skills / 84 files. Skill validation, Ruff and `git diff --check` pass.
 Source and bundle tests are recorded in the linked Task Deck card
 `fs2-gromacs-mcp-observation-r20261003`; a code test is not a live deployment claim.
+
+## R5: actual new-study report gap and explicit upload encoding
+
+The first remaining r4 MPINAT pair did not pass customer-shaped delivery.
+benchMEM native operation `7c59f87a-d62c-46aa-bd1c-14cb1a5cf0e6` succeeded, and
+its durable study completed, but its generic `operation-timing` report read the
+outer envelope and contained only unavailable measurements. The initial chat
+truthfully said admitted, not finished. An accepted/completed study alone does
+not qualify a requested native throughput report; the original files remain.
+
+The r5 candidate adds the typed, discoverable `native-md-timing` analysis phase.
+It consumes a completed batch's exact `native-files.json` reference and uses the
+same existing receipt/result/log-hash verifier and reporter as recovery. It
+publishes Markdown/CSV/JSON as durable study deliverables, with explicit repeat
+count checks and retained incomplete diagnostics. No new timing parser, model,
+scientific default, physics change or GPU replay is introduced. The installed
+GROMACS skill's complete saved-study example plans both batch and analysis
+before admission. Original successful operations can be analyzed without replay.
+
+benchPEP never reached native admission. Its agent used a standalone upload after
+local study validation rejected a missing report. That exact upload finalized
+223,219,412 bytes after 688.1 seconds of total helper wall time (not a measured
+network-only interval), but returned `compression: none` for the
+gzip archive because the generic uploader had no encoding field. The original
+artifact is retained, not relabeled. R5 carries explicit optional compression
+through tool schema, frozen upload identity, CLI reservation and final metadata
+verification. Omitting it preserves old uncompressed receipt identities. A
+per-attempt receipt now measures hashing, reservation, object PUT and finalization
+with monotonic durations, byte count and wall timestamps; failures retain their
+known phase/error type without credential or signed-URL fields. Timeout behavior
+is unchanged. A
+new durable batch is the preferred owner of bundle upload and inference;
+correcting an unadmitted draft must not create duplicate scientific work.
+
+R5 extends the additive image overlay with the study runner/schema, importable
+native reporter and uploader/execution bridge. Baseline study helper bytes were
+confirmed identical between this source and r4 before editing; current UI,
+seeded Kimi-K3/high and tool budget remain unchanged. Bundle 2026.10.03.4 contains
+85 verified files. Source tests are not final image/agent acceptance: exact r5
+read-only recovery and native study/report delivery remain required before any
+default promotion. The first pair's errors and old reports remain in
+`agent-remaining-r4`; the supervisor stopped before the next pair.
+
+The focused r5 regression cohort passed 148 tests, including real deterministic
+report execution, normal/recovery receipts, future batch references, unchanged
+native bytes, missing/tampered evidence, explicit encoding identity, streamed
+upload metadata, polling and artifact delivery. The final upload-only refinement
+then passed its 20 tests; the complete portable plan passed real admission
+validation. Two broader unchanged baseline tests still assert old literal seed
+phrases (`bounded logical` and `several related steps per edit`) absent from the
+current seed; these are recorded rather than changing seeded instructions merely
+to satisfy wording checks. Local broad structure tests additionally require
+NumPy, absent from this host test venv. Neither limitation is counted as a pass.

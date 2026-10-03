@@ -25,6 +25,7 @@ def fixture(tmp_path, monkeypatch):
 from pathlib import Path
 p=argparse.ArgumentParser()
 for k in ('model','file','media-type','output-dir','idempotency-key'):p.add_argument('--'+k,required=True)
+p.add_argument('--compression',default='none')
 a=p.parse_args(); root=Path(a.file).parent; out=Path(a.output_dir); out.mkdir(parents=True,exist_ok=True)
 dest=out/'artifact.json'
 if dest.exists():print('reused original artifact');raise SystemExit(0)
@@ -36,7 +37,7 @@ try:
         (root/'fail-second-once').unlink();raise SystemExit(11)
     data=Path(a.file).read_bytes()
     ref={'artifact_id':a.idempotency_key,'sha256':hashlib.sha256(data).hexdigest(),
-         'size_bytes':len(data),'media_type':a.media_type,'compression':'none'}
+         'size_bytes':len(data),'media_type':a.media_type,'compression':a.compression}
     dest.write_text(json.dumps(ref))
     (out/'transferred-once').write_text(a.idempotency_key)
     print(json.dumps({'artifact':ref}))
@@ -139,6 +140,19 @@ def test_request_never_hashes_mounted_files_before_returning_job(tmp_path, monke
     assert result['job_id'] == 'detached'
     plan = json.loads(next((tmp_path / 'jobs/upload-index').glob('*.plan.json')).read_text())
     assert all('sha256' not in item for item in plan['files'])
+
+
+def test_explicit_compression_reaches_actual_worker_and_is_identity_bound(tmp_path, monkeypatch):
+    args = fixture(tmp_path, monkeypatch)
+    args['files'][0]['compression'] = 'gzip'
+    _, first = call(tmp_path, 'upload_workspace_files', args)
+    assert first['status'] == 'completed'
+    result = json.loads((tmp_path / 'study uploads/one/artifact.json').read_text())
+    assert result['compression'] == 'gzip'
+    args['files'][0]['compression'] = 'zstd'
+    with pytest.raises(ValueError, match='bytes or metadata changed'):
+        module(tmp_path, monkeypatch).upload_workspace_files(args)
+    assert len(list((tmp_path / 'jobs').glob('*/request.json'))) == 1
 
 
 def test_worker_rejects_same_stat_changed_bytes_against_retained_identity(tmp_path, monkeypatch):

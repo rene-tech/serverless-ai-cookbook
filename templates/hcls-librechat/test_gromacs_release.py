@@ -17,13 +17,18 @@ spec.loader.exec_module(provenance)
 
 def overlay(tmp_path):
     files = {
-        'app/skill/manifest.json': '{"version":"2026.10.03.3"}\n',
+        'app/skill/manifest.json': '{"version":"2026.10.03.4"}\n',
         'app/skill/files.sha256.json': '{}\n',
         'app/skill/gromacs/references/mpi-contract-source.json': '{"source_commit":"' + 'c' * 40 + '"}\n',
         'opt/bionemo/invoke-scientific-batch.py': '# helper test fixture\n',
         'opt/bionemo/native_md_artifacts.py': '# bridge test fixture\n',
         'opt/bionemo/scientific_verified_results.py': '# delivery test fixture\n',
         'opt/bionemo/report-native-md.py': '# deterministic reporter test fixture\n',
+        'opt/bionemo/native_md_report.py': '# importable reporter test fixture\n',
+        'opt/bionemo/scientific_study.py': '# durable study runner test fixture\n',
+        'opt/bionemo/scientific_study_schema.py': '# typed study discovery test fixture\n',
+        'opt/bionemo/execution-mcp.py': '# typed execution bridge test fixture\n',
+        'opt/bionemo/upload-artifact.py': '# exact uploader test fixture\n',
     }
     for name, content in files.items():
         path = tmp_path / name
@@ -38,8 +43,8 @@ def test_provenance_binds_actual_helper_bridge_bundle_and_base(tmp_path):
     value = json.loads(target.read_text())
     assert value['source_revision'] == 'a' * 40
     assert value['base_image'] == BASE
-    assert value['skills_version'] == '2026.10.03.3'
-    assert len(value['files_sha256']) == 6
+    assert value['skills_version'] == '2026.10.03.4'
+    assert len(value['files_sha256']) == 11
     for name, expected in value['files_sha256'].items():
         assert expected == hashlib.sha256((stage / name).read_bytes()).hexdigest()
     assert value['backend_contract']['source_commit'] == 'c' * 40

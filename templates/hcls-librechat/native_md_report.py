@@ -156,7 +156,7 @@ def markdown(report, workspace):
     return '\n'.join(lines) + '\n'
 
 
-def write_report(folder, output, workspace, expected_repeats=None):
+def write_report(folder, output, workspace, expected_repeats=None, *, publication_directory=None):
     if expected_repeats is not None and expected_repeats < 1:
         raise ValueError('Expected repeats must be positive when supplied.')
     report = collect(folder, workspace, expected_repeats)
@@ -183,7 +183,8 @@ def write_report(folder, output, workspace, expected_repeats=None):
     return {'schema': report['schema'], 'complete': report['complete'],
             'operation_id': report['operation_id'], 'reported_repeats': report['reported_repeats'],
             'timing_row_count': len(report['timing_rows']), 'gaps': report['gaps'],
-            'files': [{'path': str(output / name), 'workspace_url': link(output / name, workspace)} for name in rendered],
+            'files': [{'path': str((publication_directory or output) / name),
+                       'workspace_url': link((publication_directory or output) / name, workspace)} for name in rendered],
             'inference_submitted': False}
 
 

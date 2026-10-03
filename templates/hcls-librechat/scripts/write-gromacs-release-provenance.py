@@ -21,6 +21,11 @@ def record(overlay: Path, revision: str, base: str) -> Path:
         "opt/bionemo/native_md_artifacts.py",
         "opt/bionemo/scientific_verified_results.py",
         "opt/bionemo/report-native-md.py",
+        "opt/bionemo/native_md_report.py",
+        "opt/bionemo/scientific_study.py",
+        "opt/bionemo/scientific_study_schema.py",
+        "opt/bionemo/execution-mcp.py",
+        "opt/bionemo/upload-artifact.py",
     )
     value = {
         "schema": "scientific-ai/gromacs-client-release/v1",

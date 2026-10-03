@@ -91,6 +91,13 @@ For a direct client, the installed command shape is:
 Authentication comes from the configured client environment. The legacy
 `/opt/bionemo` installation path is not a separate product/server name. In
 LibreChat prefer the durable study executor so observation survives disconnect.
+For a new benchmark study, first discover `batch` and `native-md-timing` with
+`describe_scientific_workflow`. Plan both the simulation and its deterministic
+native report **before** submission; see [the saved-study example](references/timing-study.md).
+Declare the helper's Markdown as a report deliverable, and CSV/JSON as measured
+outputs. A generic `report` section using `operation-timing` on `result.json`
+does not extract native GROMACS commands, repeats or ns/day. Do not substitute
+that table for the requested simulation benchmark.
 
 ## Parameters and native commands
 
@@ -170,7 +177,7 @@ source to discover this invocation. For its exact options, append `--help` to
 the recovery command. Pending work must instead resume its original saved
 observation; do not use completed-result recovery to start or replace it.
 
-For a timing/benchmark report in the Nebius workbench, use the installed
+For an existing operation's timing/benchmark report in the Nebius workbench, use the installed
 deterministic reporter **once after recovery** instead of writing ad-hoc Python
 or repeatedly printing the result JSON. Supply the user's actual repeat count:
 
