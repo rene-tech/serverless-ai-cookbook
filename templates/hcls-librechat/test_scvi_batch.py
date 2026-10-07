@@ -77,6 +77,13 @@ def test_pinned_clients_and_source_are_present():
     assert (pipeline.CLIENT / 'LICENSE').exists()
 
 
+def test_directory_build_context_includes_runtime_verifier():
+    root = Path(__file__).parent
+    ignored = (root / 'Dockerfile.single-cell.dockerignore').read_text().splitlines()
+    assert '!templates/hcls-librechat/verify-single-cell-runtime.py' in ignored
+    assert (root / 'verify-single-cell-runtime.py').is_file()
+
+
 def test_recovery_never_appends_or_replaces_prior_logs(tmp_path, monkeypatch):
     value = args(tmp_path)
     original_open = Path.open

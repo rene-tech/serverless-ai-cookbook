@@ -7,5 +7,6 @@
 !templates/hcls-librechat/scvi-batch.py
 !templates/hcls-librechat/scvi-client/
 !templates/hcls-librechat/scvi-client/**
+!templates/hcls-librechat/verify-single-cell-runtime.py
 **/__pycache__
 **/*.pyc

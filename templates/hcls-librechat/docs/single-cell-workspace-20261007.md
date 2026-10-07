@@ -20,6 +20,22 @@ all-App scientific-validity claim or a claim that the customer's login is ready.
 
 ## Changes
 
+Build from the repository root using `Dockerfile.single-cell` and the pinned
+branding base in that file. Keep the final overlay at one layer; the retained
+base has a long layer history. R5's recorded build used the complete source
+archive. The Dockerfile-specific ignore list also includes the runtime verifier
+for ordinary directory-context builds, with a regression test for that path.
+Do not stack another overlay on R5 or silently substitute a newer base image.
+
+The directory-context build completed all build stages and real H5AD runtime
+checks. Loading its export into the operator host's legacy Docker image store
+failed with `max depth exceeded`; that failure is retained, not called a passed
+local-container test. Use the registry/OCI build path for this inherited image.
+The exact R5 image was separately pulled, created and fully exercised on the
+target Serverless runtime. Consolidating the long base-image layer history is
+future image-maintenance work, not a reason to replace the qualified customer
+image with an untested rebuild.
+
 The large-file helper uses the published durable batch schema, not the small
 native demo interface. It keeps the input, request, idempotency key, operation ID
 and collection receipts in the mounted study. A pending exit (75) requires
