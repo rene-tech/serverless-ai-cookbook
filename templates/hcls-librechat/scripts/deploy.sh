@@ -35,6 +35,10 @@ case "${SERVERLESS_PUBLIC_IP:-true}" in
 esac
 
 ENDPOINT_NAME="${ENDPOINT_NAME:-nebius-scientific-ai-agent}"
+case "${ALLOW_REGISTRATION:-false}:${SCIENTIFIC_SHARED_GATEWAY_ENABLED:-false}" in
+  true:true|true:false|false:true|false:false) ;;
+  *) printf '%s\n' 'ALLOW_REGISTRATION and SCIENTIFIC_SHARED_GATEWAY_ENABLED must be true or false.' >&2; exit 2 ;;
+esac
 SCIENTIFIC_MODELS_API_BASE_URL="${SCIENTIFIC_MODELS_API_BASE_URL:-https://89.169.99.188/v1}"
 SCIENTIFIC_MODELS_MCP_URL="${SCIENTIFIC_MODELS_MCP_URL:-https://89.169.99.188/mcp}"
 
@@ -54,6 +58,7 @@ CREATE_CMD=(
   --env "SCIENTIFIC_MODELS_MCP_URL=$SCIENTIFIC_MODELS_MCP_URL"
   --env "SCIENTIFIC_STUDY_OWNER_MODE=$SCIENTIFIC_STUDY_OWNER_MODE"
   --env "SCIENTIFIC_REQUIRE_PERSISTENT_STATE=${SCIENTIFIC_REQUIRE_PERSISTENT_STATE:-true}"
+  --env "SCIENTIFIC_SHARED_GATEWAY_ENABLED=${SCIENTIFIC_SHARED_GATEWAY_ENABLED:-false}"
   # Product-owner-approved default. Keep overrides explicit and never change the
   # fallback model without approval.
   --env "SCIENTIFIC_CHAT_MODEL=${SCIENTIFIC_CHAT_MODEL:-moonshotai/Kimi-K3}"
@@ -110,7 +115,7 @@ if [[ -n "${SEED_DEFAULT_USER_EMAIL:-}" ]]; then
   : "${USER_PASSWORD_SECRET_SELECTOR:?Set the MysteryBox selector containing SEED_DEFAULT_USER_PASSWORD}"
   CREATE_CMD+=(--env "SEED_DEFAULT_USER_EMAIL=$SEED_DEFAULT_USER_EMAIL"
     --env-secret "SEED_DEFAULT_USER_PASSWORD=$USER_PASSWORD_SECRET_SELECTOR"
-    --env "ALLOW_REGISTRATION=false")
+    --env "ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}")
 fi
 if [[ -n "${SSH_PUBLIC_KEY_FILE:-}" ]]; then
   if [[ "${SERVERLESS_PUBLIC_IP:-true}" == false ]]; then

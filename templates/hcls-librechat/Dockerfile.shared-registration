@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1.7
+# Scoped overlay: keep the qualified persistent-state runtime unchanged.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:873be148673dec6dc191ba30d2933c01acee4622fd3fa14888388378539f13d3
+FROM ${WORKBENCH_BASE}
+USER root
+COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
+COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
+RUN node --check /opt/hcls-librechat/render-config.mjs \
+ && node --check /app/api/server/routes/scientific-demos.js
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      ai.nebius.scientific.release="shared-registration-20261007"

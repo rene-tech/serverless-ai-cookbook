@@ -1,0 +1,6 @@
+**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/render-config.mjs
+!templates/hcls-librechat/demos/
+!templates/hcls-librechat/demos/router.cjs

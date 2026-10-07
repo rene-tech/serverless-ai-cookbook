@@ -13,7 +13,12 @@ router.use(requireJwtAuth);
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 router.get('/workshop/example', (_req, res) => res.json(require('/opt/hcls-librechat/demos/workshop-example.json')));
 async function key(req) {
-  return getUserPluginAuthValue(req.user.id, 'SCIENTIFIC_MODELS_API_KEY', false, 'mcp_scientific-demos');
+  const personal = await getUserPluginAuthValue(req.user.id, 'SCIENTIFIC_MODELS_API_KEY', false, 'mcp_scientific-demos');
+  if (personal) return personal;
+  if (process.env.SCIENTIFIC_SHARED_GATEWAY_ENABLED === 'true') {
+    return process.env.SCIENTIFIC_MODELS_API_KEY;
+  }
+  return personal;
 }
 router.get('/settings', wrap(async (req, res) => res.json({ configured: Boolean(await key(req)),
   report_model: service.REPORT_MODEL, private_sword: 'awaiting_event_artifact', provider: 'Nebius Token Factory (global)' })));

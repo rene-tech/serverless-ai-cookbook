@@ -130,6 +130,9 @@ const modelSpecs = providerModels.flatMap(({ endpoint, group, models }) => model
 }));
 
 const sharedGatewayKey = Boolean(process.env.SCIENTIFIC_MODELS_API_KEY);
+// An explicitly shared tenant workbench can serve new registrations without
+// asking each participant to re-enter the same deployment-owned credential.
+const sharedRegisteredUsers = process.env.SCIENTIFIC_SHARED_GATEWAY_ENABLED === 'true' && sharedGatewayKey;
 modelSpecs.push({ name: 'nebius-scientific-ai-agent', label: 'Nebius Scientific AI Agent',
   group: 'Scientific workspace', groupIcon: '/assets/token-factory.svg',
   iconURL: '/assets/token-factory.svg', showOnLanding: false, showIconInHeader: true,
@@ -181,12 +184,12 @@ const config = {
       type: 'stdio', command: 'node', args: ['/opt/hcls-librechat/demos/mcp.cjs'],
       startup: false, timeout: 60000,
       env: { LIBRECHAT_USER_ID: '{{LIBRECHAT_USER_ID}}',
-        SCIENTIFIC_MODELS_API_KEY: '{{SCIENTIFIC_MODELS_API_KEY}}',
+        SCIENTIFIC_MODELS_API_KEY: sharedRegisteredUsers ? '${SCIENTIFIC_MODELS_API_KEY}' : '{{SCIENTIFIC_MODELS_API_KEY}}',
         SCIENTIFIC_MODELS_API_BASE_URL: '${SCIENTIFIC_MODELS_API_BASE_URL}',
         NEBIUS_API_KEY: '${NEBIUS_API_KEY}' },
-      customUserVars: { SCIENTIFIC_MODELS_API_KEY: {
+      ...(!sharedRegisteredUsers ? { customUserVars: { SCIENTIFIC_MODELS_API_KEY: {
         title: 'Scientific AI API key', description: 'Your personal platform key, also configurable in the Apps panel.', sensitive: true,
-      } }, serverInstructions: true,
+      } } } : {}), serverInstructions: true,
     },
     'environment-execution': {
       title: 'Environment execution', description: 'Root shell, Python, packages, internet and mounted files.',
