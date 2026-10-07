@@ -1,7 +1,9 @@
 # Large-data single-cell workspace release — 7 October 2026
 
-R5 is qualified for the specific client workflow below. Final shared-backend
-concurrency acceptance and customer handover are tracked in the backend fork's
+R5 is qualified for the specific client workflow below and promoted as the fork's
+managed-deployment default after two clean final cohorts (20 operations; 187
+successful sampled readiness checks). Shared-backend evidence and the separate
+customer login dependency are tracked in the backend fork's
 `k8s-inference/acceptance/whitelab-handover-20261007/README.md`. This is not an
 all-App scientific-validity claim or a claim that the customer's login is ready.
 
@@ -105,5 +107,7 @@ should be uploaded directly to the tenant's S3 bucket, then referenced under
 expanded-memory preflight. API keys are not chat attachments. Saved operations
 outlive a chat turn; collect their recorded ID instead of submitting replacements.
 
-The default-image pointer is promoted only after the linked final acceptance.
+The default-image pointer was promoted on 7 October after the linked final
+acceptance. This changes future deployments from this fork; it does not silently
+replace existing customer endpoints or publish changes to the upstream repository.
 Existing customer endpoints remain deliberate, state-preserving managed upgrades.
