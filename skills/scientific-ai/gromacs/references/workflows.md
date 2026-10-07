@@ -54,9 +54,12 @@ exchange and external analysis packages are not covered by this initial shape.
   for Colvars/PLUMED; do not infer support from the engine's feature list alone.
 - CP2K QM/MM and Torch NNPot are not compiled into that image. They require a
   separate pinned/qualified build and their own license/dependency review.
-- Multi-node uses the separate `gromacs-mpi` App and JobSet/Kueue gang scheduling.
-  Its portable baseline uses TCP, not qualified RDMA. Thread-MPI in the NVIDIA
-  App remains in-process. Consult measured strong scaling before changing Apps.
+- Multi-GPU uses the separate `gromacs-mpi` App, with a single multi-GPU Pod or
+  JobSet/Kueue gang across nodes. Its shape is `nodes × gpus_per_node`, one rank
+  per GPU. The single-node path uses CUDA-aware UCX; the cross-node baseline uses
+  host-staged TCP, not qualified RDMA. Thread-MPI in the NVIDIA App remains
+  in-process. Consult [shape/interface guidance](mpi.md) and matched strong-scaling
+  measurements before changing Apps; an accepted shape is not a speedup guarantee.
 - MPS is an aggregate-throughput option, not more memory or independent GPUs.
   The initial customer job shape does not expose MPS or MIG controls. Do not
   change cluster device configuration from a scientific request.

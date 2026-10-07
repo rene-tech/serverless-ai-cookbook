@@ -32,7 +32,7 @@ def materialize_native_outputs(output: Path, artifacts: list[dict]) -> dict:
     by_hash = {}
     for artifact in artifacts:
         by_hash.setdefault((artifact['sha256'], artifact['size_bytes']), artifact)
-    plans, documents, directories = [], [], []
+    plans, documents, directories, runtime_results = [], [], [], []
     for index, artifact in enumerate(results):
         source = Path(artifact['path'])
         verify_file(source, artifact)
@@ -44,6 +44,16 @@ def materialize_native_outputs(output: Path, artifacts: list[dict]) -> dict:
             raise ValueError('Native result does not declare a successful, nonempty file inventory.')
         folder = Path(output) / 'native' / f'result-{index:02d}'
         document = {'engine': engine, 'source_result_sha256': artifact['sha256'], 'files': []}
+        # The platform operation result is an envelope, not the engine result.
+        # Expose the verified native document explicitly so agents and scripts
+        # can read commands/timings without guessing an output list position.
+        native_result = {'engine': engine, 'schema': result['schema'],
+            'status': result['status'], 'operation_id': result.get('operation_id'),
+            'job_id': result.get('job_id'), 'source_result_file': str(source),
+            'source_result_sha256': artifact['sha256'],
+            'workspace_url': workspace_url(source)}
+        document.update({key: value for key, value in native_result.items() if key != 'engine'})
+        runtime_results.append(native_result)
         seen = set()
         for entry in result['files']:
             raw_name = entry.get('path')
@@ -79,4 +89,4 @@ def materialize_native_outputs(output: Path, artifacts: list[dict]) -> dict:
     save(manifest, {'schema': 'scientific-ai/native-md-files/v1', 'results': documents,
                     'claim': 'Byte-identical native files; not scientific validity or convergence.'})
     return {'native_outputs': {'manifest_file': str(manifest), 'manifest_url': workspace_url(manifest),
-            'file_count': len(plans), 'directories': directories}}
+            'file_count': len(plans), 'directories': directories, 'results': runtime_results}}

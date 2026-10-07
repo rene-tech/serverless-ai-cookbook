@@ -1,4 +1,17 @@
-# Scientific AI skills 2026.10.07.2 — durable single-cell studies
+# Scientific AI skills 2026.10.07.6 — combined source integration
+
+This source bundle preserves the independent GROMACS candidate work and the
+single-cell/catalog changes. It is not an image qualification. The shared
+deployment selector pins the separately tested `catalog-20261007-r2` image,
+built from source `fd9ca0c` with skills `2026.10.07.5`. Reproduce that image from
+that source revision; a new image built from this merged source needs its own
+runtime composition and acceptance. Existing instances are not auto-upgraded.
+
+Full App discovery is now unfiltered. Literal keyword search is a separate
+tool; neither skills nor agents may treat empty search matches as missing
+permissions. The catalog release receipt records the hosted conversation tests.
+
+## Durable single-cell studies
 
 The single-cell skill now targets the large-file scientific batch API, including
 scVI integration, scANVI labels/probabilities, query-to-reference mapping and
@@ -8,6 +21,34 @@ recovery; downloading skills alone does not install that runtime. Qualification
 and the exact deployed image are recorded in the WhiteLab handover evidence.
 The agent-level test also clarified exact batch schema discovery and that a
 pending helper exit requires recovery before local result files are downloaded.
+## GROMACS multi-GPU client candidate
+
+The GROMACS skill includes the complete read-only recovery command. The
+workbench helper's default and recovery-only help expose both modes explicitly,
+without changing submission, recovery or authentication behavior. Agents no
+longer need to inspect installed source to find the completed-result invocation.
+
+The GROMACS skill now uses the workbench's deterministic native-MD timing
+reporter after recovery, producing hash-bound JSON/CSV/Markdown without
+agent-written parsing. Normal and recovery receipts are both supported. Exact
+native command timings, requested repeat counts and explicit unknowns replace
+empty tables or repeated inspection. The runtime helper is shipped by the
+workbench image, not installed by the portable skill bundle alone.
+
+GROMACS guidance now covers published single-node/multi-node MPI shapes,
+per-rank threads, native checkpoint identity, realistic large-output budgets,
+and matching API/MCP operations. The schema fixture is pinned to committed
+backend source; new 8/16-GPU examples are contract-tested, not a completed live
+performance qualification. A benchmark requires native runtime-result artifacts,
+the requested repeat set and real timing records; the outer platform result and
+an empty table are not sufficient.
+
+This source update prepares an additive workbench candidate preserving the
+current UI, customer-state management, OpenFF and ClawBio. It does not itself
+publish an image, change the default selector or replace customer instances.
+See the source repository's
+`templates/hcls-librechat/docs/gromacs-mpi-client-candidate-20261003.md` for
+composition, provenance, test scope and remaining live acceptance.
 
 ## Previous naming integration: 2026.09.20.3
 

@@ -271,7 +271,7 @@ vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
     assert "Never paraphrase the inventory" in general['instructions']
     assert "workbench_list_apps_mcp_scientific-demos` once" in general['instructions']
     assert "always the full authorized catalog, no filters" in general['instructions']
-    assert "zero matches never proves missing access" in general['instructions']
+    assert "zero matches never prove missing access" in " ".join(general['instructions'].split())
     assert "analysis into another" not in general['instructions']
     assert "workspace_url" in general['instructions']
 
@@ -386,7 +386,7 @@ def test_team_bucket_context_is_injected(tmp_path) -> None:
     assert "configured Object Storage bucket is mounted at /workspace" in prompt
     assert prompt.startswith((ROOT / 'agent-instructions.md').read_text().strip())
     assert "workbench_list_apps_mcp_scientific-demos` once" in prompt
-    assert "Retain its categories and list every" in prompt
+    assert "List every App by category" in prompt
     custom = config["endpoints"]["custom"]
     assert len(custom) == 1
     assert custom[0]["baseURL"] == "https://api.tokenfactory.nebius.com/v1"

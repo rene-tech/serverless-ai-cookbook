@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import time
 
 import httpx2
 from mcp import Client
@@ -47,10 +48,16 @@ def unpack(response):
 
 
 async def transfer(client, object_http, args, endpoint, key):
+    attempt_wall, attempt_clock = time.time(), time.monotonic()
     content = file_identity(args.file)
+    hash_seconds = time.monotonic() - attempt_clock
+    compression = getattr(args, 'compression', None)
+    if compression is not None and compression not in {'none', 'gzip', 'zstd'}:
+        raise ValueError('Unsupported explicit upload compression.')
+    encoding = {'compression': compression} if compression is not None else {}
     identity = {**content, 'model_id': args.model, 'media_type': args.media_type,
                 'endpoint': endpoint, 'caller_fingerprint': hashlib.sha256(key.encode()).hexdigest(),
-                'idempotency_key': args.idempotency_key}
+                'idempotency_key': args.idempotency_key, **encoding}
     receipt = args.output_dir / 'receipt.json'
     record = load_receipt(receipt)
     if record is None:
@@ -59,6 +66,31 @@ async def transfer(client, object_http, args, endpoint, key):
         raise ValueError('File bytes, caller or upload identity changed. Use a new output directory and idempotency key.')
     if record['state'] == 'finalized':
         return record
+    attempts = record.setdefault('upload_attempts', [])
+    attempt = {'attempt': len(attempts) + 1, 'started_at': attempt_wall,
+               'size_bytes': content['size_bytes'], 'status': 'running',
+               'phases': {'hash_before_reservation': {
+                   'started_at': attempt_wall, 'finished_at': time.time(),
+                   'duration_seconds': hash_seconds, 'status': 'completed'}}}
+    attempts.append(attempt)
+
+    async def timed_phase(name, action):
+        started = time.monotonic()
+        phase = {'started_at': time.time(), 'status': 'running'}
+        attempt['phases'][name] = phase
+        save(receipt, record)
+        try:
+            value = await action()
+        except BaseException as error:
+            phase.update(status='failed', error_type=type(error).__name__)
+            attempt.update(status='interrupted', error_type=type(error).__name__)
+            raise
+        else:
+            phase['status'] = 'completed'
+            return value
+        finally:
+            phase.update(finished_at=time.time(), duration_seconds=time.monotonic() - started)
+            save(receipt, record)
 
     async def call(tool, arguments, filename):
         response = await client.call_tool(tool, arguments)
@@ -68,25 +100,37 @@ async def transfer(client, object_http, args, endpoint, key):
     record['state'] = 'reserving'
     save(receipt, record)
     # Same immutable identity is safe to replay after a lost reservation response.
-    reserved = await call('begin_model_artifact_upload', dict(content, model_id=args.model,
-                           media_type=args.media_type, idempotency_key=args.idempotency_key), 'reservation.json')
+    reserved = await timed_phase('reservation', lambda: call('begin_model_artifact_upload', dict(content, model_id=args.model,
+                           media_type=args.media_type, idempotency_key=args.idempotency_key,
+                           **encoding), 'reservation.json'))
     record.update(operation_id=reserved['operation_id'], upload_id=reserved['upload_id'], state='reserved')
     save(receipt, record)
     handle = reserved['handle']
     if handle.get('method') != 'PUT' or not handle.get('url', '').startswith('https://'):
         raise ValueError('Expected a platform-issued HTTPS PUT handle.')
     # object_http is deliberately separate and has NO platform Authorization header.
-    response = await object_http.put(handle['url'], content=chunks(args.file),
-                                     headers={**handle.get('headers', {}), 'Content-Length': str(content['size_bytes'])})
+    async def put():
+        response = await object_http.put(handle['url'], content=chunks(args.file),
+                         headers={**handle.get('headers', {}), 'Content-Length': str(content['size_bytes'])})
+        attempt['phases']['object_put']['http_status'] = response.status_code
+        if response.status_code not in (409, 412):
+            response.raise_for_status()
+        return response
+    response = await timed_phase('object_put', put)
     save(args.output_dir / 'transfer.json', {'status': response.status_code, **content})
-    if response.status_code not in (409, 412):
-        response.raise_for_status()
     # 409/412 may mean a previous attempt already wrote the immutable object.
     # Finalization verifies its digest; never overwrite it or assume it matches.
-    if file_identity(args.file) != content:
+    hash_start, hash_wall = time.monotonic(), time.time()
+    after_transfer = file_identity(args.file)
+    attempt['phases']['hash_after_transfer'] = {
+        'started_at': hash_wall, 'finished_at': time.time(),
+        'duration_seconds': time.monotonic() - hash_start, 'status': 'completed'}
+    save(receipt, record)
+    if after_transfer != content:
         # This reservation cannot be used for the changed file. Release only our
         # own known upload operation, preserving both the transfer and cancel receipt.
         record['state'] = 'input_changed'
+        attempt['status'] = 'input_changed'
         save(receipt, record)
         cancelled = await call('cancel_operation', {'operation_id': reserved['operation_id']}, 'cancel.json')
         record['cancellation'] = cancelled
@@ -94,12 +138,16 @@ async def transfer(client, object_http, args, endpoint, key):
         raise ValueError('Local file changed during transfer; do not reuse this upload identity.')
     record['state'] = 'verifying'
     save(receipt, record)
-    artifact = await call('finalize_model_artifact_upload',
-                          {'operation_id': reserved['operation_id'], 'upload_id': reserved['upload_id']}, 'finalize.json')
-    if any(artifact.get(field) != expected for field, expected in content.items()) or not artifact.get('artifact_id'):
+    artifact = await timed_phase('finalization', lambda: call('finalize_model_artifact_upload',
+                          {'operation_id': reserved['operation_id'], 'upload_id': reserved['upload_id']}, 'finalize.json'))
+    if any(artifact.get(field) != expected for field, expected in {**content, **encoding}.items()) or not artifact.get('artifact_id'):
+        attempt['status'] = 'metadata_verification_failed'
+        save(receipt, record)
         raise ValueError('Finalized artifact does not match the actual input bytes.')
     save(args.output_dir / 'artifact.json', artifact)
     record.update(state='finalized', artifact=artifact)
+    attempt.update(status='finalized', finished_at=time.time(),
+                   duration_seconds=time.monotonic() - attempt_clock)
     save(receipt, record)
     return record
 
@@ -118,6 +166,8 @@ def main():
     parser.add_argument('--model', required=True)
     parser.add_argument('--file', required=True, type=Path)
     parser.add_argument('--media-type', required=True)
+    parser.add_argument('--compression', choices=['none', 'gzip', 'zstd'],
+                        help='Explicit transport encoding from the live input contract; bytes are not recompressed. Omission preserves legacy uncompressed identity.')
     parser.add_argument('--output-dir', required=True, type=Path)
     parser.add_argument('--idempotency-key', required=True)
     args = parser.parse_args()

@@ -73,7 +73,7 @@ def test_smiles_backslashes_remain_literal_in_code_span(tmp_path):
     assert r'Input SMILES: `F/C=C\F`.' in text
 
 
-def md_fixture(folder):
+def md_fixture(folder, engine='gromacs'):
     native = folder / 'native/result-00'
     native.mkdir(parents=True)
     (native / 'production.mdp').write_text('integrator = sd\ndt = 0.002\nnsteps = 10000\npcoupl = C-rescale\n')
@@ -81,7 +81,7 @@ def md_fixture(folder):
     files = [{'path': str(path), 'native_path': path.name,
               'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'size_bytes': path.stat().st_size}
              for path in native.iterdir()]
-    result = {'schema': 'fs2-serve.nebius.ai/gromacs-workflow-result/v1', 'status': 'succeeded',
+    result = {'schema': f'fs2-serve.nebius.ai/{engine}-workflow-result/v1', 'status': 'succeeded',
               'operation_id': 'test-operation', 'completed_steps': ['nvt', 'npt', 'production'],
               'gpu_snapshot_used': False, 'commands': [],
               'files': [{**f, 'path': f['native_path']} for f in files]}
@@ -89,7 +89,7 @@ def md_fixture(folder):
     save(folder / 'receipt.json', {'state': 'verified', 'operation_id': 'test-operation',
         'verified_artifacts': [{**meta, 'path': str(folder / 'output-00.artifact')}]})
     save(folder / 'native-files.json', {'schema': 'scientific-ai/native-md-files/v1', 'results': [
-        {'engine': 'gromacs', 'source_result_sha256': meta['sha256'], 'files': files}]})
+        {'engine': engine, 'source_result_sha256': meta['sha256'], 'files': files}]})
 
 
 def test_md_reports_actual_config_not_longer_run_or_invented_statistics(tmp_path):
@@ -100,6 +100,43 @@ def test_md_reports_actual_config_not_longer_run_or_invented_statistics(tmp_path
     assert 'none are invented' in text and 'convergence are not established' in text
     (tmp_path / 'run/native/result-00/production.mdp').write_text('nsteps=500000\n')
     with pytest.raises(ValueError, match='changed'):
+        deliver({'results': [{'kind': 'native-md', 'path': 'run'}]}, tmp_path)
+
+
+@pytest.mark.parametrize('engine', ['gromacs', 'namd', 'amber', 'lammps'])
+def test_recovery_receipt_delivers_without_copying_or_changing_files(tmp_path, engine):
+    folder = tmp_path / 'run'
+    md_fixture(folder, engine)
+    (folder / 'receipt.json').rename(folder / 'recovery-receipt.json')
+    before = {str(path): path.read_bytes() for path in folder.rglob('*') if path.is_file()}
+    result = deliver({'results': [{'kind': 'native-md', 'path': 'run'}]}, tmp_path)
+    assert result['inference_submitted'] is False
+    assert f'{engine.upper()}: completed engine operation' in result['report_markdown']
+    assert 'file=run%2Frecovery-receipt.json' in result['report_markdown']
+    assert not (folder / 'receipt.json').exists()
+    assert before == {str(path): path.read_bytes() for path in folder.rglob('*') if path.is_file()}
+
+
+def test_recovery_cannot_bypass_existing_receipt_or_operation_identity(tmp_path):
+    folder = tmp_path / 'run'
+    md_fixture(folder)
+    receipt = json.loads((folder / 'receipt.json').read_text())
+    save(folder / 'recovery-receipt.json', receipt)
+    save(folder / 'receipt.json', {**receipt, 'state': 'failed'})
+    with pytest.raises(ValueError, match='verified completed-result receipt'):
+        deliver({'results': [{'kind': 'native-md', 'path': 'run'}]}, tmp_path)
+    (folder / 'receipt.json').unlink()
+    save(folder / 'recovery-receipt.json', {**receipt, 'operation_id': 'other-operation'})
+    with pytest.raises(ValueError, match='does not match the completed operation'):
+        deliver({'results': [{'kind': 'native-md', 'path': 'run'}]}, tmp_path)
+
+
+def test_recovery_receipt_still_verifies_original_result_bytes(tmp_path):
+    folder = tmp_path / 'run'
+    md_fixture(folder)
+    (folder / 'receipt.json').rename(folder / 'recovery-receipt.json')
+    (folder / 'output-00.artifact').write_text('{}')
+    with pytest.raises(ValueError, match='differ from their saved manifest'):
         deliver({'results': [{'kind': 'native-md', 'path': 'run'}]}, tmp_path)
 
 

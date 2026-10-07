@@ -74,6 +74,13 @@ async function main() {
       attachment: (await fs.readFile(`/app/uploads/${testPrefix}.txt`, 'utf8')).startsWith('Customer attachment'),
       workspace: (await fs.readFile(`/workspace/${testPrefix}/result.txt`, 'utf8')).startsWith('Workspace result'),
     };
+    for (const file of await fs.readdir('/data/hcls-librechat')) {
+      if (!/^qa-chat-[a-z0-9-]+-receipt\.json$/.test(file)) continue;
+      const receipt = JSON.parse(await fs.readFile('/data/hcls-librechat/' + file, 'utf8'));
+      checks['real_chat_' + file] = Boolean(await db.collection('conversations').findOne({
+        conversationId: receipt.conversation_id, user: userId,
+      })) && sha(await fs.readFile(receipt.output)) === receipt.sha256;
+    }
     for (const [email, password] of [[process.env.SEED_DEFAULT_USER_EMAIL, process.env.SEED_DEFAULT_USER_PASSWORD],
                                    ['state-second@example.invalid', evidence.secondPassword]]) {
       const origin = process.env.STATE_QUALIFICATION_ORIGIN || 'http://127.0.0.1:3080';

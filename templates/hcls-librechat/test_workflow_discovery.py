@@ -125,6 +125,8 @@ def test_seed_and_general_guidance_use_exact_registered_execution_names():
         for name in ('execute_command', 'read_execution', 'run_scientific_workflow', 'upload_workspace_files', 'recover_scientific_results'):
             assert not re.search(r'\b' + name + r'\b', text)
         assert 'describe_scientific_workflow_mcp_environment-execution' in text
-        assert 'bounded logical' in text and 'plan_file' in text
+    # The seed registers tools and loads prose from separate instruction files.
+    # Do not require a second, stale copy of that prose in the JavaScript seed.
+    assert 'bounded logical' in instructions and 'plan_file' in instructions
     assert 'For reuse-only analysis, do not query that catalog' in instructions
     assert 'Begin with `workshop_catalog' not in instructions

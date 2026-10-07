@@ -1,0 +1,12 @@
+{
+  "source_repository": "https://github.com/rene-tech/nebius-solutions-library",
+  "source_commit": "0aecab6bdca3346a74426cea24a4753cd4f54270",
+  "source_path": "k8s-inference/catalog/runtime/schema/gromacs-mpi-workflow-request.schema.json",
+  "sha256": "48a2555a3f91ef35788f7daffe0c317dff668237ecd51eea2d63fdbf60bb5c43",
+  "rest_envelope": {
+    "source_commit": "0aecab6bdca3346a74426cea24a4753cd4f54270",
+    "source_path": "k8s-inference/catalog/runtime/schema/scientific-run-request.schema.json",
+    "sha256": "cc98be2f4b2e5049c62a3270c08ddaac87a0125f5590e825fee35bc4958c6803"
+  },
+  "scope": "Committed request-schema evidence only; not GPU, runtime or customer-path qualification."
+}

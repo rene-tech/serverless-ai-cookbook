@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1.7
+# Additive candidate: preserve current customer-state management, UI, OpenFF,
+# ClawBio, analysis runtimes and entrypoint. No customer configuration is baked in.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:873be148673dec6dc191ba30d2933c01acee4622fd3fa14888388378539f13d3
+FROM ${WORKBENCH_BASE} AS assembled
+USER root
+ARG WORKBENCH_BASE
+ARG HCLS_IMAGE_REVISION=unknown
+# The retained base is close to the overlayfs layer limit. Assemble from
+# read-only build inputs in one layer, including the intermediate stage.
+RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/source-skills,readonly \
+    --mount=type=bind,source=templates/hcls-librechat,target=/tmp/source-client,readonly \
+    mkdir -p /release/app/skill /release/opt/bionemo \
+ && cp /tmp/source-client/agent-instructions.md /release/app/agent-instructions.md \
+ && cp -a /tmp/source-skills/. /release/app/skill/ \
+ && cp /tmp/source-client/scripts/scientific-batch-acceptance.py /release/opt/bionemo/invoke-scientific-batch.py \
+ && cp /tmp/source-client/native_md_artifacts.py /release/opt/bionemo/native_md_artifacts.py \
+ && cp /tmp/source-client/scientific_verified_results.py /release/opt/bionemo/scientific_verified_results.py \
+ && cp /tmp/source-client/native_md_report.py /release/opt/bionemo/report-native-md.py \
+ && cp /tmp/source-client/native_md_report.py /release/opt/bionemo/native_md_report.py \
+ && cp /tmp/source-client/scientific_study.py /release/opt/bionemo/scientific_study.py \
+ && cp /tmp/source-client/scientific_study_schema.py /release/opt/bionemo/scientific_study_schema.py \
+ && cp /tmp/source-client/execution-mcp.py /release/opt/bionemo/execution-mcp.py \
+ && cp /tmp/source-client/upload-artifact.py /release/opt/bionemo/upload-artifact.py \
+ && python3 /release/app/skill/bundle.py verify \
+ && cp -a /release/app/skill/. /app/skill/ \
+ && node /tmp/source-client/scripts/test-skills-installed.cjs \
+ && PYTHONPYCACHEPREFIX=/tmp/release-pycache python3 -m py_compile \
+      /release/opt/bionemo/invoke-scientific-batch.py /release/opt/bionemo/native_md_artifacts.py \
+      /release/opt/bionemo/scientific_verified_results.py \
+      /release/opt/bionemo/report-native-md.py \
+      /release/opt/bionemo/native_md_report.py /release/opt/bionemo/scientific_study.py \
+      /release/opt/bionemo/scientific_study_schema.py \
+      /release/opt/bionemo/execution-mcp.py /release/opt/bionemo/upload-artifact.py \
+ && python3 /tmp/source-client/scripts/write-gromacs-release-provenance.py \
+      --overlay /release --revision "${HCLS_IMAGE_REVISION}" --base "${WORKBENCH_BASE}"
+
+# One additional filesystem layer avoids rebuilding dependencies or exhausting
+# the retained image's layer depth. Base ENTRYPOINT/CMD/ENV remain unchanged.
+FROM ${WORKBENCH_BASE}
+USER root
+COPY --from=assembled /release/ /
+ARG WORKBENCH_BASE
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      org.opencontainers.image.base.name="${WORKBENCH_BASE}" \
+      ai.nebius.scientific.skills.version="2026.10.07.6" \
+      ai.nebius.scientific.skills.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.operation-polling.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="gromacs-mpi-client-20261003"

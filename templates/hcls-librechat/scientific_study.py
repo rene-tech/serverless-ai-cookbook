@@ -31,7 +31,7 @@ SCHEMA = 'scientific-workflow/v2'
 FINAL = {'completed', 'failed', 'cancelled', 'needs_attention'}
 MODEL_KINDS = {'native', 'batch'}
 PROTEIN_METHODS = {'proteinmpnn-input', 'esmfold2-fast-input', 'design-refold-correspondence'}
-LOCAL_METHODS = {'write-json', 'python-script', 'parquet-export', 'structure', 'protein-design-analysis', 'robotics-analysis', 'evo2-continuation', 'docking', 'docking-batch', 'genmol', 'aging', 'report', 'mindeval', 'clinical-study'} | PROTEIN_METHODS
+LOCAL_METHODS = {'write-json', 'python-script', 'parquet-export', 'native-md-timing', 'structure', 'protein-design-analysis', 'robotics-analysis', 'evo2-continuation', 'docking', 'docking-batch', 'genmol', 'aging', 'report', 'mindeval', 'clinical-study'} | PROTEIN_METHODS
 HELPERS = {name: HERE / filename for name, filename in {
     'structure': 'structure-analysis.py', 'docking': 'molecule-analysis.py',
     'docking-batch': 'molecule-analysis.py', 'genmol': 'molecule-analysis.py', 'aging': 'aging-analysis.py', 'report': 'report-assembly.py',
@@ -43,6 +43,7 @@ HELPERS['python-script'] = HERE / 'scientific_study.py'
 HELPERS['protein-design-analysis'] = HERE / 'design-artifact-analysis.py'
 HELPERS['robotics-analysis'] = HERE / 'robotics-analysis.py'
 HELPERS['evo2-continuation'] = HERE / 'sequence-analysis.py'
+HELPERS['native-md-timing'] = HERE / 'native_md_report.py'
 
 
 def workspace():
@@ -209,6 +210,8 @@ def input_references(step):
         return embedded(args['value'])
     if method == 'parquet-export':
         return [args['source']]
+    if method == 'native-md-timing':
+        return [args['manifest_file']]
     if method == 'proteinmpnn-input':
         return [args['backbone']]
     if method == 'esmfold2-fast-input':
@@ -362,6 +365,7 @@ def validate_local_arguments(method, args):
         'write-json': ({'filename', 'value'}, set()),
         'python-script': ({'script', 'inputs', 'parameters', 'outputs'}, set()),
         'parquet-export': ({'source', 'formats'}, set()),
+        'native-md-timing': ({'manifest_file'}, {'expected_repeats'}),
         'proteinmpnn-input': ({'backbone', 'structure_index', 'chain', 'num_sequences', 'seed', 'sampling_temp', 'omit_aas'}, set()),
         'esmfold2-fast-input': ({'design_input', 'design_result', 'design_index', 'seed'}, set()),
         'design-refold-correspondence': ({'design_input', 'design_result', 'refold_input', 'refold_parameters', 'prediction', 'design_index', 'structure_index', 'prediction_chain'}, {'confidence_result'}),
@@ -379,6 +383,11 @@ def validate_local_arguments(method, args):
     required, optional = fields[method]
     if required - args.keys() or args.keys() - required - optional:
         raise ValueError(f'{method} requires {sorted(required)}; optional fields are {sorted(optional)}.')
+    if method == 'native-md-timing':
+        value = args['manifest_file']
+        name = value.get('file') if isinstance(value, dict) else Path(value).name
+        if name != 'native-files.json':
+            raise ValueError('native-md-timing requires exact native-files.json; platform result.json and output-manifest.json do not contain native timing rows.')
     if method in {'structure', 'docking'} and ('result' in args) == ('prediction' in args):
         raise ValueError(f'{method} needs exactly one result or prediction file.')
     if method.startswith('docking') and args['same_coordinate_frame'] is not True:
@@ -492,6 +501,8 @@ def submit(plan, output):
                     if not evaluator.is_file():
                         evaluator = HERE / 'scripts/qualification/evaluators.py'
                     implementations['protein-design-evaluator'] = measure(evaluator)
+                if step['method'] == 'native-md-timing':
+                    implementations['native-md-verified-results'] = measure(HERE / 'scientific_verified_results.py')
         output.mkdir(parents=True, exist_ok=True)
         # The output binding is durable and exclusive across plans/owner queues.
         binding = output / 'study-binding.json'
@@ -723,10 +734,18 @@ def run_local(step, record):
     with tempfile.TemporaryDirectory(prefix='scientific-study-phase-') as temporary:
         scratch = Path(temporary)
         selected_files = None
+        incomplete_native_report = None
         if method == 'write-json':
             (scratch / args['filename']).write_bytes(canonical(args['value']) + b'\n')
         elif method == 'parquet-export':
             export_parquet(path_in_workspace(args['source']), scratch, args['formats'])
+        elif method == 'native-md-timing':
+            from native_md_report import write_report
+            manifest = path_in_workspace(args['manifest_file'])
+            reported = write_report(manifest.parent, scratch, workspace(), args.get('expected_repeats'),
+                                    publication_directory=generation)
+            if not reported['complete']:
+                incomplete_native_report = reported
         elif method in PROTEIN_METHODS:
             from scientific_protein_preparation import prepare
             prepare(method, {key: str(path_in_workspace(value)) if key in {'backbone', 'design_input', 'design_result', 'refold_input', 'refold_parameters', 'prediction', 'confidence_result'} else value
@@ -750,6 +769,11 @@ def run_local(step, record):
                 files[name] = persist_local_file(source, generation / name)
         if not files:
             raise RuntimeError('Deterministic phase produced no files.')
+        if incomplete_native_report is not None:
+            # Keep the honest nonempty/unknown diagnostics, but never publish an
+            # incomplete native benchmark as a successful study deliverable.
+            raise ValueError('Native MD timing report is incomplete; retained at ' + str(generation)
+                             + ': ' + '; '.join(incomplete_native_report['gaps']))
         if method == 'structure':
             selected = [name for name in ('prediction.pdb', 'prediction.cif') if name in files]
             if len(selected) != 1:

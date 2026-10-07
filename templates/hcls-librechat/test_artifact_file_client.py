@@ -58,6 +58,14 @@ def test_actual_bytes_are_hashed_streamed_verified_and_replayed_without_transfer
     assert json.loads((args.output_dir / 'artifact.json').read_text()) == ref
     assert 'fixture-key' not in (args.output_dir / 'receipt.json').read_text()
     assert 'signed-secret' not in (args.output_dir / 'artifact.json').read_text()
+    assert len(second['upload_attempts']) == 1
+    attempt = second['upload_attempts'][0]
+    assert attempt['size_bytes'] == ref['size_bytes'] and attempt['status'] == 'finalized'
+    assert set(attempt['phases']) == {'hash_before_reservation', 'reservation', 'object_put',
+                                     'hash_after_transfer', 'finalization'}
+    assert all(p['duration_seconds'] >= 0 and p['status'] == 'completed' for p in attempt['phases'].values())
+    assert attempt['duration_seconds'] >= sum(p['duration_seconds'] for p in attempt['phases'].values())
+    assert 'signed-secret' not in json.dumps(attempt) and 'fixture-key' not in json.dumps(attempt)
 
 
 def test_changed_bytes_cannot_reuse_immutable_upload_identity(tmp_path):
@@ -99,3 +107,42 @@ def test_file_mutation_cancels_only_its_known_upload_reservation(tmp_path):
         asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
     assert cancelled == ['operation-fixture']
     assert not (args.output_dir / 'artifact.json').exists()
+
+
+@pytest.mark.parametrize('compression', ['gzip', 'zstd'])
+def test_explicit_compression_survives_reservation_finalization_and_identity(tmp_path, compression):
+    args, client, http, calls, ref = fixture(tmp_path)
+    args.compression = compression
+    ref['compression'] = compression
+    value = asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
+    assert calls[0][1]['compression'] == compression
+    assert value['identity']['compression'] == compression
+    assert value['artifact']['compression'] == compression
+    args.compression = 'none'
+    with pytest.raises(ValueError, match='identity changed'):
+        asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
+    assert len(calls) == 2
+
+
+def test_wrong_returned_compression_is_not_fabricated(tmp_path):
+    args, client, http, _, _ = fixture(tmp_path)
+    args.compression = 'gzip'
+    with pytest.raises(ValueError, match='does not match'):
+        asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
+    assert not (args.output_dir / 'artifact.json').exists()
+
+
+def test_failed_put_retains_attempt_phase_without_changing_timeouts(tmp_path):
+    args, client, http, calls, _ = fixture(tmp_path)
+    async def interrupted(*positional, **keywords):
+        raise TimeoutError('private transport diagnostic')
+    http.put = interrupted
+    with pytest.raises(TimeoutError):
+        asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
+    record = json.loads((args.output_dir / 'receipt.json').read_text())
+    attempt = record['upload_attempts'][0]
+    assert attempt['status'] == 'interrupted'
+    assert attempt['phases']['object_put']['error_type'] == 'TimeoutError'
+    assert attempt['phases']['object_put']['duration_seconds'] >= 0
+    assert 'finalization' not in attempt['phases'] and len(calls) == 1
+    assert 'private transport diagnostic' not in json.dumps(attempt)

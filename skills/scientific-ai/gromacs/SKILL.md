@@ -1,6 +1,6 @@
 ---
 name: gromacs
-description: Prepare, submit, resume and analyze GROMACS molecular-dynamics workflows on Scientific AI. Use for NVIDIA-packaged single-GPU MD, Colvars/PLUMED enhanced sampling, separately identified distributed MPI runs, independent replicas, free-energy windows, trajectory analysis and native checkpoint recovery. Check the live App's qualified capabilities; MD is not docking pose search.
+description: Prepare, submit, resume and analyze GROMACS molecular-dynamics workflows on Scientific AI. Use for NVIDIA-packaged single-GPU MD, Colvars/PLUMED enhanced sampling, separately identified single-node or multi-node multi-GPU MPI runs, independent replicas, free-energy windows, trajectory analysis and native checkpoint recovery. Check the live App's qualified capabilities; MD is not docking pose search.
 license: Apache-2.0
 ---
 
@@ -12,7 +12,8 @@ not an NVIDIA NIM HTTP API, a folding neural network, or a docking engine.
 Installing this skill does not establish that a particular runtime is released.
 Read its live schema and qualification limitations before promising a workflow.
 The separate **gromacs-mpi** App uses an upstream external-MPI build, not the
-NVIDIA engine binary. Select it only for a requested distributed workflow; more
+NVIDIA engine binary. Select it for a requested multi-GPU workflow or a matched
+external-MPI baseline, using a shape accepted by the caller's live schema; more
 GPUs can be slower and more expensive for small systems.
 
 ## Match the current request
@@ -70,8 +71,10 @@ Operational defaults and scientifically valid sampling are different things.
    a tool call or invent artifact IDs.
 5. Save the operation ID and receipt directory. Queued work is not a failure
    and client disconnect is not cancellation. Resume observation of the same
-   operation; do not submit duplicates. A campaign can contain multiple jobs;
-   each job gets one GPU and may wait for the shared queue.
+   operation; do not submit duplicates. A `gromacs` campaign can contain multiple
+   independent one-GPU jobs. A `gromacs-mpi` request is one simulation with
+   `nodes × gpus_per_node` GPUs, not that many independent replicas. Both may
+   wait for shared capacity. See [MPI shapes and interfaces](references/mpi.md).
 
 For a direct client, the installed command shape is:
 
@@ -88,6 +91,13 @@ For a direct client, the installed command shape is:
 Authentication comes from the configured client environment. The legacy
 `/opt/bionemo` installation path is not a separate product/server name. In
 LibreChat prefer the durable study executor so observation survives disconnect.
+For a new benchmark study, first discover `batch` and `native-md-timing` with
+`describe_scientific_workflow`. Plan both the simulation and its deterministic
+native report **before** submission; see [the saved-study example](references/timing-study.md).
+Declare the helper's Markdown as a report deliverable, and CSV/JSON as measured
+outputs. A generic `report` section using `operation-timing` on `result.json`
+does not extract native GROMACS commands, repeats or ns/day. Do not substitute
+that table for the requested simulation benchmark.
 
 ## Parameters and native commands
 
@@ -99,13 +109,15 @@ accepted. Select groups by inspecting the system, not by guessing group numbers.
 For multiple trajectory parts, the explicit argument `{"files":"md.part*.xtc"}`
 expands files without a shell. A literal `*.xtc` string does not do that.
 
-The initial shape is one GPU, one thread-MPI rank, up to eight CPU threads.
+The `gromacs` shape is one GPU, one thread-MPI rank, up to eight CPU threads.
 Native automatic offload is the default. Do not force PME/update onto the GPU
 without checking algorithm compatibility and a matched-system benchmark.
 For enhanced sampling or distributed execution, read
 [the advanced workflow contract](references/advanced.md). PLUMED uses the typed
 `plumed_input` field, not a raw `-plumed` flag. Multi-node uses its own App and
-schema. Do not request replica exchange, CP2K or NNPot through undocumented
+schema. The MPI contract supports `nodes` and `gpus_per_node`; `threads` remains
+per rank. Discover the deployed bounds, not an old one-GPU-per-node assumption.
+Do not request replica exchange, CP2K or NNPot through undocumented
 flags; a compiled dependency alone is not a hosted capability.
 
 Operational defaults: five-minute local checkpoints and remote segments,
@@ -114,7 +126,11 @@ Read the live bounds before changing `threads`, `segment_minutes`,
 `checkpoint_minutes`, `max_wall_seconds`, `max_output_bytes`,
 `output_destination` or `output_prefix`. Output cadence is controlled by the
 customer's MDP/TPR and is not silently rewritten. Platform/bucket quotas still
-apply; a larger request budget does not purchase or create storage.
+apply; a larger request budget does not purchase or create storage. The 4 GiB
+default can be too small for million-atom systems: inputs, repeated final
+coordinates, checkpoints, trajectory parts and joined outputs all consume the
+workspace budget. Estimate them before submission; see the
+[large-output budget guidance](references/mpi.md#output-budget-and-failure-diagnostics).
 
 ## Restart, storage and results
 
@@ -138,14 +154,62 @@ names to object keys and byte hashes. These remain until customer deletion or
 bucket lifecycle expiry. They are not files mounted live by the GROMACS engine.
 
 Download the completed platform result and every promised artifact using the
-verified file helpers. `result.json` records exact inputs/runtime, commands,
-native checkpoint generations, step outcomes, file names/hashes and available
+verified file helpers. The native workflow result artifact records exact inputs,
+runtime, commands, checkpoint generations, step outcomes, file hashes and available
 performance. The outer batch client's `output-NN.artifact` names are transport
 names, not native file names. The installed client materializes verified native
 paths by matching hashes into `native/result-00/` and writes `native-files.json`
 with per-file hashes and workspace links. Use its returned `native_outputs`;
 never guess mappings by array order or rename raw transport artifacts. Existing
 completed runs can be recovered with `--recover-operation-id` into a new directory.
+
+For an **already succeeded** operation, use this complete read-only recovery
+command, replacing `OPERATION_ID` with its original ID and choosing a new folder:
+
+```sh
+/opt/scientific-client/bin/python /opt/bionemo/invoke-scientific-batch.py \
+  --recover-operation-id OPERATION_ID --output /workspace/md/recovered
+```
+
+This recovery mode needs no model, input archive, parameter file or idempotency
+key. It does not submit, resubmit or cancel work. Do not search installed helper
+source to discover this invocation. For its exact options, append `--help` to
+the recovery command. Pending work must instead resume its original saved
+observation; do not use completed-result recovery to start or replace it.
+
+For an existing operation's timing/benchmark report in the Nebius workbench, use the installed
+deterministic reporter **once after recovery** instead of writing ad-hoc Python
+or repeatedly printing the result JSON. Supply the user's actual repeat count:
+
+```sh
+/opt/scientific-client/bin/python /opt/bionemo/report-native-md.py \
+  --receipt-dir /workspace/md/receipt --output-dir /workspace/md/timing-report \
+  --expected-repeats 3
+```
+
+It reads either normal or recovery receipts, verifies native result/log hashes,
+and writes `native-timing-report.json`, `native-timings.csv` and
+`native-timing-report.md`. Read its compact JSON response: `complete: false`
+and exit 2 mean missing measurements/repeats, not success. A checkpoint's
+absolute step number is not an executed/durably completed work count; missing
+counts stay unknown. Deliver the native-MD receipt directory and these report
+files with the existing result-delivery tool; do not rename/copy receipts or
+rewrite a successful report. Extra scientific analysis can be a separate step.
+On a client without this command, the verified native schema below is the
+portable contract; this bundle alone does not install the workbench runtime.
+
+The receipt's outer `result.json` is the **platform envelope**, not the native
+GROMACS workflow result. Follow `native_outputs.results[].source_result_file`
+from the verified receipt/helper response; older clients can locate the artifact
+with semantic type `gromacs-workflow-result/v1` in `receipt.json.verified_artifacts`.
+Inspect the native document's
+actual `commands` and `completed_steps`, and check expected run/repeat counts.
+Do not read nonexistent `steps` from the envelope and produce an empty table.
+Follow the [benchmark evidence checklist](references/mpi.md#read-native-results-before-reporting-a-benchmark)
+for native timings, missing metrics and recovered studies.
+Read native command logs and result metadata, not only the outer operation state.
+An inventory/budget failure may retain committed checkpoints and bounded error
+logs; `inventory_complete=false` is not a complete scientific delivery.
 
 Report simulation duration/steps, atoms, trajectories/frames, temperature and
 energy sanity checks, warnings, achieved ns/day, wall and queue time separately.

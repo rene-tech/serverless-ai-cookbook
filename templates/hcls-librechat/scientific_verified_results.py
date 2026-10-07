@@ -105,15 +105,21 @@ def file_card(path, root):
             'File existence and bytes verified; this is not a scientific validation of its contents.')
 
 
-def md_card(folder, root):
-    receipt = json.loads((folder / 'receipt.json').read_text())
+def verified_md_inputs(folder, root):
+    """Resolve native results once, sharing receipt/hash checks with reporters."""
+    # Read-only recovery deliberately keeps a separate receipt; it must not
+    # overwrite an earlier submission receipt just to render a result card.
+    receipt_path = folder / 'receipt.json'
+    if not receipt_path.exists():
+        receipt_path = folder / 'recovery-receipt.json'
+    receipt = json.loads(receipt_path.read_text())
     if receipt.get('state') != 'verified' or not receipt.get('operation_id'):
         raise ValueError('MD operation does not have a verified completed-result receipt.')
     manifest = json.loads((folder / 'native-files.json').read_text())
     if manifest.get('schema') != 'scientific-ai/native-md-files/v1' or not manifest.get('results'):
         raise ValueError('Native MD files are not materialized. Recover the existing operation first.')
     artifacts = receipt.get('verified_artifacts', [])
-    texts = []
+    documents = []
     for index, native in enumerate(manifest['results']):
         source = next((a for a in artifacts if a.get('sha256') == native['source_result_sha256']), None)
         if not source:
@@ -135,6 +141,17 @@ def md_card(folder, root):
             if not path.is_file() or path.stat().st_size != item['size_bytes']:
                 raise ValueError('Published native file is missing or changed: ' + item['native_path'])
             files[item['native_path']] = (path, item)
+        documents.append({'engine': engine, 'result': result, 'files': files,
+                          'native_root': native_root, 'source': {**source, 'path': str(source_path)}})
+    return receipt_path, receipt, documents
+
+
+def md_card(folder, root):
+    receipt_path, receipt, documents = verified_md_inputs(folder, root)
+    texts = []
+    for document in documents:
+        engine, result, files = document['engine'], document['result'], document['files']
+        native_root = document['native_root']
         text = [f'### {cell(engine.upper())}: completed engine operation', '',
                 f"Operation: `{receipt['operation_id']}`.",
                 f"Completed steps: {', '.join(cell(v) for v in result['completed_steps'])}.",
@@ -175,7 +192,7 @@ def md_card(folder, root):
             text += [f"| {cell(c['step_id'])}, segment {c.get('segment', '?')} | {c['performance_ns_per_day']:.3f} | {c['wall_seconds']:.3f} |"
                      for c in performances]
         text += ['', f'[All native inputs, logs and trajectories]({link(native_root, root, directory=True)}) · '
-                 f'[Publication receipt]({link(folder / "receipt.json", root)}) · '
+                 f'[Publication receipt]({link(receipt_path, root)}) · '
                  f'[Native file manifest]({link(folder / "native-files.json", root)})', '',
                  'The engine completed; scientific equivalence, equilibration and convergence are not established by this receipt. '
                  'Temperature, pressure and density statistics require analysis of the saved trajectory/energy data; none are invented here. '

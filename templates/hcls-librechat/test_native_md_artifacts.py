@@ -38,6 +38,13 @@ def test_shuffled_native_files_and_equal_byte_aliases(tmp_path, engine):
     assert materialize_native_outputs(tmp_path, artifacts)['native_outputs']['file_count'] == 3
     manifest = json.loads((tmp_path / 'native-files.json').read_text())
     assert [a['native_path'] for a in manifest['results'][0]['files']] == [f['path'] for f in result['files']]
+    native_result = copied['results'][0]
+    assert native_result['source_result_file'] == artifacts[0]['path']
+    assert native_result['source_result_sha256'] == artifacts[0]['sha256']
+    assert native_result['schema'] == f'fs2-serve.nebius.ai/{engine}-workflow-result/v1'
+    assert native_result['status'] == 'succeeded'
+    assert json.loads(Path(native_result['source_result_file']).read_text()) == result
+    assert manifest['results'][0]['source_result_file'] == artifacts[0]['path']
     (tmp_path / 'native/result-00/trajectory.xtc').write_bytes(b'edited native file')
     assert Path(artifacts[1]['path']).read_bytes() == b'binary trajectory'
 

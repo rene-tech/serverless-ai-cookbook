@@ -98,5 +98,42 @@ or runtime/configuration changes. Earlier traces remain retained separately.
 Machine-readable, payload-free results are in
 [the release evidence](evidence/catalog-discovery-20261007.json). Raw private
 receipts are under `/home/tux/secure-handoff/fs2-catalog-discovery-20261007/`;
-never publish that directory or customer transcripts. The customer upgrade is
-in progress; preservation and final endpoint checks follow separately.
+never publish that directory or customer transcripts.
+
+## Customer deployment and closeout
+
+Managed operation `b765b3d1-692c-4a2f-9184-410b01bec163` succeeded. WhiteLab's
+replacement endpoint is `aiendpoint-e00axdvs33j7ycdqt1`:
+
+<https://port3080-qxnvfnk6ancxhd3.tunnel.applications.eu-north1.nebius.cloud>
+
+Public HTTPS sign-in, current agent instructions, the new MCP search tool, all
+16 existing App grants, the workspace mount and the full starter manifest were
+verified. Account identity and all six messages across both original conversations
+were preserved byte-for-byte for the compared message fields. The same dedicated
+state filesystem, bucket, API/S3/provider credentials and closed registration
+remain. No customer model operation was submitted by the release check.
+
+The predecessor `aiendpoint-e00zzbdhd3hkmaxtnc` remains stopped for rollback;
+never run it alongside the replacement on their shared state filesystem. The
+managed operator can upgrade back to the registered `single-cell-20261007-r5`
+release if necessary. Its configuration and private before/after snapshots are
+retained. Both task-only QA endpoints were stopped and deleted; the existing QA
+filesystem/bucket and the unrelated original QA instance were not removed.
+
+The operator release map was extended without changing the backend image or
+other settings. The three API replicas completed their rolling restart. All nine
+read-only public website/API routing checks passed before and after the change.
+The emitted Helm values fragment is in the backend handover so a later chart
+reconciliation retains the new release.
+
+## Main/source integration is distinct from the released binary
+
+The fork had independent molecular-dynamics changes on `main`. They were merged,
+not overwritten. Combined source skills are version `2026.10.07.6`; the tested
+deployment default remains the immutable R2 image with skills `2026.10.07.5`.
+To reproduce R2, use source `fd9ca0c`, not a newer merged tree. A rebuild from
+merged source requires fresh composition and live acceptance; neither these
+catalog conversations nor a source merge qualify the independent MD candidate.
+Source-integration checks cover catalog/seed behavior, advice boundaries, native
+MD recovery/reporting, single-cell helpers and the one-click deployment link.

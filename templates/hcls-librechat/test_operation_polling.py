@@ -187,6 +187,33 @@ def test_deadline_prevents_retry_and_preserves_authoritative_state(tmp_path, mon
     assert client.load_receipt(args.output / 'status.json') == previous
 
 
+def test_check_once_has_a_real_connection_budget_and_collects_completed_work(tmp_path, monkeypatch):
+    args, original, _, calls, sessions, delays = resumed_run(tmp_path, monkeypatch, [])
+    args.wait_seconds = 0
+    transport = client.httpx2.AsyncClient
+    timeouts = []
+    def observed_transport(**kwargs):
+        if kwargs.get('event_hooks'):
+            timeouts.append(kwargs['timeout'])
+            assert kwargs['timeout'] == client.OPERATION_READ_TIMEOUT
+            assert kwargs['timeout'] >= 10
+        return transport(**kwargs)
+    monkeypatch.setattr(client.httpx2, 'AsyncClient', observed_transport)
+    receipt = asyncio.run(client.run(args))
+    assert timeouts and receipt['state'] == 'verified'
+    assert receipt['operation_id'] == original['operation_id']
+    assert len(sessions) == 1 and not delays
+    assert calls == ['get_scientific_status', 'get_scientific_result', 'artifact-read']
+
+
+def test_check_once_reads_pending_work_only_once_without_sleeping(tmp_path, monkeypatch):
+    args, original, _, calls, sessions, delays = resumed_run(tmp_path, monkeypatch, [], states=['running'])
+    args.wait_seconds = 0
+    receipt = asyncio.run(client.run(args))
+    assert receipt['state'] == 'running' and receipt['operation_id'] == original['operation_id']
+    assert calls == ['get_scientific_status'] and len(sessions) == 1 and not delays
+
+
 def test_result_read_retries_but_successful_status_does_not_reset_its_failure_budget(tmp_path, monkeypatch):
     args, _, _, calls, sessions, _ = resumed_run(tmp_path, monkeypatch, [503] * 5,
                                                fault_tool='get_scientific_result')

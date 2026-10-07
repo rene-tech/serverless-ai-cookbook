@@ -109,6 +109,12 @@ def run_case(args, token, original, case, model):
                     authenticate(client, credentials)
                     save(args.session, {'token': client.headers['Authorization'][7:]})
         refresh = refresh_session if credentials else None
+        # Browser access sessions can expire between queued replay cases. Check
+        # with a read before any chat/agent POST; never blindly resubmit work to
+        # compensate for an expired qualification session.
+        transport_warnings = []
+        observe_get(client, '/api/agents', transport_warnings, reauthenticate=refresh)
+        save(directory / 'transport-warnings.json', transport_warnings)
         instructions = args.instruction_text
         output_directory = f'/workspace/replays/{args.cohort_id}/{variant}/{case["case_id"]}'
         instructions += ('\n\nFor this isolated replay, put new output files under '
@@ -146,7 +152,6 @@ def run_case(args, token, original, case, model):
         # Status reads do not submit inference. The real client uses this same
         # durable generation when reconnecting; no synthetic assistant loop.
         watchdog = False
-        transport_warnings = []
         while True:
             status_response = observe_get(client, '/api/agents/chat/status/' + cid, transport_warnings,
                                           reauthenticate=refresh)

@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1.7
+# Published R2 was built from fd9ca0c (skills 2026.10.07.5). The merged source
+# below is a new candidate; its source merge does not qualify another image.
 # Combine the R5 single-cell layer and discovery changes on the same pinned
 # branding/state parent as Dockerfile.single-cell. R5 already has 127 layers:
 # adding another would leave no writable-layer headroom on Serverless.
@@ -31,5 +33,5 @@ RUN --mount=from=assembled,source=/release,target=/tmp/catalog-release,ro \
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
-      ai.nebius.scientific.skills.version="2026.10.07.5" \
+      ai.nebius.scientific.skills.version="2026.10.07.6" \
       ai.nebius.scientific.release="catalog-20261007"
