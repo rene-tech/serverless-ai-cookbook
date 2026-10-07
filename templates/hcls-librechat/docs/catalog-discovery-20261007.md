@@ -55,7 +55,8 @@ It is not a qualified release or a deployment default.
 
 Offline checks: 19 service tests, four wire-level MCP catalog tests, three
 three-way seed-merge tests, four tool-options tests, and 25 configuration/seed
-tests pass (55 total). Wire tests cover legacy filters, explicit searches,
+tests pass (55 total). Three additional hosted-runner identity tests pass (58
+total). Wire tests cover legacy filters, explicit searches,
 scoped/empty grants, credential separation, malformed/partial catalogs, and
 upstream failures. The skills bundle verifies successfully.
 
@@ -66,7 +67,36 @@ question, both getting-started prompts, a follow-up catalog question, molecular
 dynamics, and single-cell discovery. It verifies the agent's final answer as
 well as tool output. No model execution is authorized by these fixtures.
 
-Live gate and customer deployment results are pending. Do not treat the offline
-passes or the image publication alone as customer acceptance. Raw private
+Two consecutive final cohorts passed: five conversations / six turns each,
+three concurrent conversations at a time, 12 turns total. All returned the exact
+authorized set. There were 11 full-catalog tool calls and no keyword probes;
+one follow-up reused the immediately preceding complete catalog and still named
+every App. Plain catalog requests completed in 4.891–5.001 seconds; molecular
+dynamics and single-cell questions in 4.850–4.897 seconds. Planning prompts took
+11.550–15.868 seconds. These are client-observed turn times, not model startup
+benchmarks or a latency SLO.
+
+QA has eight Apps (AMBER, Boltz2, GROMACS, GROMACS MPI, LAMMPS, NAMD,
+OpenFold2 and scVI/scANVI), not WhiteLab's 16-App grant set. The wire fixture
+covers the exact 16-App catalog; customer binding verification separately checks
+the live 16-App list without running inference on a customer key. No scientific
+App jobs were submitted by these conversation tests. The real installed skill
+loader also passed: 84 total skills, all 78 canonical file hashes verified. The
+standalone source-bundle validator rejects the combined installed directory
+because it contains 48 additional pinned ClawBio skills; use the installed-loader
+test there, not the source-only inventory validator.
+
+The first live harness used requested message IDs, while LibreChat persists
+server-assigned IDs. Those accepted conversations were reconciled without
+resubmission; the runner now matches exact prompt/parent and rejects ambiguity.
+An initial fresh-call-only assertion also rejected a correct immediate follow-up.
+The final test permits reuse only of its directly preceding complete tool result,
+never an old prose list or filtered result, and still verifies every authorized
+App in the answer. Both final cohorts started new conversations, with no recovery
+or runtime/configuration changes. Earlier traces remain retained separately.
+
+Machine-readable, payload-free results are in
+[the release evidence](evidence/catalog-discovery-20261007.json). Raw private
 receipts are under `/home/tux/secure-handoff/fs2-catalog-discovery-20261007/`;
-never publish that directory or customer transcripts.
+never publish that directory or customer transcripts. The customer upgrade is
+in progress; preservation and final endpoint checks follow separately.

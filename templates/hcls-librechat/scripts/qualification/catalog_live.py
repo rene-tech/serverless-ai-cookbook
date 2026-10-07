@@ -106,7 +106,18 @@ def run_case(args, case, token, expected):
                 raise RuntimeError('Agent error; inspect retained messages')
             calls = [x['tool_call'] for x in last.get('content', []) if x.get('type') == 'tool_call']
             catalog_calls = [x for x in calls if x['name'] == 'workbench_list_apps_mcp_scientific-demos']
-            assert len(catalog_calls) == 1, (case, turn, 'catalog call count', len(catalog_calls))
+            assert len(catalog_calls) <= 1, (case, turn, 'catalog call count', len(catalog_calls))
+            catalog_source = last
+            if not catalog_calls:
+                # A same-conversation follow-up may reuse the immediately
+                # preceding *complete tool result*. Never accept a remembered
+                # prose list, filtered result, older branch or unrelated chat.
+                assert case == 'design-and-list' and turn == 1, 'No fresh catalog for a new question'
+                catalog_source = next(m for m in rows if m['messageId'] == intent['parentMessageId'])
+                catalog_calls = [x['tool_call'] for x in catalog_source.get('content', [])
+                                 if x.get('type') == 'tool_call'
+                                 and x['tool_call']['name'] == 'workbench_list_apps_mcp_scientific-demos']
+                assert len(catalog_calls) == 1, 'No authoritative immediately preceding catalog'
             assert all(x['name'] in SAFE_TOOLS for x in calls), 'Unexpected tool; inspect private trace'
             searches = [x for x in calls if x['name'] == 'workbench_search_apps_mcp_scientific-demos']
             # Research may check a named App from a chosen paper. Enumeration
@@ -132,7 +143,10 @@ def run_case(args, case, token, expected):
                 assert 'scvi' in normalize(text) and 'scanvi' in normalize(text)
             parent = last['messageId']
             checks.append({'case': case, 'turn': turn, 'conversation_id': conversation,
-                           'message_id': parent, 'catalog_calls': 1, 'catalog_count': catalog['count'],
+                           'message_id': parent,
+                           'catalog_calls': sum(x['name'] == 'workbench_list_apps_mcp_scientific-demos' for x in calls),
+                           'catalog_source_message_id': catalog_source['messageId'],
+                           'catalog_reused': catalog_source is not last, 'catalog_count': catalog['count'],
                            'tools': [x['name'] for x in calls], 'final_text_sha256': hashlib.sha256(text.encode()).hexdigest(),
                            'final_text_chars': len(text), 'observed_wall_seconds': round(time.monotonic() - started, 3),
                            'recovered_admission': recovered_admission,

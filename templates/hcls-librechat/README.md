@@ -51,10 +51,12 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:single-cell-20261007-r5`,
-digest `sha256:92b18aa638f222d1b5b53c61e3c4cad9e11e5e5abc032e856a6a8d69388086fc`.
-It preserves the restored Nebius branding and persistent customer state, and adds
-the durable large-file scVI/scANVI client with recoverable S3-mounted studies.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:catalog-20261007-r2`,
+digest `sha256:243ba1dc462ea8e9dc72d620509cc09add24df325297d591e7cb5e4b62438eff`.
+It preserves Nebius branding, persistent customer state, and the durable
+large-file scVI/scANVI client with recoverable S3-mounted studies. Complete App
+listing is now separate from keyword search, preventing partial discovery and
+empty-domain probing loops.
 Its 36 canonical customer skills (84 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
@@ -74,7 +76,8 @@ completion ceiling. Explicit deployment overrides remain possible; there is no
 automatic model fallback. This is a general-purpose release, not a customer overlay.
 Native skill loading returns the instructions as tool content, and installed
 `/app/skill/` paths resolve through the existing authorized skill reader.
-See the [current single-cell release evidence and limitations](docs/single-cell-workspace-20261007.md)
+See the [current catalog-discovery release evidence](docs/catalog-discovery-20261007.md),
+the [single-cell evidence and limitations](docs/single-cell-workspace-20261007.md),
 and the [inherited general-agent evidence](docs/kimi-default-release-20261002.md)
 before making a customer-readiness claim; installed tools do not eliminate
 scientific inaccuracies or intermittent incomplete replies from a chat model.

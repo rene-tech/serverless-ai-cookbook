@@ -1,0 +1,275 @@
+{
+  "cohorts": [
+    {
+      "origin": "https://port3080-raj1bswg2c5zaxm.tunnel.applications.eu-north1.nebius.cloud",
+      "expected_apps": [
+        "amber",
+        "boltz2",
+        "gromacs",
+        "gromacs-mpi",
+        "lammps",
+        "namd",
+        "openfold2",
+        "scvi-scanvi"
+      ],
+      "cases": 5,
+      "completed_turns": 6,
+      "rows": [
+        {
+          "case": "all",
+          "turn": 0,
+          "conversation_id": "b0a06cbf-14d5-5a60-81cb-0c4d31be52fb",
+          "message_id": "cd7c90ec-9b0c-40b3-b07d-7280c74fce58",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "cd7c90ec-9b0c-40b3-b07d-7280c74fce58",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "88731394367b2c9115bd68953947e02be55dd29586a5deab8e7966a01b746d35",
+          "final_text_chars": 1310,
+          "observed_wall_seconds": 5.001,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "design-and-list",
+          "turn": 0,
+          "conversation_id": "7ea9ba93-849d-5a32-a45b-6f37bfcab219",
+          "message_id": "6dfb17df-770f-4970-ab47-d5ec8b09b384",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "6dfb17df-770f-4970-ab47-d5ec8b09b384",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "b35267b1dc9f43d6a985d4f8074f846f83941d03887df4d113eff19f18e22ebf",
+          "final_text_chars": 3647,
+          "observed_wall_seconds": 11.55,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "design-and-list",
+          "turn": 1,
+          "conversation_id": "7ea9ba93-849d-5a32-a45b-6f37bfcab219",
+          "message_id": "196f4fd6-23e9-42c2-8878-9c807d635e90",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "196f4fd6-23e9-42c2-8878-9c807d635e90",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "0bceb6905bc8dbad062c194cb6fbc5b60914b2eb3fb10aaf83c86e0112d868b7",
+          "final_text_chars": 1613,
+          "observed_wall_seconds": 6.845,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "reproduction",
+          "turn": 0,
+          "conversation_id": "a1bc73ed-b4fe-5c91-9b2e-40f1e15fdf9c",
+          "message_id": "0be4fe0a-e05b-4222-8af2-eb0a04edad82",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "0be4fe0a-e05b-4222-8af2-eb0a04edad82",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "45f0886ee0bd7bc96917622181822dbbf6876ec86365e519b45fcd0718e3b2c1",
+          "final_text_chars": 2475,
+          "observed_wall_seconds": 13.734,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "md",
+          "turn": 0,
+          "conversation_id": "20ce2020-cd78-54e6-9f63-e48df41a0e1c",
+          "message_id": "f975953e-33f3-47f5-b801-8c9d85af8e24",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "f975953e-33f3-47f5-b801-8c9d85af8e24",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "ed509bd81e855118f6c670c4e97ffe3f7e1e254109eea024e59a3354e2d02a0e",
+          "final_text_chars": 892,
+          "observed_wall_seconds": 4.893,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "single-cell",
+          "turn": 0,
+          "conversation_id": "a08d1252-a0b2-5d7c-9e57-199b0087b5c4",
+          "message_id": "7b893fa3-f824-45a0-a515-cc79f6d468be",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "7b893fa3-f824-45a0-a515-cc79f6d468be",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "baf5a6a78a0230f11252bc1a1f016091646484f864de293ec001a44dd2c3e67c",
+          "final_text_chars": 349,
+          "observed_wall_seconds": 4.897,
+          "recovered_admission": false,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "model_operations_submitted": 0,
+      "uses_customer_credentials": false
+    },
+    {
+      "origin": "https://port3080-raj1bswg2c5zaxm.tunnel.applications.eu-north1.nebius.cloud",
+      "expected_apps": [
+        "amber",
+        "boltz2",
+        "gromacs",
+        "gromacs-mpi",
+        "lammps",
+        "namd",
+        "openfold2",
+        "scvi-scanvi"
+      ],
+      "cases": 5,
+      "completed_turns": 6,
+      "rows": [
+        {
+          "case": "all",
+          "turn": 0,
+          "conversation_id": "e4d205f6-8be6-591e-b0c9-872ff5bb260b",
+          "message_id": "87a3d9b3-afda-41c9-8eff-5d2855ddb49b",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "87a3d9b3-afda-41c9-8eff-5d2855ddb49b",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "c7a94a0e1c9204c6a51798281d89cca4d16e7218a24cb4c94f08c9a4cb2bdafb",
+          "final_text_chars": 1360,
+          "observed_wall_seconds": 4.891,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "design-and-list",
+          "turn": 0,
+          "conversation_id": "016c9f93-9929-50c8-810e-aaadd354e7d3",
+          "message_id": "f21f159f-8d7a-4007-9afb-f88a29d6a389",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "f21f159f-8d7a-4007-9afb-f88a29d6a389",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "b54feb84f3d2cd3ac7f67648d823275a54fa622f26f88e64eaa0a260e0b75786",
+          "final_text_chars": 3775,
+          "observed_wall_seconds": 15.868,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "design-and-list",
+          "turn": 1,
+          "conversation_id": "016c9f93-9929-50c8-810e-aaadd354e7d3",
+          "message_id": "562dd3bc-d47a-4017-831c-8b1b2c1a2069",
+          "catalog_calls": 0,
+          "catalog_source_message_id": "f21f159f-8d7a-4007-9afb-f88a29d6a389",
+          "catalog_reused": true,
+          "catalog_count": 8,
+          "tools": [],
+          "final_text_sha256": "6a2d58a9f76afbce8819e30d85ac255c40cdfc0132711ff3c5997d82b3012ce0",
+          "final_text_chars": 1368,
+          "observed_wall_seconds": 4.661,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "reproduction",
+          "turn": 0,
+          "conversation_id": "0d6fb7f7-3771-5149-82b8-f7eb14107042",
+          "message_id": "9be57e65-2cc6-44cf-bcbc-42f21364a828",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "9be57e65-2cc6-44cf-bcbc-42f21364a828",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "5f7b903127b0fbb74dc902db675a1d198803a4b2fd683731ca6251d98c0f8c1a",
+          "final_text_chars": 3048,
+          "observed_wall_seconds": 13.703,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "md",
+          "turn": 0,
+          "conversation_id": "4ace981d-6919-5828-bddb-86babb2ee2cf",
+          "message_id": "79603cb1-8458-4481-a24e-277775e53b2f",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "79603cb1-8458-4481-a24e-277775e53b2f",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "14d02b975a7d648897c0204d159726a86b96cdfc2d023c3de3fd12597189134d",
+          "final_text_chars": 693,
+          "observed_wall_seconds": 4.85,
+          "recovered_admission": false,
+          "passed": true
+        },
+        {
+          "case": "single-cell",
+          "turn": 0,
+          "conversation_id": "dcdd1fec-ffbd-5d26-8c06-ef538c3de8be",
+          "message_id": "56c541dc-01ec-4789-b8f7-1da2188dec81",
+          "catalog_calls": 1,
+          "catalog_source_message_id": "56c541dc-01ec-4789-b8f7-1da2188dec81",
+          "catalog_reused": false,
+          "catalog_count": 8,
+          "tools": [
+            "workbench_list_apps_mcp_scientific-demos"
+          ],
+          "final_text_sha256": "a537f7159281d4c3b58b676ed1dd2c78364be9956bfb2cbf657e3320b8126360",
+          "final_text_chars": 545,
+          "observed_wall_seconds": 4.89,
+          "recovered_admission": false,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "model_operations_submitted": 0,
+      "uses_customer_credentials": false
+    }
+  ],
+  "schema_version": "scientific-ai-catalog-release/v1",
+  "source_revision": "fd9ca0c",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:243ba1dc462ea8e9dc72d620509cc09add24df325297d591e7cb5e4b62438eff",
+  "skills_version": "2026.10.07.5",
+  "qa_endpoint": "aiendpoint-e00xy7xfm7mxte1mmg",
+  "scope": "App catalog discovery in the real hosted LibreChat agent; no scientific App jobs; not all-model scientific qualification.",
+  "offline_tests_passed": 58,
+  "installed_skill_check": {
+    "skills": 84,
+    "canonical_files": 78,
+    "passed": true
+  },
+  "harness_notes": [
+    "Preliminary polling incorrectly used a requested message ID; canonical IDs were reconciled without duplicate submission. Three regression tests added.",
+    "An initial assertion required a fresh tool call even for a correct immediate follow-up. The final contract permits reuse only of the preceding complete tool result, with exact authorized set and final-answer validation.",
+    "Both final cohorts use new conversations, the unchanged candidate image, and no recovered admissions."
+  ]
+}
