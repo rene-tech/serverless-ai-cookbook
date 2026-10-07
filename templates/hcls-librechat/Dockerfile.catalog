@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.7
-# Narrow discovery overlay; keep the qualified single-cell, branding and state base.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:92b18aa638f222d1b5b53c61e3c4cad9e11e5e5abc032e856a6a8d69388086fc
+# Combine the R5 single-cell layer and discovery changes on the same pinned
+# branding/state parent as Dockerfile.single-cell. R5 already has 127 layers:
+# adding another would leave no writable-layer headroom on Serverless.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:521205505fb35a9e57ce7689c2ab97f613b0962de46c49889d993b5676f3bfa9
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
 COPY templates/hcls-librechat/agent-instructions.md /release/app/agent-instructions.md
@@ -8,15 +10,24 @@ COPY templates/hcls-librechat/seed-workbench.js /release/app/seed-hcls-workbench
 COPY templates/hcls-librechat/demos/service.cjs /release/opt/hcls-librechat/demos/service.cjs
 COPY templates/hcls-librechat/demos/mcp.cjs /release/opt/hcls-librechat/demos/mcp.cjs
 COPY skills/scientific-ai/ /release/app/skill/
+COPY templates/hcls-librechat/scvi-batch.py /release/opt/bionemo/scvi-batch.py
+COPY templates/hcls-librechat/scvi-client/ /release/opt/bionemo/scvi-client/
+COPY templates/hcls-librechat/verify-single-cell-runtime.py /release/opt/bionemo/verify-single-cell-runtime.py
 RUN python3 /release/app/skill/bundle.py verify \
  && node --check /release/app/seed-hcls-workbench.js \
  && node --check /release/opt/hcls-librechat/demos/service.cjs \
- && node --check /release/opt/hcls-librechat/demos/mcp.cjs
+ && node --check /release/opt/hcls-librechat/demos/mcp.cjs \
+ && /opt/scientific-client/bin/pip download --no-deps --only-binary=:all: --dest /single-cell-wheels scipy==1.16.3
 
 # One added layer: do not exhaust Serverless's overlay layer headroom.
 FROM ${WORKBENCH_BASE}
 USER root
-COPY --from=assembled /release/ /
+RUN --mount=from=assembled,source=/release,target=/tmp/catalog-release,ro \
+    --mount=from=assembled,source=/single-cell-wheels,target=/tmp/single-cell-wheels,ro \
+    cp -a /tmp/catalog-release/. / \
+ && /opt/scientific-client/bin/pip install --no-index --no-deps --force-reinstall --find-links=/tmp/single-cell-wheels scipy==1.16.3 \
+ && /opt/scientific-client/bin/pip check \
+ && /opt/scientific-client/bin/python /opt/bionemo/verify-single-cell-runtime.py
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \

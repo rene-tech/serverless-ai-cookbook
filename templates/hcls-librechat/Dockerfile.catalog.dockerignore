@@ -6,6 +6,10 @@
 !templates/hcls-librechat/
 !templates/hcls-librechat/agent-instructions.md
 !templates/hcls-librechat/seed-workbench.js
+!templates/hcls-librechat/scvi-batch.py
+!templates/hcls-librechat/scvi-client/
+!templates/hcls-librechat/scvi-client/**
+!templates/hcls-librechat/verify-single-cell-runtime.py
 !templates/hcls-librechat/demos/
 !templates/hcls-librechat/demos/service.cjs
 !templates/hcls-librechat/demos/mcp.cjs
