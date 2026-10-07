@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
+from uuid import uuid4
 
 from scientific_receipts import load, receipt_lock, save
 
@@ -75,7 +77,14 @@ def run(args, runner=subprocess.run):
             raise ValueError('Do not change a retained run; use a new run directory.')
     if args.recover_only and not operation_id:
         raise ValueError('No recorded operation to recover; inspect admission receipts before submitting.')
-    with (output / 'client.log').open('a') as log:
+    # Object-storage mounts reject O_APPEND on an existing object. Keep each
+    # observation attempt's log separately; never append, truncate old evidence
+    # or move the study to scratch to recover an existing operation.
+    log_path = output / 'logs' / f'{time.time_ns()}-{uuid4().hex}.log'
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt['log'] = str(log_path)
+    save(output / 'workbench.json', receipt)
+    with log_path.open('w') as log:
         if not operation_id:
             arguments = ['--origin', api, '--input', receipt['input'], '--parameters', str(output / 'parameters.json'),
                          '--output', str(output / 'upload'), '--prepare-only',
@@ -83,7 +92,7 @@ def run(args, runner=subprocess.run):
             if receipt['reference']:
                 arguments += ['--reference', receipt['reference']]
             if call('qualify_api', arguments, log, runner):
-                return {'state': 'upload_error', 'log': str(output / 'client.log')}, 1
+                return {'state': 'upload_error', 'log': str(log_path)}, 1
         arguments = ['--origin', api, '--output', str(output / 'run'), '--protocol', receipt['protocol'],
                      '--timeout', str(args.wait_seconds)]
         if operation_id:
@@ -104,7 +113,7 @@ def run(args, runner=subprocess.run):
         receipt.update(operation_id=operation_id, state='pending' if pending else 'error')
         save(output / 'workbench.json', receipt)
         return {'state': receipt['state'], 'operation_id': operation_id, 'output': str(output),
-                'log': str(output / 'client.log'), 'next': 'Recover this directory; do not submit a replacement.'}, 75 if pending else 1
+                'log': str(log_path), 'next': 'Recover this directory; do not submit a replacement.'}, 75 if pending else 1
     sys.path.insert(0, str(CLIENT))
     from qualify_outputs import validate
     validation = validate(output / 'run/worker-result.json', output / 'run/data')
@@ -112,7 +121,7 @@ def run(args, runner=subprocess.run):
     receipt.update(operation_id=operation_id, state='succeeded')
     save(output / 'workbench.json', receipt)
     return {'state': 'succeeded', 'operation_id': operation_id, 'output': str(output),
-            'data': str(output / 'run/data'), 'validation': validation}, 0
+            'data': str(output / 'run/data'), 'log': str(log_path), 'validation': validation}, 0
 
 
 def main():

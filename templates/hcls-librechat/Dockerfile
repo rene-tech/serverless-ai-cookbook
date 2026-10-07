@@ -127,7 +127,7 @@ COPY --from=aging-reference /opt/aging-reference /opt/bionemo/aging-reference
 RUN python3 -m venv /opt/scientific-client \
  && /opt/scientific-client/bin/pip install --no-cache-dir \
     mcp==2.2.0 httpx2==2.12.0 httpx==0.28.1 jsonschema==4.26.0 \
-    numpy==2.2.6 scipy==1.17.1 pandas==2.2.3 pyarrow==21.0.0 \
+    numpy==2.2.6 scipy==1.16.3 pandas==2.2.3 pyarrow==21.0.0 \
     biopython==1.85 gemmi==0.7.3 rdkit==2025.3.6 h5py==3.13.0 \
     nibabel==5.4.2 scikit-image==0.26.0 matplotlib==3.11.2 Pillow==12.3.0 \
     anndata==0.12.3 scikit-learn==1.7.2 umap-learn==0.5.12 \

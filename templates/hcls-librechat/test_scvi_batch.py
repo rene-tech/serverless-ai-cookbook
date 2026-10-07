@@ -77,6 +77,43 @@ def test_pinned_clients_and_source_are_present():
     assert (pipeline.CLIENT / 'LICENSE').exists()
 
 
+def test_recovery_never_appends_or_replaces_prior_logs(tmp_path, monkeypatch):
+    value = args(tmp_path)
+    original_open = Path.open
+
+    def bucket_open(path, mode='r', *args, **kwargs):
+        if 'a' in mode and path.is_relative_to(value.output):
+            raise PermissionError('Object storage does not support append')
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, 'open', bucket_open)
+    calls = []
+
+    def runner(command, **kwargs):
+        calls.append(command)
+        kwargs['stdout'].write('attempt ' + str(len(calls)) + '\n')
+        if 'qualify_hosted' in command:
+            pipeline.save(value.output / 'run/admission.json', {'operation': {'id': 'op-retained'}})
+            pipeline.save(value.output / 'run/status.json', {'batch': {'status': 'running'}})
+            return types.SimpleNamespace(returncode=1)
+        return types.SimpleNamespace(returncode=0)
+
+    first, code = pipeline.run(value, runner)
+    assert code == 75
+    before = Path(first['log']).read_bytes()
+    legacy = value.output / 'client.log'
+    legacy.write_text('Older client evidence; do not truncate')
+    value.recover_only = True
+    value.input = value.parameters = value.idempotency_key = value.protocol = None
+    second, code = pipeline.run(value, runner)
+    assert code == 75 and second['operation_id'] == 'op-retained'
+    assert first['log'] != second['log']
+    assert Path(first['log']).read_bytes() == before
+    assert legacy.read_text() == 'Older client evidence; do not truncate'
+    assert len(calls) == 3 and '--operation-id' in calls[-1]
+    assert pipeline.load(value.output / 'workbench.json')['log'] == second['log']
+
+
 def test_success_requires_output_validation(tmp_path, monkeypatch):
     value = args(tmp_path)
     import sys

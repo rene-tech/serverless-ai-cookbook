@@ -22,7 +22,11 @@ discovery call with `summary_only: true` lists both native and batch tools.
 1. Inspect the `.h5ad`: unique cell/gene IDs, sparse format, shape, available
    `obs` columns and raw counts in `X`, `raw.X` or a named `layers/<name>`.
    Check finite, nonnegative integer counts in bounded chunks, not just a small
-   sample. Never silently replace counts with normalized/log-transformed data.
+   sample. For large matrices inspect HDF5 datasets directly with `h5py` or use
+   tested disk-backed slices; never load a whole atlas into the client merely
+   because backed slicing failed. AnnData may eagerly load named layers even
+   when its main matrix is backed. Never silently replace counts with
+   normalized/log-transformed data.
 2. Use `method: scvi` for unsupervised integration or `method: scanvi` for
    annotation, with `mode: train`. Use `mode: map-query` with a matching retained
    reference archive and matching method. For scANVI select
@@ -79,9 +83,15 @@ remote completion, bucket export and verified local download. Do not promise
 an automatic notification or local delivery unless a running task provides it.
 
 Keep the same output directory and API identity. Never submit a replacement
-while a retained operation is queued/running. Inspect `client.log`, admission,
+while a retained operation is queued/running. Inspect the log path returned by
+the helper (also in `workbench.json`), admission,
 status and result receipts when there is an error. A failed scientific run is
 not successful integration. Stop and report the native diagnostic.
+
+Each attempt has a separate file under `logs/`: the S3 mount does not support
+appending to an existing file. Old `client.log` files remain historical evidence.
+Recovery is supported directly in the mounted study directory; do not move its
+receipts to scratch or invent a new operation to work around storage errors.
 
 ## Validate and deliver
 

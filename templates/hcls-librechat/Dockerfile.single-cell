@@ -6,16 +6,22 @@ USER root
 COPY skills/scientific-ai/ /release/app/skill/
 COPY templates/hcls-librechat/scvi-batch.py /release/opt/bionemo/scvi-batch.py
 COPY templates/hcls-librechat/scvi-client/ /release/opt/bionemo/scvi-client/
+COPY templates/hcls-librechat/verify-single-cell-runtime.py /release/opt/bionemo/verify-single-cell-runtime.py
 RUN python3 /release/app/skill/bundle.py verify \
  && PYTHONPATH=/opt/bionemo /opt/scientific-client/bin/python /release/opt/bionemo/scvi-batch.py --help \
- && /opt/scientific-client/bin/python -c 'import httpx,numpy,pandas'
+ && /opt/scientific-client/bin/pip download --no-deps --only-binary=:all: --dest /single-cell-wheels scipy==1.16.3
 
 # One overlay layer; preserve enough layer headroom for Serverless's container.
 FROM ${WORKBENCH_BASE}
 USER root
-COPY --from=assembled /release/ /
+RUN --mount=from=assembled,source=/release,target=/tmp/single-cell-release,ro \
+    --mount=from=assembled,source=/single-cell-wheels,target=/tmp/single-cell-wheels,ro \
+    cp -a /tmp/single-cell-release/. / \
+ && /opt/scientific-client/bin/pip install --no-index --no-deps --force-reinstall --find-links=/tmp/single-cell-wheels scipy==1.16.3 \
+ && /opt/scientific-client/bin/pip check \
+ && /opt/scientific-client/bin/python /opt/bionemo/verify-single-cell-runtime.py
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
-      ai.nebius.scientific.skills.version="2026.10.07.2" \
+      ai.nebius.scientific.skills.version="2026.10.07.3" \
       ai.nebius.scientific.release="single-cell-batch-20261007"

@@ -29,6 +29,7 @@ COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionem
 COPY templates/hcls-librechat/native_md_artifacts.py /opt/bionemo/native_md_artifacts.py
 COPY templates/hcls-librechat/scvi-batch.py /opt/bionemo/scvi-batch.py
 COPY templates/hcls-librechat/scvi-client/ /opt/bionemo/scvi-client/
+COPY templates/hcls-librechat/verify-single-cell-runtime.py /opt/bionemo/verify-single-cell-runtime.py
 COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librechat/patch-title-options.mjs templates/hcls-librechat/patch-skill-result.mjs /opt/hcls-librechat/
 RUN node /opt/hcls-librechat/patch-title-options.mjs \
  && node /opt/hcls-librechat/patch-skill-result.mjs \
@@ -41,7 +42,8 @@ RUN /opt/openff/bin/python /opt/openff-release/verify-runtime.py \
  && node --check /opt/hcls-librechat/render-config.mjs
 
 # The retained workbench has a long layer history. Copy the assembled runtime
-# roots in eight layers instead of shipping every intermediate COPY/RUN layer;
+# roots in eight copy layers plus the scientific dependency fix, instead of
+# shipping every intermediate COPY/RUN layer;
 # Docker must still be able to create a container over the resulting rootfs.
 # These roots preserve the parent's sibling features and pinned extensions.
 FROM ${WORKBENCH_BASE}
@@ -54,6 +56,9 @@ COPY --from=assembled /app/skill /app/skill
 COPY --from=assembled /app/agent-instructions.md /app/seed-hcls-workbench.js /app/seed-merge.cjs /app/
 COPY --from=assembled /app/packages/api/dist/index.cjs /app/packages/api/dist/index.cjs
 COPY --from=assembled /app/api/server/controllers/agents/client.js /app/api/server/controllers/agents/client.js
+RUN /opt/scientific-client/bin/pip install --no-cache-dir --no-deps --force-reinstall scipy==1.16.3 \
+ && /opt/scientific-client/bin/pip check \
+ && /opt/scientific-client/bin/python /opt/bionemo/verify-single-cell-runtime.py
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
