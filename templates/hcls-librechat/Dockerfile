@@ -174,7 +174,7 @@ RUN cd /app/skill && rm -rf boltz2-nim openfold2-nim openfold3-nim diffdock-nim 
 COPY templates/hcls-librechat/assets/nebius-logo.svg /app/client/dist/assets/logo.svg
 COPY templates/hcls-librechat/assets/token-factory.svg /app/client/dist/assets/token-factory.svg
 RUN chmod 0755 /usr/local/bin/hcls-librechat-entrypoint \
- && node /opt/hcls-librechat/brand-client.mjs /app/client/dist \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
  && mkdir -p /data/db /data/hcls-librechat /app/uploads /app/logs \
  && chown -R node:node /data /app/uploads /app/logs \
  && chmod 0700 /data/hcls-librechat \
