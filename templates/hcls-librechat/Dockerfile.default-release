@@ -27,6 +27,8 @@ COPY templates/hcls-librechat/inspect-fasta.py /opt/bionemo/inspect-fasta.py
 COPY templates/hcls-librechat/prepare-openff.py /opt/bionemo/prepare-openff.py
 COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py
 COPY templates/hcls-librechat/native_md_artifacts.py /opt/bionemo/native_md_artifacts.py
+COPY templates/hcls-librechat/scvi-batch.py /opt/bionemo/scvi-batch.py
+COPY templates/hcls-librechat/scvi-client/ /opt/bionemo/scvi-client/
 COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librechat/patch-title-options.mjs templates/hcls-librechat/patch-skill-result.mjs /opt/hcls-librechat/
 RUN node /opt/hcls-librechat/patch-title-options.mjs \
  && node /opt/hcls-librechat/patch-skill-result.mjs \

@@ -11,6 +11,9 @@
 !templates/hcls-librechat/inspect-fasta.py
 !templates/hcls-librechat/prepare-openff.py
 !templates/hcls-librechat/native_md_artifacts.py
+!templates/hcls-librechat/scvi-batch.py
+!templates/hcls-librechat/scvi-client/
+!templates/hcls-librechat/scvi-client/**
 !templates/hcls-librechat/scientific-title-options.cjs
 !templates/hcls-librechat/patch-title-options.mjs
 !templates/hcls-librechat/patch-skill-result.mjs

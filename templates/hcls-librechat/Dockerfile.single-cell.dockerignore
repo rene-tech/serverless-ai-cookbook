@@ -1,0 +1,11 @@
+**
+!skills/
+!skills/scientific-ai/
+!skills/scientific-ai/**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/scvi-batch.py
+!templates/hcls-librechat/scvi-client/
+!templates/hcls-librechat/scvi-client/**
+**/__pycache__
+**/*.pyc

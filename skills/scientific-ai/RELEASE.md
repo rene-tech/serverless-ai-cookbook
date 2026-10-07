@@ -1,4 +1,13 @@
-# Scientific AI skills 2026.09.20.3 — canonical platform naming
+# Scientific AI skills 2026.10.07.1 — durable single-cell studies
+
+The single-cell skill now targets the large-file scientific batch API, including
+scVI integration, scANVI labels/probabilities, query-to-reference mapping and
+checkpoint recovery. It separates this from the older small native demo adapter.
+The full workbench adds the pinned platform file client with retained operation
+recovery; downloading skills alone does not install that runtime. Qualification
+and the exact deployed image are recorded in the WhiteLab handover evidence.
+
+## Previous naming integration: 2026.09.20.3
 
 The portable skills now call the complete hosted surface **Nebius Scientific AI
 Apps** and use the maintained LibreChat connection ID `scientific-ai-apps`.
@@ -40,7 +49,7 @@ not a requalification of every deployed model. See the repository's
 - Full agent-led GPU workflows across all 37 Apps, long-recording streaming,
   load/scaling and snapshot performance are not newly benchmarked here.
 - Upstream capabilities beyond our adapters remain unavailable: ligand affinity
-  through protein-only Boltz2; predicted labels/DE through the current scVI API;
+  through protein-only Boltz2; differential expression through the scVI API;
   automatic browser live-microphone support from installing a skill alone.
 - DICOM conversion needs a qualified local converter; the skill does not ship a
   clinical imaging stack. Scientific/medical outputs still require appropriate

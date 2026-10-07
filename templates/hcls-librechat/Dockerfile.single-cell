@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1.7
+# Retain the current Nebius branding, persistent state and installed extensions.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:521205505fb35a9e57ce7689c2ab97f613b0962de46c49889d993b5676f3bfa9
+FROM ${WORKBENCH_BASE} AS assembled
+USER root
+COPY skills/scientific-ai/ /release/app/skill/
+COPY templates/hcls-librechat/scvi-batch.py /release/opt/bionemo/scvi-batch.py
+COPY templates/hcls-librechat/scvi-client/ /release/opt/bionemo/scvi-client/
+RUN python3 /release/app/skill/bundle.py verify \
+ && PYTHONPATH=/opt/bionemo python3 /release/opt/bionemo/scvi-batch.py --help \
+ && python3 -c 'import httpx,numpy,pandas'
+
+# One overlay layer; preserve enough layer headroom for Serverless's container.
+FROM ${WORKBENCH_BASE}
+USER root
+COPY --from=assembled /release/ /
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      ai.nebius.scientific.skills.version="2026.10.07.1" \
+      ai.nebius.scientific.release="single-cell-batch-20261007"
