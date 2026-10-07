@@ -169,6 +169,9 @@ function recommendedApp(group) {
 async function listApps(key, query = '') {
   if (typeof query !== 'string' || query.length > 200) throw failure('Supply a short App name or capability.');
   const catalogs = await Promise.all([platform(key, 'GET', '/v1/models'), platform(key, 'GET', '/v1/scientific-models')]);
+  if (catalogs.some((catalog) => !Array.isArray(catalog.data))) {
+    throw failure('The authorized App catalog could not be read completely. Retry discovery; do not interpret this as missing model access.', 503);
+  }
   const apps = new Map();
   for (const [index, catalog] of catalogs.entries()) for (const item of catalog.data || []) {
     const id = item.id || item.model_id;
@@ -188,7 +191,10 @@ async function listApps(key, query = '') {
     });
   }
   const normalizeSearch = (value) => value.toLowerCase().replace(/[-_]+/g, ' ').trim();
-  const search = normalizeSearch(query);
+  const normalized = normalizeSearch(query);
+  // Common requests for the whole catalog are not literal model-name filters.
+  // Keep this compatibility for HTTP callers and older cached MCP definitions.
+  const search = /^(all|all apps|all models|everything|\*)$/.test(normalized) ? '' : normalized;
   const data = [...apps.values()].filter((item) => !search || normalizeSearch(JSON.stringify(item)).includes(search));
   const groups = USE_CASE_ORDER.map((useCase) => ({
     use_case: useCase,
@@ -201,9 +207,15 @@ async function listApps(key, query = '') {
       presentation: DEMO_PATTERNS[group.use_case],
     } };
   });
-  return { data, groups, count: data.length, discovery_only: true,
-    answer_rules: 'Name every returned App exactly once under its supplied use_case and contract_kind. Recommend only the supplied recommended_demo for each group. Do not invent Apps, capabilities, artifacts, cross-App chains, runtime readiness, or scientific validity.',
-    next_step: 'Read get_model_schema for the chosen App only. This list proves caller authorization, not runtime readiness or scientific validity.' };
+  return { data, groups, count: data.length, total_authorized_count: apps.size,
+    catalog_scope: search ? 'search_matches' : 'full_authorized_catalog',
+    filter_applied: search || null, discovery_only: true,
+    answer_rules: 'Name every returned App exactly once under its supplied use_case and contract_kind. '
+      + (search ? 'These are literal phrase search matches, NOT the full authorization list. An empty search does not establish missing access. ' : 'This is the complete authorized catalog; do not probe additional domains to discover more Apps. ')
+      + 'Recommend only the supplied recommended_demo for each group. Do not invent Apps, capabilities, artifacts, cross-App chains, runtime readiness, or scientific validity.',
+    next_step: search
+      ? 'For the complete catalog call workbench_list_apps with {} once. Do not retry synonyms to infer permissions. For a selected App, read get_model_schema.'
+      : 'Answer from this complete catalog. Read get_model_schema only for a subsequently chosen App. Authorization is not runtime readiness or scientific validity.' };
 }
 
 async function retainResult(key, operationId, bytes) {

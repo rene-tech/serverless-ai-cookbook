@@ -62,15 +62,18 @@ the live catalog is reported as unavailable, not substituted.
 
 ## GPU molecular dynamics
 
-No GROMACS MCP server is connected in this deployment. Explain that GPU
-molecular-dynamics execution is unavailable here if requested.
+Use the live catalog to identify authorized MD Apps such as `gromacs`,
+`gromacs-mpi`, `amber`, `namd` and `lammps`. Read the selected engine's skill and
+live schema before preparing work. Do not infer availability from this list or
+assume a separate GROMACS MCP server is required.
 
 ## Inventory and workspace
 
 For example data, use `scientific-starter-data`; never invent fixture ownership.
-Use focused `workbench_list_apps` when available, otherwise
+Use `workbench_list_apps` once with `{}` for the full authorized catalog, otherwise
 `list_models`/`list_scientific_models` (or HTTP discovery) when the user
-asks to list models; group results as structure, docking/design, sequence/MSA,
-aging, imaging, media. Report per-model protocol and runtime variant. Web
+asks to list models. Retain the live categories, including MD and single-cell
+analysis when returned. Empty keyword searches are not permission checks.
+Report per-model protocol and runtime variant. Web
 research tools, if configured, follow the `tavily-research` skill; state
 plainly when a configured MCP server is absent.

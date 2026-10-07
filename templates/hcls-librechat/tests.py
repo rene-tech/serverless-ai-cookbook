@@ -88,6 +88,7 @@ def test_deployment_selects_tested_skills_image_and_preserves_explicit_override(
         "TEAM_ID": "test-tenant",
         "S3_CREDENTIAL_SECRET_SELECTOR": "test-storage-selector",
         "USER_PASSWORD_SECRET_SELECTOR": "test-password-selector",
+        "LIBRECHAT_STATE_FILESYSTEM_ID": "computefilesystem-test-state",
     }
     if override:
         env["IMAGE"] = override
@@ -103,6 +104,9 @@ def test_deployment_selects_tested_skills_image_and_preserves_explicit_override(
     selected = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
                     if line.startswith('SCIENTIFIC_AI_RELEASE_IMAGE='))
     assert args[args.index("--image") + 1] == (override or selected)
+    assert "ALLOW_REGISTRATION=false" in args
+    assert "computefilesystem-test-state:/data:rw" in args
+    assert not any(arg.startswith("s3://") and ":/data:" in arg for arg in args)
 
 
 def test_personal_installation_can_use_public_chat_without_event_capacity(tmp_path):
@@ -119,9 +123,9 @@ def test_personal_serverless_mount_keeps_database_off_object_storage():
     deploy = (ROOT / "scripts/deploy.sh").read_text()
     assert 'S3_AWS_PROFILE="${S3_AWS_PROFILE:-default}"' in deploy
     assert 's3://${TEAM_BUCKET_NAME}:/workspace:rw:${S3_AWS_PROFILE}@${S3_CREDENTIAL_SECRET_SELECTOR}' in deploy
-    assert '--env "ALLOW_REGISTRATION=false"' in deploy
+    assert '--env "ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}"' in deploy
     assert '--env-secret "SEED_DEFAULT_USER_PASSWORD=$USER_PASSWORD_SECRET_SELECTOR"' in deploy
-    assert ':/data' not in deploy
+    assert '${LIBRECHAT_STATE_FILESYSTEM_ID}:/data:rw' in deploy
 
 
 def test_footer_is_powered_by_nvidia() -> None:
@@ -208,18 +212,19 @@ def test_saved_agents_receive_gateway_instructions_and_skills() -> None:
     script = r"""
 const fs = require('node:fs');
 const vm = require('node:vm');
+const localRequire = require('node:module').createRequire(process.argv[1]);
 const saved = [];
 class MongoClient {
   async connect() {}
   db() { return { collection: (name) => ({
     async updateOne(filter, update) { if (name === 'agents') saved.push(update.$set); },
-    async findOne() { return { _id: 'test-id' }; },
+    async findOne(filter, options) { return name === 'agents' && !options ? null : { _id: 'test-id' }; },
   }) }; }
   async close() { process.stdout.write(JSON.stringify(saved)); }
 }
 vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
   require: (name) => name === 'mongodb' ? { MongoClient, ObjectId: class {} }
-    : name === 'librechat-data-provider' ? { Constants: { mcp_all: 'mcp_all' } } : require(name),
+    : name === 'librechat-data-provider' ? { Constants: { mcp_all: 'mcp_all' } } : localRequire(name),
   process: { env: { SCIENTIFIC_AGENT_INSTRUCTIONS_PATH: process.argv[2],
     SCIENTIFIC_CORE_INSTRUCTIONS_PATH: process.argv[3] },
     stdout: { write() {} }, stderr: process.stderr },
@@ -265,7 +270,8 @@ vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
     assert "typed" in general['instructions'] and "current schema" in general['instructions']
     assert "Never paraphrase the inventory" in general['instructions']
     assert "workbench_list_apps_mcp_scientific-demos` once" in general['instructions']
-    assert "list every\nreturned App without inventing capabilities" in general['instructions']
+    assert "always the full authorized catalog, no filters" in general['instructions']
+    assert "zero matches never proves missing access" in general['instructions']
     assert "analysis into another" not in general['instructions']
     assert "workspace_url" in general['instructions']
 
@@ -391,8 +397,8 @@ def test_client_branding_is_baked_into_the_wrapper() -> None:
     brand_client = (ROOT / "brand-client.mjs").read_text(encoding="utf-8")
     assert "nebius-logo.svg" in dockerfile
     assert "/app/client/dist/assets/logo.svg" in dockerfile
-    assert 'APP_TITLE="Nebius Scientific AI Agent"' in dockerfile
-    assert "Nebius Scientific AI Agent" in brand_client
+    assert 'APP_TITLE="Nebius Scientific AI Workspace"' in dockerfile
+    assert "Nebius Scientific AI Workspace" in brand_client
     assert "scientific-tool-search-patch.cjs /opt/hcls-librechat/scientific-tool-search-patch.cjs" in dockerfile
 
 

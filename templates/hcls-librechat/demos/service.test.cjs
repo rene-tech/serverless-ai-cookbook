@@ -118,7 +118,7 @@ test('stdio MCP exposes typed tools and rejects absent identity without inferenc
     { id: 3, method: 'tools/call', params: { name: 'clinical_list_jobs' } } ].map((item) => JSON.stringify({ jsonrpc: '2.0', ...item })).join('\n') + '\n');
   assert.equal(await new Promise((resolve) => child.on('exit', resolve)), 0);
   const messages = stdout.trim().split('\n').map(JSON.parse);
-  assert.equal(messages[1].result.tools.length, 23);
+  assert.equal(messages[1].result.tools.length, 24);
   assert.ok(messages[1].result.tools.every((tool) => tool.inputSchema.additionalProperties === false));
   assert.ok(messages[1].result.tools.some((tool) => tool.name === 'workbench_track_operation'));
   assert.ok(messages[1].result.tools.some((tool) => tool.name === 'clinical_report_from_workspace'));
@@ -210,6 +210,9 @@ test('compact discovery filters Apps and does not emit scientific input schemas'
   try {
     const all = await service.listApps('fixture-key');
     assert.equal(all.count, 2);
+    assert.equal(all.total_authorized_count, 2);
+    assert.equal(all.catalog_scope, 'full_authorized_catalog');
+    assert.equal(all.filter_applied, null);
     assert.ok(JSON.stringify(all).length < 3000);
     assert.equal(all.data.find((app) => app.model_id === 'openfold2').contract_kind, 'native');
     assert.equal(all.data.find((app) => app.model_id === 'protenix-v2').contract_kind, 'scientific-batch');
@@ -219,6 +222,15 @@ test('compact discovery filters Apps and does not emit scientific input schemas'
     assert.match(all.answer_rules, /every returned App exactly once/);
     assert.deepEqual((await service.listApps('fixture-key', 'Protenix')).data.map((app) => app.model_id), ['protenix-v2']);
     assert.equal((await service.listApps('fixture-key', 'missing')).count, 0);
+    const empty = await service.listApps('fixture-key', 'missing');
+    assert.equal(empty.total_authorized_count, 2);
+    assert.equal(empty.catalog_scope, 'search_matches');
+    assert.match(empty.answer_rules, /empty search does not establish missing access/);
+    for (const query of ['all', 'all models', 'ALL APPS', 'everything', '*', '']) {
+      const full = await service.listApps('fixture-key', query);
+      assert.equal(full.count, 2);
+      assert.equal(full.catalog_scope, 'full_authorized_catalog');
+    }
   } finally { global.fetch = originalFetch; }
 });
 test('MD capability search includes AMBER and MPI without broadening caller grants', async () => {

@@ -25,8 +25,12 @@ ID, so the client can distinguish waiting from an unknown submission outcome.
 ## Compact agent workflows
 
 For a known App, the agent reads only that App's schema. `workbench_list_apps`
-provides a compact authorization-aware discovery list without every model's
-parameter schema; large legacy catalogs remain available on demand. Typed tools
+always returns the full compact authorization-aware list with `{}`; it has no
+filter. Older cached `query` arguments are ignored so they cannot hide Apps.
+The separate `workbench_search_apps` performs an explicit literal phrase search
+and reports `total_authorized_count` separately from match `count`. No matches
+never means no permissions. Neither tool proves runtime or scientific readiness.
+Large legacy catalogs remain available on demand. Typed tools
 must be loaded and called with their exact registered names. This avoids wasting
 the unchanged tool budget on duplicate discovery or invented unsuffixed names.
 

@@ -84,9 +84,11 @@ skills/references only; use `execute_command` for workspace files and saved logs
 
 ## Apps, submissions and durable work
 
-For catalog requests call `workbench_list_apps_mcp_scientific-demos` once, using
-`query` only for a user-restricted domain. Retain its categories and list every
-returned App without inventing capabilities or probing all schemas.
+For catalog requests call `workbench_list_apps_mcp_scientific-demos` once with
+`{}`: always the full authorized catalog, no filters. Retain its categories and list every
+App for a full listing; select the relevant group for domain questions. Do not
+probe synonyms or schemas. `workbench_search_apps` matches are NOT permissions:
+zero matches never proves missing access. Authorization is not runtime readiness.
 Before submitting to a named App, read its live `get_model_schema` and follow
 the exact contract. Discover deferred tools only when needed. Workspace, shell,
 execution and viewer tools are not Apps and do not need model-schema discovery.

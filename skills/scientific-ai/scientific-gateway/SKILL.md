@@ -14,8 +14,11 @@ key determines the visible Apps and owns the resulting operations and artifacts.
 
 ## Discover before invoking
 
-1. For an unknown App, prefer compact `workbench_list_apps` with a relevant
-   query. For a named App, read its schema directly. Legacy `list_models` and
+1. For discovery, call compact `workbench_list_apps` once with `{}`. It returns
+   the complete authorized catalog without filters. For a domain question select
+   the relevant returned group; do not enumerate domains through keyword retries.
+   `workbench_search_apps` is a separate literal phrase search: zero matches do
+   not mean zero permissions. For a named App, read its schema directly. Legacy `list_models` and
    `list_scientific_models` remain fallbacks when the workbench helper is absent.
    Compare their `tool_catalog_revision`; refresh tools when it changes.
 2. Call `get_model_schema` with the selected public `model_id` and protocol.

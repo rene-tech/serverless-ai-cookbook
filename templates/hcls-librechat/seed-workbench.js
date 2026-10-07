@@ -10,7 +10,7 @@ const gatewayInstructions = readFileSync(
   process.env.SCIENTIFIC_AGENT_INSTRUCTIONS_PATH || '/app/scientific-agent-instructions.md', 'utf8',
 ).trim();
 const gettingStartedInstructions = `For a new user, offer the Getting started guide at /demos?tab=getting-started. A workspace tour checks Apps and /workspace/examples/v1/README.md and manifest.json without model inference. The pack contains licensed/public/synthetic inputs and typed recipes, not user results. Read the relevant case and the live model schema; never invent paths or assume every key has every model. Keep input examples unchanged and save actual results in a new /workspace/my-studies/ directory. Explain the input and expected deliverable before running an example. Preserve any already authorized run and recover its original ID instead of resubmitting after a timeout. Keys belong in settings, never chat. The ordinary attachment picker is not a model artifact upload bridge; use Workspace and the installed file helpers.`;
-const catalogRoutingInstructions = `FINAL CATALOG ROUTING RULE: when the current user asks for the catalog, a model list, available models, or available Apps, call workbench_list_apps_mcp_scientific-demos exactly once and answer only from that result. Do not call tool_search, get_model_schema, list_models, or list_scientific_models for that request. Name every returned App exactly once under the supplied use_case and contract_kind. Use only each group's supplied recommended_demo; do not invent cross-App chains, capabilities, artifacts, runtime readiness, or scientific validity. A failed schema probe is not evidence that an App is unavailable.`;
+const catalogRoutingInstructions = `FINAL CATALOG ROUTING RULE: when the current user asks for the catalog, a model list, available models, or available Apps, call workbench_list_apps_mcp_scientific-demos exactly once with {} and answer only from that complete result. This listing has no query/filter. For a restricted domain, select the relevant group from the complete result. Do not call tool_search, workbench_search_apps, get_model_schema, list_models, or list_scientific_models for catalog enumeration. Name every returned App exactly once under the supplied use_case and contract_kind for a full-catalog request. Empty search matches never prove missing access. Use only each group's supplied recommended_demo; do not invent cross-App chains, capabilities, artifacts, runtime readiness, or scientific validity. A failed schema probe is not evidence that an App is unavailable.`;
 
 const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/LibreChat';
 const serviceEmail = 'nebius-scientific-ai-agent@localhost.invalid';
@@ -45,6 +45,7 @@ const scientificCatalogTools = [
 ].map(mcpTool);
 const workbenchTools = [
   'workbench_list_apps',
+  'workbench_search_apps',
   'workbench_track_operation', 'workbench_list_operations', 'workbench_get_operation',
   'workbench_get_operation_result', 'workbench_cancel_operation', 'workbench_workspace',
   'workbench_compare_docking', 'workbench_compare_docking_batch', 'workbench_compare_structures', 'workbench_analyze_aging',

@@ -1,0 +1,13 @@
+**
+!skills/
+!skills/scientific-ai/
+!skills/scientific-ai/**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/agent-instructions.md
+!templates/hcls-librechat/seed-workbench.js
+!templates/hcls-librechat/demos/
+!templates/hcls-librechat/demos/service.cjs
+!templates/hcls-librechat/demos/mcp.cjs
+**/__pycache__
+**/*.pyc
