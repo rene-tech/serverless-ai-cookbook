@@ -60,6 +60,15 @@ used only existing `system/qa` identity and public HLCA data, not a customer key
    reusable reference and validation receipt were delivered as workspace links.
    Independent authenticated HTTP readback checked every byte of those links,
    including the 318.6 MB H5AD and 79.1 MB CSV. No replacement operation.
+6. Actual reference reuse: operation `24467cb6-2001-453e-a7ab-1a2d61252e81`
+   mapped an explicitly selected 4,096-cell / 2,000-gene query against that
+   reference, ten query epochs, seed 45. First admitted operation succeeded in
+   37.72 seconds (13.57 seconds worker execution); all 18 files / 22,058,276 bytes
+   and every embedding validated. The query overlaps the reference: no held-out
+   accuracy claim. Local preparation required two recoveries (AnnData nullable
+   string write opt-in and local HDF5 staging before S3 copy). This was not a
+   zero-error preprocessing flow; preserve that evidence and stage new HDF5
+   files locally, close/validate, then publish and verify the complete copy.
 
 Raw evidence and private endpoint bindings are retained at
 `/home/tux/secure-handoff/fs2-whitelab-final-20261007/`; never publish that directory.
