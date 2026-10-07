@@ -41,7 +41,7 @@ HDF5/base64 or large matrices into MCP arguments. The full LibreChat workbench
 ships a pinned copy of the platform's REST/MCP file client:
 
 ```bash
-python3 /opt/bionemo/scvi-batch.py \
+/opt/scientific-client/bin/python /opt/bionemo/scvi-batch.py \
   --input /workspace/my-study/counts.h5ad \
   --parameters /workspace/my-study/parameters.json \
   --output /workspace/my-study/run-001 \
@@ -62,7 +62,7 @@ resubmit merely because a foreground tool wait expires. Exit **75** means a
 durable operation is still pending (including result publication). Continue:
 
 ```bash
-python3 /opt/bionemo/scvi-batch.py \
+/opt/scientific-client/bin/python /opt/bionemo/scvi-batch.py \
   --output /workspace/my-study/run-001 --recover-only --wait-seconds 60
 ```
 

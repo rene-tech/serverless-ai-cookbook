@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/scientific-client/bin/python
 """Large scVI/scANVI jobs via canonical REST/MCP clients; exit 75 means pending."""
 import argparse
 import hashlib

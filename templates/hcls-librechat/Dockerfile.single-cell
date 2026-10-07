@@ -7,8 +7,8 @@ COPY skills/scientific-ai/ /release/app/skill/
 COPY templates/hcls-librechat/scvi-batch.py /release/opt/bionemo/scvi-batch.py
 COPY templates/hcls-librechat/scvi-client/ /release/opt/bionemo/scvi-client/
 RUN python3 /release/app/skill/bundle.py verify \
- && PYTHONPATH=/opt/bionemo python3 /release/opt/bionemo/scvi-batch.py --help \
- && python3 -c 'import httpx,numpy,pandas'
+ && PYTHONPATH=/opt/bionemo /opt/scientific-client/bin/python /release/opt/bionemo/scvi-batch.py --help \
+ && /opt/scientific-client/bin/python -c 'import httpx,numpy,pandas'
 
 # One overlay layer; preserve enough layer headroom for Serverless's container.
 FROM ${WORKBENCH_BASE}
