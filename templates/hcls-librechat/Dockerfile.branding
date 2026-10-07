@@ -3,19 +3,19 @@
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:ce8fc5e3a87f4910951b3733a3be3d2f53a9d5ed3bede6921e8997bba6679496
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
-COPY templates/hcls-librechat/ /tmp/branding/
-RUN cp /tmp/branding/ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx \
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/branding \
+    cp /tmp/branding/ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx \
  && cp /tmp/branding/PoweredByFooter.tsx /app/client/src/components/Chat/Footer.tsx \
  && cp /tmp/branding/AuthPoweredByFooter.tsx /app/client/src/components/Auth/Footer.tsx \
  && cp /tmp/branding/ScientificBranding.test.tsx /app/client/src/components/Chat/ \
  && node /tmp/branding/patch-branding.mjs /app/client \
  && node /tmp/branding/brand-client.mjs /app/client /tmp/branding/assets --source \
- && node --test /tmp/branding/brand-client.test.mjs
-WORKDIR /app/client
-RUN NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/Chat/ScientificBranding.test.tsx \
- && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build \
- && node /tmp/branding/brand-client.mjs /app/client/dist /tmp/branding/assets --verify
-RUN mkdir -p /release/app/client /release/opt/hcls-librechat \
+ && node --test /tmp/branding/brand-client.test.mjs \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/Chat/ScientificBranding.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /tmp/branding/brand-client.mjs /app/client/dist /tmp/branding/assets --verify \
+ && mkdir -p /release/app/client /release/opt/hcls-librechat \
  && cp -a /app/client/dist /app/client/public /app/client/src /app/client/index.html /release/app/client/ \
  && cp /tmp/branding/brand-client.mjs /tmp/branding/patch-branding.mjs /release/opt/hcls-librechat/ \
  && cp -a /tmp/branding/assets /release/opt/hcls-librechat/assets
