@@ -23,5 +23,5 @@ RUN --mount=from=assembled,source=/release,target=/tmp/single-cell-release,ro \
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
-      ai.nebius.scientific.skills.version="2026.10.07.3" \
+      ai.nebius.scientific.skills.version="2026.10.07.4" \
       ai.nebius.scientific.release="single-cell-batch-20261007"

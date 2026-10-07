@@ -1,12 +1,12 @@
 {
   "repository": "https://github.com/rene-tech/nebius-solutions-library",
-  "commit": "b033baeb4361305fdbf756a397382de48c9c3a87",
+  "commit": "b2aa0c2b24e3c3e9d258f9980468d4d1945a38ea",
   "path": "k8s-inference/models/visual-science/scvi-scanvi",
   "license": "Apache-2.0",
   "note": "Unmodified canonical clients. Fix transport upstream, then refresh these pinned files; do not develop a second implementation here.",
   "files": {
     "qualify_api.py": "5fdda1d5ea352587c7a72504b986269c4ba0241c28d8e7f236b284bdc43ec691",
-    "qualify_hosted.py": "d9c0758838b202793ee3a3b13871887619b75e43ce46b015fe9430bf99600e93",
+    "qualify_hosted.py": "3f6df4e636766af3d1bdb196df522461ea8b61241a2c4e8c2369a604707bc3a6",
     "qualify_outputs.py": "5d8908ca4672ade5df32af57551a72476c836920488aa4c40f9795fcbbbfcf80"
   }
 }

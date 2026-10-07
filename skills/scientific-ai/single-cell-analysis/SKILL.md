@@ -40,7 +40,7 @@ discovery call with `summary_only: true` lists both native and batch tools.
 4. Select the live execution profile: routine single GPU with 128 GiB RAM or
    atlas with 256 GiB RAM, currently qualified on H100. Batch uploads currently
    accept up to 25 GiB; expanded matrix and training memory remain constraints.
-   Eight admitted operations does not guarantee eight immediately available
+Eight admitted operations does not guarantee eight immediately available
    GPUs. Queued work retains its operation ID. API limits/schema take priority.
 
 ## Submit once, then recover the same operation
@@ -64,6 +64,13 @@ bucket prefix. A starting example is at
 For mapping add `--reference /workspace/prior-study/reference.tar.gz`.
 Other MCP clients can use the same public upload/submit/status/result APIs;
 installing this skill alone does not install a Python executor or client image.
+
+The file client waits up to 900 seconds on an explicit key-capacity rejection
+before admission, retaining the exact request and idempotency key. This is not a
+queued GPU operation yet. It does not retry scientific/validation errors or
+invent another job. If that wait expires, retain uploads and the study receipt;
+retry the same original invocation once a slot is available. `--recover-only`
+requires an admitted operation ID and is not the pre-admission retry command.
 
 Large uploads can take minutes. Run the helper through the workbench's managed
 background execution, retain the handle/log, and observe it. Do not kill and
