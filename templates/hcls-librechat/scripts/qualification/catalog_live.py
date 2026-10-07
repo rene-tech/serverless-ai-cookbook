@@ -30,7 +30,8 @@ CASES = {
 }
 SAFE_TOOLS = {
     'workbench_list_apps_mcp_scientific-demos', 'tavily_search_mcp_tavily',
-    'get_model_schema_mcp_scientific-ai-apps', 'read_file', 'tool_search',
+    'get_model_schema_mcp_scientific-ai-apps', 'read_file', 'skill', 'tool_search',
+    'workbench_search_apps_mcp_scientific-demos',
 }
 
 
@@ -45,6 +46,18 @@ def normalize(text):
     return re.sub(r'[^a-z0-9]+', '', text.lower())
 
 
+def assistant_for_turn(rows, intent, prompt):
+    # LibreChat assigns a canonical user-message ID on admission; the requested
+    # messageId is not its persisted identity. Reject ambiguous branches.
+    users = [m for m in rows if m.get('isCreatedByUser')
+             and m.get('parentMessageId') == intent['parentMessageId']
+             and m.get('text') == prompt]
+    assert len(users) <= 1, 'Ambiguous admitted user message'
+    user_id = users[0]['messageId'] if users else None
+    return next((m for m in reversed(rows) if not m.get('isCreatedByUser')
+                 and user_id and m.get('parentMessageId') == user_id), None)
+
+
 def run_case(args, case, token, expected):
     origin = args.origin.rstrip('/')
     headers = {'Origin': origin, 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0.0.0 Safari/537.36', 'Authorization': 'Bearer ' + token}
@@ -55,7 +68,8 @@ def run_case(args, case, token, expected):
             started = time.monotonic()
             prefix = args.output / f'{case}-{turn}'
             intent_path, accepted_path = prefix.with_suffix('.intent.json'), prefix.with_suffix('.accepted.json')
-            if accepted_path.exists():
+            recovered_admission = accepted_path.exists()
+            if recovered_admission:
                 accepted = json.loads(accepted_path.read_text())
                 intent = json.loads(intent_path.read_text())
             else:
@@ -81,8 +95,7 @@ def run_case(args, case, token, expected):
                 response.raise_for_status()
                 rows = response.json()
                 rows = rows if isinstance(rows, list) else rows['messages']
-                last = next((m for m in reversed(rows) if not m.get('isCreatedByUser')
-                             and m.get('parentMessageId') == intent['messageId']), None)
+                last = assistant_for_turn(rows, intent, prompt)
                 if not status.get('active') and last and not last.get('unfinished'):
                     break
                 if time.monotonic() >= deadline:
@@ -95,6 +108,10 @@ def run_case(args, case, token, expected):
             catalog_calls = [x for x in calls if x['name'] == 'workbench_list_apps_mcp_scientific-demos']
             assert len(catalog_calls) == 1, (case, turn, 'catalog call count', len(catalog_calls))
             assert all(x['name'] in SAFE_TOOLS for x in calls), 'Unexpected tool; inspect private trace'
+            searches = [x for x in calls if x['name'] == 'workbench_search_apps_mcp_scientific-demos']
+            # Research may check a named App from a chosen paper. Enumeration
+            # must never fall back to repeated keyword/domain searches.
+            assert len(searches) <= (1 if case == 'reproduction' else 0), 'Unexpected catalog probing'
             assert catalog_calls[0].get('runStepStatus') == 'completed'
             catalog = json.loads(catalog_calls[0]['output'])
             assert catalog['catalog_scope'] == 'full_authorized_catalog'
@@ -118,6 +135,7 @@ def run_case(args, case, token, expected):
                            'message_id': parent, 'catalog_calls': 1, 'catalog_count': catalog['count'],
                            'tools': [x['name'] for x in calls], 'final_text_sha256': hashlib.sha256(text.encode()).hexdigest(),
                            'final_text_chars': len(text), 'observed_wall_seconds': round(time.monotonic() - started, 3),
+                           'recovered_admission': recovered_admission,
                            'passed': True})
             save(prefix.with_suffix('.receipt.json'), checks[-1])
     return checks
