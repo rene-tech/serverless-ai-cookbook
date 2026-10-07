@@ -63,7 +63,7 @@ customer endpoints are not automatically upgraded.
   successful version uses a build-time bind mount and one final added layer
   (126 total); the failed build was never deployed.
 
-Live rollout receipt is recorded below after verification. This is a branding
+Live rollout receipt is recorded below. This is a branding
 and state-preservation release, not a new all-model or scientific-capacity
 qualification. No browser automation or visual-layout certification is claimed.
 
@@ -82,3 +82,28 @@ For state recovery, the supervisor snapshot is named
 `basel-nebius-branding-20261007`. Private deployment/export evidence is under
 `/home/tux/secure-handoff/fs2-basel-onboarding-20261007/branding-*`; do not commit
 these files because the export includes account and credential records.
+
+## Live result
+
+At 06:46 UTC the successor `aiendpoint-e00bc15wzevpxghz6z` was running and
+healthy on the exact published digest above.
+
+- Workspace: https://port3080-qq1vaq513mj53x3.tunnel.applications.eu-north1.nebius.cloud
+- Registration: https://port3080-qq1vaq513mj53x3.tunnel.applications.eu-north1.nebius.cloud/register
+- `/`, `/login`, `/register`: HTTP 200 and the correct workspace title/theme.
+- Both served Nebius asset paths match the source artwork exactly:
+  `35a8a56d0a07e7acb3813839126cf425e012a3f70307d405ede58aa784162374`.
+- `/api/config` reports the Workspace title, registration enabled and no custom
+  footer overriding the partner logos.
+- Existing owner login succeeds with the same account identity and password.
+  Both pre-existing user records and the stored plugin credential record were
+  compared before/after, including their contents (excluding login timestamps).
+  There were no stored conversations/messages before the replacement; no
+  non-empty-history preservation claim is inferred from this rollout.
+- The cold state snapshot exists on the retained filesystem. Workspace binding
+  and starter-manifest checksum are unchanged; no bucket or key was recreated.
+- Authenticated Apps returns the same 46-model catalog, the seeded agent and
+  settings remain accessible, and Tavily/PhenoAge/GROMACS tools are discoverable.
+  No model inference or provider load benchmark was rerun for this UI-only fix.
+- Public health is HTTP 200. The old endpoint is stopped, retained for rollback;
+  its earlier managed tunnel URL is superseded by the link above.
