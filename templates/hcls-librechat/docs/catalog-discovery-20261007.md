@@ -137,3 +137,8 @@ merged source requires fresh composition and live acceptance; neither these
 catalog conversations nor a source merge qualify the independent MD candidate.
 Source-integration checks cover catalog/seed behavior, advice boundaries, native
 MD recovery/reporting, single-cell helpers and the one-click deployment link.
+Merge `95337c9` is published on the fork's `main`; 140 Python and 30 Node
+source-integration tests passed. These additional tests used an isolated local
+environment with the runtime's pinned HTTP/MCP dependencies. They did not mutate
+the deployed image or run customer inference. The deployment default and the
+one-click launch link both select the qualified R2 digest.
