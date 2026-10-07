@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay catalog conversations through an internal QA LibreChat, never inference.
+"""Replay catalog conversations through QA LibreChat, without scientific App jobs.
 
 Uses the real authenticated agent/chat and message routes, not direct LLM calls.
 Keep --output private: it contains chat transcripts, but never login credentials.
@@ -52,6 +52,7 @@ def run_case(args, case, token, expected):
     checks = []
     with httpx.Client(base_url=origin, headers=headers, timeout=90) as client:
         for turn, prompt in enumerate(CASES[case]):
+            started = time.monotonic()
             prefix = args.output / f'{case}-{turn}'
             intent_path, accepted_path = prefix.with_suffix('.intent.json'), prefix.with_suffix('.accepted.json')
             if accepted_path.exists():
@@ -116,7 +117,8 @@ def run_case(args, case, token, expected):
             checks.append({'case': case, 'turn': turn, 'conversation_id': conversation,
                            'message_id': parent, 'catalog_calls': 1, 'catalog_count': catalog['count'],
                            'tools': [x['name'] for x in calls], 'final_text_sha256': hashlib.sha256(text.encode()).hexdigest(),
-                           'final_text_chars': len(text), 'passed': True})
+                           'final_text_chars': len(text), 'observed_wall_seconds': round(time.monotonic() - started, 3),
+                           'passed': True})
             save(prefix.with_suffix('.receipt.json'), checks[-1])
     return checks
 
