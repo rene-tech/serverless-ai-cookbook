@@ -12,6 +12,11 @@ studies. The older `integrate_single_cell_native`/`scvi-integrate.py` path is a
 separate small-demo adapter with 64 MiB/100,000-cell limits. Those are **not**
 limits of the new batch API; do not route a large study through that adapter.
 
+For batch fields call `get_model_schema` with
+`{"model_id":"scvi-scanvi","tool_name":"submit_scvi_scanvi"}`. The exact
+protocol selector is `scientific-batch-v1`, not `scientific-batch`. A compact
+discovery call with `summary_only: true` lists both native and batch tools.
+
 ## Inspect and choose the scientific method
 
 1. Inspect the `.h5ad`: unique cell/gene IDs, sparse format, shape, available
@@ -65,6 +70,13 @@ durable operation is still pending (including result publication). Continue:
 /opt/scientific-client/bin/python /opt/bionemo/scvi-batch.py \
   --output /workspace/my-study/run-001 --recover-only --wait-seconds 60
 ```
+
+Exit 75 stops the local helper. The remote job continues, but its local files
+do **not** download themselves afterwards. If the user asked for completed
+results, retain a managed background recovery command with an appropriate wait
+budget, or recover the same operation on their next request. Distinguish
+remote completion, bucket export and verified local download. Do not promise
+an automatic notification or local delivery unless a running task provides it.
 
 Keep the same output directory and API identity. Never submit a replacement
 while a retained operation is queued/running. Inspect `client.log`, admission,

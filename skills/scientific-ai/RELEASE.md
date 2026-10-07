@@ -1,4 +1,4 @@
-# Scientific AI skills 2026.10.07.1 — durable single-cell studies
+# Scientific AI skills 2026.10.07.2 — durable single-cell studies
 
 The single-cell skill now targets the large-file scientific batch API, including
 scVI integration, scANVI labels/probabilities, query-to-reference mapping and
@@ -6,6 +6,8 @@ checkpoint recovery. It separates this from the older small native demo adapter.
 The full workbench adds the pinned platform file client with retained operation
 recovery; downloading skills alone does not install that runtime. Qualification
 and the exact deployed image are recorded in the WhiteLab handover evidence.
+The agent-level test also clarified exact batch schema discovery and that a
+pending helper exit requires recovery before local result files are downloaded.
 
 ## Previous naming integration: 2026.09.20.3
 
