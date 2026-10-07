@@ -22,6 +22,7 @@ RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliab
  && cp /tmp/agent-reliability/ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx \
  && cp /tmp/agent-reliability/ScientificGettingStarted.tsx /app/client/src/components/ScientificGettingStarted.tsx \
  && cp /tmp/agent-reliability/PoweredByFooter.tsx /app/client/src/components/Chat/Footer.tsx \
+ && cp /tmp/agent-reliability/AuthPoweredByFooter.tsx /app/client/src/components/Auth/Footer.tsx \
  && cp /tmp/agent-reliability/WorkspaceInlineCode.tsx /app/client/src/components/WorkspaceInlineCode.tsx \
  && cp /tmp/agent-reliability/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
  && cp /tmp/agent-reliability/demos/comparison.ts /app/client/src/components/scientific-comparison.ts \
@@ -37,8 +38,11 @@ RUN cp /tmp/agent-reliability/scientific-provider-recovery.cjs /tmp/agent-reliab
  && node --check /app/seed-hcls-workbench.js \
  && python3 -m py_compile /opt/bionemo/execution-mcp.py /opt/bionemo/scientific_verified_results.py
 WORKDIR /app/client
-RUN NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
- && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build
+RUN node /tmp/agent-reliability/patch-branding.mjs /app/client \
+ && node /tmp/agent-reliability/brand-client.mjs /app/client /tmp/agent-reliability/assets --source \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build \
+ && node /tmp/agent-reliability/brand-client.mjs /app/client/dist /tmp/agent-reliability/assets --verify
 
 # Stage only changed files so the final layer stays small, without hashing or
 # copying the full multi-GB dependency tree on every additive release.
@@ -57,11 +61,13 @@ RUN mkdir -p /release/opt/hcls-librechat /release/opt/bionemo /release/app/skill
  && cp /app/skill/manifest.json /app/skill/files.sha256.json /release/app/skill/ \
  && cp /app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs /release/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
  && cp -a /app/client/src/. /release/app/client/src/ \
+ && cp -a /app/client/public /app/client/index.html /release/app/client/ \
  && cp -a /app/client/dist /release/app/client/dist
 
 FROM ${WORKBENCH_BASE}
 USER root
 COPY --from=assembled /release/ /
+ENV APP_TITLE="Nebius Scientific AI Workspace"
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \

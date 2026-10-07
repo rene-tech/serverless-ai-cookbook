@@ -73,7 +73,7 @@ function Footer({ className, startupConfig }: FooterProps) {
         <NvidiaLogo />
       </span>
       <span className="text-text-secondary">and</span>
-      <img src="/assets/logo.svg" alt="Nebius" width="87" height="24" className="h-6 w-auto shrink-0" />
+      <img src="/assets/nebius-logo.svg" alt="Nebius" width="87" height="24" className="h-6 w-auto shrink-0" />
     </span>
   );
 

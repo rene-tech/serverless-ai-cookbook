@@ -6,6 +6,7 @@ MCP connection, skills and platform documentation.
 | Concept | Canonical name | Where it appears |
 | --- | --- | --- |
 | Product | **Nebius Scientific AI** | Page headers, handovers and product documentation |
+| Customer workspace | **Nebius Scientific AI Workspace** | Browser title, login, persistent chat header and landing page |
 | Hosted resource | **Scientific AI App** | Catalog entries, grants, runs and settings |
 | MCP service | **Scientific AI MCP server** | Protocol and integration documentation |
 | LibreChat MCP connection ID | `scientific-ai-apps` | `librechat.yaml`, generated tool suffixes and saved agents |
@@ -13,6 +14,12 @@ MCP connection, skills and platform documentation.
 | Customer assistant | **Nebius Scientific AI Agent** | LibreChat agent and model selector |
 | NVIDIA ecosystem | **NVIDIA BioNeMo** | Only actual BioNeMo models, source lineage, badges and toolkit compatibility |
 | Conversational model service | **Nebius Token Factory** | Chat-model provider, separate from Scientific AI Apps |
+
+Nebius is the workspace's primary brand. The footer carries both NVIDIA and
+Nebius. Keep the assistant name distinct from the workspace name. Frontend
+rebuilds must retain the source `public/assets` artwork and branded `index.html`;
+verify the built SVG bytes with `brand-client.mjs --verify`, not only image alt
+text or HTTP status. See `docs/nebius-branding-20261007.md` for the regression.
 
 An App can be an NVIDIA BioNeMo model, another NVIDIA model, a community model,
 an internally packaged runtime or a multi-step workflow. Therefore **BioNeMo is

@@ -14,6 +14,9 @@ USER root
 COPY templates/hcls-librechat/ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx
 COPY templates/hcls-librechat/ScientificGettingStarted.tsx /app/client/src/components/ScientificGettingStarted.tsx
 COPY templates/hcls-librechat/PoweredByFooter.tsx /app/client/src/components/Chat/Footer.tsx
+COPY templates/hcls-librechat/AuthPoweredByFooter.tsx /app/client/src/components/Auth/Footer.tsx
+COPY templates/hcls-librechat/brand-client.mjs templates/hcls-librechat/patch-branding.mjs /tmp/branding/
+COPY templates/hcls-librechat/assets/ /tmp/branding/assets/
 COPY templates/hcls-librechat/WorkspaceInlineCode.tsx /app/client/src/components/WorkspaceInlineCode.tsx
 COPY templates/hcls-librechat/patch-client.mjs /tmp/patch-client.mjs
 RUN node /tmp/patch-client.mjs
@@ -26,7 +29,10 @@ COPY templates/hcls-librechat/demos/run-display.ts /app/client/src/components/sc
 COPY templates/hcls-librechat/demos/patch.mjs /tmp/patch-demos.mjs
 RUN node /tmp/patch-demos.mjs client
 WORKDIR /app/client
-RUN NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build
+RUN node /tmp/branding/patch-branding.mjs /app/client \
+ && node /tmp/branding/brand-client.mjs /app/client /tmp/branding/assets --source \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build \
+ && node /tmp/branding/brand-client.mjs /app/client/dist /tmp/branding/assets --verify
 
 FROM ${LIBRECHAT_BASE} AS aging-reference
 USER root
@@ -53,6 +59,9 @@ FROM ${LIBRECHAT_BASE}
 
 USER root
 COPY --from=scientific-client /app/client/dist /app/client/dist
+COPY --from=scientific-client /app/client/public /app/client/public
+COPY --from=scientific-client /app/client/src /app/client/src
+COPY --from=scientific-client /app/client/index.html /app/client/index.html
 COPY --from=openff-runtime /opt/openff /opt/openff
 COPY templates/hcls-librechat/openff/ /opt/openff-release/
 # zstd is the published scientific/LeRobot archive transport, not an optional
@@ -145,6 +154,7 @@ COPY templates/hcls-librechat/prepare-openff.py /opt/bionemo/prepare-openff.py
 COPY life-science/bionemo-librechat/scientific-agent-instructions.md /app/scientific-agent-instructions.md
 COPY templates/hcls-librechat/entrypoint.sh /usr/local/bin/hcls-librechat-entrypoint
 COPY templates/hcls-librechat/brand-client.mjs /opt/hcls-librechat/brand-client.mjs
+COPY templates/hcls-librechat/assets/ /opt/hcls-librechat/assets/
 COPY templates/hcls-librechat/seed-user.js /app/seed-user.js
 # One public source for LibreChat and external MCP clients. Optional private
 # operator skills are not a dependency of a customer build.
@@ -173,7 +183,7 @@ RUN chmod 0755 /usr/local/bin/hcls-librechat-entrypoint \
 # Keep revision-only rebuilds on this final metadata layer so the expensive
 # system and scientific Python dependency layers remain cacheable.
 ARG HCLS_IMAGE_REVISION=unknown
-LABEL org.opencontainers.image.title="Nebius Scientific AI Agent" \
+LABEL org.opencontainers.image.title="Nebius Scientific AI Workspace" \
       org.opencontainers.image.source="https://github.com/nebius/serverless-ai-cookbook" \
       org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.licenses="MIT"
@@ -184,7 +194,7 @@ ENV SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true \
     SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072 \
     PORT=3080 \
     NODE_ENV=production \
-    APP_TITLE="Nebius Scientific AI Agent" \
+    APP_TITLE="Nebius Scientific AI Workspace" \
     MONGO_URI=mongodb://127.0.0.1:27017/LibreChat \
     CONFIG_PATH=/data/hcls-librechat/librechat.yaml \
     ALLOW_REGISTRATION=true \

@@ -1,0 +1,12 @@
+**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/ScientificLanding.tsx
+!templates/hcls-librechat/PoweredByFooter.tsx
+!templates/hcls-librechat/AuthPoweredByFooter.tsx
+!templates/hcls-librechat/ScientificBranding.test.tsx
+!templates/hcls-librechat/brand-client.mjs
+!templates/hcls-librechat/brand-client.test.mjs
+!templates/hcls-librechat/patch-branding.mjs
+!templates/hcls-librechat/assets/
+!templates/hcls-librechat/assets/**

@@ -78,8 +78,8 @@ export default function ScientificLanding(_props: { centerFormOnLanding: boolean
       className="mx-auto w-full max-w-4xl px-4 pb-5 pt-4 sm:px-6 sm:pt-6">
       <header className="mb-6 sm:mb-8">
         <div className="mb-4 flex items-center gap-3">
-          <img src="/assets/logo.svg" alt="Nebius" width="92" height="24" className="nebius-wordmark" />
-          <span className="border-l border-border-medium pl-3 text-xs font-medium tracking-wide text-text-secondary">SCIENTIFIC WORKSPACE</span>
+          <img src="/assets/nebius-logo.svg" alt="Nebius" width="92" height="24" className="nebius-wordmark" />
+          <span className="border-l border-border-medium pl-3 text-xs font-medium tracking-wide text-text-secondary">Scientific AI Workspace</span>
         </div>
         <p className="mb-3 text-xs font-medium text-text-secondary">Models, data, literature and reproducible runs in one workspace</p>
         <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">Turn a scientific question into traceable work.</h2>
