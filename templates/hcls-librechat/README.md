@@ -234,6 +234,34 @@ its image to work around this limitation.
   and expired key handling, new-chat subagent polling, deferred tool options, and
   bounded title fallback. Revalidate them when upgrading the base image.
 
+### Explicitly shared, registration-enabled tenant instance
+
+The default remains separate user instances with registration disabled. For an
+owner-requested shared instance, set `ALLOW_REGISTRATION=true` and
+`SCIENTIFIC_SHARED_GATEWAY_ENABLED=true`. The latter enables the deployment's
+Scientific AI credential for the authenticated Apps panel and workbench MCP
+tools of new registrations. Existing personal key settings remain preferred.
+Credentials are not rendered into public browser configuration.
+
+Select an image containing this opt-in feature; its first scoped release is
+`cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:basel-shared-registration-20261007-r2`
+(index digest `sha256:ce8fc5e3a87f4910951b3733a3be3d2f53a9d5ed3bede6921e8997bba6679496`).
+This release does not change the fleet-wide image default or existing clients.
+
+All participants intentionally share the workspace and the deployment API key's
+concurrency allowance; conversations and accounts remain login-scoped. Keep one
+dedicated `/data` filesystem for MongoDB, uploads and encryption state, separate
+from the S3 bucket mounted at `/workspace`. Do not reuse another client's state
+filesystem. An inference-key expiry does not stop the workbench or revoke S3,
+Token Factory or Tavily access.
+
+With no SMTP configuration, local registration follows LibreChat's built-in
+flow. Verify a real new registration/login, preconfigured Apps and Workspace,
+Token Factory response, real Tavily search and a semantic Scientific AI operation
+through that new login. A model grant is not scientific validation of every
+workflow. Never advertise a configured eight-operation limit as eight reserved
+or immediately available GPUs.
+
 ## Verify
 
 The public customer skill source is now `skills/scientific-ai`; it includes the
