@@ -1,0 +1,6 @@
+**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/**
+**/__pycache__
+**/*.pyc

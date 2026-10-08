@@ -162,6 +162,26 @@ test('mounted workspace stays inside its root and round-trips files', async () =
   const unicode = await service.workspacePut('fixture-key', 'papers/Å & table.csv', source);
   assert.equal(new URL(unicode.workspace_url, 'https://workbench.invalid').searchParams.get('file'), 'papers/Å & table.csv');
 });
+test('workspace preserves every byte of arbitrary, empty and Unicode files; paginates S3 listings', async () => {
+  const service = await setup;
+  const names = ['protein.cif', 'opaque.custom-format', 'NO_EXTENSION', 'empty', '患者 Δ.bin'];
+  for (const name of names) {
+    const bytes = name === 'empty' ? Buffer.alloc(0) : Buffer.from([0, 255, 17, 0, 88]);
+    const local = path.join(root, name); await fs.writeFile(local, bytes);
+    const receipt = await service.workspacePut('fixture-key', 'any-files/' + name, local);
+    assert.equal(receipt.sha256, crypto.createHash('sha256').update(bytes).digest('hex'));
+    assert.equal(receipt.size_bytes, bytes.length);
+    assert.deepEqual(await fs.readFile((await service.workspaceGet('fixture-key', receipt.path)).absolute), bytes);
+  }
+  const found = [];
+  let offset = 0;
+  do {
+    const page = await service.workspaceList('fixture-key', 'any-files', {offset, limit: 2});
+    found.push(...page.data.map(entry => entry.name)); offset = page.next_offset;
+  } while (offset !== null);
+  assert.deepEqual([...found].sort(), names.sort());
+  await assert.rejects(service.workspaceList('fixture-key', 'any-files', {offset: -1}), /Invalid workspace page/);
+});
 test('artifact-backed operation results are verified and compacted for the agent', async () => {
   const service = await setup;
   const operationId = '11111111-1111-4111-8111-111111111111';

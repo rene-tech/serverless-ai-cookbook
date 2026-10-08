@@ -542,20 +542,23 @@ async function workspaceInfo(key) {
   const storage = await platform(key, 'GET', '/v1/storage').catch((error) => ({ state: 'unavailable', error: error.message }));
   return { ...storage, mounted: false };
 }
-async function workspaceList(key, relative = '') {
+async function workspaceList(key, relative = '', { offset = 0, limit = 500 } = {}) {
+  if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 500) throw failure('Invalid workspace page.');
   const info = await workspaceInfo(key);
   if (!info.mounted) throw failure('This deployment has no mounted workspace. Use the platform bucket credentials from your account until the shared-workbench S3 bridge is enabled.', 503);
   const target = workspacePath(relative);
   let entries;
   try { entries = await fs.readdir(target.absolute, { withFileTypes: true }); }
   catch (error) { if (error.code === 'ENOENT') throw failure('Workspace folder not found.', 404); throw error; }
-  const data = await Promise.all(entries.slice(0, 500).map(async (entry) => {
+  entries.sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name));
+  const data = await Promise.all(entries.slice(offset, offset + limit).map(async (entry) => {
     const stat = await fs.stat(path.join(target.absolute, entry.name));
     return { name: entry.name, path: [target.normalized, entry.name].filter(Boolean).join('/'),
       kind: entry.isDirectory() ? 'directory' : 'file', size_bytes: entry.isFile() ? stat.size : undefined,
       updated_at: stat.mtime.toISOString() };
   }));
-  return { info, prefix: target.normalized, data: data.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name)) };
+  return { info, prefix: target.normalized, data, total_entries: entries.length,
+    next_offset: offset + limit < entries.length ? offset + limit : null };
 }
 async function workspacePut(key, relative, localPath) {
   const info = await workspaceInfo(key);

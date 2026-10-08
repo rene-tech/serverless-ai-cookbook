@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1.7
+# Compose over the exact customer release, preserving its instructions, skills,
+# single-cell runtime and branding. Final rebasing avoids overlay-depth failure.
+ARG RELEASE_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:243ba1dc462ea8e9dc72d620509cc09add24df325297d591e7cb5e4b62438eff
+ARG LAYER_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:521205505fb35a9e57ce7689c2ab97f613b0962de46c49889d993b5676f3bfa9
+FROM ${RELEASE_BASE} AS assembled
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-release \
+    cp /tmp/workspace-release/uploads/*.tsx /tmp/workspace-release/uploads/*.js /app/client/src/components/ \
+ && cp /tmp/workspace-release/speech/workshop-client.js /app/client/src/components/ \
+ && NODE_PATH=/app/node_modules node --test /tmp/workspace-release/uploads/test-*.mjs /tmp/workspace-release/uploads/test-workspace-ui.cjs /tmp/workspace-release/speech/test-workshop-client.mjs \
+ && node /tmp/workspace-release/uploads/patch.mjs \
+ && cp /tmp/workspace-release/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
+ && cp /tmp/workspace-release/demos/router.cjs /app/api/server/routes/scientific-demos.js \
+ && NODE_PATH=/app/node_modules node --test /tmp/workspace-release/demos/service.test.cjs /tmp/workspace-release/demos/router.test.cjs \
+ && cd /app/client \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
+ && mkdir -p /release/app/client /release/app/api/server/routes /release/opt/hcls-librechat/demos /release/opt/bionemo /release/app/skill \
+ && cp -a /app/client/dist /app/client/src /release/app/client/ \
+ && cp /app/api/server/routes/scientific-demos.js /release/app/api/server/routes/ \
+ && cp /opt/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/mcp.cjs /release/opt/hcls-librechat/demos/ \
+ && cp /app/agent-instructions.md /app/seed-hcls-workbench.js /release/app/ \
+ && cp -a /app/skill/. /release/app/skill/ \
+ && cp -a /opt/bionemo/scvi-batch.py /opt/bionemo/scvi-client /opt/bionemo/verify-single-cell-runtime.py /release/opt/bionemo/ \
+ && /opt/scientific-client/bin/pip download --no-deps --only-binary=:all: --dest /single-cell-wheels scipy==1.16.3
+
+FROM ${LAYER_BASE}
+USER root
+RUN --mount=from=assembled,source=/release,target=/tmp/workspace-release,ro \
+    --mount=from=assembled,source=/single-cell-wheels,target=/tmp/single-cell-wheels,ro \
+    cp -a /tmp/workspace-release/. / \
+ && /opt/scientific-client/bin/pip install --no-index --no-deps --force-reinstall --find-links=/tmp/single-cell-wheels scipy==1.16.3 \
+ && /opt/scientific-client/bin/pip check \
+ && /opt/scientific-client/bin/python /opt/bionemo/verify-single-cell-runtime.py
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      ai.nebius.scientific.skills.version="2026.10.07.5" \
+      ai.nebius.scientific.workspace.version="2026.10.08.1"
