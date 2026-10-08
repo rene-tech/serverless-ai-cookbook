@@ -16,25 +16,39 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-rele
  && cd /app/client \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
+ && node /tmp/workspace-release/uploads/verify-installed.mjs \
  && mkdir -p /release/app/client /release/app/api/server/routes /release/opt/hcls-librechat/demos /release/opt/bionemo /release/app/skill \
  && cp -a /app/client/dist /app/client/src /release/app/client/ \
  && cp /app/api/server/routes/scientific-demos.js /release/app/api/server/routes/ \
  && cp /opt/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/mcp.cjs /release/opt/hcls-librechat/demos/ \
+ && cp /tmp/workspace-release/uploads/verify-installed.mjs /release/opt/hcls-librechat/verify-workspace-installed.mjs \
  && cp /app/agent-instructions.md /app/seed-hcls-workbench.js /release/app/ \
  && cp -a /app/skill/. /release/app/skill/ \
  && cp -a /opt/bionemo/scvi-batch.py /opt/bionemo/scvi-client /opt/bionemo/verify-single-cell-runtime.py /release/opt/bionemo/ \
  && /opt/scientific-client/bin/pip download --no-deps --only-binary=:all: --dest /single-cell-wheels scipy==1.16.3
 
-FROM ${LAYER_BASE}
+FROM ${LAYER_BASE} AS runtime
 USER root
 RUN --mount=from=assembled,source=/release,target=/tmp/workspace-release,ro \
     --mount=from=assembled,source=/single-cell-wheels,target=/tmp/single-cell-wheels,ro \
     cp -a /tmp/workspace-release/. / \
  && /opt/scientific-client/bin/pip install --no-index --no-deps --force-reinstall --find-links=/tmp/single-cell-wheels scipy==1.16.3 \
  && /opt/scientific-client/bin/pip check \
- && /opt/scientific-client/bin/python /opt/bionemo/verify-single-cell-runtime.py
+ && /opt/scientific-client/bin/python /opt/bionemo/verify-single-cell-runtime.py \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
       ai.nebius.scientific.skills.version="2026.10.07.5" \
       ai.nebius.scientific.workspace.version="2026.10.08.1"
+
+# Export precisely the UI/file-route hotfix for existing customer endpoints.
+# No configuration, credentials, seed instructions, Python runtime or user data.
+FROM scratch AS workspace-patch
+COPY --from=assembled /app/client/dist /app/client/dist
+COPY --from=assembled /app/client/src /app/client/src
+COPY --from=assembled /app/api/server/routes/scientific-demos.js /app/api/server/routes/scientific-demos.js
+COPY --from=assembled /opt/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/service.cjs
+COPY --from=assembled /release/opt/hcls-librechat/verify-workspace-installed.mjs /opt/hcls-librechat/verify-workspace-installed.mjs
+
+FROM runtime AS release

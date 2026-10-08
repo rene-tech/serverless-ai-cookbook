@@ -28,6 +28,10 @@ COPY templates/hcls-librechat/demos/comparison.ts /app/client/src/components/sci
 COPY templates/hcls-librechat/demos/run-display.ts /app/client/src/components/scientific-run-display.ts
 COPY templates/hcls-librechat/demos/patch.mjs /tmp/patch-demos.mjs
 RUN node /tmp/patch-demos.mjs client
+COPY templates/hcls-librechat/uploads/ /tmp/workspace-uploads/
+COPY templates/hcls-librechat/speech/workshop-client.js /app/client/src/components/workshop-client.js
+RUN cp /tmp/workspace-uploads/*.tsx /tmp/workspace-uploads/*.js /app/client/src/components/ \
+ && node /tmp/workspace-uploads/patch.mjs
 WORKDIR /app/client
 RUN node /tmp/branding/patch-branding.mjs /app/client \
  && node /tmp/branding/brand-client.mjs /app/client /tmp/branding/assets --source \
@@ -87,6 +91,8 @@ COPY templates/hcls-librechat/demos/service.cjs \
      templates/hcls-librechat/demos/patch.mjs \
      templates/hcls-librechat/demos/workshop-example.json /opt/hcls-librechat/demos/
 COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
+COPY templates/hcls-librechat/uploads/verify-installed.mjs /opt/hcls-librechat/verify-workspace-installed.mjs
+RUN node /opt/hcls-librechat/verify-workspace-installed.mjs
 COPY templates/hcls-librechat/tavily-mcp.mjs /opt/bionemo/tavily-mcp.mjs
 COPY templates/hcls-librechat/structure-mcp.py /opt/bionemo/structure-mcp.py
 COPY templates/hcls-librechat/execution-mcp.py /opt/bionemo/execution-mcp.py

@@ -16,6 +16,16 @@ RUN micromamba create --yes --no-rc --root-prefix /tmp/openff-build --prefix /op
 
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-release \
+    cp /tmp/workspace-release/uploads/*.tsx /tmp/workspace-release/uploads/*.js /app/client/src/components/ \
+ && cp /tmp/workspace-release/speech/workshop-client.js /app/client/src/components/ \
+ && node /tmp/workspace-release/uploads/patch.mjs \
+ && cp /tmp/workspace-release/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
+ && cp /tmp/workspace-release/demos/router.cjs /app/api/server/routes/scientific-demos.js \
+ && cp /tmp/workspace-release/uploads/verify-installed.mjs /opt/hcls-librechat/verify-workspace-installed.mjs \
+ && cd /app/client \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs
 COPY --from=openff-runtime /opt/openff /opt/openff
 COPY templates/hcls-librechat/openff/ /opt/openff-release/
 COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
@@ -56,7 +66,12 @@ COPY --from=assembled /app/skill /app/skill
 COPY --from=assembled /app/agent-instructions.md /app/seed-hcls-workbench.js /app/seed-merge.cjs /app/
 COPY --from=assembled /app/packages/api/dist/index.cjs /app/packages/api/dist/index.cjs
 COPY --from=assembled /app/api/server/controllers/agents/client.js /app/api/server/controllers/agents/client.js
-RUN /opt/scientific-client/bin/pip install --no-cache-dir --no-deps --force-reinstall scipy==1.16.3 \
+RUN --mount=from=assembled,source=/app/client,target=/tmp/workspace-client,ro \
+    --mount=from=assembled,source=/app/api/server/routes/scientific-demos.js,target=/tmp/scientific-demos.js,ro \
+    cp -a /tmp/workspace-client/dist /tmp/workspace-client/src /app/client/ \
+ && cp /tmp/scientific-demos.js /app/api/server/routes/scientific-demos.js \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs \
+ && /opt/scientific-client/bin/pip install --no-cache-dir --no-deps --force-reinstall scipy==1.16.3 \
  && /opt/scientific-client/bin/pip check \
  && /opt/scientific-client/bin/python /opt/bionemo/verify-single-cell-runtime.py
 ARG HCLS_IMAGE_REVISION=unknown
