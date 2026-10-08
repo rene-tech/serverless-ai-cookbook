@@ -30,6 +30,20 @@ async function fixture() {
 const conversation = { conversationId: 'test-chat', agent_id: 'agent_scientific_general' };
 const file = (name = 'measurements.csv') => new File(['sample,value\nA,42\n'], name, { type: 'application/octet-stream' });
 
+test('ten-file selection bound is per message, not a lifetime conversation limit', async () => {
+  const f = await fixture();
+  for (let turn = 0; turn < 3; turn++) {
+    const draft = f.module.selectWorkspaceFiles(conversation, Array.from({length: 7}, (_, i) => file(`turn-${turn}-${i}`)), f.request);
+    await draft.queue;
+    let outgoing;
+    await f.module.submitWithWorkspaceFiles({text: 'Use this group'}, conversation, data => { outgoing = data; });
+    assert.equal(f.module.messageAttachedFiles(outgoing.text).length, 7);
+  }
+  assert.equal(f.calls.length, 21);
+  f.module.selectExistingWorkspaceFiles(conversation, [{path: 'existing/file', name: 'file', size_bytes: 1, updated_at: '2026-10-08'}]);
+  assert.equal(f.module.getWorkspaceFiles(conversation.conversationId).files.length, 1);
+});
+
 test('unknown extensions, MIME types, empty bytes and Unicode survive exact upload and receipt', async () => {
   const f = await fixture();
   const names = ['protein.cif', 'complex.mmcif', 'opaque.unknown', 'NO_EXTENSION', 'empty', '患者 Δ data.h5ad'];

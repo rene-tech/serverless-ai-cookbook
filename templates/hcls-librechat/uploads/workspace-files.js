@@ -29,10 +29,11 @@ export function selectWorkspaceFiles(conversation, files, request) {
   const previous = drafts.get(key);
   if (previous?.submitting) throw new Error('Wait for this message to be sent before adding files.');
   if (files.some(file => !Number.isSafeInteger(file.size) || file.size < 0 || file.size > 512 * MIB)) throw new Error('Browser uploads support files up to 512 MiB each. Upload larger files with S3, then choose them from Workspace.');
-  const existing = previous?.files || [];
-  if (existing.length + files.length > 10) throw new Error('Attach up to 10 workspace files to one conversation.');
+  const existing = (previous?.files || []).filter(file => !file.sent);
+  if (existing.length + files.length > 10) throw new Error('Attach up to 10 workspace files to one message.');
   dismissed.delete(key);
   const draft = previous || { files: [], submitting: false, error: '', queue: Promise.resolve() };
+  draft.files = existing;
   const added = files.map(file => ({ id: crypto.randomUUID(), name: file.name, size: file.size,
     status: 'uploading', error: '', metadata: null }));
   draft.files.push(...added); draft.error = ''; drafts.set(key, draft); notify();
@@ -74,10 +75,11 @@ export function selectExistingWorkspaceFiles(conversation, entries) {
   const files = entries.map(entry => ({ workspace_path: `/workspace/${entry.path}`, name: entry.name,
     size_bytes: entry.size_bytes, updated_at: entry.updated_at, source: 'workspace' }));
   if (!files.length || !validReceipt({files, note})) throw new Error('Choose existing files inside your Workspace.');
-  const existing = previous?.files || [];
+  const existing = (previous?.files || []).filter(file => !file.sent);
   const added = files.filter(file => !existing.some(entry => entry.metadata?.workspace_path === file.workspace_path));
-  if (existing.length + added.length > 10) throw new Error('Attach up to 10 workspace files to one conversation.');
+  if (existing.length + added.length > 10) throw new Error('Attach up to 10 workspace files to one message.');
   const draft = previous || { files: [], submitting: false, error: '', queue: Promise.resolve() };
+  draft.files = existing;
   draft.files.push(...added.map(metadata => ({ id: crypto.randomUUID(), name: metadata.name, size: metadata.size_bytes,
     metadata, status: 'ready', error: '' })));
   dismissed.delete(key); drafts.set(key, draft); notify();

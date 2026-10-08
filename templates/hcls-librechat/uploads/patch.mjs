@@ -7,15 +7,20 @@ const replace = (source, before, after, name) => {
 
 export function patchMenu(source) {
   for (const [before, after] of [
-    ["import { cn } from '~/utils';", "import { cn } from '~/utils';\nimport { request } from 'librechat-data-provider';\nimport { selectWorkspaceFiles } from '~/components/workspace-files';"],
-    ['  const inputRef = useRef<HTMLInputElement>(null);', '  const inputRef = useRef<HTMLInputElement>(null);\n  const workspaceInputRef = useRef<HTMLInputElement>(null);\n  const [workspaceUploadError, setWorkspaceUploadError] = useState(\'\');'],
+    ["import { cn } from '~/utils';", "import { cn } from '~/utils';\nimport { request } from 'librechat-data-provider';\nimport { MyFilesModal } from './MyFilesModal';\nimport { selectWorkspaceFiles } from '~/components/workspace-files';"],
+    ['  const inputRef = useRef<HTMLInputElement>(null);', '  const inputRef = useRef<HTMLInputElement>(null);\n  const workspaceInputRef = useRef<HTMLInputElement>(null);\n  const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);\n  const [workspaceUploadError, setWorkspaceUploadError] = useState(\'\');'],
     ['      const items: MenuItemProps[] = [];', `      const items: MenuItemProps[] = [{
         label: 'Upload file',
         onClick: () => { if (workspaceInputRef.current) { workspaceInputRef.current.value = ''; workspaceInputRef.current.click(); } },
         icon: <FileType2Icon className="icon-md" />,
+      }, {
+        label: 'Choose from Workspace',
+        onClick: () => setWorkspacePickerOpen(true),
+        icon: <FileType2Icon className="icon-md" />,
       }];`],
     ["          label: localize('com_ui_upload_provider'),", "          label: currentProvider === Providers.GOOGLE || currentProvider === Providers.OPENROUTER ? 'Upload media to model' : 'Upload image/PDF to model',"],
     ['    <>\n      <FileUpload', `    <>
+      <MyFilesModal open={workspacePickerOpen} onOpenChange={setWorkspacePickerOpen} />
       <input ref={workspaceInputRef} type="file" multiple aria-label="Upload file to workspace" className="hidden" disabled={isUploadDisabled} onChange={(event) => {
         try { selectWorkspaceFiles(conversation, Array.from(event.target.files || []), request); setWorkspaceUploadError(''); }
         catch (error) { setWorkspaceUploadError(error instanceof Error ? error.message : 'Could not upload files.'); }
@@ -77,10 +82,32 @@ export function patchFilesModal(source) {
         }} /> : <DataTable columns={columns} data={files} />}`, 'files workspace browser');
 }
 
+export function patchFilesPanel(source) {
+  source = "import WorkspaceFilePicker from '~/components/WorkspaceFilePicker';\n" + source;
+  source = replace(source, 'export default function DataTable<TData, TValue>', 'function LegacyDataTable<TData, TValue>', 'legacy file panel');
+  return source + `
+export default function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
+  const [view, setView] = useState('workspace');
+  return <div className="flex h-full min-h-0 flex-col gap-3 overflow-auto p-3">
+    <div className="flex flex-wrap gap-3 text-sm">
+      <button type="button" aria-pressed={view === 'workspace'} className="underline" onClick={() => setView('workspace')}>Workspace files</button>
+      <button type="button" aria-pressed={view === 'chat'} className="underline" onClick={() => setView('chat')}>Earlier chat attachments</button>
+    </div>
+    {view === 'workspace' ? <WorkspaceFilePicker onSelect={entries => {
+      const event = new CustomEvent('scientific-workspace-select', {detail: entries, cancelable: true});
+      document.dispatchEvent(event);
+      if (!event.defaultPrevented) throw new Error('Open an idle chat to attach these files, then try again.');
+    }} /> : <LegacyDataTable {...props} />}
+  </div>;
+}
+`;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   for (const [path, patch] of [
     ['/app/client/src/components/Chat/Input/Files/AttachFileMenu.tsx', patchMenu],
     ['/app/client/src/components/Chat/Input/Files/MyFilesModal.tsx', patchFilesModal],
+    ['/app/client/src/components/SidePanel/Files/PanelTable.tsx', patchFilesPanel],
     ['/app/client/src/components/Chat/Input/ChatForm.tsx', patchForm],
     ['/app/client/src/components/Chat/Messages/Content/Parts/Text.tsx', patchMessage],
     ['/app/client/src/components/Chat/Messages/Content/MessageContent.tsx', patchMessage],

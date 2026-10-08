@@ -7,10 +7,14 @@ const ts = require('typescript');
 const { pathToFileURL } = require('node:url');
 
 test('integration patches match and compile the exact pinned upstream client', async () => {
-  const { patchMenu, patchForm, patchMessage } = await import(pathToFileURL(path.join(__dirname, 'patch.mjs')));
+  const { patchMenu, patchForm, patchMessage, patchFilesModal, patchFilesPanel } = await import(pathToFileURL(path.join(__dirname, 'patch.mjs')));
   const root = '/app/client/src/components/Chat/';
   const menu = patchMenu(fs.readFileSync(root + 'Input/Files/AttachFileMenu.tsx', 'utf8'));
   assert.match(menu, /label: 'Upload file'/);
+  assert.match(menu, /label: 'Choose from Workspace'/);
+  const modal = patchFilesModal(fs.readFileSync(root + 'Input/Files/MyFilesModal.tsx', 'utf8'));
+  const panel = patchFilesPanel(fs.readFileSync('/app/client/src/components/SidePanel/Files/PanelTable.tsx', 'utf8'));
+  for (const source of [modal, panel]) assert.match(source, /WorkspaceFilePicker/);
   assert.match(menu, /selectWorkspaceFiles\(conversation, Array.from\(event.target.files/);
   assert.match(menu, /handleFileChange\(e, toolResourceRef.current\)/);
   let form = fs.readFileSync(root + 'Input/ChatForm.tsx', 'utf8');
@@ -23,7 +27,7 @@ test('integration patches match and compile the exact pinned upstream client', a
   message = message.replace("import store from '~/store';", "import store from '~/store';\nimport { visibleWorkshopPrompt } from '~/components/workshop-client';");
   message = message.replace('const TextPart = memo(function TextPart({ text, isCreatedByUser, showCursor }: TextPartProps) {', 'const TextPart = memo(function TextPart({ text: sourceText, isCreatedByUser, showCursor }: TextPartProps) {\n  const text = isCreatedByUser ? visibleWorkshopPrompt(sourceText) : sourceText;');
   message = patchMessage(message);
-  for (const source of [menu, form, message, fs.readFileSync(path.join(__dirname, 'attachment-only.tsx'), 'utf8')]) {
+  for (const source of [menu, modal, panel, form, message, fs.readFileSync(path.join(__dirname, 'attachment-only.tsx'), 'utf8')]) {
     const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }, reportDiagnostics: true });
     assert.deepEqual(compiled.diagnostics.filter(item => item.category === ts.DiagnosticCategory.Error), []);
   }
