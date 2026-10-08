@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A243ba1dc462ea8e9dc72d620509cc09add24df325297d591e7cb5e4b62438eff&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A752a860b307e85e69b8ad3b5983ac158f78ad5121bb8dbf4f5ec6e89a30e0c1b&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,10 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:catalog-20261007-r2`,
-digest `sha256:243ba1dc462ea8e9dc72d620509cc09add24df325297d591e7cb5e4b62438eff`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workspace-20261008-r3`,
+digest `sha256:752a860b307e85e69b8ad3b5983ac158f78ad5121bb8dbf4f5ec6e89a30e0c1b`.
+It includes [arbitrary-file uploads and bucket-backed chat selection](docs/workspace-files-20261008.md),
+file-only messages, authenticated downloads and audio playback in saved chats.
 It preserves Nebius branding, persistent customer state, and the durable
 large-file scVI/scANVI client with recoverable S3-mounted studies. Complete App
 listing is now separate from keyword search, preventing partial discovery and

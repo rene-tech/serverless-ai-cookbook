@@ -1,0 +1,91 @@
+{
+  "scope": "file_ui_not_full_agent_workflow",
+  "runtime_source": "36b9fa9c2ac64102f22efc01eb6ed635fad3ac71",
+  "image_index": "sha256:752a860b307e85e69b8ad3b5983ac158f78ad5121bb8dbf4f5ec6e89a30e0c1b",
+  "patch_archive_sha256": "e1ade399b485b361470425b2f84db373c066c4ec70e174a9e75c8ff4db8f5963",
+  "focused_tests_passed": 55,
+  "deployment_tests_passed": 25,
+  "cohorts": [
+    {
+      "chat": "357c3de8-4559-4d1a-b14e-cd9542c39f57",
+      "upload_count": 7,
+      "verified_download_count": 6,
+      "audio": {
+        "duration": 1,
+        "position": 0.184013
+      },
+      "restored_history": true,
+      "file_only_inference_calls": 0,
+      "post_routes": [
+        "/api/auth/refresh",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/convos/import",
+        "/api/convos/update",
+        "/api/auth/refresh"
+      ],
+      "http_5xx": [],
+      "candidate": "workspace-20261008-r3"
+    },
+    {
+      "chat": "635abea1-21d7-4898-b5ef-86c30823c07e",
+      "upload_count": 7,
+      "verified_download_count": 6,
+      "audio": {
+        "duration": 1,
+        "position": 0.149984
+      },
+      "restored_history": true,
+      "file_only_inference_calls": 0,
+      "post_routes": [
+        "/api/auth/refresh",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/scientific-demos/workspace",
+        "/api/convos/import",
+        "/api/convos/update",
+        "/api/auth/refresh"
+      ],
+      "http_5xx": [],
+      "candidate": "workspace-20261008-r3"
+    }
+  ],
+  "download_sha256_matches": 12,
+  "existing_s3_selection": {
+    "dialog": true,
+    "sidebar": true,
+    "upload_requests": 0
+  },
+  "negative_upload": {
+    "injected_status": 503,
+    "admission_blocked": true,
+    "recovered": true
+  },
+  "drag_drop_unknown_type": true,
+  "whiteLab": {
+    "endpoint_id": "aiendpoint-e00axdvs33j7ycdqt1",
+    "vm_id": "computeinstance-e00emwj2pep044hdgp",
+    "replaced": false,
+    "preserved_chats": 3,
+    "preserved_messages": 12,
+    "authorized_apps": 16,
+    "reported_cif_selected": true,
+    "customer_inference_calls": 0,
+    "bucket_mutations": 0
+  },
+  "full_agent_file_analysis": {
+    "passed": false,
+    "reason": "existing 90-second model response-time budget; no tool execution",
+    "direct_provider_small_request_ms": 1365,
+    "followup": "fs2-workbench-file-agent-timeout-r20261008"
+  }
+}

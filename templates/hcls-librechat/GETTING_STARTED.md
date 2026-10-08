@@ -20,6 +20,27 @@ shared hosted Apps; you do not deploy them yourself.
    files and download links. Save results outside the examples directory, e.g.
    `/workspace/my-studies/protein-001/`.
 
+## Bring your own files
+
+Use the paperclip **Upload file** for any file type, including CIF/mmCIF, H5AD,
+archives, audio, unknown binary formats and files without an extension. These
+uploads go into your Workspace bucket, not a provider's document parser.
+Browser uploads support 512 MiB per file and ten files per message. Use S3 for
+larger files, then select them with **Choose from Workspace**; selection passes
+the existing path without downloading and reuploading the data.
+
+The **Attach Files** sidebar and **My Files → Workspace files** show the same
+bucket as the agent. Navigate folders and use **Refresh files** after an S3
+upload. **Earlier chat attachments** preserves older provider-native files.
+The separate **Upload image/PDF to model** action is only for direct provider
+vision/document support, whose format restrictions still apply to that action.
+
+Sending files without a prompt saves them in the conversation without invoking
+a model. Add a prompt when you want the agent to use them. Saved file cards
+download the actual bytes, and audio cards offer playback, including after
+reopening the conversation. Upload support does not imply that every scientific
+App understands every format: the selected App's input schema still applies.
+
 ## Useful first examples
 
 | Example | Input | Expected deliverable |
