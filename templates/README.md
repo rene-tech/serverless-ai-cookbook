@@ -4,7 +4,7 @@
 
 Templates are quick-start configurations to help you serve models and run jobs in a few clicks. Click a **Deploy** link (Create Endpoint / Create Job) to open the Nebius Console create form with fields pre-filled. You can manually adjust fields if needed.
 
-**License policy:** Apache-2.0, MIT, BSD, LGPL-2.1, [NVIDIA Open Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/).
+**License policy:** Apache-2.0, MIT, BSD, [NVIDIA Open Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/).
 
 ---
 
@@ -206,7 +206,6 @@ customer projects currently need access to its private image registry.
 Deploy a protected compute API first, then deploy the CPU workbench and give it the
 managed HTTPS API URL at runtime. Compute bearer tokens are entered after login and
 remain in workbench server memory; they are never encoded in these links.
-### 🧲 Multimodal Embeddings
 
 <table width="960" border="1" cellpadding="8" cellspacing="0" style="table-layout:fixed;width:960px;min-width:960px;border-collapse:collapse;">
 <colgroup>
@@ -230,145 +229,27 @@ remain in workbench server memory; they are never encoded in these links.
 <tr>
   <td width="220" valign="middle"><a href="endpoint-hcls-autodock-gpu/README.md"><strong>AutoDock-GPU API</strong></a></td>
   <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fautodock-gpu-api%3A20260904-08f6532&amp;targetPort=8000&amp;platform=gpu-h100-sxm&amp;preset=1gpu-16vcpu-200gb&amp;diskSize=100GiB&amp;preemptible=false"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">H100-qualified source-build fallback using AutoDock4 scoring. The dynamic official NVIDIA 2020.06 runtime currently fails on available Serverless GPU generations.</td>
+  <td width="580" valign="middle">H100-qualified CUDA virtual screening using AutoDock4 scoring; scores are not comparable to Vina scores.</td>
 </tr>
 <tr>
   <td width="220" valign="middle"><a href="endpoint-hcls-gromacs/README.md"><strong>GROMACS MD API</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fgromacs-md-api%3A20260908-6bd2a84-dynamic&amp;targetPort=8000&amp;platform=gpu-l40s-a&amp;preset=1gpu-8vcpu-32gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
+  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fgromacs-md-api%3A20260908-2341ac7&amp;targetPort=8000&amp;platform=gpu-l40s-a&amp;preset=1gpu-8vcpu-32gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
   <td width="580" valign="middle">L40S GPU-offloaded molecular dynamics over REST and MCP, with either Object Storage or Shared Filesystem persistence at <code>/mnt/hcls</code>.</td>
 </tr>
 <tr>
   <td width="220" valign="middle"><a href="endpoint-hcls-openmm/README.md"><strong>OpenMM MD API</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fopenmm-md-api%3A20260908-dynamic-v3&amp;targetPort=8000&amp;platform=gpu-l40s-a&amp;preset=1gpu-8vcpu-32gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">Version-selectable official NVIDIA OpenMM CUDA runtime over REST and MCP, with Object Storage or Shared Filesystem persistence at <code>/mnt/hcls</code>.</td>
+  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fopenmm-md-api%3A20260904-08f6532&amp;targetPort=8000&amp;platform=gpu-l40s-a&amp;preset=1gpu-8vcpu-32gb&amp;diskSize=100GiB&amp;preemptible=false"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
+  <td width="580" valign="middle">OpenMM 8.5.1 CUDA API with bounded periodic MD examples and explicit performance metadata.</td>
 </tr>
 <tr>
   <td width="220" valign="middle"><a href="endpoint-hcls-parabricks/README.md"><strong>Parabricks DeepVariant API</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fparabricks-deepvariant-api%3A20260908-dynamic-v3&amp;targetPort=8000&amp;platform=gpu-h100-sxm&amp;preset=1gpu-16vcpu-200gb&amp;diskSize=500GiB&amp;preemptible=false&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">Version-selectable official NVIDIA Parabricks runtime over REST and MCP on one H100, with both supported persistent-storage lanes.</td>
+  <td width="160" valign="middle" align="center">Private candidate</td>
+  <td width="580" valign="middle">One-H100 bounded genomics API. Kept private pending explicit NVIDIA redistribution approval; internal deployment is documented in the template.</td>
 </tr>
 <tr>
   <td width="220" valign="middle"><a href="hcls-workbench/README.md"><strong>HCLS Workbench</strong></a></td>
   <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fworkbench%3A20260904-2eb701e&amp;targetPort=8000&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=50GiB&amp;preemptible=false"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
   <td width="580" valign="middle">A reusable browser UI and server-side credential proxy for every HCLS API v1 endpoint. Add the required UI secret before creation.</td>
-  <td width="220" valign="middle"><img src="https://cdn-avatars.huggingface.co/v1/production/uploads/6215ca5692c0ecfba9186921/hrRM50-6XcdWgg2AKpENG.jpeg" width="20" height="20" alt="Qwen3-VL-Embedding-8B" align="absmiddle">&nbsp;<a href="endpoint-qwen3-vl-embedding/README.md"><strong>Qwen3-VL-Embedding-8B</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=vllm%2Fvllm-openai%3Av0.19.1&amp;command=python3%20-m%20vllm.entrypoints.openai.api_server%20--model%20Qwen%2FQwen3-VL-Embedding-8B%20--runner%20pooling%20--trust-remote-code%20--host%200.0.0.0%20--port%208000&amp;targetPort=8000&amp;platform=gpu-h100-sxm&amp;preset=1gpu-16vcpu-200gb&amp;diskSize=500GiB&amp;preemptible=true"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">Qwen3-VL-Embedding-8B is an Apache-2.0 multimodal embedding model for text, image, and video, served OpenAI-compatibly via vLLM.</td>
-</tbody>
-</table>
-
-### 🧬 Molecular Dynamics
-<table width="960" border="1" cellpadding="8" cellspacing="0" style="table-layout:fixed;width:960px;min-width:960px;border-collapse:collapse;">
-<colgroup>
-  <col width="220">
-  <col width="160">
-  <col width="580">
-</colgroup>
-<thead>
-  <th width="220" align="left">Template</th>
-  <th width="160" align="center">Deploy</th>
-  <th width="580" align="left">Description</th>
-</thead>
-<tbody>
-  <td width="220" valign="middle">🧬&nbsp;<a href="endpoint-gromacs/README.md"><strong>GROMACS REST + MCP</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fgromacs-md-api%3A20260908-6bd2a84-dynamic&amp;targetPort=8000&amp;platform=gpu-l40s-a&amp;preset=1gpu-8vcpu-32gb&amp;diskSize=100GiB&amp;preemptible=false&amp;auth=true&amp;env=NGC_API_KEY&amp;env=GROMACS_VERSION%3Dlatest&amp;env=GROMACS_CPU_BUILD%3Davx2_256&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">Run bounded GPU molecular dynamics through REST or MCP, with a selectable official NVIDIA GROMACS runtime and persistent Object Storage or Shared Filesystem outputs.</td>
-</tr>
-</tbody>
-</table>
-
-### 🧬 Molecular Dynamics
-
-<table width="960" border="1" cellpadding="8" cellspacing="0" style="table-layout:fixed;width:960px;min-width:960px;border-collapse:collapse;">
-<colgroup>
-  <col width="220">
-  <col width="160">
-  <col width="580">
-</colgroup>
-<thead>
-<tr>
-  <th width="220" align="left">Template</th>
-  <th width="160" align="center">Deploy</th>
-  <th width="580" align="left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-  <td width="220" valign="middle">🧬&nbsp;<a href="endpoint-openmm/README.md"><strong>OpenMM REST + MCP</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fopenmm-md-api%3A20260908-dynamic-v3&amp;targetPort=8000&amp;platform=gpu-l40s-a&amp;preset=1gpu-8vcpu-32gb&amp;diskSize=100GiB&amp;preemptible=false&amp;auth=true&amp;env=NGC_API_KEY&amp;env=OPENMM_VERSION%3Dlatest&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">Run bounded synthetic molecular dynamics through REST or MCP with a selectable official NVIDIA OpenMM runtime and persistent outputs.</td>
-</tr>
-</tbody>
-</table>
-
-### 🧬 Genomics
-
-<table width="960" border="1" cellpadding="8" cellspacing="0" style="table-layout:fixed;width:960px;min-width:960px;border-collapse:collapse;">
-<colgroup>
-  <col width="220">
-  <col width="160">
-  <col width="580">
-</colgroup>
-<thead>
-<tr>
-  <th width="220" align="left">Template</th>
-  <th width="160" align="center">Deploy</th>
-  <th width="580" align="left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-  <td width="220" valign="middle">🧬&nbsp;<a href="endpoint-parabricks-deepvariant/README.md"><strong>Parabricks DeepVariant REST + MCP</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fparabricks-deepvariant-api%3A20260908-dynamic-v3&amp;targetPort=8000&amp;platform=gpu-h100-sxm&amp;preset=1gpu-16vcpu-200gb&amp;diskSize=500GiB&amp;preemptible=false&amp;auth=true&amp;env=NGC_API_KEY&amp;env=PARABRICKS_VERSION%3Dlatest&amp;env=PARABRICKS_GPU_COUNT%3D1&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">Run bounded NVIDIA Parabricks DeepVariant workflows through REST or MCP with selectable official runtime and persistent genomic inputs and outputs.</td>
-</tr>
-</tbody>
-</table>
-
-### 🧪 Molecular Docking
-
-<table width="960" border="1" cellpadding="8" cellspacing="0" style="table-layout:fixed;width:960px;min-width:960px;border-collapse:collapse;">
-<colgroup>
-  <col width="220">
-  <col width="160">
-  <col width="580">
-</colgroup>
-<thead>
-<tr>
-  <th width="220" align="left">Template</th>
-  <th width="160" align="center">Deploy</th>
-  <th width="580" align="left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-  <td width="220" valign="middle">🧪&nbsp;<a href="endpoint-autodock-vina/README.md"><strong>AutoDock Vina REST + MCP</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fautodock-vina-api%3A20260909-rest-mcp&amp;targetPort=8000&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;auth=true&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">Run low-cost AutoDock Vina CPU redocking through REST or MCP with explicit boxes, bounded PDBQT inputs, and persistent artifacts.</td>
-</tr>
-</tbody>
-</table>
-
-### 🧪 Molecular Docking
-
-<table width="960" border="1" cellpadding="8" cellspacing="0" style="table-layout:fixed;width:960px;min-width:960px;border-collapse:collapse;">
-<colgroup>
-  <col width="220">
-  <col width="160">
-  <col width="580">
-</colgroup>
-<thead>
-<tr>
-  <th width="220" align="left">Template</th>
-  <th width="160" align="center">Deploy</th>
-  <th width="580" align="left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-  <td width="220" valign="middle">🧪&nbsp;<a href="endpoint-autodock-gpu/README.md"><strong>AutoDock-GPU REST + MCP</strong></a></td>
-  <td width="160" valign="middle" align="center"><a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fautodock-gpu-api%3A20260909-rest-mcp-sm80-sm90&amp;targetPort=8000&amp;platform=gpu-h100-sxm&amp;preset=1gpu-16vcpu-200gb&amp;diskSize=100GiB&amp;preemptible=false&amp;auth=true&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32"><img src="./assets/create-endpoint.svg" alt="Create Endpoint" width="138" height="20"></a></td>
-  <td width="580" valign="middle">Run source-built AutoDock-GPU v1.6 through REST or MCP on SM80/86/89/90 GPUs; Blackwell is explicitly unsupported by this image.</td>
 </tr>
 </tbody>
 </table>
@@ -398,3 +279,18 @@ remain in workbench server memory; they are never encoded in these links.
 </tr>
 </tbody>
 </table>
+
+
+### Scientific compute recipes
+
+These standalone REST/MCP examples retain their dated qualification receipts.
+They are separate from the centrally hosted Scientific AI platform and its current
+LibreChat default; their example tests do not qualify shared customer serving.
+
+| Recipe | Workload |
+| --- | --- |
+| [GROMACS](./endpoint-gromacs/README.md) · [Configure endpoint](https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fgromacs-md-api%3A20260908-6bd2a84-dynamic&amp;targetPort=8000&amp;platform=gpu-l40s-a&amp;preset=1gpu-8vcpu-32gb&amp;diskSize=100GiB&amp;preemptible=false&amp;auth=true&amp;env=NGC_API_KEY&amp;env=GROMACS_VERSION%3Dlatest&amp;env=GROMACS_CPU_BUILD%3Davx2_256&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32) | GPU molecular dynamics |
+| [OpenMM](./endpoint-openmm/README.md) · [Configure endpoint](https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fopenmm-md-api%3A20260908-dynamic-v3&amp;targetPort=8000&amp;platform=gpu-l40s-a&amp;preset=1gpu-8vcpu-32gb&amp;diskSize=100GiB&amp;preemptible=false&amp;auth=true&amp;env=NGC_API_KEY&amp;env=OPENMM_VERSION%3Dlatest&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32) | GPU molecular dynamics |
+| [Parabricks DeepVariant](./endpoint-parabricks-deepvariant/README.md) · [Configure endpoint](https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fparabricks-deepvariant-api%3A20260908-dynamic-v3&amp;targetPort=8000&amp;platform=gpu-h100-sxm&amp;preset=1gpu-16vcpu-200gb&amp;diskSize=500GiB&amp;preemptible=false&amp;auth=true&amp;env=NGC_API_KEY&amp;env=PARABRICKS_VERSION%3Dlatest&amp;env=PARABRICKS_GPU_COUNT%3D1&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32) | GPU genomics |
+| [AutoDock Vina](./endpoint-autodock-vina/README.md) · [Configure endpoint](https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fautodock-vina-api%3A20260909-rest-mcp&amp;targetPort=8000&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;auth=true&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32) | CPU molecular docking |
+| [AutoDock-GPU](./endpoint-autodock-gpu/README.md) · [Configure endpoint](https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00jz93pkqx2m4vqj4%2Fhcls%2Fautodock-gpu-api%3A20260909-rest-mcp-sm80-sm90&amp;targetPort=8000&amp;platform=gpu-h100-sxm&amp;preset=1gpu-16vcpu-200gb&amp;diskSize=100GiB&amp;preemptible=false&amp;auth=true&amp;volumeMountPath=%2Fmnt%2Fhcls&amp;volumeSize=32) | GPU molecular docking |

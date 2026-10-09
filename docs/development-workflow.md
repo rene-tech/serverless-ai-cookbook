@@ -61,7 +61,6 @@ for current presentation/API checks and leave its DNS/redirect untouched.
 
 The local reference-transaction hook rejects non-main branch creation/updates;
 the pre-push hook rejects task branches, wrong remotes, main deletion and
-non-fast-forward updates. Keep these hooks installed. GitHub's current private
-repository plan does not support server-side rulesets: the local guards do not
-control another machine or GitHub UI. Any explicit exception needs an owner,
+non-fast-forward updates. Keep these hooks installed. The website's current private repository plan does not support server-side
+rulesets. These local guards do not control another machine or GitHub UI. Any explicit exception needs an owner,
 purpose, expiry and closeout, and must follow the user's authorized scope.
