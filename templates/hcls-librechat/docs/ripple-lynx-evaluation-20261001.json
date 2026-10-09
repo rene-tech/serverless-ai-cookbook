@@ -1,0 +1,617 @@
+{
+  "schema": "scientific-ai/ripple-evaluation/v1",
+  "time": "2026-10-01T14:14:30.341687+00:00",
+  "recommendation": "Do not enable by default; experimental opt-in only after supported integration.",
+  "production_changed": false,
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d",
+  "ripple_source": "2842cdbb7c897a4c0177058b54e2c152925b56a6",
+  "ripple_control_patch_sha256": "2bca724a3f9c90df17aaa447a1b99063276c11bb8a49c3377ee8c7e9bc2df5b9",
+  "adapter": "Explicit advanced-unmanaged client capability and known routing identity, no algorithm changes.",
+  "conversations": [
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-gpt-control",
+      "case_id": "forcefield-recommendation",
+      "client_model": "openai/gpt-oss-120b",
+      "seconds": 6.032,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.007,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-gpt-control",
+      "case_id": "openff-parameterization",
+      "client_model": "openai/gpt-oss-120b",
+      "seconds": 6.036,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 3,
+      "tool_seconds": 0.705,
+      "provider_events": 4,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-gpt-control",
+      "case_id": "cif-inventory",
+      "client_model": "openai/gpt-oss-120b",
+      "seconds": 6.029,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.359,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round1",
+      "case_id": "forcefield-recommendation",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 39.108,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.007,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round1",
+      "case_id": "openff-parameterization",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 6.034,
+      "watchdog_aborted": false,
+      "empty_answer": true,
+      "unfinished": true,
+      "tool_calls": 1,
+      "tool_seconds": 0.004,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round1",
+      "case_id": "cif-inventory",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 21.11,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.278,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round2",
+      "case_id": "forcefield-recommendation",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 33.086,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.037,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round2",
+      "case_id": "openff-parameterization",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 6.03,
+      "watchdog_aborted": false,
+      "empty_answer": true,
+      "unfinished": true,
+      "tool_calls": 1,
+      "tool_seconds": 0.004,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round2",
+      "case_id": "cif-inventory",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 27.081,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.252,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round4",
+      "case_id": "forcefield-recommendation",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 18.056,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.005,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round4",
+      "case_id": "hosted-gromacs",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 6.04,
+      "watchdog_aborted": false,
+      "empty_answer": true,
+      "unfinished": true,
+      "tool_calls": 1,
+      "tool_seconds": 0.005,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round4",
+      "case_id": "openff-parameterization",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 159.414,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 10,
+      "tool_seconds": 67.07,
+      "provider_events": 11,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "direct",
+      "cohort_directory": "direct-round4",
+      "case_id": "cif-inventory",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 30.082,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.252,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "fixed",
+      "cohort_directory": "fixed-round3",
+      "case_id": "forcefield-recommendation",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 12.053,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.128,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "fixed",
+      "cohort_directory": "fixed-round3",
+      "case_id": "openff-parameterization",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 141.439,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 7,
+      "tool_seconds": 76.02,
+      "provider_events": 8,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "fixed",
+      "cohort_directory": "fixed-round3",
+      "case_id": "cif-inventory",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 24.117,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.302,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "fixed",
+      "cohort_directory": "fixed-round4",
+      "case_id": "forcefield-recommendation",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 15.051,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.024,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "fixed",
+      "cohort_directory": "fixed-round4",
+      "case_id": "hosted-gromacs",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 165.452,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 13,
+      "tool_seconds": 96.12,
+      "provider_events": 14,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "fixed",
+      "cohort_directory": "fixed-round4",
+      "case_id": "openff-parameterization",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 240.758,
+      "watchdog_aborted": true,
+      "empty_answer": true,
+      "unfinished": true,
+      "tool_calls": 6,
+      "tool_seconds": 35.547,
+      "provider_events": 6,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "fixed",
+      "cohort_directory": "fixed-round4",
+      "case_id": "cif-inventory",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 24.074,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.265,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "quality",
+      "cohort_directory": "quality-round3",
+      "case_id": "forcefield-recommendation",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 9.054,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.061,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "quality",
+      "cohort_directory": "quality-round3",
+      "case_id": "openff-parameterization",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 102.343,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 8,
+      "tool_seconds": 81.766,
+      "provider_events": 9,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "stop",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "quality",
+      "cohort_directory": "quality-round3",
+      "case_id": "cif-inventory",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 3.059,
+      "watchdog_aborted": false,
+      "empty_answer": true,
+      "unfinished": true,
+      "tool_calls": 0,
+      "tool_seconds": 0,
+      "provider_events": 1,
+      "usage": null,
+      "finish_reasons": [
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "quality",
+      "cohort_directory": "quality-round4",
+      "case_id": "forcefield-recommendation",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 9.04,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.024,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "stop",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "quality",
+      "cohort_directory": "quality-round4",
+      "case_id": "hosted-gromacs",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 123.355,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 8,
+      "tool_seconds": 103.728,
+      "provider_events": 8,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "quality",
+      "cohort_directory": "quality-round4",
+      "case_id": "openff-parameterization",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 108.363,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 8,
+      "tool_seconds": 77.752,
+      "provider_events": 9,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls",
+        "tool_calls"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    },
+    {
+      "arm": "quality",
+      "cohort_directory": "quality-round4",
+      "case_id": "cif-inventory",
+      "client_model": "zai-org/GLM-5.3-Flash",
+      "seconds": 15.056,
+      "watchdog_aborted": false,
+      "empty_answer": false,
+      "unfinished": false,
+      "tool_calls": 1,
+      "tool_seconds": 0.234,
+      "provider_events": 2,
+      "usage": null,
+      "finish_reasons": [
+        "tool_calls",
+        "stop"
+      ],
+      "core_instructions_sha256": "ba07139072eb8f6b660095520fb44f42916d0cde4ef9161f360e724f258be1e9"
+    }
+  ],
+  "resources": [
+    {
+      "name": "fs2-default-release-ripple-direct",
+      "image_id": "sha256:259112f87cc5236866bed03e137fbd5ea5572287ccecef9e558e8b762f212161",
+      "image_reference": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d",
+      "nano_cpus": 4000000000,
+      "memory_bytes": 12884901888,
+      "running": false,
+      "removed": false,
+      "workspace_retained": true
+    },
+    {
+      "name": "fs2-default-release-ripple-fixed",
+      "image_id": "sha256:259112f87cc5236866bed03e137fbd5ea5572287ccecef9e558e8b762f212161",
+      "image_reference": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d",
+      "nano_cpus": 4000000000,
+      "memory_bytes": 12884901888,
+      "running": false,
+      "removed": false,
+      "workspace_retained": true
+    },
+    {
+      "name": "fs2-default-release-ripple-quality",
+      "image_id": "sha256:259112f87cc5236866bed03e137fbd5ea5572287ccecef9e558e8b762f212161",
+      "image_reference": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:06d0ca2e976242c4120c4f56773359fff2b9a2464e890e262a6e3b7c5018da4d",
+      "nano_cpus": 4000000000,
+      "memory_bytes": 12884901888,
+      "running": false,
+      "removed": false,
+      "workspace_retained": true
+    }
+  ],
+  "provider_billed_cost": null,
+  "cost_limitation": "Streaming provider usage metadata was unavailable; no zero-cost or cost-reduction claim.",
+  "qualifications": [
+    "Not randomized or statistically powered.",
+    "No customer deployment or browser release.",
+    "Short reference GPU jobs do not qualify a full customer GPCR simulation.",
+    "Late recovered artifacts do not count as a completed chat."
+  ]
+}

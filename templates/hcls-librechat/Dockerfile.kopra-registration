@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1.7
+ARG BASE_IMAGE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:4155dd171ecb2e3c178695a66efe426c75ea8d219dfaceb8757735774dbe8a36
+FROM ${BASE_IMAGE}
+USER root
+COPY templates/hcls-librechat/kopra-shared-registration-patch.mjs /tmp/kopra-shared-registration-patch.mjs
+RUN node /tmp/kopra-shared-registration-patch.mjs \
+ && rm /tmp/kopra-shared-registration-patch.mjs \
+ && grep -F "'search_mcp_tavily'" /app/seed-hcls-workbench.js \
+ && grep -F '`search_mcp_tavily`' /app/scientific-agent-instructions.md \
+ && grep -F "'search_mcp_tavily'" /opt/hcls-librechat/scientific-tool-options.cjs \
+ && grep -F 'sharedRegisteredUsers' /opt/hcls-librechat/render-config.mjs \
+ && grep -F 'SCIENTIFIC_SHARED_GATEWAY_ENABLED' /app/api/server/routes/scientific-demos.js
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.title="Nebius Scientific AI Agent — Kopra shared registration" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}"

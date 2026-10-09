@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "personal_repository": "rene-tech/serverless-ai-cookbook",
+  "main_branch": "main",
+  "workflow": "detached-worktrees"
+}
