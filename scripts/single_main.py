@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detached tasks, serialized fast-forward integration and local branch guards."""
+"""Short-lived tasks, serialized main integration and completed-branch cleanup."""
 from __future__ import annotations
 
 import argparse
@@ -50,10 +50,11 @@ def pre_push(repo: Path, url: str, updates: list[str]) -> None:
     main = value(repo, "rev-parse", "refs/heads/main")
     for line in updates:
         local_ref, local_sha, remote_ref, remote_sha = line.split()
-        if remote_ref != "refs/heads/main" or local_sha != main:
-            raise ValueError("Only the integrated local main may be pushed; task branches and main deletion are forbidden")
-        if set(remote_sha) != {"0"} and git(repo, "merge-base", "--is-ancestor", remote_sha, local_sha, check=False).returncode:
-            raise ValueError("Main must be a fast-forward of the remote; fetch and integrate current main first")
+        if remote_ref == "refs/heads/main":
+            if local_sha != main:
+                raise ValueError("Only the integrated local main may update remote main; main deletion is forbidden")
+            if set(remote_sha) != {"0"} and git(repo, "merge-base", "--is-ancestor", remote_sha, local_sha, check=False).returncode:
+                raise ValueError("Main must be a fast-forward of the remote; fetch and integrate current main first")
 
 
 def reference_transaction(repo: Path, state: str, updates: list[str]) -> None:
@@ -61,8 +62,12 @@ def reference_transaction(repo: Path, state: str, updates: list[str]) -> None:
         return
     for line in updates:
         old, new, ref = line.split()
-        if ref.startswith("refs/heads/") and ref != "refs/heads/main" and set(new) != {"0"}:
-            raise ValueError("Persistent task branches are disabled: use git worktree add --detach <path> main")
+        if ref != "refs/heads/main":
+            continue  # Temporary branches are explicitly permitted.
+        if set(new) == {"0"}:
+            raise ValueError("Main deletion is forbidden; retire only completed task branches")
+        if set(old) != {"0"} and git(repo, "merge-base", "--is-ancestor", old, new, check=False).returncode:
+            raise ValueError("Main history must be fast-forward; incorporate current main before integration")
 
 
 def require_clean(repo: Path) -> None:
@@ -87,6 +92,33 @@ def validated_candidate(task: Path, evidence: Path) -> str:
     return sha
 
 
+def retire_task_branch(repo: Path, task: Path, branch: str, sha: str, push: bool) -> None:
+    """Retire only this exact clean, integrated task; never remove its directory."""
+    if not branch:
+        return
+    if branch == "refs/heads/main" or value(repo, "rev-parse", branch) != sha:
+        raise ValueError("Task branch changed; retain it for explicit closeout")
+    if git(repo, "merge-base", "--is-ancestor", sha, "main", check=False).returncode:
+        raise ValueError("Unmerged task branches must be preserved, not deleted")
+    require_clean(task)
+    if push:
+        url = f"https://github.com/{policy(main_checkout(repo))['personal_repository']}.git"
+        rows = value(repo, "ls-remote", "--heads", url, branch).splitlines()
+        if rows:
+            if len(rows) != 1 or rows[0].split()[0] != sha:
+                raise ValueError("Remote task branch moved; preserve it and review before closeout")
+            git(repo, "push", f"--force-with-lease={branch}:{sha}", url, f":{branch}")
+    # Preserve every file, staged state and active process; detach only this task.
+    git(task, "update-ref", "--no-deref", "HEAD", sha, sha)
+    git(repo, "update-ref", "-d", branch, sha)
+    receipts = common(repo) / "scientificai-closeout"
+    receipts.mkdir(mode=0o700, exist_ok=True)
+    (receipts / f"{sha}.json").write_text(json.dumps({
+        "branch": branch, "commit": sha, "main": value(repo, "rev-parse", "main"),
+        "personal_fork_cleanup_requested": push, "worktree_preserved": str(task),
+    }, indent=2) + "\n")
+
+
 def integrate(repo: Path, task: Path, evidence: Path, push: bool) -> str:
     if common(repo) != common(task):
         raise ValueError("The task worktree belongs to another repository")
@@ -94,8 +126,9 @@ def integrate(repo: Path, task: Path, evidence: Path, push: bool) -> str:
     checkout = main_checkout(repo).resolve()
     if task == checkout:
         raise ValueError("Integration expects a separate detached task worktree")
-    if git(task, "symbolic-ref", "-q", "HEAD", check=False).returncode == 0:
-        raise ValueError("Task commits must use detached HEAD")
+    branch = git(task, "symbolic-ref", "-q", "HEAD", check=False).stdout.strip()
+    if branch == "refs/heads/main":
+        raise ValueError("Task work must be separate from maintained main")
     with (common(repo) / "scientificai-main.lock").open("a+") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         require_clean(checkout)
@@ -110,20 +143,21 @@ def integrate(repo: Path, task: Path, evidence: Path, push: bool) -> str:
         git(checkout, "merge", "--ff-only", sha)
         if push:
             git(checkout, "push", url, "refs/heads/main:refs/heads/main")
+        retire_task_branch(repo, task, branch, sha, push)
         return sha
 
 
 def cli() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
-    sub.add_parser("install", help="Enable repository-local main-only hooks")
+    sub.add_parser("install", help="Protect main while allowing temporary branches")
     start = sub.add_parser("start", help="Create a detached task worktree from main")
     start.add_argument("path", type=Path)
     merge = sub.add_parser("integrate", help="Serialize a validated fast-forward into main")
     merge.add_argument("task", type=Path)
     merge.add_argument("--evidence", required=True, type=Path)
     merge.add_argument("--push", action="store_true", help="Refresh/publish main in the personal fork")
-    check = sub.add_parser("check", help="Require exactly one local branch, main")
+    check = sub.add_parser("check", help="Audit branch counts and completed branch leftovers")
     check.add_argument("--remote", action="store_true", help="Also inspect the personal fork")
     args = parser.parse_args()
     repo = root()
@@ -137,7 +171,7 @@ def cli() -> None:
             (repo / ".githooks" / name).chmod(0o755)
         git(repo, "config", "scientificai.singlemain", "true")
         git(repo, "config", "core.hooksPath", hooks)
-        print("Enabled main-only guards and detached Task Deck launches")
+        print("Protected main; temporary branches allowed; detached Task Deck launches enabled")
     elif args.action == "start":
         git(repo, "worktree", "add", "--detach", str(args.path.resolve()), "refs/heads/main")
         print(args.path.resolve())
@@ -147,14 +181,23 @@ def cli() -> None:
         print("After the task session exits, remove only its clean finished worktree with git worktree remove")
     elif args.action == "check":
         heads = value(repo, "for-each-ref", "--format=%(refname)", "refs/heads").splitlines()
-        if heads != ["refs/heads/main"]:
-            raise ValueError("Expected exactly one local branch, main")
+        if "refs/heads/main" not in heads:
+            raise ValueError("A maintained main branch is required")
+        print(f"Local branches: {len(heads)}; main is the maintained trunk")
+        leftovers = value(repo, "for-each-ref", "--merged=main", "--format=%(refname)", "refs/heads").splitlines()
+        for branch in leftovers:
+            if branch != "refs/heads/main":
+                print(f"Closeout review: already merged {branch}")
+        if len(heads) > 20:
+            print("Branch count exceeds 20: review active ownership and retire finished work", file=sys.stderr)
         if args.remote:
             url = f"https://github.com/{policy(repo)['personal_repository']}.git"
             heads = value(repo, "ls-remote", "--heads", url).splitlines()
-            if len(heads) != 1 or heads[0].split()[1] != "refs/heads/main":
-                raise ValueError("Expected exactly one personal-fork branch, main")
-        print("Only main is maintained")
+            if not any(row.split()[1] == "refs/heads/main" for row in heads):
+                raise ValueError("The personal fork needs a maintained main")
+            print(f"Personal-fork branches: {len(heads)}")
+            if len(heads) > 20:
+                print("Personal-fork count exceeds 20: review and close out completed branches", file=sys.stderr)
 
 
 if __name__ == "__main__":

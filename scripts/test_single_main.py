@@ -54,12 +54,34 @@ class WorkflowTests(unittest.TestCase):
         evidence.write_text(json.dumps({"commit": sha, "checks": [{"command": "actual-test-command", "exit_code": 0}]}))
         return task, evidence, sha
 
-    def test_git_itself_rejects_branch_creation_but_allows_remote_tracking_refs(self):
+    def test_temporary_branches_and_remote_tracking_refs_are_allowed(self):
         result = workflow.git(self.repo, "branch", "agent/leak", check=False)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Persistent task branches are disabled", result.stderr)
-        self.assertEqual(workflow.value(self.repo, "for-each-ref", "--format=%(refname)", "refs/heads"), "refs/heads/main")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("refs/heads/agent/leak", workflow.value(self.repo, "for-each-ref", "--format=%(refname)", "refs/heads"))
         workflow.git(self.repo, "update-ref", "refs/remotes/test/archive", self.initial)
+
+    def test_integration_retires_the_completed_temporary_branch(self):
+        task, evidence, sha = self.task()
+        workflow.git(task, "checkout", "-b", "task/completed")
+        self.assertEqual(workflow.integrate(self.repo, task, evidence, False), sha)
+        self.assertNotEqual(workflow.git(task, "symbolic-ref", "-q", "HEAD", check=False).returncode, 0)
+        self.assertEqual(workflow.value(self.repo, "for-each-ref", "--format=%(refname)", "refs/heads"), "refs/heads/main")
+        self.assertEqual((task / "file.txt").read_text(), "task\n")
+        self.assertTrue((workflow.common(self.repo) / "scientificai-closeout" / f"{sha}.json").exists())
+
+    def test_unmerged_temporary_branch_is_not_deleted(self):
+        task, evidence, sha = self.task()
+        workflow.git(task, "checkout", "-b", "task/unfinished")
+        with self.assertRaisesRegex(ValueError, "Unmerged"):
+            workflow.retire_task_branch(self.repo, task, "refs/heads/task/unfinished", sha, False)
+        self.assertEqual(workflow.value(self.repo, "rev-parse", "task/unfinished"), sha)
+
+    def test_local_main_history_rewrite_is_rejected(self):
+        task, evidence, sha = self.task()
+        workflow.integrate(self.repo, task, evidence, False)
+        result = workflow.git(self.repo, "update-ref", "refs/heads/main", self.initial, sha, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(workflow.value(self.repo, "rev-parse", "main"), sha)
 
     def test_fast_forward_updates_main_files_and_preserves_detached_task(self):
         task, evidence, sha = self.task()
@@ -91,14 +113,15 @@ class WorkflowTests(unittest.TestCase):
             workflow.integrate(self.repo, task, evidence, False)
         self.assertEqual(workflow.value(self.repo, "rev-parse", "main"), self.initial)
 
-    def test_push_guards_reject_upstream_task_branches_and_main_deletion(self):
+    def test_push_guards_allow_temporary_branches_and_reject_upstream_and_main_deletion(self):
         task, evidence, sha = self.task()
         workflow.integrate(self.repo, task, evidence, False)
         url = "https://github.com/rene-tech/test.git"
         workflow.pre_push(self.repo, url, [f"refs/heads/main {sha} refs/heads/main {self.initial}"])
+        workflow.pre_push(self.repo, url, [f"HEAD {sha} refs/heads/agent/temporary {'0'*40}"])
+        workflow.pre_push(self.repo, url, [f"(delete) {'0'*40} refs/heads/agent/temporary {sha}"])
         for target_url, row in [
             ("https://github.com/nebius/test.git", f"refs/heads/main {sha} refs/heads/main {self.initial}"),
-            (url, f"HEAD {sha} refs/heads/agent/leak {'0'*40}"),
             (url, f"(delete) {'0'*40} refs/heads/main {sha}"),
             (url, f"HEAD {self.initial} refs/heads/main {sha}"),
         ]:

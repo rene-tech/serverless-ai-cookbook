@@ -1,66 +1,70 @@
 # Scientific AI development workflow
 
-`main` is the only maintained local and personal-fork branch. This applies to
-`rene-tech/nebius-solutions-library`, `rene-tech/serverless-ai-cookbook` and
-`rene-tech/nebius-scientific-ai-platform`. Nebius-owned upstream repositories
-are read-only for this consolidation. Do not create lasting `agent/`, task,
-release, backup, rejected or per-review-version branches.
+`main` is the maintained trunk for the three personal Scientific AI repositories.
+Temporary task branches are allowed. Finished work must not leave accumulating
+branches: integrate useful changes, preserve unfinished experiments with an
+explicit disposition, and retire completed local and personal-fork branches.
+Keep branches used by active work or open PRs. Nebius-owned upstream repositories
+are read-only for this consolidation.
 
-## Isolated work
+## Start isolated work
 
-Install repository-local guards once from the main checkout:
+Install local main-history guards once:
 
 ```sh
 python3 scripts/single_main.py install
 python3 scripts/single_main.py start /absolute/path/to/task-worktree
 ```
 
-Task Deck uses detached worktrees when `scientificai.singlemain=true`. Old ticket
-branch fields do not select the base; new tasks start at current `main`. Resume
-an existing detached task without resetting its files or index. Do not start a
-parallel writer in the main checkout. Commit in detached HEAD and retain its SHA.
+Task Deck defaults to detached worktrees from current main, so ordinary tasks
+create no branch backlog. Old ticket branch fields are historical references.
+A short-lived branch is also fine when useful: give it an owner and purpose,
+keep it current with main, and record its closeout. Do not add a branch for every
+review revision or use branches as an archive. Never edit main concurrently.
 
 ## Integrate and close
 
-One integrator owns main at a time. Incorporate current main, review conflicts,
-include deployed sibling features and run checks appropriate to the change.
-After committing, save an external JSON receipt naming that exact commit:
+One integrator owns main at a time. Incorporate current main and deployed sibling
+features, review conflicts and run appropriate checks. Commit in the isolated
+task worktree, then save an external receipt naming the exact validated commit:
 
 ```json
-{"commit": "<full commit SHA>", "checks": [{"command": "<actual relevant check>", "exit_code": 0}]}
+{"commit": "<full SHA>", "checks": [{"command": "<actual check>", "exit_code": 0}]}
 ```
 
-From a checkout of this repository, publish with the serialized helper:
+Publish through the serialized helper:
 
 ```sh
 python3 scripts/single_main.py integrate /absolute/path/to/task-worktree --evidence /absolute/path/to/checks.json --push
 ```
 
-The helper refuses dirty main/task worktrees, stale validation and divergent
-main. If main moves, rebase the detached task and rerun checks. Push only main
-to the authorized personal fork; do not force-push main or push to Nebius upstream.
-A task is done only after integration/publication or an explicit recoverable
-archive and recorded follow-up disposition for work that is not qualified.
-Once the session exits, remove only its clean finished task worktree. Never
-remove dirty or active worktrees, unrelated resources, or untracked evidence.
-Check closeout with `python3 scripts/single_main.py check --remote`.
+It refuses dirty worktrees, stale validation and divergent main. When this task
+uses a branch, successful integration retires that exact local/personal-fork
+branch, preserves a closeout receipt and leaves the worktree files intact in
+detached HEAD. A moved remote branch is preserved for review. No unmerged work
+is automatically deleted. Remove only a clean, finished worktree after its
+session exits. A task is complete after publication and branch closeout, or an
+explicit recoverable archive and follow-up disposition for unqualified work.
+
+Run `python3 scripts/single_main.py check --remote` at closeout. Temporary
+branches do not fail the audit. Already merged leftovers and counts above 20
+require an ownership/cleanup review; creating new branches is not blocked.
+Retain open PR branches until their reviews finish. Never force-push main.
 
 ## Preservation and deployment
 
-Branches are not a substitute for an evidence archive. Before retiring unique
-work, preserve verified Git bundles, branch-to-SHA mappings, staged/unstaged
-patches and untracked files outside the repositories. Record whether each change
-is integrated, superseded, rejected, or retained for qualification; archiving
-never counts as merging a feature. Restore archived work into a detached worktree.
+Before retiring unique work, preserve verified Git bundles, branch-to-SHA maps,
+staged/unstaged patches and untracked files outside the repositories. Record
+integrated, superseded, rejected, or qualification-pending work distinctly;
+archiving does not count as merging a feature. Restore into a detached worktree.
 
-Git integration does not authorize a live rollout. Record exact live image and
-source provenance before choosing the integration baseline. Preserve running
-clients, models, credentials, storage, Gateway routing and monitoring. The
-Scientific AI hostname is intentionally unavailable; use `https://89.169.99.188`
-for current presentation/API checks and leave its DNS/redirect untouched.
+Git integration does not authorize a live rollout. Record deployed image/source
+provenance and preserve clients, models, credentials, storage, Gateway routing
+and monitoring. `forge.nebius.cloud` is intentionally unavailable; use
+`https://89.169.99.188` for current checks and leave its DNS/redirect unchanged.
 
-The local reference-transaction hook rejects non-main branch creation/updates;
-the pre-push hook rejects task branches, wrong remotes, main deletion and
-non-fast-forward updates. Keep these hooks installed. The website's current private repository plan does not support server-side
-rulesets. These local guards do not control another machine or GitHub UI. Any explicit exception needs an owner,
-purpose, expiry and closeout, and must follow the user's authorized scope.
+Local hooks protect main against deletion/history rewrites and restrict pushes
+to the authorized personal fork. They allow temporary branches. GitHub rulesets
+also protect main in the two public forks; the private website plan does not
+support rulesets. Other machines must install the local hooks and follow this
+closeout policy. Explicit user deployment instructions take precedence.

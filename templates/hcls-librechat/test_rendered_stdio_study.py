@@ -19,7 +19,7 @@ def render(tmp_path, configured):
     instructions = tmp_path / 'instructions.md'
     instructions.write_text('Test instructions.\n')
     env.update(SCIENTIFIC_DISCOVER_CHAT_MODELS='false',
-               SCIENTIFIC_AGENT_INSTRUCTIONS_PATH=str(instructions), **configured)
+               SCIENTIFIC_CORE_INSTRUCTIONS_PATH=str(instructions), **configured)
     output = tmp_path / 'librechat.yaml'
     subprocess.run(['node', str(ROOT / 'render-config.mjs'), str(output)],
                    env=env, check=True, capture_output=True, text=True)

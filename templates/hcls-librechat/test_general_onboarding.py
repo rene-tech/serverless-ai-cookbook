@@ -16,7 +16,7 @@ def test_retired_event_flag_cannot_restore_event_providers(tmp_path, legacy_flag
            if not key.startswith(("SCIENTIFIC_", "NEBIUS_"))}
     env.update(SCIENTIFIC_DISCOVER_CHAT_MODELS="false",
                SCIENTIFIC_DEDICATED_CHAT_ENABLED=legacy_flag,
-               SCIENTIFIC_AGENT_INSTRUCTIONS_PATH=str(
+               SCIENTIFIC_CORE_INSTRUCTIONS_PATH=str(
                    ROOT.parents[1] / "life-science/bionemo-librechat/scientific-agent-instructions.md"))
     subprocess.run(["node", str(ROOT / "render-config.mjs"), str(output)],
                    env=env, capture_output=True, check=True)
