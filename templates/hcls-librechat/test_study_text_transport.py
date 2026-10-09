@@ -99,11 +99,16 @@ def test_actual_mcp_sdk_lists_and_accepts_text_contract(mounted):
 def test_seeded_guidance_preserves_whole_study_and_evidence_first_claims():
     seed = (ROOT / 'seed-workbench.js').read_text()
     full = (ROOT.parents[1] / 'life-science/bionemo-librechat/scientific-agent-instructions.md').read_text()
-    for text in (seed, full):
+    core = (ROOT / 'agent-instructions.md').read_text()
+    skill = (ROOT.parents[1] / 'skills/scientific-ai/scientific-batch/SKILL.md').read_text()
+    assert 'instructions: coreAgentInstructions' in seed
+    assert 'skills_enabled: true' in seed
+    assert '`scientific-batch` for durable studies' in core
+    for text in (skill, full):
         assert 'strict JSON text' in text
         assert 'same samples' in text
         assert 'sample identifiers' in ' '.join(text.split())
-    assert 'downgrading to legacy v1' in seed
+    assert 'Do not switch' in skill and 'to v1' in skill
     assert 'Do not switch to v1' in full
 
 

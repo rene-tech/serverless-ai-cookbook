@@ -40,6 +40,16 @@ publication names.
    manifest. Use these exact filenames in `{step,file}` dependencies. Native
    phases publish `result.json`. Do not interpret an artifact index as a seed.
 
+Inline `study` accepts a v2 object or complete strict JSON text encoding that
+same object. Prefer a composer-generated `plan_file` for a long plan. Fix a
+rejected v2 draft without discarding its analysis or deliverables. Do not switch
+to v1 or a shell submission to work around a transport or validation error.
+
+For comparisons, verify that the inputs really describe the same samples:
+retain sample identifiers and align records by those identifiers, not row order
+or equal table sizes. Report measured values and provenance; an output file or
+a completed model operation alone does not establish the requested comparison.
+
 RFdiffusion `design-backbone` is unconditional: its published `text/plain`
 source is a human-readable provenance note describing the design, not a PDB,
 executable constraint language or guessed JSON. The runtime uses the typed
