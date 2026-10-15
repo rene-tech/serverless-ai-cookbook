@@ -1,5 +1,9 @@
 # Deferred discovery and native operation guidance — source candidate
 
+Historical source/build notes follow. The subsequently published immutable
+image, bounded browser result and default-selection evidence are recorded in
+[native-polling-release-20261015.md](native-polling-release-20261015.md).
+
 This is an **unreleased source candidate**, separate from the frozen API116/AppR42
 QA cohort. It does not change a release pointer, base image, customer instance,
 agent defaults, provider budget, credentials or scientific request.

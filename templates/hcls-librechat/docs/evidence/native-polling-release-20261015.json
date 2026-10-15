@@ -1,0 +1,73 @@
+{
+  "scope": "immutable default-image selection; no live customer replacement",
+  "source": "65b88e24ca1ed20d73b6a6c7eef0ef8366e6d21e",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workspace-s2qa-20261015-r2",
+  "manifest": "sha256:bd339b8357a381e3c453d5a5132fdc89fb514ff4b9e4cd67dc3ac2c4f1f5ca4d",
+  "config": "sha256:abf7424b90518ebe038c4c8553bd94f9fcc00f84826d478c8063f925b694abc2",
+  "skills_version": "2026.10.15.1",
+  "publication": {
+    "at": "2026-10-15T12:13:51.887005Z",
+    "manifest_config_and_layer_descriptors_exact": true,
+    "layers": 122,
+    "inherited_parent_diff_ids": 113,
+    "receipt_sha256": "a6c35f3cd0991d43c04c1dfb09f87fb680be406f2e203a9e25a423ef220141f3",
+    "method": "existing verified CAS, skopeo preserve-digests, no new solve"
+  },
+  "independent_installed": {
+    "configured_uid": 0,
+    "sdk_tests_passed": 20,
+    "sdk_tests_skipped": 0,
+    "skills_loaded": 84,
+    "core_file_hashes_verified": 85,
+    "network": "none",
+    "receipt_sha256": "43580048a391ee4a4ab07bafc55b601e899b2c061dae150493b0f228850a9fd6"
+  },
+  "isolated_state_restore": {
+    "passed": true,
+    "all_documents_and_indexes_verified_before_startup": true,
+    "login_status": 200,
+    "history_status": 200,
+    "messages_status": 200,
+    "conversations": 22,
+    "messages": 44,
+    "encrypted_saved_credentials": 1,
+    "existing_user_and_password_hash_preserved": true,
+    "upload_fixtures": 0,
+    "local_containers_stopped": true,
+    "network": "none",
+    "provider_calls": 0,
+    "receipt_sha256": "b0203e670ee82f6b3b8868e2a83c25672dc61dd2936377cdd473259fd08c6d11",
+    "backup_receipt_sha256": "3668fe688bdab62633164695595ec6a2f6233e3408ee8663109a232cfba68140"
+  },
+  "browser": {
+    "passed": true,
+    "at": "2026-10-15T12:07:02.954794Z",
+    "identity": "internal system/qa, existing bounded ordinary key",
+    "installed_qa_image_unchanged": true,
+    "exact_candidate_modules_and_guidance_installed": true,
+    "operation_id": "op-e74c396a38794261",
+    "tools": ["tool_search", "get_scientific_status_mcp_scientific-ai-apps", "get_scientific_result_mcp_scientific-ai-apps"],
+    "same_operation_arguments": true,
+    "new_scientific_operations": 0,
+    "artifact_bytes": 866,
+    "artifact_sha256": "c69fded8a3a4eccaf722015d3d04d3bcacbfa52bd72bca731f5ce4cbb35505d8",
+    "original_agent_restored": true,
+    "guidance_in_agent_instructions": true,
+    "autonomous_skill_loading_qualified": false,
+    "provider_model": "zai-org/GLM-5.3-Flash",
+    "provider_requests_actual": null,
+    "provider_requests_upper_bound": 8,
+    "provider_cost_actual_usd": null,
+    "provider_cost_upper_bound_usd": 1.294336,
+    "receipt_sha256": "6e6d79fa23396eca30ec2157ef7d4e28a8e64444df2f2af93d07ff3e4ff35dc6"
+  },
+  "preserved_failures": [
+    "initial ESM fixture constructor mismatch, corrected without weakening provenance",
+    "original BuildKit publication timed out3600s during slow upload; precise network cause unproven",
+    "UID1000 public skill-directory traversal denied"
+  ],
+  "customer_ready": false,
+  "all_workflows_qualified": false,
+  "managed_replacement_qualified": false,
+  "rollback_manifest": "sha256:752a860b307e85e69b8ad3b5983ac158f78ad5121bb8dbf4f5ec6e89a30e0c1b"
+}

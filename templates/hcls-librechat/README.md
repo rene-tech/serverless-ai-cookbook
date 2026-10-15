@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A752a860b307e85e69b8ad3b5983ac158f78ad5121bb8dbf4f5ec6e89a30e0c1b&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Abd339b8357a381e3c453d5a5132fdc89fb514ff4b9e4cd67dc3ac2c4f1f5ca4d&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,9 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workspace-20261008-r3`,
-digest `sha256:752a860b307e85e69b8ad3b5983ac158f78ad5121bb8dbf4f5ec6e89a30e0c1b`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workspace-s2qa-20261015-r2`,
+digest `sha256:bd339b8357a381e3c453d5a5132fdc89fb514ff4b9e4cd67dc3ac2c4f1f5ca4d`.
+It includes the [deferred-tool discovery and native operation guidance fixes](docs/native-polling-release-20261015.md).
 It includes [arbitrary-file uploads and bucket-backed chat selection](docs/workspace-files-20261008.md),
 file-only messages, authenticated downloads and audio playback in saved chats.
 It preserves Nebius branding, persistent customer state, and the durable
@@ -77,10 +78,13 @@ empty-domain probing loops, retaining
 Its 36 canonical customer skills (84 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
-as the website's **Get the Skills** button. The deployed image contains skills
-`2026.10.07.5` from source `fd9ca0c`; the merged source bundle `2026.10.07.6`
-also preserves the independently developed GROMACS candidate guidance. That
-source merge is not a new image qualification. Operators maintain the image in
+as the website's **Get the Skills** button. The selected image contains skills
+`2026.10.15.1` from source `65b88e24ca1ed20d73b6a6c7eef0ef8366e6d21e`.
+Configured-root installed SDK/skills and isolated restored-state login/history
+checks passed, plus a bounded same-operation browser follow-up using the exact
+patched modules/guidance on the retained QA image. This does not qualify every
+scientific workflow or autonomous skill loading; UID1000 skill-directory
+portability remains unsupported in this digest. Operators maintain the image in
 `scripts/release-image.sh`. Existing running instances do not auto-upgrade when
 this default changes; upgrading their application requires a separate controlled
 rollout preserving chats, credentials and workspace bindings. In particular,
