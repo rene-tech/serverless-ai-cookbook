@@ -81,5 +81,9 @@ test('build verification cannot silently skip the exact installed SDK', async ()
   const gate = await fs.readFile(path.join(__dirname, 'test-deferred-discovery-boundary.cjs'), 'utf8');
   assert.match(gate, /if \(!installed && !process\.env\.SCIENTIFIC_DISCOVERY_GRAPH && !fs\.existsSync\(graphPath\)\)/);
   assert.match(gate, /installed ESM discovery matches the CJS behavior/);
+  assert.match(gate, /exports\['\.\/messages'\]\.import\.default/);
+  assert.match(gate, /fixture\(sdk\)/);
+  assert.match(gate, /ESM rejects unrelated tool-call lineage/);
+  assert.match(gate, /ESM does not scan through/);
   assert.match(gate, /actual ToolNode post-batch path/);
 });
