@@ -36,4 +36,23 @@ function patchFactory(source) {
   return source;
 }
 
-module.exports = { patchFactory, ROUTING_NOTICE };
+/** Keep the existing trusted host budget notice transparent to discovery only.
+ * The provider still receives the complete history and its unchanged budget.
+ * Never scan through user/steering messages or accept a text-only lookalike.
+ */
+function patchDiscoveries(source, format = 'cjs') {
+  if (!['cjs', 'esm'].includes(format)) throw new Error('Unsupported discovery module format');
+  if (source.includes('scientificHostBudgetNotice')) throw new Error('Discovery notice patch already installed');
+  for (const name of ['extractToolDiscoveries', 'hasToolSearchInCurrentTurn']) {
+    const anchor = `function ${name}(messages) {`;
+    if (source.split(anchor).length !== 2) throw new Error(`Unsupported pinned discovery seam: ${name}`);
+    source = source.replace(anchor, `${anchor}
+\tif (scientificHostBudgetNotice.isHostBudgetNotice(messages.at(-1))) messages = messages.slice(0, -1);`);
+  }
+  const helper = '/opt/hcls-librechat/scientific-study-admission.cjs';
+  return (format === 'esm'
+    ? `import scientificHostBudgetNotice from '${helper}';\n`
+    : `const scientificHostBudgetNotice = require('${helper}');\n`) + source;
+}
+
+module.exports = { patchFactory, patchDiscoveries, ROUTING_NOTICE };

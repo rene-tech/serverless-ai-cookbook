@@ -28,6 +28,16 @@ for (const toolSearchPath of [
   await writeFile(toolSearchPath, toolSearchPatch.patchFactory(await readFile(toolSearchPath, 'utf8')));
 }
 
+// PostToolBatch appends the existing, provenance-stamped budget notice after a
+// search result. Preserve that notice in provider history, but do not let it
+// hide the just-completed search artifact from either discovery helper.
+for (const [discoveryPath, format] of [
+  ['/app/node_modules/@librechat/agents/dist/cjs/messages/tools.cjs', 'cjs'],
+  ['/app/node_modules/@librechat/agents/dist/esm/messages/tools.mjs', 'esm'],
+]) {
+  await writeFile(discoveryPath, toolSearchPatch.patchDiscoveries(await readFile(discoveryPath, 'utf8'), format));
+}
+
 // A slow/unavailable title model must not leave every chat named "New Chat"
 // or keep the client polling a missing title. Preserve upstream title policy.
 const titlePath = '/app/api/server/services/Endpoints/agents/title.js';
