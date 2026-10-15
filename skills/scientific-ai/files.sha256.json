@@ -49,7 +49,7 @@
   "lammps/SKILL.md": "11789c6fff20352c22b765f13c8176188023607dd5672873205e7aaeba51d6f6",
   "lammps/examples/native-workflow.json": "5114f2804949c96ccfa2240034899c188473cf70e0d0c8e83f5eae5df96be8f0",
   "lammps/references/native-workflows.md": "634745f17c7bea95fec83a202f262d8a4a779ef361762df3989e697246382234",
-  "manifest.json": "680bb149cb4636128edf47c0484445356f01764603dbab22e57ae368768c3f1c",
+  "manifest.json": "8fec9fb581fd4f97f31a716b451a610804748d4a545e85f0970f177c40575373",
   "microscopy-segmentation/SKILL.md": "59a280a1c2108e5c8889f4dfc6b7a24607d496d9fa26716c70e0b26a23f857ec",
   "mindeval-workflows/SKILL.md": "7056afe0d010fb62dc67e96193f75abbaaa840740ba79c63b29b69e715482fa1",
   "molmim/SKILL.md": "2d6346e7478e75c2e9b978425d85e4b70163f560541723f57574eac47a57dfc0",
@@ -69,11 +69,11 @@
   "rfdiffusion/SKILL.md": "4af820080bbf8daa62189180c44e6126355749d0211e8063cf563dcb22ec489b",
   "sam2-segmentation/SKILL.md": "024e37754610cd21400c0cabd84ef81522bec31a162f936d8716320242551b34",
   "scientific-agent-tutorials/SKILL.md": "0cd600cf68e23d7be57ad106691fc3934c2df5b42d2fcb91af5f5b13ebc055bd",
-  "scientific-batch/SKILL.md": "7f8a8908d1de10ecf13a7b07542282c42c57fe8051c8bf06b20409a2cdd6f554",
+  "scientific-batch/SKILL.md": "06baf39ece004b26daaa6139539255d2b0ab155d5969571a0315667b091aeb47",
   "scientific-batch/references/native-md.md": "b4056c9ac63c43076dfcb9d20a4e794992955294837a2c988c807e4603a704b2",
-  "scientific-gateway/SKILL.md": "9ea4d1beedbf79f0b675cdbf9228d7ec2bae02f2454b8216e26dccb66e99b005",
+  "scientific-gateway/SKILL.md": "ef76d41ffb8c138e2ab494e1ee1ef664a7745a99c11fee12abf5956889484c66",
   "scientific-gateway/agents/openai.yaml": "2136943cb1c41e378a0279e125f48657158734e07e7617fb8479161eff5349d8",
-  "scientific-gateway/references/client-contract.md": "b3b8e2845530193ca67ea258db7642d09d7ffdc1445f53bf39690f1f2b4aa5bc",
+  "scientific-gateway/references/client-contract.md": "2caae053868e881487a08b05ec19d9bc7c72d671f1b4848c08e6368057a405e3",
   "scientific-gateway/references/portable-client.md": "dc92ea9f72648358f7d3197714f747e528173ed187a54cfc39bd9246649cfc51",
   "scientific-starter-data/SKILL.md": "c776021645fac2cf96517cdf3e02ff3cd68c6aadd1fd16cdd3478e59238459be",
   "single-cell-analysis/SKILL.md": "25f47af2941931feae870d1bbb18643f0dca9c3cc6834dfe47fb9faf508ad53c",
@@ -83,5 +83,5 @@
   "tests/contracts.json": "b5e6d71b53477b11bb7d63d427d0eaf98fbbd2c1c72b7fc45ff4949ea04e81ba",
   "tests/native-md-contracts.json": "4ae84127b24a3b0c570c8bae7a638baa15e7c941727f8a269dfd38ea5456d533",
   "tests/sync-native-md-contracts.py": "e0e2ad23d7fcb074384bf3b7dcc48fbf9ef4e769e1efbc1d89d0fac8d3a8f195",
-  "tests/test_bundle.py": "091ff04eaab527db83a02d32c7564a72808fdabf4a9b5a3d398569f3c45a5583"
+  "tests/test_bundle.py": "b31658722635f847572c338cc2e4ba7f7e61147421be562c40b67ab6a590338e"
 }

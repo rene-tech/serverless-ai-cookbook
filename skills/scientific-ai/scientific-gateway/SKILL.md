@@ -48,9 +48,18 @@ specific incompatibility and ask the user to choose a supported workflow.
   A corrected or deliberately new request gets a new key.
 - Set serving `wait_seconds` to `0` unless a short bounded wait materially helps.
   Submission returns a durable operation/status record, not the final prediction.
-- Save and report the operation ID. Prefer `workbench_get_operation` for bounded
-  waiting and `workbench_get_operation_result` for verified file-backed results;
-  fall back to gateway lifecycle tools if the workbench helpers are absent.
+- Save and report the exact returned operation ID; do not convert it to a UUID.
+  Choose the lifecycle tools by that ID and the live submission-tool description,
+  not by whether the App is called "serving" or "scientific":
+  - Native IDs beginning `op-` (including durable ADMET serving): call
+    `get_scientific_status`, then `get_scientific_result` after result publication.
+    Pass the unchanged `operation.id` as `operation_id`. Do not use the UUID-only
+    `get_operation`, `get_operation_result` or `workbench_get_operation*` helpers.
+  - Original UUID IDs: prefer `workbench_get_operation` for bounded waiting and
+    `workbench_get_operation_result` for verified file-backed results where
+    supported; the hosted `get_operation` / `get_operation_result` aliases
+    preserve these original IDs. Follow a scientific tool's explicit lifecycle
+    instructions for scientific UUID runs.
 - Scientific submissions return an operation plus batch state. Poll
   `get_scientific_status` and incrementally read `list_scientific_events`.
   Wait for result publication, then call `get_scientific_result` and retrieve
@@ -59,8 +68,9 @@ specific incompatibility and ask the user to choose a supported workflow.
   advancing execution or a specific capacity problem. Do not resubmit or
   cancel because a chat/tool timeout elapsed. Terminal states are `succeeded`,
   `failed`, `cancelled`, `preempted`, and `expired`.
-- Download and verify outputs before `acknowledge_operation`; acknowledgement
-  purges an ordinary retained payload/result.
+- Download and verify outputs before an advertised `acknowledge_operation`;
+  acknowledgement purges an ordinary retained payload/result. Do not assume
+  that this UUID lifecycle action is supported for native `op-*` IDs.
 
 ## Scientific artifacts
 

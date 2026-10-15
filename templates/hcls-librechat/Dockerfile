@@ -83,6 +83,7 @@ COPY templates/hcls-librechat/scientific-context-audit.cjs /opt/hcls-librechat/s
 COPY templates/hcls-librechat/scientific-token-count.cjs /opt/hcls-librechat/scientific-token-count.cjs
 COPY templates/hcls-librechat/scientific-tool-search-patch.cjs /opt/hcls-librechat/scientific-tool-search-patch.cjs
 COPY templates/hcls-librechat/patch-server.mjs /opt/hcls-librechat/patch-server.mjs
+COPY templates/hcls-librechat/test-deferred-discovery-boundary.cjs /opt/hcls-librechat/test-deferred-discovery-boundary.cjs
 COPY templates/hcls-librechat/demos/service.cjs \
      templates/hcls-librechat/demos/analysis.cjs \
      templates/hcls-librechat/demos/worker.cjs \
@@ -143,6 +144,8 @@ RUN python3 -m venv /opt/scientific-client \
 COPY life-science/bionemo-librechat/viewer-mcp.py /opt/bionemo/viewer-mcp.py
 COPY life-science/bionemo-librechat/3dmol.js /opt/bionemo/3dmol.js
 RUN node /opt/hcls-librechat/patch-server.mjs
+RUN SCIENTIFIC_DISCOVERY_INSTALLED=1 SCIENTIFIC_DISCOVERY_GRAPH=/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
+    node --test /opt/hcls-librechat/test-deferred-discovery-boundary.cjs
 COPY templates/hcls-librechat/scientific-provider-recovery.cjs templates/hcls-librechat/scientific-verified-delivery.cjs templates/hcls-librechat/patch-agent-reliability.mjs /opt/hcls-librechat/
 RUN node /opt/hcls-librechat/patch-agent-reliability.mjs
 COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librechat/patch-title-options.mjs templates/hcls-librechat/patch-skill-result.mjs /opt/hcls-librechat/

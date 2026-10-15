@@ -48,6 +48,22 @@ def test_links_resolve_in_downloadable_bundle():
             assert (path.parent / target.split('#')[0]).exists(), (path, target)
 
 
+@pytest.mark.parametrize('operation_id,status_tool,result_tool', [
+    ('op-e74c396a38794261', 'get_scientific_status', 'get_scientific_result'),
+    ('00000000-0000-4000-8000-000000000001', 'get_operation', 'get_operation_result'),
+])
+def test_native_and_original_uuid_polling_guidance(operation_id, status_tool, result_tool):
+    reference = (ROOT / 'scientific-gateway/references/client-contract.md').read_text()
+    row = f'| `{operation_id}` | `{status_tool}` | `{result_tool}` |'
+    assert row in reference
+    assert 'Pass the unchanged `operation.id` as `operation_id`' in text('scientific-gateway')
+    assert 'Do not use the UUID-only' in text('scientific-gateway')
+    assert '`workbench_get_operation*` helpers do not accept native `op-*`' in reference
+    assert 'not authority to read another caller' in reference
+    assert 'submit again or switch credentials' in reference
+    assert '- serving: `invoke_model`, `get_operation`' not in reference
+
+
 def test_new_catalog_app_requires_deliberate_workflow_coverage():
     assert bundle.check_catalog({'models': [{'id': 'scvi-scanvi'}]})['unmapped'] == []
     with pytest.raises(ValueError, match='Add workflow coverage'):

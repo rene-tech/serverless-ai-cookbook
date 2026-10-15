@@ -6,17 +6,27 @@ const path = require('node:path');
 const Module = require('node:module');
 const { patchDiscoveries } = require('./scientific-tool-search-patch.cjs');
 const graphPath = process.env.SCIENTIFIC_DISCOVERY_GRAPH || '/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs';
-if (!process.env.SCIENTIFIC_DISCOVERY_GRAPH && !fs.existsSync(graphPath)) {
+const installed = process.env.SCIENTIFIC_DISCOVERY_INSTALLED === '1';
+if (!installed && !process.env.SCIENTIFIC_DISCOVERY_GRAPH && !fs.existsSync(graphPath)) {
   test('installed deferred-discovery regression', { skip: 'Requires exact installed @librechat/agents; set SCIENTIFIC_DISCOVERY_GRAPH' }, () => {});
 } else {
 const r = Module.createRequire(graphPath);
 const modulePath = path.join(path.dirname(graphPath), '../messages/tools.cjs');
 const original = r('../messages/tools.cjs');
+let candidate = original;
+if (installed) {
+  for (const sourcePath of [modulePath, modulePath.replace('/cjs/', '/esm/').replace(/\.cjs$/, '.mjs')]) {
+    const source = fs.readFileSync(sourcePath, 'utf8');
+    assert.equal(source.match(/scientificHostBudgetNotice\.isHostBudgetNotice\(messages\.at\(-1\)\)/g)?.length, 2,
+      `Both discovery helpers must be patched in ${sourcePath}`);
+  }
+} else {
 const compiled = new Module(modulePath, module);
 compiled.filename = modulePath;
 compiled.paths = Module._nodeModulePaths(path.dirname(modulePath));
 compiled._compile(patchDiscoveries(fs.readFileSync(modulePath, 'utf8')), modulePath);
-const candidate = compiled.exports;
+candidate = compiled.exports;
+}
 const { AIMessageChunk, HumanMessage, ToolMessage } = r('@langchain/core/messages');
 const { AgentContext } = r('../agents/AgentContext.cjs');
 const { createToolSearch } = r('../tools/ToolSearch.cjs');
@@ -43,11 +53,25 @@ async function fixture() {
   return { request, result, notice, registry };
 }
 
-test('exact installed failure: trusted host notice hides the completed search', async () => {
+test(installed ? 'installed SDK preserves discovery across the trusted host notice'
+  : 'exact unpatched failure: trusted host notice hides the completed search', async () => {
   const { request, result, notice } = await fixture();
   assert.deepEqual(original.extractToolDiscoveries([request, result]), [toolName]);
-  assert.deepEqual(original.extractToolDiscoveries([request, result, notice]), []);
-  assert.equal(original.hasToolSearchInCurrentTurn([request, result, notice]), false);
+  assert.deepEqual(original.extractToolDiscoveries([request, result, notice]), installed ? [toolName] : []);
+  assert.equal(original.hasToolSearchInCurrentTurn([request, result, notice]), installed);
+});
+
+if (installed) test('installed ESM discovery matches the CJS behavior', async () => {
+  const esm = await import(require('node:url').pathToFileURL(modulePath.replace('/cjs/', '/esm/').replace(/\.cjs$/, '.mjs')));
+  const { request, result, notice } = await fixture();
+  const messages = [request, result, notice];
+  const before = JSON.stringify(messages);
+  assert.deepEqual(esm.extractToolDiscoveries(messages), [toolName]);
+  assert.equal(esm.hasToolSearchInCurrentTurn(messages), true);
+  assert.equal(JSON.stringify(messages), before);
+  const user = new HumanMessage({ content: notice.content });
+  assert.deepEqual(esm.extractToolDiscoveries([request, result, user]), []);
+  assert.equal(esm.hasToolSearchInCurrentTurn([request, result, user]), false);
 });
 
 test('actual ToolNode post-batch path appends the trusted notice after local deferred search', async () => {
@@ -68,7 +92,7 @@ test('actual ToolNode post-batch path appends the trusted notice after local def
   assert.ok(isHostBudgetNotice(injected[0]));
   const messages = [request, result, ...injected];
   const before = JSON.stringify(messages);
-  assert.deepEqual(original.extractToolDiscoveries(messages), []);
+  assert.deepEqual(original.extractToolDiscoveries(messages), installed ? [toolName] : []);
   assert.deepEqual(candidate.extractToolDiscoveries(messages), [toolName]);
   assert.equal(candidate.hasToolSearchInCurrentTurn(messages), true);
   assert.equal(JSON.stringify(messages), before);
