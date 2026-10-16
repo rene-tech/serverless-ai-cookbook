@@ -137,6 +137,7 @@ function appUseCase(item) {
   const id = String(item.id || item.model_id || '').toLowerCase();
   const operations = (item.operations || []).map((value) => String(value).toLowerCase());
   const has = (...values) => values.some((value) => operations.includes(value));
+  if (id === 'mdprecheck' && has('check-md-inputs')) return 'Molecular dynamics';
   // Native workflow engines do not all include "molecular dynamics" in their
   // display name (notably AMBER26 and distributed GROMACS). Classify their
   // stable App IDs before text search, without granting or inventing Apps.

@@ -1,20 +1,17 @@
 # syntax=docker/dockerfile:1.7
-# Bounded additive skills release from the current recording workbench.
-# Keep its application, instructions and pinned ClawBio extensions unchanged.
-FROM python:3.13.15-alpine3.23@sha256:a3180613a9708f1cd59aa79a3dd82e8a6d3f3199d1d6e2c467a63687518872d3 AS core-skills
-COPY skills/scientific-ai/ /core/
-RUN python3 /core/bundle.py verify
-
-FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:4155dd171ecb2e3c178695a66efe426c75ea8d219dfaceb8757735774dbe8a36
+# One additive layer over the current branded, persistent-state workbench.
+# Preserve the API/client, instructions, ClawBio extensions and native SDK.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:5595cfb290b00b78390d204300eca559dd9ef297784f63a0efc8eb19b9f3a556
+FROM ${WORKBENCH_BASE}
 ARG SKILLS_REVISION=unknown
 USER root
-# This exact base is the retained GROMACS workbench. Do not remove extension
-# directories or replace its seeded-agent instructions with an older copy.
-COPY --from=core-skills /core/ /app/skill/
-COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py
-COPY templates/hcls-librechat/native_md_artifacts.py /opt/bionemo/native_md_artifacts.py
-COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /tmp/test-skills-installed.cjs
-RUN node /tmp/test-skills-installed.cjs
-LABEL ai.nebius.scientific.skills.version="2026.09.23.5" \
+RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/core-skills,ro \
+    --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workbench-release,ro \
+    python3 /tmp/core-skills/bundle.py verify \
+ && cp -a /tmp/core-skills/. /app/skill/ \
+ && cp /tmp/workbench-release/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
+ && node --check /opt/hcls-librechat/demos/service.cjs \
+ && node /tmp/workbench-release/scripts/test-skills-installed.cjs
+LABEL ai.nebius.scientific.skills.version="2026.10.16.1" \
       ai.nebius.scientific.skills.revision="${SKILLS_REVISION}" \
       ai.nebius.scientific.skills.source="https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai"

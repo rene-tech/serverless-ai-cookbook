@@ -9,6 +9,7 @@ const native = [
   ['boltz2', 'predict'], ['diffdock', 'dock'], ['msa-search-pdb70', 'search-msa'],
   ['openfold2', 'predict-structure'], ['openfold3', 'predict-structure'],
   ['proteinmpnn', 'design-protein'], ['scvi-scanvi', 'fit-transform'],
+  ['mdprecheck', 'check-md-inputs'],
 ].map(([id, operation]) => ({ id, operations: [operation], protocols: ['native'] }));
 const batch = [
   ['boltzgen', 'design-binders'], ['esmfold2', 'predict-structure'],
@@ -63,22 +64,23 @@ test('full listing cannot be filtered by old chat/tool-cache arguments', async t
     assert.equal(result.result.isError, false);
     const catalog = value(result);
     assert.deepEqual(catalog.data.map(x => x.model_id).sort(), ids);
-    assert.equal(catalog.count, 16);
-    assert.equal(catalog.total_authorized_count, 16);
+    assert.equal(catalog.count, 17);
+    assert.equal(catalog.total_authorized_count, 17);
     assert.equal(catalog.catalog_scope, 'full_authorized_catalog');
     assert.equal(catalog.filter_applied, null);
     assert.deepEqual(catalog.data.find(x => x.model_id === 'scvi-scanvi').contract_kinds, ['native', 'scientific-batch']);
-    assert.equal(catalog.groups.flatMap(x => x.apps).length, 16);
+    assert.equal(catalog.groups.flatMap(x => x.apps).length, 17);
+    assert.equal(catalog.data.find(x => x.model_id === 'mdprecheck').use_case, 'Molecular dynamics');
   }
 });
 
 test('explicit searches distinguish matches from grants, including genuine misses', async t => {
   const results = await rpc(t, ['protein', 'molecular dynamics', 'single-cell', 'DiffDock docking ligand', 'missing']
     .map(query => invoke('workbench_search_apps', { query })));
-  assert.deepEqual(results.map(x => value(x).count), [10, 4, 1, 0, 0]);
+  assert.deepEqual(results.map(x => value(x).count), [10, 5, 1, 0, 0]);
   for (const result of results) {
     const catalog = value(result);
-    assert.equal(catalog.total_authorized_count, 16);
+    assert.equal(catalog.total_authorized_count, 17);
     assert.equal(catalog.catalog_scope, 'search_matches');
     assert.match(catalog.answer_rules, /NOT the full authorization list/);
     assert.match(catalog.next_step, /workbench_list_apps with \{\}/);

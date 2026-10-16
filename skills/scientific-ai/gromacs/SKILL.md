@@ -48,6 +48,15 @@ Operational defaults and scientifically valid sampling are different things.
 
 ## Submit through the existing client
 
+For a new prepared workload, load `md-precheck` and offer the optional hosted
+precheck if those exact inputs/settings have not already been checked. Use its
+read-only lookup and retain the operation/report in the workload receipt.
+Explicit consent is required to execute; declining never blocks GROMACS.
+Changed inputs/settings merit a new offer, but merely resuming the same
+checkpoint does not. A scientific `warn`/`fail` is a completed check to discuss,
+not permission to auto-repair or silently repeat it. This does not replace
+native `grompp` validation. Advice and coordinate inventory do not need prechecks.
+
 1. Read `get_model_schema(model_id="gromacs", protocol="scientific-batch-v1")`.
    Use its exact typed tool, operations, parameter schema and input artifact
    contract. The initial operation is `run-workflow`, with typed tool
@@ -120,14 +129,15 @@ per rank. Discover the deployed bounds, not an old one-GPU-per-node assumption.
 Do not request replica exchange, CP2K or NNPot through undocumented
 flags; a compiled dependency alone is not a hosted capability.
 
-Operational defaults: five-minute local checkpoints and remote segments,
-six-hour per-job wall budget, 4 GiB output budget, and customer-bucket export.
+Operational defaults include five-minute local checkpoints/remote segments
+and customer-bucket export. Read the live wall-time and output budgets;
+historical six-hour defaults are not authoritative for the current platform.
 Read the live bounds before changing `threads`, `segment_minutes`,
 `checkpoint_minutes`, `max_wall_seconds`, `max_output_bytes`,
 `output_destination` or `output_prefix`. Output cadence is controlled by the
 customer's MDP/TPR and is not silently rewritten. Platform/bucket quotas still
-apply; a larger request budget does not purchase or create storage. The 4 GiB
-default can be too small for million-atom systems: inputs, repeated final
+apply; a larger request budget does not purchase or create storage. A 4 GiB
+output budget can be too small for million-atom systems: inputs, repeated final
 coordinates, checkpoints, trajectory parts and joined outputs all consume the
 workspace budget. Estimate them before submission; see the
 [large-output budget guidance](references/mpi.md#output-budget-and-failure-diagnostics).

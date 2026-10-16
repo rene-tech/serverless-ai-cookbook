@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.10.15.1",
+  "version": "2026.10.16.1",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -24,6 +24,7 @@
     "gromacs": ["gromacs", "gromacs-mpi"],
     "imaging-models": ["nv-reason-cxr-3b", "nv-segment-ct"],
     "lammps": ["lammps"],
+    "md-precheck": ["mdprecheck"],
     "microscopy-segmentation": ["cellpose-cpsam-v2"],
     "mindeval-workflows": [],
     "molmim": ["molmim"],
