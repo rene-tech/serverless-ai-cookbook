@@ -1,0 +1,14 @@
+**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/Dockerfile.gromacs-prep
+!templates/hcls-librechat/agent-instructions.md
+!templates/hcls-librechat/scripts/
+!templates/hcls-librechat/scripts/test-skills-installed.cjs
+!templates/hcls-librechat/scripts/gromacs-prep/
+!templates/hcls-librechat/scripts/gromacs-prep/*.py
+!templates/hcls-librechat/scripts/gromacs-prep/gmx
+!skills/
+!skills/scientific-ai/
+!skills/scientific-ai/**
+**/__pycache__

@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1.7
+# CPU preparation only. Native MD execution remains on Scientific AI.
+# Keep Debian 12 ABI compatibility with current provider-Serverless clients.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:a3d7e7228fb02eb470aa1269d549a1b1975efb5a78dc505b37898e7d0bbea8f0
+FROM python:3.12.15-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 AS gromacs-prep-build
+ARG GMX_VERSION=2026.4
+ARG GMX_SOURCE_SHA256=58eda60979b124fcf9dff8b1b63cedfbc72fdb36d99e921dc1bdc310571098b6
+ARG BUILD_JOBS=12
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential ninja-build curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && python -m pip install --no-cache-dir cmake==3.31.6
+WORKDIR /src
+RUN curl -fsSL --retry 3 "https://ftp.gromacs.org/gromacs/gromacs-${GMX_VERSION}.tar.gz" -o gromacs.tar.gz \
+ && printf '%s  gromacs.tar.gz\n' "${GMX_SOURCE_SHA256}" | sha256sum -c - \
+ && tar xzf gromacs.tar.gz \
+ && cmake -S "gromacs-${GMX_VERSION}" -B build -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="/opt/gromacs-prep/${GMX_VERSION}" \
+      -DGMX_GPU=OFF -DGMX_MPI=OFF -DGMX_OPENMP=OFF -DGMX_HWLOC=OFF \
+      -DGMX_SIMD=NONE -DGMX_FFT_LIBRARY=fftpack -DBUILD_SHARED_LIBS=OFF \
+      -DGMX_BUILD_SHARED_EXE=OFF -DGMXAPI=OFF -DGMX_INSTALL_NBLIB_API=OFF \
+      -DBUILD_TESTING=OFF -DGMX_BUILD_UNITTESTS=OFF -DREGRESSIONTEST_DOWNLOAD=OFF \
+ && cmake --build build -j "${BUILD_JOBS}" \
+ && cmake --install build --strip \
+ && printf '%s\n' "${GMX_SOURCE_SHA256}" > "/opt/gromacs-prep/${GMX_VERSION}/SOURCE-SHA256" \
+ && install -m 0644 "gromacs-${GMX_VERSION}/COPYING" "/opt/gromacs-prep/${GMX_VERSION}/COPYING"
+
+FROM ${WORKBENCH_BASE}
+USER root
+COPY --from=gromacs-prep-build /opt/gromacs-prep/2026.4 /opt/gromacs-prep/2026.4
+COPY --chmod=0755 templates/hcls-librechat/scripts/gromacs-prep/gmx /usr/local/bin/gmx
+COPY templates/hcls-librechat/scripts/gromacs-prep/ /opt/hcls-librechat/gromacs-prep/
+COPY skills/scientific-ai/ /app/skill/
+COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
+COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /opt/hcls-librechat/gromacs-prep/test-skills-installed.cjs
+RUN /usr/local/bin/gmx --version \
+ && python3 /opt/hcls-librechat/gromacs-prep/verify.py --output /tmp/gromacs-prep-acceptance \
+ && node /opt/hcls-librechat/gromacs-prep/test-skills-installed.cjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL ai.nebius.scientific.gromacs-prep.version="2026.4" \
+      ai.nebius.scientific.gromacs-prep.source-sha256="58eda60979b124fcf9dff8b1b63cedfbc72fdb36d99e921dc1bdc310571098b6" \
+      ai.nebius.scientific.skills.version="2026.10.16.6" \
+      ai.nebius.scientific.release="scientific-progress-gromacs-prep-20261016" \
+      org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}"

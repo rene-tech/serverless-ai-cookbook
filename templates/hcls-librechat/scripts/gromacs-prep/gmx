@@ -1,0 +1,3 @@
+#!/bin/sh
+# CPU analysis/preparation. Submit MD runs to Scientific AI, not this client.
+exec /opt/gromacs-prep/2026.4/bin/gmx "$@"

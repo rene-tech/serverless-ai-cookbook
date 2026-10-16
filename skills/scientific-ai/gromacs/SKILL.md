@@ -44,6 +44,52 @@ GPUs can be slower and more expensive for small systems.
   Scientific AI workbench, `inspect-mmcif.py` provides measured mmCIF inventory.
 - Establish the full protocol below only when preparing or running a simulation.
 
+## Inspect and prepare inputs locally
+
+The Nebius workbench includes **CPU-only GROMACS 2026.4** on the shell PATH:
+`gmx dump`, `check`, `convert-tpr`, `editconf` and `grompp` are available to
+environment-execution. Check `command -v gmx` and `gmx --version` first.
+These tools prepare and inspect files; run MD through Scientific AI, not local
+`mdrun`. On an older client without `gmx`, use the App's discovered preparation
+commands or report the client packaging gap; do not claim the platform cannot
+prepare a TPR. This standalone skill does not itself install binaries.
+
+Classify the requested change before editing:
+
+- **Inspect a TPR:** `gmx dump -s simulation.tpr` exposes the encoded system and
+  settings; `gmx editconf -f simulation.tpr -o extracted.gro` extracts coordinates.
+  A TPR-only upload is not empty or unusable. Derived coordinates and topology
+  reconstructions are inspection aids, not automatically validated originals.
+- **Duration only:** read `dt`, `nsteps`, `init-step` and `tinit`, then use
+  `gmx convert-tpr -s simulation.tpr -nsteps STEPS -o duration-only.tpr`.
+  Nanoseconds × 1000 / timestep in ps gives the requested integration steps;
+  for a new 10 ns run at 0.002 ps this is 5,000,000. For checkpoint continuation,
+  distinguish an absolute end time from additional time; never shorten below
+  an already completed checkpoint. This does **not** require `.gro/.top/.mdp`
+  and does not repair geometry, force-field choices or stereochemistry.
+- **Physical rebuild:** `grompp` needs real coordinates, topology and includes,
+  MDP, and any required groups/restraint references. State the exact missing
+  dependency. A checker's reconstructed `conf.gro`, `topol.top`, or `run.mdp`
+  may omit original selections/includes/intent: validate equivalence before
+  treating them as rebuild sources. Do not invent a topology, force field,
+  protonation, intended stereochemistry or missing settings. If the user has
+  authorized a repair and the required inputs are present, perform it; ask only
+  for genuinely missing scientific choices, not another generic permission.
+
+Preserve the original input SHA-256 and files, write changes into a new folder,
+record the command and new digest, and verify the requested difference using
+`gmx dump`/`check`. A duration-only conversion must leave all other dumped
+settings, coordinates and topology unchanged. A structural change needs native
+`grompp` validation and a new precheck of the changed inputs when the user has
+already requested that repair/recheck; do not ask for the same consent twice.
+If precheck was declined, it remains optional. Report unresolved findings;
+never suppress warnings with `-maxwarn` just to produce a TPR.
+
+A precheck finding is evidence to investigate, not proof of an inevitable
+crash. Minimization alone does not establish corrected stereochemistry or
+unthread an interlocked ring. Never label an input scientifically corrected
+because a duration conversion or successful `grompp` completed.
+
 ## Establish the scientific protocol
 
 Identify supplied files, question, system composition, force field/water model,
