@@ -18,6 +18,29 @@ import tempfile
 import time
 
 
+def rotate_database_logs(data: Path, max_bytes: int = 64 * 1024 * 1024,
+                         keep: int = 3) -> None:
+    """Bound database diagnostic logs, never customer records or request files.
+
+    MongoDB handles SIGUSR1 by closing/renaming its log and opening a new one.
+    https://www.mongodb.com/docs/manual/tutorial/rotate-log-files/
+    """
+    log = data / 'mongod.log'
+    pidfile = data / 'mongod.pid'
+    if log.is_file() and not log.is_symlink() and log.stat().st_size >= max_bytes and pidfile.is_file():
+        try:
+            pid = int(pidfile.read_text().strip())
+            if pid > 1 and Path(f'/proc/{pid}/comm').read_text().strip() == 'mongod':
+                os.kill(pid, signal.SIGUSR1)
+        except (ValueError, FileNotFoundError, ProcessLookupError):
+            pass  # MongoDB may still be starting, or already shutting down.
+    rotated = sorted((p for p in data.glob('mongod.log.*')
+                      if p.is_file() and not p.is_symlink()),
+                     key=lambda p: p.stat().st_mtime_ns, reverse=True)
+    for old in rotated[keep:]:
+        old.unlink()
+
+
 def mount_type(path: Path, mountinfo: Path = Path('/proc/self/mountinfo')) -> str:
     resolved = str(path.resolve())
     for line in mountinfo.read_text().splitlines():
@@ -144,7 +167,12 @@ def supervise(root: Path, command: list[str]) -> int:
                 pass
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGINT, stop)
-        code = process.wait()
+        while True:
+            try:
+                code = process.wait(timeout=10)
+                break
+            except subprocess.TimeoutExpired:
+                rotate_database_logs(data)
         # mongod normally shuts down with the process group. Do not release the
         # state lock while an orphan could still write to WiredTiger.
         try:

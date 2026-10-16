@@ -78,3 +78,26 @@ def test_restore_preserves_displaced_data(tmp_path):
     (data / 'WiredTiger').write_bytes(b'new customer data after recovery')
     module.restore(tmp_path, 'operation-1')
     assert (data / 'WiredTiger').read_bytes() == b'new customer data after recovery'
+
+
+def test_database_log_retention_preserves_active_log_and_customer_files(tmp_path):
+    import os
+    for i in range(5):
+        p = tmp_path / f'mongod.log.2026-10-1{i}'
+        p.write_bytes(b'diagnostic')
+        os.utime(p, (100 + i, 100 + i))
+    active = tmp_path / 'mongod.log'
+    active.write_bytes(b'active')
+    customer = tmp_path / 'conversation.json'
+    customer.write_bytes(b'customer content')
+    module.rotate_database_logs(tmp_path)
+    assert len(list(tmp_path.glob('mongod.log.*'))) == 3
+    assert active.read_bytes() == b'active'
+    assert customer.read_bytes() == b'customer content'
+
+
+def test_database_log_rotation_ignores_missing_or_invalid_pid(tmp_path):
+    (tmp_path / 'mongod.log').write_bytes(b'large log')
+    (tmp_path / 'mongod.pid').write_text('not-a-pid')
+    module.rotate_database_logs(tmp_path, max_bytes=1)
+    assert (tmp_path / 'mongod.log').read_bytes() == b'large log'

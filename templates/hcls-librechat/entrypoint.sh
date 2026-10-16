@@ -39,6 +39,7 @@ mongod \
   --bind_ip 127.0.0.1 \
   --port 27017 \
   --fork \
+  --pidfilepath "$DATA_DIR/mongod.pid" \
   --logpath "$DATA_DIR/mongod.log" \
   --noauth
 
