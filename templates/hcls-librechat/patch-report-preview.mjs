@@ -21,6 +21,20 @@ if (!source.includes(importLine)) {
   throw new Error('Report-preview import exists without its guarded renderer seam');
 }
 
+const studyImport = "import ScientificStudyPreview, { scientificStudyId } from '~/components/ScientificStudyPreview';";
+const studyInserted = `  if (scientificStudyId(href)) {
+    return <ScientificStudyPreview href={href}>{children}</ScientificStudyPreview>;
+  }
+
+`;
+if (!source.includes(studyImport)) {
+  if (source.split(anchor).length !== 2) throw new Error('Unsupported study-preview anchor seam');
+  source = studyImport + '\n' + source.replace(anchor, studyInserted + anchor);
+  await writeFile(filename, source);
+} else if (!source.includes(studyInserted)) {
+  throw new Error('Study preview import exists without its renderer seam');
+}
+
 // Rehype runs before react-markdown strips unsupported schemes. An anchor-only
 // fix is too late: sandbox:/workspace links have already become href="".
 const blocksFile = path.join(root, 'src/components/Chat/Messages/Content/MarkdownBlocks.tsx');

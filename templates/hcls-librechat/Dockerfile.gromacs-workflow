@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1.7
+# Preserve the current scientific runtime; add in-chat measured study progress
+# and shared language/provenance/repair instructions, without replacing clients.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:ac7e91debb7b4d666068bbb61567295bcbaac6292f998f79e9a0bdcac7513b4a
+FROM ${WORKBENCH_BASE}
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/gromacs-chat,ro \
+    cp /tmp/gromacs-chat/ScientificStudyPreview.tsx /tmp/gromacs-chat/ScientificStudyPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/gromacs-chat/patch-report-preview.mjs /opt/hcls-librechat/ \
+ && node /opt/hcls-librechat/patch-report-preview.mjs \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/WorkspaceReportPreview.test.tsx src/components/ScientificStudyPreview.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs
+COPY templates/hcls-librechat/scientific-study-admission.cjs /opt/hcls-librechat/scientific-study-admission.cjs
+COPY skills/scientific-ai/ /app/skill/
+COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/gromacs-chat-tests,ro \
+    node /tmp/gromacs-chat-tests/scripts/test-skills-installed.cjs \
+ && node --test /tmp/gromacs-chat-tests/test-scientific-study-admission.cjs \
+ && /opt/scientific-client/bin/python /tmp/gromacs-chat-tests/test_mdprecheck_runner.py
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="gromacs-workflow-20261016" \
+      ai.nebius.scientific.skills.version="2026.10.16.8"

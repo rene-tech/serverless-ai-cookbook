@@ -5,11 +5,12 @@ FROM ${WORKBENCH_BASE}
 USER root
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-links,ro \
     cp /tmp/workspace-links/WorkspaceInlineCode.tsx /tmp/workspace-links/WorkspaceMarkdownLinks.ts \
-       /tmp/workspace-links/WorkspaceReportPreview.tsx /tmp/workspace-links/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
+       /tmp/workspace-links/WorkspaceReportPreview.tsx /tmp/workspace-links/WorkspaceReportPreview.test.tsx \
+       /tmp/workspace-links/ScientificStudyPreview.tsx /tmp/workspace-links/ScientificStudyPreview.test.tsx /app/client/src/components/ \
  && cp /tmp/workspace-links/patch-report-preview.mjs /opt/hcls-librechat/ \
  && node /opt/hcls-librechat/patch-report-preview.mjs \
  && cd /app/client \
- && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/WorkspaceReportPreview.test.tsx \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/WorkspaceReportPreview.test.tsx src/components/ScientificStudyPreview.test.tsx \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
  && node /opt/hcls-librechat/verify-workspace-installed.mjs

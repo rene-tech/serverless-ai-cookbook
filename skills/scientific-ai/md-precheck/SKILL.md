@@ -21,6 +21,10 @@ or refusal. A changed requested duration must be part of the new check's intent.
 An explicit request to check inputs is already consent. If declined, continue
 with the requested MD workflow; record the decision with that workload.
 Advice, file inventory, and continuing the same checkpoint are not new workloads.
+For a combined request to precheck and simulate, do not ask again for permission
+already given. Show the findings, then continue when the protocol is resolved.
+If repairs are also authorized, perform supported repairs with adequate sources;
+ask only about missing scientific choices, not repeated generic permission.
 
 Use `lookup_mdprecheck` with the exact input reference and options to find an
 earlier check. This is read-only and does not submit compute. A found pending
@@ -47,6 +51,10 @@ After consent, use the [installed runner](scripts/run-precheck.py) for a workspa
 bundle. It performs discovery, verified upload, exact lookup, safe admission
 backoff, durable observation and report downloads through MCP. Do **not** redo
 these steps as individual chat tools, scan history, or write a replacement client.
+Use this runner even when a `precheck/` folder already exists: it verifies the
+current input/options against the live lookup. Choose a new receipt directory
+for this request. Reading an old `delivery.json` alone is not that verification;
+its saved `reused:false` describes its original creation, not this conversation.
 
 ```sh
 /opt/scientific-client/bin/python /app/skill/md-precheck/scripts/run-precheck.py \
@@ -126,6 +134,19 @@ existing completed report can be displayed without rerunning the check.
 Never hide failed checks, describe unrun probes as passed, or automatically
 change timestep/force field/coordinates to obtain a green result. Ask about
 scientific changes, then check the changed workload if the user wants that.
+Repair only the diagnosed inconsistency with the stated protocol. A checker
+recommendation is not permission to change dispersion corrections, cutoffs,
+thermostats/barostats, constraints, output cadence or other scientific settings.
+Keep such recommendations visible; apply them only when already specified by
+the protocol or explicitly approved, not merely to eliminate warnings.
+
+Keep the response in the user's language. Describe the checker findings, not
+unmeasured crash probabilities: a static FAIL does not prove that GROMACS will
+crash, nor does a successful run disprove a stereochemistry problem. Before
+offering repair, load `gromacs` and check that required sources and scientific
+intent exist. Never promise to fix ring threading or chirality merely through
+minimization or a duration conversion. State the exact missing source/choice
+once if blocked; do not replace the requested workload with another molecule.
 
 mdprecheck complements native `grompp`; it does not justify `-maxwarn` or replace
 domain review. A TPR-only check cannot recover every source-level assumption.

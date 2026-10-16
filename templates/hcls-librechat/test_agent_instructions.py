@@ -34,6 +34,18 @@ class AgentInstructionsTest(unittest.TestCase):
         self.assertIn('end the turn and wait', precheck)
         self.assertIn('changed requested duration', precheck)
 
+    def test_language_and_precheck_interpretation_are_explicit(self):
+        text = (HERE / 'agent-instructions.md').read_text()
+        for required in ("Reply in the user's language", 'English requests get English replies',
+                         'only when requested', 'installed runner', '`reused:false`',
+                         'not proof of a crash', 'already-authorized justified repairs'):
+            self.assertIn(required, text)
+        precheck = (HERE.parents[1] / 'skills/scientific-ai/md-precheck/SKILL.md').read_text()
+        for required in ('new receipt directory', 'current input/options',
+                         'not this conversation', 'missing scientific choices',
+                         'not replace the requested workload'):
+            self.assertIn(required, precheck)
+
     def test_rendered_endpoint_uses_the_same_core(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / 'librechat.json'

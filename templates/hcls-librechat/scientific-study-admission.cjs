@@ -45,7 +45,7 @@ function studyAdmissionAcknowledgement(messages) {
       receipt.admission_unknown || receipt.cancellation_unknown || receipt.queue_blocked) return null;
   return `Study accepted: \`${receipt.id}\`. Observed state: **${receipt.state}**.\n\n` +
     'The saved study continues independently of this chat. Follow progress and verified final files in ' +
-    '[Runs → Whole studies](/demos?tab=runs). No continue prompt is needed for mechanical waiting.\n\n' +
+    `[Live progress and results](/demos?tab=runs&study=${receipt.id}). No continue prompt is needed for mechanical waiting.\n\n` +
     'This acknowledges admission only, not completion or scientific results.';
 }
 
