@@ -25,9 +25,10 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/branding \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
  && node /tmp/branding/brand-client.mjs /app/client/dist /tmp/branding/assets --verify \
  && node /opt/hcls-librechat/verify-workspace-installed.mjs \
- && mkdir -p /release/app/client /release/opt/hcls-librechat \
+ && mkdir -p /release/app/client /release/opt/hcls-librechat/demos \
  && cp -a /app/client/dist /app/client/public /app/client/src /app/client/index.html /release/app/client/ \
  && cp /tmp/branding/brand-client.mjs /tmp/branding/patch-branding.mjs /release/opt/hcls-librechat/ \
+ && cp /tmp/branding/demos/mcp.cjs /release/opt/hcls-librechat/demos/mcp.cjs \
  && cp -a /tmp/branding/assets /release/opt/hcls-librechat/assets
 # One new layer: this retained lineage is near the Docker overlay limit.
 FROM ${WORKBENCH_BASE}

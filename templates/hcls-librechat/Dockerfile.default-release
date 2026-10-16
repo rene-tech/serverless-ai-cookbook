@@ -25,6 +25,7 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-rele
  && cp /tmp/workspace-release/speech/workshop-client.js /app/client/src/components/ \
  && node /tmp/workspace-release/uploads/patch.mjs \
  && cp /tmp/workspace-release/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
+ && cp /tmp/workspace-release/demos/mcp.cjs /opt/hcls-librechat/demos/mcp.cjs \
  && cp /tmp/workspace-release/demos/router.cjs /app/api/server/routes/scientific-demos.js \
  && cp /tmp/workspace-release/uploads/verify-installed.mjs /opt/hcls-librechat/verify-workspace-installed.mjs \
  && cd /app/client \
