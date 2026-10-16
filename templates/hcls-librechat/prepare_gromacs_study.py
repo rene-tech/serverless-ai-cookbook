@@ -77,8 +77,8 @@ def prepare(source, tpr, duration_ns, output, title='GROMACS simulation and resu
         parameters = {'schema': 'fs2-serve.nebius.ai/gromacs-workflow-request/v1',
                       'jobs': [{'id': 'production', 'steps': [{
             'id': 'production', 'command': 'mdrun',
-            'args': ['-s', relative.as_posix(), '-deffnm', 'md', '-c', 'final.gro', '-cpo', 'state.cpt'],
-            'expected_outputs': ['final.gro', 'state.cpt']}]}]}
+            'args': ['-s', relative.as_posix(), '-deffnm', 'md', '-c', 'final.gro'],
+            'expected_outputs': ['final.gro']}]}]}
         parameter_file = local / 'parameters.json'
         parameter_file.write_text(json.dumps(parameters, indent=2) + '\n')
         persist_local_file(parameter_file, output / parameter_file.name)
