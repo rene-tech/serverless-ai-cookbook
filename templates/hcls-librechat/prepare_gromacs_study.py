@@ -74,7 +74,8 @@ def prepare(source, tpr, duration_ns, output, title='GROMACS simulation and resu
         # overwrites another source archive, renderer or parameter document.
         persist_local_file(archive, output / archive.name)
         persist_local_file(renderer, output / renderer.name)
-        parameters = {'jobs': [{'id': 'production', 'steps': [{
+        parameters = {'schema': 'fs2-serve.nebius.ai/gromacs-workflow-request/v1',
+                      'jobs': [{'id': 'production', 'steps': [{
             'id': 'production', 'command': 'mdrun',
             'args': ['-s', relative.as_posix(), '-deffnm', 'md', '-c', 'final.gro', '-cpo', 'state.cpt'],
             'expected_outputs': ['final.gro', 'state.cpt']}]}]}

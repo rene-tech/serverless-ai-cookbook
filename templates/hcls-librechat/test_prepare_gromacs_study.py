@@ -39,6 +39,7 @@ def test_exact_tpr_becomes_a_complete_existing_study_without_admission(prepared)
     assert [s['kind'] for s in plan['steps']] == ['batch', 'analysis']
     assert plan['steps'][1]['arguments']['parameters'] == {'expected_repeats': 1, 'structure_preview': True}
     parameters = json.loads((output / 'parameters.json').read_bytes())
+    assert parameters['schema'] == 'fs2-serve.nebius.ai/gromacs-workflow-request/v1'
     step = parameters['jobs'][0]['steps'][0]
     assert step['expected_outputs'] == ['final.gro', 'state.cpt']
     assert '-cpi' not in step['args'] and '-maxwarn' not in step['args']
