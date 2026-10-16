@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # One additive layer over the current branded, persistent-state workbench.
-# Preserve the API/client, instructions, ClawBio extensions and native SDK.
+# Preserve the API/client, ClawBio extensions and native SDK; ship the shared
+# instructions with the skill bundle so their pre-submission rules agree.
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:5595cfb290b00b78390d204300eca559dd9ef297784f63a0efc8eb19b9f3a556
 FROM ${WORKBENCH_BASE}
 ARG SKILLS_REVISION=unknown
@@ -9,9 +10,10 @@ RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/core-skills,ro \
     --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workbench-release,ro \
     python3 /tmp/core-skills/bundle.py verify \
  && cp -a /tmp/core-skills/. /app/skill/ \
+ && cp /tmp/workbench-release/agent-instructions.md /app/agent-instructions.md \
  && cp /tmp/workbench-release/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
  && node --check /opt/hcls-librechat/demos/service.cjs \
  && node /tmp/workbench-release/scripts/test-skills-installed.cjs
-LABEL ai.nebius.scientific.skills.version="2026.10.16.3" \
+LABEL ai.nebius.scientific.skills.version="2026.10.16.4" \
       ai.nebius.scientific.skills.revision="${SKILLS_REVISION}" \
       ai.nebius.scientific.skills.source="https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai"

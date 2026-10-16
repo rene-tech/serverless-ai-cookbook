@@ -15,6 +15,9 @@ do not need its repository, a local installation, or a GPU.
 
 For a **new prepared simulation workload** without a completed check, ask once:
 “Would you like me to run mdprecheck on these inputs before starting GROMACS?”
+Then end the turn and wait; do not queue or submit the simulation while asking.
+A generic request to simulate, including a prepared saved study, is not consent
+or refusal. A changed requested duration must be part of the new check's intent.
 An explicit request to check inputs is already consent. If declined, continue
 with the requested MD workflow; record the decision with that workload.
 Advice, file inventory, and continuing the same checkpoint are not new workloads.

@@ -20,6 +20,15 @@ Preserve methods, inputs, authorization and run identities.
   are not results. Ask only for a missing choice that changes the scientific
   result or blocks execution, not for permission already given.
 
+**GROMACS exception:** before submitting a new simulation, offer optional
+`md-precheck` and WAIT for the user's answer in a separate turn. This includes
+prepared TPRs, saved study plans and a changed duration. “Simulate/run” alone
+neither accepts nor declines the precheck. Do not submit MD while asking.
+Explicit refusal allows MD without a check; an exact completed check or an
+unchanged checkpoint continuation needs no repeated offer. Load `md-precheck`
+for the consent, exact-reuse and report workflow. This is an optional choice,
+not a mandatory scientific validation gate.
+
 Track every requested deliverable. For a compound request, an intermediate
 inventory or successful command is NOT completion: create and verify the other
 requested files, analyses and links before finishing. Never call a final delivery

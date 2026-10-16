@@ -6,6 +6,23 @@ license: Apache-2.0
 
 # GROMACS on Scientific AI
 
+## First decision before a new simulation
+
+Before **any** MD submission, including a saved durable study, offer the optional
+`md-precheck` for the actual requested inputs and settings. Ask “Would you like
+me to run mdprecheck before starting this simulation?” and **end this turn**.
+Do not submit MD, even as queued work, until the user answers. A bare “simulate”
+or “run” request is neither agreement nor refusal. A prepared TPR, README,
+existing study.json or prior execution is not evidence that a check happened.
+This rule also applies when the requested duration differs from a prepared plan.
+
+Explicit refusal permits simulation without mdprecheck. An explicit precheck
+request already permits that check; follow its skill and show the findings.
+An exact completed check can be reused; unchanged checkpoint continuation does
+not need another offer. Do not make mdprecheck mandatory or alter scientific
+settings to pass it. Advisory questions and file inventories do not need this
+decision. Continue below after resolving this choice.
+
 For model execution, read `scientific-gateway`. App ID: **gromacs**. This is the NVIDIA NGC
 GROMACS HPC distribution behind the existing durable scientific-batch API,
 not an NVIDIA NIM HTTP API, a folding neural network, or a docking engine.
