@@ -116,8 +116,23 @@ async def transfer(client, object_http, args, endpoint, key):
         if response.status_code not in (409, 412):
             response.raise_for_status()
         return response
-    response = await timed_phase('object_put', put)
-    save(args.output_dir / 'transfer.json', {'status': response.status_code, **content})
+    # A conditional PUT of an existing object can close the connection before
+    # the client finishes sending its body. In that case httpx cannot expose
+    # the 412 response. A lost success response has the same ambiguity: verify
+    # through the platform instead of blindly retransmitting or overwriting.
+    # Cancellation, HTTP failures and local I/O/programming errors still fail.
+    transport_error = None
+    try:
+        response = await timed_phase('object_put', put)
+    except (httpx2.NetworkError, httpx2.TimeoutException, httpx2.RemoteProtocolError) as error:
+        transport_error = type(error).__name__
+        attempt['phases']['object_put']['status'] = 'unconfirmed'
+        record['state'] = 'verifying-after-transport-error'
+        transfer_status = {'status': None, 'transport_error_type': transport_error}
+    else:
+        transfer_status = {'status': response.status_code}
+    save(args.output_dir / 'transfer.json', {**transfer_status, **content})
+    save(receipt, record)
     # 409/412 may mean a previous attempt already wrote the immutable object.
     # Finalization verifies its digest; never overwrite it or assume it matches.
     hash_start, hash_wall = time.monotonic(), time.time()
@@ -146,6 +161,8 @@ async def transfer(client, object_http, args, endpoint, key):
         raise ValueError('Finalized artifact does not match the actual input bytes.')
     save(args.output_dir / 'artifact.json', artifact)
     record.update(state='finalized', artifact=artifact)
+    if transport_error:
+        attempt['recovery'] = 'verified_by_finalization_after_transport_error'
     attempt.update(status='finalized', finished_at=time.time(),
                    duration_seconds=time.monotonic() - attempt_clock)
     save(receipt, record)

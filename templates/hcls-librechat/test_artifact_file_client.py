@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+import httpx2
 
 spec = importlib.util.spec_from_file_location('upload_artifact', Path(__file__).with_name('upload-artifact.py'))
 module = importlib.util.module_from_spec(spec)
@@ -146,3 +147,84 @@ def test_failed_put_retains_attempt_phase_without_changing_timeouts(tmp_path):
     assert attempt['phases']['object_put']['duration_seconds'] >= 0
     assert 'finalization' not in attempt['phases'] and len(calls) == 1
     assert 'private transport diagnostic' not in json.dumps(attempt)
+
+
+@pytest.mark.parametrize('error_type', [httpx2.ReadError, httpx2.WriteError,
+                                      httpx2.ReadTimeout, httpx2.RemoteProtocolError])
+def test_ambiguous_conditional_put_uses_whole_object_verification(tmp_path, error_type):
+    args, client, http, calls, ref = fixture(tmp_path)
+    puts = []
+    async def disconnected(*positional, **keywords):
+        puts.append(1)
+        raise error_type('private signed URL and transport detail')
+    http.put = disconnected
+    result = asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
+    assert result['state'] == 'finalized' and result['artifact'] == ref
+    assert len(puts) == 1
+    assert [name for name, _ in calls] == ['begin_model_artifact_upload', 'finalize_model_artifact_upload']
+    attempt = result['upload_attempts'][0]
+    assert attempt['phases']['object_put']['status'] == 'unconfirmed'
+    assert attempt['phases']['object_put']['error_type'] == error_type.__name__
+    assert attempt['recovery'] == 'verified_by_finalization_after_transport_error'
+    assert attempt['status'] == 'finalized'
+    transfer = json.loads((args.output_dir / 'transfer.json').read_text())
+    assert transfer['status'] is None and transfer['transport_error_type'] == error_type.__name__
+    assert 'private signed URL' not in json.dumps(result) + json.dumps(transfer)
+
+
+@pytest.mark.parametrize('verification', ['missing', 'wrong_digest', 'wrong_size', 'missing_id'])
+def test_transport_failure_never_assumes_object_exists_or_matches(tmp_path, verification):
+    args, client, http, calls, ref = fixture(tmp_path)
+    real_call = client.call_tool
+    async def disconnected(*positional, **keywords):
+        raise httpx2.ReadError('lost response')
+    async def call(name, arguments):
+        if name != 'finalize_model_artifact_upload':
+            return await real_call(name, arguments)
+        if verification == 'missing':
+            return {'isError': True, 'content': [{'type': 'text', 'text': 'object missing'}]}
+        changed = dict(ref)
+        if verification == 'wrong_digest':
+            changed['sha256'] = '0' * 64
+        elif verification == 'wrong_size':
+            changed['size_bytes'] += 1
+        else:
+            changed.pop('artifact_id')
+        return {'structuredContent': changed}
+    http.put, client.call_tool = disconnected, call
+    with pytest.raises((RuntimeError, ValueError)):
+        asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
+    record = json.loads((args.output_dir / 'receipt.json').read_text())
+    assert record['state'] != 'finalized' and 'artifact' not in record
+    assert not (args.output_dir / 'artifact.json').exists()
+
+
+def test_changed_local_bytes_after_lost_put_cannot_be_finalized(tmp_path):
+    args, client, http, _, _ = fixture(tmp_path)
+    real_call, cancelled = client.call_tool, []
+    async def disconnected(*positional, **keywords):
+        args.file.write_bytes(b'changed before a lost response')
+        raise httpx2.ReadError('lost response')
+    async def call(name, arguments):
+        if name == 'cancel_operation':
+            cancelled.append(arguments['operation_id'])
+            return {'structuredContent': {'status': 'cancelled'}}
+        assert name != 'finalize_model_artifact_upload'
+        return await real_call(name, arguments)
+    http.put, client.call_tool = disconnected, call
+    with pytest.raises(ValueError, match='changed during transfer'):
+        asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
+    assert cancelled == ['operation-fixture']
+    assert not (args.output_dir / 'artifact.json').exists()
+
+
+def test_explicit_http_denial_does_not_attempt_finalization(tmp_path):
+    args, client, http, calls, _ = fixture(tmp_path)
+    async def forbidden(*positional, **keywords):
+        request = httpx2.Request('PUT', 'https://objects.example.invalid/private')
+        return httpx2.Response(403, request=request)
+    http.put = forbidden
+    with pytest.raises(httpx2.HTTPStatusError):
+        asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
+    assert len(calls) == 1
+    assert not (args.output_dir / 'artifact.json').exists()

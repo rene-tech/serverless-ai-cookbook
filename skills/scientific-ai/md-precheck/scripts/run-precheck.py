@@ -3,6 +3,7 @@
 
 Uses the workbench's existing upload and receipt helpers. No scientific code,
 customer credentials, scheduler or alternative checker is embedded here.
+Explicit --rerun requests a fresh check; resuming its receipt never duplicates it.
 """
 import argparse
 import asyncio
@@ -46,6 +47,9 @@ async def execute(args, client, object_http, endpoint, key):
                     if getattr(args, field) is not None})
     identity = {**upload.file_identity(args.file), 'options': options, 'endpoint': endpoint,
                 'caller': hashlib.sha256(key.encode()).hexdigest(), 'idempotency_key': args.idempotency_key}
+    rerun = getattr(args, 'rerun', False)
+    if rerun:
+        identity['rerun'] = True
     receipt = args.output_dir / 'receipt.json'
     record = load(receipt) or {'identity': identity, 'state': 'prepared'}
     if record['identity'] != identity:
@@ -77,7 +81,7 @@ async def execute(args, client, object_http, endpoint, key):
         raise ValueError('Precheck lookup failed; inspect lookup.json. No replacement report is allowed.')
     fingerprint = lookup['workload_fingerprint']
     save(args.output_dir / 'input.json', payload)
-    if not record.get('operation_id') and lookup.get('found'):
+    if not rerun and not record.get('operation_id') and lookup.get('found'):
         if lookup['operation']['status'] not in ('CANCELLED', 'FAILED', 'TIMED_OUT', 'EXPORT_FAILED'):
             record.update(operation_id=lookup['operation']['id'], reused=True)
     while not record.get('operation_id'):
@@ -164,6 +168,8 @@ if __name__ == '__main__':
     parser.add_argument('--file', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--idempotency-key', required=True)
+    parser.add_argument('--rerun', action='store_true',
+                        help='Explicitly request a fresh check instead of reusing an existing report. Use a new output directory and idempotency key, then resume that same command if interrupted.')
     parser.add_argument('--input-format', choices=('tar.gz', 'tar', 'zip', 'tpr'), required=True)
     for field in ('coords', 'top', 'mdp', 'ndx', 'tpr', 'fasta', 'workflow', 'chain_names'):
         parser.add_argument('--' + field.replace('_', '-'))

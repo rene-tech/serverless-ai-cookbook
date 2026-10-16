@@ -116,6 +116,26 @@ class RunnerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['operation_id'], 'op-existing')
         self.assertEqual(f.submissions, [])
 
+    async def test_explicit_rerun_submits_fresh_check_then_resumes_same_operation(self):
+        f = self.fixture
+        f.found, f.args.rerun = True, True
+        result = await f.run()
+        self.assertFalse(result['reused'])
+        self.assertEqual(result['operation_id'], 'op-new')
+        self.assertEqual(len(f.submissions), 1)
+        resumed = await f.run()
+        self.assertEqual(resumed['operation_id'], 'op-new')
+        self.assertEqual(len(f.submissions), 1)
+
+    async def test_rerun_requires_new_receipt_identity(self):
+        f = self.fixture
+        f.found = True
+        await f.run()
+        f.args.rerun = True
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            await f.run()
+        self.assertEqual(f.submissions, [])
+
     async def test_different_options_report_is_never_delivered(self):
         self.fixture.wrong = True
         with self.assertRaisesRegex(ValueError, 'exact requested inputs/options'):
