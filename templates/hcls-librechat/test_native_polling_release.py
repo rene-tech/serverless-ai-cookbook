@@ -17,17 +17,30 @@ def evidence():
 def test_pointer_and_console_link_select_exact_published_bytes():
     # Keep the older native-polling evidence immutable; the current pointer has
     # its own exact-image browser and persistence receipt.
-    receipt = json.loads((ROOT/'docs/evidence/customer-fleet-release-20261016.json').read_text())
+    receipt = json.loads((ROOT/'docs/evidence/mdprecheck-release-20261016.json').read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
-                      'SCIENTIFIC_AI_SKILLS_VERSION':'2026.10.15.1'}
-    assert receipt['installed']['persistent_entrypoint']
-    assert receipt['installed']['scientific_shell']
-    assert receipt['installed']['compiled_branding']
-    assert receipt['installed']['synthetic_chat_guard']
-    assert receipt['browser']['unchanged_release_clean_file_cohorts'] == 2
+                      'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
+    foundation = json.loads((ROOT/'docs/evidence'/receipt['foundation_receipt']).read_text())
+    assert receipt['base_manifest'] == foundation['manifest']
+    assert receipt['installed']['persistent_entrypoint_unchanged']
+    assert receipt['installed']['inherited_base_layers'] == 124
+    assert receipt['installed']['additional_layers'] == 1
+    assert receipt['installed']['all_core_file_hashes_verified']
+    assert receipt['installed']['loaded_skills'] == 85
+    assert receipt['installed']['core_files'] == 88
+    assert foundation['installed']['scientific_shell']
+    assert foundation['installed']['compiled_branding']
+    assert foundation['installed']['synthetic_chat_guard']
+    assert receipt['browser']['final_installed_runner_used']
+    assert receipt['browser']['repeated_chat_reused_same_operation']
+    assert receipt['browser']['authenticated_downloads_match_artifacts_and_bucket']
+    assert receipt['rollout']['clients'] == 5
+    assert receipt['rollout']['login_hashes_and_history_preserved']
+    assert receipt['rollout']['provider_base_image_changed'] is False
+    assert receipt['private_checker_source_included'] is False
     assert receipt['all_scientific_workflows_qualified'] is False
     readme = (ROOT/'README.md').read_text()
     link = html.unescape(re.search(r'<a href="(https://console.nebius.com/serverless/endpoint/create\?[^"]+)"',readme)[1])

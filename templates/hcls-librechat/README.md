@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A5595cfb290b00b78390d204300eca559dd9ef297784f63a0efc8eb19b9f3a556&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A62aec6f144ddb07eb015d692e4c539ff0813079dafa0a3fc4fafbb0b39e18e7d&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,10 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workspace-fleet-20261016-r3`,
-digest `sha256:5595cfb290b00b78390d204300eca559dd9ef297784f63a0efc8eb19b9f3a556`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:mdprecheck-20261016-r3`,
+digest `sha256:62aec6f144ddb07eb015d692e4c539ff0813079dafa0a3fc4fafbb0b39e18e7d`.
+The [MD precheck release](docs/mdprecheck-release-20261016.md) adds an optional
+GROMACS-input checker skill, preserving the following fleet foundation.
 The [client state and interface release](docs/customer-fleet-release-20261016.md)
 restores the actual persistent-state supervisor, Scientific AI navigation,
 Nebius/NVIDIA branding and full-catalog MCP helper omitted from the preceding
@@ -75,11 +77,11 @@ the native-operation fixes, arbitrary-file uploads, bucket selection, authentica
 downloads and audio playback. MongoDB diagnostic logs rotate instead of filling
 the state disk. The dated earlier receipts remain historical evidence, not proof
 that their image contained these restored components.
-Its 36 canonical customer skills (84 installed including the pinned ClawBio
+Its 37 canonical customer skills (85 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. The selected image contains skills
-`2026.10.15.1`; image source is `ebee046b20dc195ab729b0dc55a5ab98ad27d37f`.
+`2026.10.16.3`; additive image source is `5058726959cede7da80a3e55ca6e94eead77c5d3`.
 See its exact-image receipt for installed components, retained login/history,
 and actual browser/file/agent checks. This is client lifecycle/interface evidence,
 not qualification of every scientific workflow, autonomous skill selection,

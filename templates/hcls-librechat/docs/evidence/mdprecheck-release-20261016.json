@@ -1,0 +1,69 @@
+{
+  "scope": "optional hosted mdprecheck skill, deterministic delivery and additive managed-client overlay",
+  "qualified_at": "2026-10-16T13:54:05Z",
+  "source": "5058726959cede7da80a3e55ca6e94eead77c5d3",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:mdprecheck-20261016-r3",
+  "manifest": "sha256:62aec6f144ddb07eb015d692e4c539ff0813079dafa0a3fc4fafbb0b39e18e7d",
+  "skills_version": "2026.10.16.3",
+  "base_manifest": "sha256:5595cfb290b00b78390d204300eca559dd9ef297784f63a0efc8eb19b9f3a556",
+  "foundation_receipt": "customer-fleet-release-20261016.json",
+  "installed": {
+    "inherited_base_layers": 124,
+    "additional_layers": 1,
+    "persistent_entrypoint_unchanged": true,
+    "all_core_file_hashes_verified": true,
+    "core_files": 88,
+    "canonical_skills": 37,
+    "loaded_skills": 85,
+    "workspace_uploads": true,
+    "bucket_picker": true,
+    "history_attachments": true,
+    "built_assets": true
+  },
+  "tests": {
+    "skill_contract_passed": 26,
+    "installed_runner_passed": 7,
+    "catalog_passed": 4
+  },
+  "browser": {
+    "identity": "existing ordinary internal system/qa; no customer inference",
+    "provider_model": "moonshotai/Kimi-K3",
+    "optional_offer_and_decline_tested": true,
+    "offer_decline_note": "unchanged GROMACS consent rules tested on the earlier additive candidate",
+    "final_installed_runner_used": true,
+    "operation_id": "op-fd50de0c57febbca",
+    "workload_fingerprint": "e35dbbb35859aa0eb37dca42ccb9b9fa9166307a82a58b3c3d54ae5d91fd3aca",
+    "intent": ["stage=production", "length_ns=2"],
+    "probes": [],
+    "input_vs_intent_warning_reported": true,
+    "repeated_chat_reused_same_operation": true,
+    "authenticated_downloads_match_artifacts_and_bucket": true,
+    "downloads": [
+      {"name": "report.html", "bytes": 1679647, "sha256": "eb2f63c4f944dafbed7007020d0ae6a4e0f73e0b9837f040c3932144b9600c0c"},
+      {"name": "report.json", "bytes": 31354, "sha256": "a0c331655a9f2931716aa3869251fe43c3329a0e153e967978ef9ff86da9d503"}
+    ],
+    "provider_usage_and_cost_independently_reconciled": false
+  },
+  "rollout": {
+    "clients": 5,
+    "mode": "idle-checked additive overlay and container-only restart",
+    "login_hashes_and_history_preserved": true,
+    "endpoint_urls_and_bucket_key_bindings_unchanged": true,
+    "provider_base_image_changed": false,
+    "vm_recreation_requires_new_default_or_retained_overlay": true
+  },
+  "preserved_failures": [
+    "earlier public protocol HTTP blocked native-tool schema discovery; backend protocol corrected",
+    "earlier agent substituted old reports after admission trouble; deterministic runner rejects mismatched fingerprints",
+    "busy internal QA key rejected new admission; bounded same-key non-admission retry preserves one operation"
+  ],
+  "limitations": [
+    "not qualification of every scientific model, all molecular systems or maximum input size",
+    "shared model has max four configured replicas but four simultaneous execution lanes are not qualified",
+    "intermediate chat narration changed language despite English request; final result was English",
+    "inherited queued-turns UI route returned 404 without blocking tested report delivery",
+    "no claims of provider cost reconciliation or non-root portability"
+  ],
+  "private_checker_source_included": false,
+  "all_scientific_workflows_qualified": false
+}
