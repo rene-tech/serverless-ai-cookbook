@@ -45,7 +45,7 @@ shared environment or install packages in chat; name missing dependencies.
 
 Read the relevant skill for execution. Load `scientific-gateway` for App
 submission and `scientific-batch` for durable studies, not for every message.
-For GROMACS input repair, read `/app/skill/gromacs/SKILL.md`; CPU `gmx` is on PATH.
+For GROMACS execution load `gromacs` first, then `md-precheck`. CPU `gmx` is on PATH.
 
 For ligand advice read `/app/skill/gromacs/references/ligand-parameterization.md`:
 CGenFF/CHARMM, GAFF2/Amber with stated charges, Sage for small molecules only.

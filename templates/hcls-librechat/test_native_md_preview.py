@@ -103,4 +103,20 @@ def test_saved_phase_cli_uses_the_same_verified_manifest(tmp_path, renderer, mon
     monkeypatch.setenv('WORKSPACE', str(tmp_path))
     monkeypatch.setattr('sys.argv', ['preview', '--inputs', str(binding), '--output-dir', str(tmp_path / 'preview')])
     preview.main()
-    assert not json.loads(capsys.readouterr().out)['inference_submitted']
+    result = json.loads(capsys.readouterr().out)
+    assert not result['inference_submitted']
+    assert {'native-timing-report.json', 'native-timing-report.md', 'native-timings.csv',
+            'md-structure-preview.html'} <= set(result['files'])
+    assert json.loads((tmp_path / 'preview/native-timing-report.json').read_text())['complete']
+
+
+@pytest.mark.parametrize('options', [{'expected_repeats': True}, {'expected_repeats': 0},
+                                   {'structure_preview': 'true'}, {'unknown': 1}])
+def test_invalid_report_parameters_never_render(tmp_path, renderer, monkeypatch, options):
+    binding = tmp_path / 'input-bindings.json'
+    binding.write_text(json.dumps({'schema': 'scientific-python-bindings/v1',
+        'inputs': {'native_manifest': str(tmp_path / 'run/native-files.json')}, 'parameters': options}))
+    monkeypatch.setattr('sys.argv', ['preview', '--inputs', str(binding), '--output-dir', str(tmp_path / 'preview')])
+    with pytest.raises(ValueError):
+        preview.main()
+    assert not renderer

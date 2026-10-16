@@ -166,7 +166,7 @@ LibreChat, use the durable study executor for a new simulation with results,
 timing or visualization. Do not start the direct command above then stop with
 “say continue”. Load `scientific-batch` and read
 [the complete saved-study example](references/timing-study.md) before submission.
-Discover `batch`, `native-md-timing` and, for visualization, `python-script` with
+Discover `batch` and `python-script` with
 `describe_scientific_workflow`. Plan simulation, reporting and requested previews
 **together before** submitting. The live study card completes these without
 further chat turns, including after a disconnect.

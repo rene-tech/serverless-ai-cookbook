@@ -1,4 +1,4 @@
-"""Render verified final GROMACS coordinates; never execute dynamics or infer."""
+"""Publish measured MD reports and optional final coordinates, without inference."""
 import argparse
 import hashlib
 import importlib.util
@@ -98,13 +98,26 @@ def main():
     bindings = json.loads(args.inputs.read_text())
     if (bindings.get('schema') != 'scientific-python-bindings/v1'
             or set(bindings.get('inputs', {})) != {'native_manifest'}
-            or bindings.get('parameters') != {}):
-        raise ValueError('Expected exactly one verified native_manifest binding, without parameters.')
+            or not isinstance(bindings.get('parameters'), dict)
+            or set(bindings['parameters']) - {'expected_repeats', 'structure_preview'}):
+        raise ValueError('Expected native_manifest plus optional expected_repeats/structure_preview.')
+    options = bindings['parameters']
+    repeats = options.get('expected_repeats')
+    if repeats is not None and (type(repeats) is not int or repeats < 1):
+        raise ValueError('expected_repeats must be a positive integer.')
+    if type(options.get('structure_preview', True)) is not bool:
+        raise ValueError('structure_preview must be boolean.')
     workspace = Path(os.environ.get('WORKSPACE', '/workspace')).resolve()
     manifest = within(Path(bindings['inputs']['native_manifest']), workspace)
     if manifest.name != 'native-files.json':
         raise ValueError('Expected exact native-files.json, not a platform result envelope.')
-    files = render_preview(manifest.parent, args.output_dir, workspace)
+    from native_md_report import write_report
+    report = write_report(manifest.parent, args.output_dir, workspace, repeats)
+    if not report['complete']:
+        raise ValueError('Native timing evidence is incomplete: ' + '; '.join(report['gaps']))
+    files = [Path(item['path']).name for item in report['files']]
+    if options.get('structure_preview', True):
+        files += render_preview(manifest.parent, args.output_dir, workspace)
     print(json.dumps({'files': files, 'inference_submitted': False}))
 
 

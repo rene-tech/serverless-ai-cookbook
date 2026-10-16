@@ -47,6 +47,14 @@ that same command/receipt after an interruption. Do not call an explicit rerun
 
 ## Preferred LibreChat execution
 
+Load `gromacs` before starting this workflow. Inspect the README and selected
+input settings together; avoid one tool call per file or searching `/` for tools.
+The bundler is `/app/skill/gromacs/scripts/make-input-bundle.py` (not under
+md-precheck): `--source INPUT_DIRECTORY --output ARCHIVE_OUTSIDE_INPUT_DIRECTORY`.
+The workspace is Object Storage: preserve original bytes with a plain copy,
+not `cp -p`, `chmod`, or `sed -i`. Repair a scratch copy, publish its closed bytes
+to a new workspace file and verify them; do not change the source in place.
+
 After consent, use the [installed runner](scripts/run-precheck.py) for a workspace
 bundle. It performs discovery, verified upload, exact lookup, safe admission
 backoff, durable observation and report downloads through MCP. Do **not** redo
@@ -72,6 +80,9 @@ submit tool, this observer does not accept zero. Do not invent CLI examples.
 Observe the same execution with `read_execution`. Its `delivery.json` supplies
 the exact operation, scientific verdict and verified report links. Report only
 that delivery; **never substitute older reports** while waiting for admission.
+Use the returned `read_execution` identity and 30-second bounded waits; the
+checker's native `op-...` ID is not a UUID accepted by `workbench_get_operation`.
+After terminal output, read only needed report fields; do not poll that job again.
 If the bounded observer exits while queued/running, resume the identical command
 and output directory. Do not change inputs, keys, scientific options or accounts.
 An admission rejection means not checked yet, not permission to reuse a mismatch.
