@@ -103,7 +103,9 @@ def test_seeded_guidance_preserves_whole_study_and_evidence_first_claims():
     skill = (ROOT.parents[1] / 'skills/scientific-ai/scientific-batch/SKILL.md').read_text()
     assert 'instructions: coreAgentInstructions' in seed
     assert 'skills_enabled: true' in seed
-    assert '`scientific-batch` for durable studies' in core
+    assert '`scientific-batch`' in core and '`scientific-gateway`' in core
+    assert 'installed composers already perform that discovery' in core
+    assert 'prepare_gromacs_study.py' in core
     for text in (skill, full):
         assert 'strict JSON text' in text
         assert 'same samples' in text
