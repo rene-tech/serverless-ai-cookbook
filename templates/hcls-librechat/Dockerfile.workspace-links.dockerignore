@@ -1,0 +1,7 @@
+**
+!templates
+!templates/hcls-librechat
+!templates/hcls-librechat/**
+!skills
+!skills/scientific-ai
+!skills/scientific-ai/**

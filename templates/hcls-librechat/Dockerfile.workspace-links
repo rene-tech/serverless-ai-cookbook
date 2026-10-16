@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1.7
+# Preserve the qualified CPU preparation/runtime and repair saved chat links.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:86025c2732cfc0334f5c315d019e11cf178c4ee268ec21e2b7afc9223fdfb572
+FROM ${WORKBENCH_BASE}
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-links,ro \
+    cp /tmp/workspace-links/WorkspaceInlineCode.tsx /tmp/workspace-links/WorkspaceMarkdownLinks.ts \
+       /tmp/workspace-links/WorkspaceReportPreview.tsx /tmp/workspace-links/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/workspace-links/patch-report-preview.mjs /opt/hcls-librechat/ \
+ && node /opt/hcls-librechat/patch-report-preview.mjs \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/WorkspaceReportPreview.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="workspace-links-20261016"

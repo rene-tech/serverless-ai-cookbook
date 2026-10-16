@@ -20,3 +20,18 @@ if (!source.includes(importLine)) {
 } else if (!source.includes(inserted)) {
   throw new Error('Report-preview import exists without its guarded renderer seam');
 }
+
+// Rehype runs before react-markdown strips unsupported schemes. An anchor-only
+// fix is too late: sandbox:/workspace links have already become href="".
+const blocksFile = path.join(root, 'src/components/Chat/Messages/Content/MarkdownBlocks.tsx');
+let blocks = await readFile(blocksFile, 'utf8');
+const pluginImport = "import workspaceMarkdownLinks from '~/components/WorkspaceMarkdownLinks';";
+const pluginBefore = 'rehypePlugins={blockRehypePlugins}';
+const pluginAfter = 'rehypePlugins={[...blockRehypePlugins, workspaceMarkdownLinks]}';
+if (!blocks.includes(pluginImport)) {
+  if (blocks.split(pluginBefore).length !== 2) throw new Error('Unsupported MarkdownBlocks URL-normalization seam');
+  blocks = pluginImport + '\n' + blocks.replace(pluginBefore, pluginAfter);
+  await writeFile(blocksFile, blocks);
+} else if (!blocks.includes(pluginAfter)) {
+  throw new Error('Workspace Markdown plugin imported without its renderer seam');
+}

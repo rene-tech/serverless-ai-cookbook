@@ -1,11 +1,23 @@
 import React from 'react';
 
-/** Recognize only the existing authenticated workspace UI, not arbitrary URLs. */
+/** Normalize owned workspace references before Markdown strips unknown schemes. */
 export function workspaceCodeHref(children: unknown): string | undefined {
   const value = typeof children === 'string' ? children
     : Array.isArray(children) && children.every((part) => typeof part === 'string')
       ? children.join('') : undefined;
-  if (!value?.startsWith('/demos?') || /[\s\\]/u.test(value)) return undefined;
+  if (!value) return undefined;
+  if (value.startsWith('sandbox:/workspace/') || value.startsWith('/workspace/')) {
+    // Decode once, then validate before any URL parser can normalize traversal.
+    let file: string;
+    try { file = decodeURIComponent(value.replace(/^sandbox:/u, '').slice('/workspace/'.length)); }
+    catch { return undefined; }
+    if (!file || /[\u0000-\u001f\u007f\\?#]/u.test(file) ||
+        file.split('/').some((part) => !part || part === '.' || part === '..') ||
+        /%[0-9a-f]{2}/iu.test(file)) return undefined;
+    const folder = file.slice(0, Math.max(0, file.lastIndexOf('/')));
+    return `/demos?tab=workspace&path=${encodeURIComponent(folder)}&file=${encodeURIComponent(file)}`;
+  }
+  if (!value.startsWith('/demos?') || /[\s\\]/u.test(value)) return undefined;
   const url = new URL(value, 'https://workspace.invalid');
   if (url.pathname !== '/demos' || url.hash || url.searchParams.get('tab') !== 'workspace') return undefined;
   const permitted = ['tab', 'path', 'file'];

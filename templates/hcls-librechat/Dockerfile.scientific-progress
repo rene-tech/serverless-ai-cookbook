@@ -12,7 +12,7 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/progress-relea
  && cp /tmp/progress-release/agent-instructions.md /app/agent-instructions.md \
  && cp /tmp/progress-release/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
  && cp /tmp/progress-release/demos/run-display.ts /app/client/src/components/scientific-run-display.ts \
- && cp /tmp/progress-release/WorkspaceReportPreview.tsx /tmp/progress-release/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/progress-release/WorkspaceReportPreview.tsx /tmp/progress-release/WorkspaceReportPreview.test.tsx /tmp/progress-release/WorkspaceInlineCode.tsx /tmp/progress-release/WorkspaceMarkdownLinks.ts /app/client/src/components/ \
  && cp /tmp/progress-release/patch-report-preview.mjs /opt/hcls-librechat/ \
  && node /opt/hcls-librechat/patch-report-preview.mjs \
  && cp /tmp/progress-release/demos/service.cjs /tmp/progress-release/demos/mcp.cjs /opt/hcls-librechat/demos/ \

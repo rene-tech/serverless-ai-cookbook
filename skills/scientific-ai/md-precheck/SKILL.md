@@ -113,7 +113,9 @@ the finalized artifact **object**, not a workspace filename, as `input`.
 Distinguish operation success from the check's scientific `status`. Summarize
 failures/warnings, which checks were skipped, missing reference sequences, and
 whether optional probes actually ran. Show the report inside the session via
-its verified workspace HTML link, retaining the full HTML/JSON downloads. An
+its verified workspace HTML link, retaining the full HTML/JSON downloads. Copy
+the `workspace_url` from `delivery.json` unchanged as a Markdown link; do not
+replace it with a `sandbox:` URL. An
 existing completed report can be displayed without rerunning the check.
 Never hide failed checks, describe unrun probes as passed, or automatically
 change timestep/force field/coordinates to obtain a green result. Ask about

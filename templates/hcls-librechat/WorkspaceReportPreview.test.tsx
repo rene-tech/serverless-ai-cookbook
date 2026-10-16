@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import WorkspaceReportPreview, { workspaceReportPath, isolatedReportHtml, precheckSummary, nativeMdSummary, readWorkspacePreview } from './WorkspaceReportPreview';
 import { request } from 'librechat-data-provider';
+import workspaceMarkdownLinks from './WorkspaceMarkdownLinks';
+import { workspaceCodeHref } from './WorkspaceInlineCode';
 
 jest.mock('librechat-data-provider', () => ({ request: { getResponse: jest.fn() } }));
 const read = request.getResponse as jest.Mock;
@@ -11,6 +13,27 @@ const summary = { schema: 'mdprecheck/check/v1', status: 'warn', verdict: 'Three
 const blob = (text: string) => ({ size: text.length, text: async () => text });
 
 beforeEach(() => { read.mockReset(); });
+
+test('the exact customer sandbox links become authenticated links before URL sanitization', () => {
+  const htmlPath = 'demos/gromacs-1000ns/precheck/report.html';
+  const jsonPath = 'demos/gromacs-1000ns/precheck/report.json';
+  const tree = { type: 'root', children: [htmlPath, jsonPath].map((file) => ({
+    type: 'element', tagName: 'a', properties: { href: `sandbox:/workspace/${file}` }, children: [],
+  })) };
+  workspaceMarkdownLinks()(tree);
+  expect(workspaceReportPath(tree.children[0].properties.href)).toBe(htmlPath);
+  expect(tree.children[1].properties.href).toContain('file=demos%2Fgromacs-1000ns%2Fprecheck%2Freport.json');
+  expect(workspaceCodeHref('/workspace/my folder/chart.png')).toContain('my%20folder%2Fchart.png');
+  for (const href of ['sandbox:/etc/passwd', 'sandbox:/workspace/../secret',
+    'sandbox:/workspace/%2e%2e/secret', 'sandbox:/workspace/%252e%252e/secret',
+    'sandbox:/workspace/a%5cb.html', 'sandbox:/workspace/a%00.html',
+    'sandbox://remote/workspace/report.html', 'javascript:alert(1)']) {
+    expect(workspaceCodeHref(href)).toBeUndefined();
+    const external = { type: 'element', tagName: 'a', properties: { href }, children: [] };
+    workspaceMarkdownLinks()(external);
+    expect(external.properties.href).toBe(href); // Still subject to upstream sanitization.
+  }
+});
 
 test('existing saved HTML links render inside the conversation with real verdict and downloads', async () => {
   read.mockImplementation(async (url: string) => ({ data: blob(url.includes('report.json') ? JSON.stringify(summary) : html) }));
