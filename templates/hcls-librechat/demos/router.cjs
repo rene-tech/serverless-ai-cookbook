@@ -36,8 +36,8 @@ router.get('/apps', wrap(async (req, res) => {
     service.platform(credential, 'GET', '/v1/models'),
     service.platform(credential, 'GET', '/v1/scientific-models'),
   ]);
-  const native = new Map((models.data || []).map((item) => [item.id || item.model_id, item]));
-  const batches = new Map((scientific.data || []).map((item) => [item.model_id || item.id, item]));
+  const native = new Map((models.data || []).map((item) => [item.id || item.model_id, service.customerCatalogItem(item)]));
+  const batches = new Map((scientific.data || []).map((item) => [item.model_id || item.id, service.customerCatalogItem(item)]));
   const ids = [...new Set([...native.keys(), ...batches.keys()])].sort();
   res.json({ data: ids.map((id) => ({ id, native: native.get(id), scientific: batches.get(id) })) });
 }));
@@ -69,6 +69,12 @@ router.get('/workspace/file', wrap(async (req, res) => {
   // Generated result evidence lives in .scientific-runs; Express otherwise
   // returns a misleading 404 for authenticated, valid hidden workspace files.
   res.download(value.absolute, value.normalized, { dotfiles: 'allow' });
+}));
+router.get('/workspace/preview', wrap(async (req, res) => {
+  const bytes = await service.workspacePreview(await key(req), req.query.path || '');
+  // Never execute customer HTML in the authenticated application origin.
+  // The client renders these bounded bytes only in its opaque sandbox iframe.
+  res.set('X-Content-Type-Options', 'nosniff').type('text/plain; charset=utf-8').send(bytes);
 }));
 router.get('/clinical', wrap(async (req, res) => res.json({ data: await service.list(req.user.id) })));
 router.post('/clinical', upload.single('file'), wrap(async (req, res) => {

@@ -1,0 +1,12 @@
+**
+!skills
+!skills/scientific-ai
+!skills/scientific-ai/**
+!templates
+!templates/hcls-librechat
+!templates/hcls-librechat/**
+**/__pycache__
+**/.pytest_cache
+**/*.pyc
+**/node_modules
+**/evidence

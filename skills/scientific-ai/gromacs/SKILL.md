@@ -240,6 +240,18 @@ logs; `inventory_complete=false` is not a complete scientific delivery.
 
 Report simulation duration/steps, atoms, trajectories/frames, temperature and
 energy sanity checks, warnings, achieved ns/day, wall and queue time separately.
+Use measured `progress` from operation status: completed versus checkpointed ns,
+measured ns/day and observation freshness. Missing data stays unknown; a target
+duration is not completed work. Do not narrate GPU type/count, placement, image
+or deployment internals from old receipts.
+Render available results inline in LibreChat: use the verified timing report
+and workspace HTML/image/video links, `visualize_structure` for saved supported
+coordinates and `visualize_workspace_media` for saved plots/trajectory videos.
+Return their UI markers. Convert a GRO to a display PDB with installed GROMACS
+only if needed, preserving originals; that is postprocessing, not a new MD run.
+Never invent a trajectory preview or plot. Keep raw trajectories, checkpoints
+and inputs downloadable alongside the preview; don't rerun a completed study
+just to render its results.
 For free energy report lambda schedule, estimator, equilibration discard,
 overlap, uncertainty and convergence limitations. A terminal `succeeded` run
 proves execution and verified outputs, not equilibration or a valid biological

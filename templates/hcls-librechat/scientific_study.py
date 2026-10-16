@@ -1160,6 +1160,58 @@ def completion_summaries(record, artifacts):
     return summaries
 
 
+def model_progress(record, plan):
+    """Read the supervisor's last status; never submit, poll or mutate the study.
+
+    Older supervisors already retain these files on every observation. Binding
+    each file to the recorded operation lets a UI-only patch show an active run
+    without restarting its worker or changing its frozen input manifest.
+    """
+    fields = {'schema', 'available', 'updated_at', 'stale', 'stale_after_seconds', 'current_step_id'}
+    step_fields = {'step_id', 'state', 'unit', 'completed_units', 'durable_completed_units', 'target_units',
+                   'rate', 'rate_unit', 'rate_source', 'rate_window_seconds', 'completed_ns',
+                   'durable_completed_ns', 'target_ns', 'ns_per_day', 'ns_per_day_source',
+                   'initial_step', 'target_step', 'observed_step', 'durable_step', 'timestep_ps',
+                   'observed_at', 'durable_at', 'rate_updated_at', 'stale'}
+    def project(value, names):
+        return {key: value[key] for key in names if key in value and
+                (value[key] is None or type(value[key]) in (str, int, float, bool))}
+    output = []
+    for step in plan['steps']:
+        if step['kind'] not in MODEL_KINDS:
+            continue
+        operation_id = record.get('steps', {}).get(step['id'], {}).get('operation_id')
+        if not operation_id:
+            continue
+        try:
+            filename = 'status.json' if step['kind'] == 'batch' else 'operation.json'
+            path = path_in_workspace(str(Path(record['output_directory']) / 'steps' / step['id'] / 'operation' / filename))
+            with path.open('rb') as stream:
+                raw = stream.read(1024 * 1024 + 1)
+            if len(raw) > 1024 * 1024:
+                continue
+            status = json.loads(raw)
+            if not isinstance(status, dict):
+                continue
+            operation = status.get('operation') if isinstance(status.get('operation'), dict) else status
+            if (operation.get('id') or operation.get('operation_id')) != operation_id:
+                continue
+            progress = status.get('progress', operation.get('progress'))
+            if not isinstance(progress, dict) or progress.get('schema') not in {
+                    'scientific-ai/progress/v1', 'scientific-ai/md-progress/v1'}:
+                continue
+            rows = progress.get('steps', [])
+            if not isinstance(rows, list):
+                continue
+            safe = {**project(progress, fields), 'steps': [project(row, step_fields) for row in rows if isinstance(row, dict)]}
+            output.append({'study_step_id': step['id'], 'operation_id': operation_id, 'progress': safe})
+        except (OSError, ValueError, TypeError):
+            # Missing, partially published or invalid status stays unknown. The
+            # saved scientific study and its original execution continue.
+            continue
+    return output
+
+
 def view(record):
     result = copy.deepcopy({key: record[key] for key in ('id', 'title', 'state', 'phase', 'current_step', 'completed_steps',
         'steps', 'created_at', 'updated_at', 'finished_at', 'failure', 'cancellation_failure', 'admission_unknown', 'cancellation_unknown', 'queue_blocked', 'manifest', 'artifacts') if key in record})
@@ -1167,7 +1219,14 @@ def view(record):
                   'failed' if record['state'] in {'failed', 'needs_attention', 'cancelled'} else 'running',
                   durable_study=True, output_directory=record['output_directory'],
                   guidance='This saved whole study runs independently of chat. Reconnect to Runs for phases and verified final files; no continue prompt is needed for mechanical waits.')
-    result['step_count'] = len(json.loads((directory(record['id']) / 'plan.json').read_bytes())['steps'])
+    plan = json.loads((directory(record['id']) / 'plan.json').read_bytes())
+    result['step_count'] = len(plan['steps'])
+    progress = model_progress(record, plan)
+    if progress:
+        result['model_progress'] = progress
+        result['guidance'] += (' Report model_progress measured units/rates with their measurement timestamps. '
+            'Observed advancement is not necessarily durably checkpointed; stale or missing metrics remain '
+            'stale or unknown. Do not infer speed from the requested workload or expose execution hardware.')
     for artifact in result.get('artifacts', []):
         relative = Path(artifact['path']).relative_to(workspace())
         artifact['download_url'] = '/demos?' + urlencode({'tab': 'workspace', 'path': str(relative.parent), 'file': relative.name})

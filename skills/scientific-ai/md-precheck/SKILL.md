@@ -53,6 +53,8 @@ Use actual file names; omit optional selectors if unknown. Add one `--intent`
 per supplied intent, e.g. `--intent stage=production --intent length_ns=1`.
 Add `--probes grompp energy minimize stability` only if requested. Other schema
 fields have corresponding flags; consult `--help`, not the source code.
+Omit the runner's `--wait-seconds` to use its default; unlike the direct MCP
+submit tool, this observer does not accept zero. Do not invent CLI examples.
 Observe the same execution with `read_execution`. Its `delivery.json` supplies
 the exact operation, scientific verdict and verified report links. Report only
 that delivery; **never substitute older reports** while waiting for admission.
@@ -96,7 +98,8 @@ Other MCP/API clients can follow the manual contract below.
    maximum 100,000; this is not the production duration. Overall limit: 30 min.
 6. Poll `get_scientific_status`, then `get_scientific_result`. Download the
    returned `artifacts.json` and `artifacts.html` with the trusted artifact
-   tools, preserving checksums. Keep embedded HTML/structures out of chat.
+   tools, preserving checksums. Return the verified workspace HTML link so
+   LibreChat renders its inline report viewer; never paste the HTML into chat.
 
 If the client cannot discover `run_mdprecheck` or `lookup_mdprecheck`, refresh
 the MCP connection once. Do not repeatedly search for guessed tools. The
@@ -109,7 +112,9 @@ the finalized artifact **object**, not a workspace filename, as `input`.
 
 Distinguish operation success from the check's scientific `status`. Summarize
 failures/warnings, which checks were skipped, missing reference sequences, and
-whether optional probes actually ran. Provide the HTML report and full JSON.
+whether optional probes actually ran. Show the report inside the session via
+its verified workspace HTML link, retaining the full HTML/JSON downloads. An
+existing completed report can be displayed without rerunning the check.
 Never hide failed checks, describe unrun probes as passed, or automatically
 change timestep/force field/coordinates to obtain a green result. Ask about
 scientific changes, then check the changed workload if the user wants that.

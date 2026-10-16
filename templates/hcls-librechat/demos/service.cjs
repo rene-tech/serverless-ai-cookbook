@@ -43,6 +43,42 @@ function privateKey(key) {
   if (!key || /\s/.test(key)) throw failure('Configure your Scientific AI API key in demo settings.', 401);
   return key;
 }
+
+const pickFields = (value, names) => value && typeof value === 'object' && !Array.isArray(value)
+  ? Object.fromEntries(names.filter((name) => Object.prototype.hasOwnProperty.call(value, name)).map((name) => [name, value[name]])) : {};
+const PROGRESS_FIELDS = ['schema', 'available', 'updated_at', 'stale', 'stale_after_seconds', 'current_step_id'];
+const PROGRESS_STEP_FIELDS = ['step_id', 'state', 'unit', 'completed_units', 'durable_completed_units', 'target_units',
+  'rate', 'rate_unit', 'rate_source', 'rate_window_seconds', 'completed_ns', 'durable_completed_ns', 'target_ns',
+  'ns_per_day', 'ns_per_day_source', 'initial_step', 'target_step', 'observed_step', 'durable_step', 'timestep_ps',
+  'observed_at', 'durable_at', 'rate_updated_at', 'stale'];
+function customerProgress(value) {
+  if (!value || !['scientific-ai/progress/v1', 'scientific-ai/md-progress/v1'].includes(value.schema)) return undefined;
+  const scalars = (row, fields) => Object.fromEntries(Object.entries(pickFields(row, fields))
+    .filter(([, item]) => item === null || ['string', 'boolean'].includes(typeof item)
+      || (typeof item === 'number' && Number.isFinite(item))));
+  return { ...scalars(value, PROGRESS_FIELDS), steps: (Array.isArray(value.steps) ? value.steps : [])
+    .map((step) => scalars(step, PROGRESS_STEP_FIELDS)) };
+}
+// Status is a public scientific contract, not a dump of the execution backend.
+// Also project cached rows from before the backend privacy change.
+function customerOperation(value) {
+  const result = pickFields(value, ['id', 'operation_id', 'model_id', 'protocol', 'status', 'state', 'display_name',
+    'created_at', 'accepted_at', 'activation_started_at', 'ready_at', 'started_at', 'completed_at', 'updated_at',
+    'cancelled_at', 'duration_seconds', 'cold_start_seconds', 'queue_seconds', 'estimated_wait_seconds',
+    'result_available', 'attempt', 'max_attempts', 'error_code', 'error_detail']);
+  if (typeof value?.operation === 'string') result.operation = value.operation;
+  const progress = customerProgress(value?.progress);
+  if (progress) result.progress = progress;
+  return result;
+}
+function customerBatch(value) {
+  return pickFields(value, ['status', 'result_published', 'created_at', 'started_at', 'completed_at',
+    'failure_code', 'completed_steps', 'failed_steps', 'step_count']);
+}
+function customerCatalogItem(value) {
+  return pickFields(value, ['id', 'model_id', 'display_name', 'description', 'enabled', 'capabilities', 'protocols',
+    'license', 'operations', 'service_classes', 'mcp_tool_name', 'mcp_tool_description']);
+}
 async function platform(key, method, resource, body, idempotencyKey, timeoutMs = 45000) {
   privateKey(key);
   const allowed = resource === '/v1/models' || resource === '/v1/scientific-models' || resource === '/v1/storage'
@@ -328,7 +364,7 @@ async function operationResult(key, operationId) {
     platform(key, 'GET', `/v1/operations/${operationId}/result`),
   ]);
   const nestedOperation = operationEnvelope.operation;
-  const operation = nestedOperation && typeof nestedOperation === 'object' ? nestedOperation : operationEnvelope;
+  const operation = customerOperation(nestedOperation && typeof nestedOperation === 'object' ? nestedOperation : operationEnvelope);
   const resultOperation = resultEnvelope.operation;
   if (operation?.id !== operationId
       || (resultOperation && typeof resultOperation === 'object' && resultOperation.id !== operationId)) {
@@ -391,6 +427,7 @@ async function saveRun(owner, key, entry) {
   await save(path.join(folder, entry.id + '.json'), entry);
 }
 function runEntry(operation, previous = {}, metadata = {}) {
+  operation = customerOperation(operation);
   return {
     id: operation.id, model_id: operation.model_id || previous.model_id || metadata.model_id,
     protocol: operation.protocol || previous.protocol, status: operation.status,
@@ -408,9 +445,9 @@ async function track(owner, key, operationId, metadata = {}, timeoutMs = 45000) 
   const operation = current.operation && typeof current.operation === 'object' ? current.operation : current;
   if (operation.id !== operationId) throw failure('Platform returned a mismatched operation.', 502);
   const existing = await optionalRead(path.join(runDirectory(owner, key), operationId + '.json'), {});
-  const entry = runEntry(operation, existing, metadata);
+  const entry = runEntry({ ...operation, ...(current.progress ? { progress: current.progress } : {}) }, existing, metadata);
   await saveRun(owner, key, entry);
-  return { ...entry, ...(current.batch ? { batch: current.batch } : {}) };
+  return { ...entry, ...(current.batch ? { batch: customerBatch(current.batch) } : {}) };
 }
 async function waitOperation(owner, key, operationId, waitSeconds = 15) {
   if (!Number.isInteger(waitSeconds) || waitSeconds < 0 || waitSeconds > 30) throw failure('wait_seconds must be between 0 and 30.');
@@ -507,19 +544,20 @@ async function trackedRuns(owner, key, existing) {
       const item = pending.shift();
       if (!item.legacy && item.operation && TERMINAL_STATES.has(item.status)
           && Date.now() - Date.parse(item.updated_at) < 60000) {
-        refreshed.push(item); continue;
+        refreshed.push({ ...item, operation: customerOperation(item.operation) }); continue;
       }
       try {
         const value = await platform(key, 'GET', `/v1/operations/${item.id}`);
         const operation = value.operation && typeof value.operation === 'object' ? value.operation : value;
         if (operation.id !== item.id) throw failure('Platform returned a mismatched operation.', 502);
-        const entry = runEntry(operation, item);
+        const entry = runEntry({ ...operation, ...(value.progress ? { progress: value.progress } : {}) }, item);
         await saveRun(owner, key, entry);
         refreshed.push(entry);
       } catch (error) {
         // A changed key must not expose previously attached another-tenant rows.
         if ([401, 403, 404].includes(error.status)) continue;
-        if (!item.legacy) refreshed.push({ ...item, refresh_error: error.message, refresh_status: error.status || 500 });
+        if (!item.legacy) refreshed.push({ ...item, operation: customerOperation(item.operation),
+          refresh_error: error.message, refresh_status: error.status || 500 });
       }
     }
   }));
@@ -586,6 +624,23 @@ async function workspaceGet(key, relative) {
   const stat = await fs.stat(target.absolute).catch((error) => { if (error.code === 'ENOENT') throw failure('Workspace file not found.', 404); throw error; });
   if (!stat.isFile()) throw failure('Workspace path is not a file.');
   return { ...target, size_bytes: stat.size };
+}
+async function workspacePreview(key, relative) {
+  const target = await workspaceGet(key, relative);
+  const limit = 8 * 1024 * 1024;
+  if (target.size_bytes > limit) throw failure('Report exceeds the inline preview limit. Download the complete original.', 413);
+  const handle = await fs.open(target.absolute, 'r');
+  try {
+    const buffer = Buffer.alloc(limit + 1);
+    let offset = 0;
+    while (offset < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, offset, buffer.length - offset, offset);
+      if (!bytesRead) break;
+      offset += bytesRead;
+    }
+    if (offset > limit) throw failure('Report exceeds the inline preview limit. Download the complete original.', 413);
+    return buffer.subarray(0, offset);
+  } finally { await handle.close(); }
 }
 async function status(owner, id) {
   const dir = directory(owner, id);
@@ -708,4 +763,4 @@ async function analyzeWorkspace(kind, key, args) {
     : analysis.compare(kind, key, args, { workspaceGet, retainWorkspaceBytes });
 }
 module.exports = { platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
-  workspacePut, workspaceGet, save, read, failure, publicError, FILES, REPORT_MODEL };
+  workspacePut, workspaceGet, workspacePreview, save, read, failure, publicError, customerOperation, customerProgress, customerCatalogItem, FILES, REPORT_MODEL };

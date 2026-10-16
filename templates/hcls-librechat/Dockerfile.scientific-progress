@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1.7
+# Additive UI and status projection over the exact deployed precheck release.
+# The final single layer preserves the pinned client, installed scientific
+# runtimes, viewers, credentials wiring and durable study supervisor.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:3ba84351d86a1160407faef7dcd18e0985253e36a6d3501bb556b6575c31159e
+FROM ${WORKBENCH_BASE} AS assembled
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/progress-release,ro \
+    --mount=type=bind,source=skills/scientific-ai,target=/tmp/core-skills,ro \
+    python3 /tmp/core-skills/bundle.py verify \
+ && cp -a /tmp/core-skills/. /app/skill/ \
+ && cp /tmp/progress-release/agent-instructions.md /app/agent-instructions.md \
+ && cp /tmp/progress-release/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
+ && cp /tmp/progress-release/demos/run-display.ts /app/client/src/components/scientific-run-display.ts \
+ && cp /tmp/progress-release/WorkspaceReportPreview.tsx /tmp/progress-release/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/progress-release/patch-report-preview.mjs /opt/hcls-librechat/ \
+ && node /opt/hcls-librechat/patch-report-preview.mjs \
+ && cp /tmp/progress-release/demos/service.cjs /tmp/progress-release/demos/mcp.cjs /opt/hcls-librechat/demos/ \
+ && cp /tmp/progress-release/demos/router.cjs /app/api/server/routes/scientific-demos.js \
+ && cp /tmp/progress-release/scientific_study.py /opt/bionemo/ \
+ && node --check /opt/hcls-librechat/demos/service.cjs \
+ && node --check /app/api/server/routes/scientific-demos.js \
+ && NODE_PATH=/app/node_modules node --test /tmp/progress-release/demos/run-display.test.cjs /tmp/progress-release/demos/progress-contract.test.cjs /tmp/progress-release/demos/report-preview.test.cjs /tmp/progress-release/demos/studies.test.cjs /tmp/progress-release/demos/router.test.cjs \
+ && node /tmp/progress-release/scripts/test-skills-installed.cjs \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/WorkspaceReportPreview.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs \
+ && mkdir -p /release/app/client /release/app/api/server/routes /release/opt/bionemo /release/opt/hcls-librechat/demos \
+ && cp -a /app/client/dist /app/client/src /release/app/client/ \
+ && cp -a /app/skill /release/app/ \
+ && cp /app/agent-instructions.md /release/app/ \
+ && cp /opt/bionemo/scientific_study.py /release/opt/bionemo/ \
+ && cp /opt/hcls-librechat/patch-report-preview.mjs /release/opt/hcls-librechat/ \
+ && cp /opt/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/mcp.cjs /release/opt/hcls-librechat/demos/ \
+ && cp /app/api/server/routes/scientific-demos.js /release/app/api/server/routes/
+
+FROM ${WORKBENCH_BASE}
+USER root
+COPY --from=assembled /release/ /
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      org.opencontainers.image.title="Nebius Scientific AI Workspace" \
+      org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
+      ai.nebius.scientific.skills.version="2026.10.16.5" \
+      ai.nebius.scientific.release="scientific-progress-inline-results-20261016"

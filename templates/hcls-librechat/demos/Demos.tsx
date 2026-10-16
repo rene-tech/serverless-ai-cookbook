@@ -6,29 +6,48 @@ import { Button, Input } from '@librechat/client';
 import { request } from 'librechat-data-provider';
 import { compareBatch, comparisonCsv } from './scientific-comparison';
 import type { WorkshopRun as Run } from './scientific-comparison';
-import { runDisplay, studyDisplay } from './scientific-run-display';
+import { runDisplay, studyDisplay, scientificProgressDisplay } from './scientific-run-display';
+import type { ScientificProgress } from './scientific-run-display';
 import GettingStarted from './ScientificGettingStarted';
 
 type Job = { id: string; status: string; created_at: string; error?: string; files: string[] };
 type Catalog = { catalog: { judge_model: string; data: { id: string; clinician_eligible: boolean; patient_eligible: boolean }[] };
   profiles: { data: { id: string; profile_id?: string; name?: string }[] }; limits: { profiles: number; workers_per_team: number } };
 type AppRow = { id: string; native?: { display_name?: string; enabled?: boolean; capabilities?: string[]; protocols?: string[];
-  execution_mode?: string; gpu_class?: string; gpu_count?: number; license?: string; qualification?: { state?: string } };
+  license?: string; qualification?: { state?: string } };
   scientific?: { display_name?: string; operations?: string[]; service_classes?: string[]; mcp_tool_name?: string;
     mcp_tool_description?: string; runtime?: { state?: string } } };
 type RunRow = { id: string; model_id?: string; protocol?: string; status?: string; label?: string; source?: string;
   first_seen_at: string; accepted_at?: string; started_at?: string; completed_at?: string; refresh_error?: string;
   operation?: { protocol?: string; error_code?: string; error_detail?: string; result_available?: boolean; accepted_at?: string;
     activation_started_at?: string; ready_at?: string; started_at?: string; completed_at?: string;
-    cold_start_seconds?: number; attempt?: number; max_attempts?: number } };
+    cold_start_seconds?: number; attempt?: number; max_attempts?: number; progress?: ScientificProgress } };
 type RunPage = { data: RunRow[]; next_cursor?: string; history_available?: boolean; history_notice?: string };
 type Study = { id: string; title: string; state: string; phase: string; current_step?: string;
   completed_steps: string[]; step_count: number; queue_blocked?: boolean;
   created_at: number; finished_at?: number; failure?: { message: string };
   artifacts?: { name: string; role: string; path: string; size_bytes: number; sha256: string; download_url: string }[];
-  completion_summaries?: CompletionSummary[] };
+  completion_summaries?: CompletionSummary[];
+  model_progress?: { study_step_id: string; operation_id: string; progress: ScientificProgress }[] };
 type CompletionSummary = { source_step: string; state: string; text?: string; notice?: string;
   artifact_name?: string; sha256?: string; download_url?: string };
+
+export function ScientificProgressView({ progress }: { progress?: ScientificProgress }) {
+  const display = scientificProgressDisplay(progress);
+  if (!display) return null;
+  return <section aria-label="Measured scientific progress" className="my-2 rounded border border-border-light p-2 text-xs">
+    {!display.available && <p role="status">Scientific progress is not measured yet. Unknown does not mean zero.</p>}
+    {display.rows.map((row, index) => <div key={`${row.id}-${index}`} className="my-2">
+      <p><strong>{row.id}</strong> · {row.state}</p>
+      <p>Completed: {row.completed} · Target: {row.target}</p>
+      <p>Durably checkpointed: {row.durable}</p>
+      <p>{row.rateLabel}: {row.rate}</p>
+      <p className="text-text-secondary">{row.freshness}{row.observedAt ? ` · ${row.observedAt}` : ''}</p>
+      {row.rateAt && <p className="text-text-secondary">Rate measured at {row.rateAt}</p>}
+      {row.durableAt && <p className="text-text-secondary">Checkpoint saved at {row.durableAt}</p>}
+    </div>)}
+  </section>;
+}
 
 export function CompletedStudySummaries({ summaries }: { summaries?: CompletionSummary[] }) {
   if (!summaries?.length) return null;
@@ -147,7 +166,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
         return <article key={app.id} className="rounded-xl border border-border-medium p-4">
           <div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{title}</h3><code className="text-xs text-text-secondary">{app.id}</code></div><span className="rounded-full border border-border-light px-2 py-1 text-xs">{ready ? 'Available' : 'Disabled'}</span></div>
           <p className="mt-3 text-sm">{app.scientific?.mcp_tool_description || 'Inspect the live schema before submitting data.'}</p>
-          <p className="mt-2 text-xs text-text-secondary">{operations.length ? operations.join(' · ') : 'Native inference'}{app.native?.gpu_class ? ` · ${app.native.gpu_count || 1}× ${app.native.gpu_class}` : ''}</p>
+          <p className="mt-2 text-xs text-text-secondary">{operations.length ? operations.join(' · ') : 'Native inference'}</p>
           <div className="mt-3 flex gap-2"><Button size="sm" variant="outline" onClick={async () => {
             const prompt = `I want to use the Scientific AI App ${app.id}. Discover its live schema, explain the required input and evaluation limits, and do not submit compute until I confirm.`;
             await navigator.clipboard.writeText(prompt); setCopied(app.id);
@@ -171,6 +190,10 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
           {display.description && <p role="status" className="mt-2 text-sm">{display.description}</p>}
           {study.queue_blocked && <p role="status" className="mt-2 text-sm">A previous admission needs inspection. Later studies are held to avoid duplicate or overlapping model work.</p>}
           {study.failure && <p role="alert" className="mt-2 text-sm">{study.failure.message}</p>}
+          {(study.model_progress || []).map((item) => <div key={`${item.study_step_id}-${item.operation_id}`}>
+            <p className="mt-2 text-xs">Study phase: {item.study_step_id}</p>
+            <ScientificProgressView progress={item.progress} />
+          </div>)}
           <CompletedStudySummaries summaries={study.completion_summaries} />
           <ul className="mt-2 space-y-1">{(study.artifacts || []).map((artifact) => <li key={artifact.name}><Link className="underline" to={artifact.download_url}>{artifact.name}</Link><span className="ml-2 text-xs text-text-secondary">{artifact.role} · {artifact.size_bytes.toLocaleString()} bytes · SHA256 {artifact.sha256}</span></li>)}</ul>
         </article>;
@@ -184,7 +207,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>App / run</th><th>Status</th><th>Elapsed</th><th>Submitted</th><th>Actions</th></tr></thead><tbody>{(runs.data?.data || []).map((run) => {
         const display = runDisplay(run);
         return <tr key={run.id} className="border-t border-border-light"><td className="max-w-sm py-3 pr-3"><strong>{run.model_id || 'Unknown App'}</strong>{display.upload && <p className="text-xs">Input upload · no GPU inference</p>}{run.label && <p className="text-xs">{run.label}</p>}<code className="text-xs">{run.id}</code>{run.refresh_error && <p className="text-xs">Refresh: {run.refresh_error}</p>}</td>
-          <td className="pr-3">{display.status}{display.description && <p className="text-xs text-text-secondary">{display.description}</p>}{run.operation?.error_code && <p className="max-w-xs text-xs">{run.operation.error_code}: {run.operation.error_detail || 'See details'}</p>}{(run.operation?.attempt || 0) > 1 && <p className="text-xs">Attempt {run.operation?.attempt} / {run.operation?.max_attempts || '—'}</p>}</td>
+          <td className="pr-3">{display.status}{display.description && <p className="text-xs text-text-secondary">{display.description}</p>}{run.operation?.error_code && <p className="max-w-xs text-xs">{run.operation.error_code}: {run.operation.error_detail || 'See details'}</p>}{(run.operation?.attempt || 0) > 1 && <p className="text-xs">Attempt {run.operation?.attempt} / {run.operation?.max_attempts || '—'}</p>}<ScientificProgressView progress={run.operation?.progress} /></td>
           <td className="pr-3">{elapsed(run.accepted_at, run.completed_at, !display.terminal)}{display.showComputeTiming && <><p className="text-xs text-text-secondary">Wait {elapsed(run.accepted_at, run.started_at, !display.terminal && !run.started_at)}</p>{run.operation?.cold_start_seconds !== undefined && run.operation.cold_start_seconds !== null && <p className="text-xs text-text-secondary">{display.readyTimingLabel} {run.operation.cold_start_seconds.toFixed(1)}s</p>}</>}</td>
           <td className="pr-3">{run.accepted_at ? new Date(run.accepted_at).toLocaleString() : 'Unknown'}</td><td><div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { const value = await request.get(`${BASE}/runs/${run.id}`); setSelectedRun(run.id); setRunResult(JSON.stringify(value, null, 2)); })}>Details</Button>
