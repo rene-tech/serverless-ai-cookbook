@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Branding only: retain the persistent-state and shared-registration runtime.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:ce8fc5e3a87f4910951b3733a3be3d2f53a9d5ed3bede6921e8997bba6679496
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:c8fb3b90b563d2184f1c842ea1547e190f6caa93c951883aabdf26e9b2461bef
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/branding \
@@ -9,6 +9,7 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/branding \
  && cp /tmp/branding/AuthPoweredByFooter.tsx /app/client/src/components/Auth/Footer.tsx \
  && cp /tmp/branding/ScientificBranding.test.tsx /app/client/src/components/Chat/ \
  && node /tmp/branding/patch-branding.mjs /app/client \
+ && node /tmp/branding/patch-subagent-empty-conversation.mjs /app/client \
  && node /tmp/branding/brand-client.mjs /app/client /tmp/branding/assets --source \
  && node --test /tmp/branding/brand-client.test.mjs \
  && cd /app/client \
@@ -28,4 +29,4 @@ ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.title="Nebius Scientific AI Workspace" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
-      ai.nebius.scientific.release="nebius-branding-20261007"
+      ai.nebius.scientific.release="workspace-fleet-20261016"

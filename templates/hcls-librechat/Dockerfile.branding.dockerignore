@@ -8,5 +8,6 @@
 !templates/hcls-librechat/brand-client.mjs
 !templates/hcls-librechat/brand-client.test.mjs
 !templates/hcls-librechat/patch-branding.mjs
+!templates/hcls-librechat/patch-subagent-empty-conversation.mjs
 !templates/hcls-librechat/assets/
 !templates/hcls-librechat/assets/**
