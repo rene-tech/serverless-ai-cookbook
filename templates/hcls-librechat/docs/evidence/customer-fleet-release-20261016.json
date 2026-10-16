@@ -1,0 +1,72 @@
+{
+  "scope": "managed client replacement and browser interface; not all scientific workloads",
+  "qualified_at": "2026-10-16T10:33:01Z",
+  "source": "ebee046b20dc195ab729b0dc55a5ab98ad27d37f",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workspace-fleet-20261016-r3",
+  "manifest": "sha256:5595cfb290b00b78390d204300eca559dd9ef297784f63a0efc8eb19b9f3a556",
+  "config": "sha256:9450c8c07d691b15cbd046a3d68f4ab530aaeefa5cd53406d9b3eb1897415495",
+  "skills_version": "2026.10.15.1",
+  "installed": {
+    "persistent_entrypoint": true,
+    "source_hashes_match": true,
+    "source_files_checked": 8,
+    "scientific_shell": true,
+    "compiled_branding": true,
+    "synthetic_chat_guard": true,
+    "current_catalog_mcp": true,
+    "workspace_uploads_and_bucket_picker": true,
+    "deferred_sdk_tests_passed": 20,
+    "deferred_sdk_tests_skipped": 0,
+    "skills_loaded": 84,
+    "skill_resources_loaded": 86,
+    "core_skill_files_verified": 85,
+    "configured_uid": 0,
+    "live_instances_with_matching_module_hashes": 5
+  },
+  "browser": {
+    "identity": "existing internal system/qa; no customer inference",
+    "unchanged_release_clean_file_cohorts": 2,
+    "uploads_per_cohort": 7,
+    "byte_equal_downloads_per_cohort": 6,
+    "audio_playback_and_history_reload": true,
+    "file_only_inference_calls": 0,
+    "unchanged_release_clean_agent_cohorts": 2,
+    "provider_model": "moonshotai/Kimi-K3",
+    "provider_cost_actual_usd": null,
+    "tool_calls_per_agent_cohort": [5, 5],
+    "tool_errors": 0,
+    "full_authorized_catalog_count": 8,
+    "gromacs_schema_read": true,
+    "tavily_official_documentation_search": true,
+    "python_results_verified": true,
+    "browser_and_authenticated_result_downloads_match": true,
+    "unexpected_console_errors_or_warnings": 0,
+    "new_scientific_operations": 0,
+    "autonomous_scientific_workflows_qualified": false
+  },
+  "managed_replacement": {
+    "instances_verified": 5,
+    "login_paths_verified": 6,
+    "existing_login_hashes_and_records_preserved": true,
+    "existing_bucket_and_credential_bindings_preserved": true,
+    "exclusive_state_volume_writer": true,
+    "full_retained_client_backups_restore_tested": true,
+    "shared_instance_separate_logins_preserved": true
+  },
+  "preserved_failures": [
+    "preceding default omitted the actual state supervisor and compiled scientific shell",
+    "intermediate image omitted the current catalog MCP helper, producing partial enumeration and tool errors; fixed in this digest",
+    "inherited QA-only GLM test configuration produced an incomplete response; QA now uses the unchanged approved Kimi default",
+    "legacy diagnostic log exhausted one client disk; log tail retained, database recovered, bounded rotation installed",
+    "operator live-hash test initially compared with the older main checkout; corrected to the pinned candidate source without changing the deployed image"
+  ],
+  "limitations": [
+    "not a new qualification of every hosted scientific model, skill, scaling envelope or scientific accuracy",
+    "non-root runtime portability remains unqualified",
+    "provider usage and cost were not independently reconciled",
+    "eight inaccessible obsolete test histories were deleted under explicit approval; other obsolete exports retain recorded completeness limits"
+  ],
+  "all_scientific_workflows_qualified": false,
+  "rollback_manifest": "sha256:bd339b8357a381e3c453d5a5132fdc89fb514ff4b9e4cd67dc3ac2c4f1f5ca4d",
+  "rollback_note": "historical parent lacks restored state/UI components; restore the exact private pre-upgrade state and recipe, never blindly switch the default back"
+}

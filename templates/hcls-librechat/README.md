@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Abd339b8357a381e3c453d5a5132fdc89fb514ff4b9e4cd67dc3ac2c4f1f5ca4d&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A5595cfb290b00b78390d204300eca559dd9ef297784f63a0efc8eb19b9f3a556&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,26 +65,25 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workspace-s2qa-20261015-r2`,
-digest `sha256:bd339b8357a381e3c453d5a5132fdc89fb514ff4b9e4cd67dc3ac2c4f1f5ca4d`.
-It includes the [deferred-tool discovery and native operation guidance fixes](docs/native-polling-release-20261015.md).
-It includes [arbitrary-file uploads and bucket-backed chat selection](docs/workspace-files-20261008.md),
-file-only messages, authenticated downloads and audio playback in saved chats.
-It preserves Nebius branding, persistent customer state, and the durable
-large-file scVI/scANVI client with recoverable S3-mounted studies. Complete App
-listing is now separate from keyword search, preventing partial discovery and
-empty-domain probing loops, retaining
-[qualified persistent client state](docs/customer-state-release-20261002.md).
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workspace-fleet-20261016-r3`,
+digest `sha256:5595cfb290b00b78390d204300eca559dd9ef297784f63a0efc8eb19b9f3a556`.
+The [client state and interface release](docs/customer-fleet-release-20261016.md)
+restores the actual persistent-state supervisor, Scientific AI navigation,
+Nebius/NVIDIA branding and full-catalog MCP helper omitted from the preceding
+default image. Full App listing is separate from keyword search. It retains
+the native-operation fixes, arbitrary-file uploads, bucket selection, authenticated
+downloads and audio playback. MongoDB diagnostic logs rotate instead of filling
+the state disk. The dated earlier receipts remain historical evidence, not proof
+that their image contained these restored components.
 Its 36 canonical customer skills (84 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. The selected image contains skills
-`2026.10.15.1` from source `65b88e24ca1ed20d73b6a6c7eef0ef8366e6d21e`.
-Configured-root installed SDK/skills and isolated restored-state login/history
-checks passed, plus a bounded same-operation browser follow-up using the exact
-patched modules/guidance on the retained QA image. This does not qualify every
-scientific workflow or autonomous skill loading; UID1000 skill-directory
-portability remains unsupported in this digest. Operators maintain the image in
+`2026.10.15.1`; image source is `ebee046b20dc195ab729b0dc55a5ab98ad27d37f`.
+See its exact-image receipt for installed components, retained login/history,
+and actual browser/file/agent checks. This is client lifecycle/interface evidence,
+not qualification of every scientific workflow, autonomous skill selection,
+capacity or non-root portability. Operators maintain the image in
 `scripts/release-image.sh`. Existing running instances do not auto-upgrade when
 this default changes; upgrading their application requires a separate controlled
 rollout preserving chats, credentials and workspace bindings. In particular,

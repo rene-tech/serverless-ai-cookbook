@@ -15,22 +15,30 @@ def evidence():
 
 
 def test_pointer_and_console_link_select_exact_published_bytes():
-    receipt = evidence()
+    # Keep the older native-polling evidence immutable; the current pointer has
+    # its own exact-image browser and persistence receipt.
+    receipt = json.loads((ROOT/'docs/evidence/customer-fleet-release-20261016.json').read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
-                      'SCIENTIFIC_AI_RELEASE_DIGEST':MANIFEST,
+                      'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':'2026.10.15.1'}
-    assert receipt['manifest'] == MANIFEST and receipt['config'] == CONFIG
+    assert receipt['installed']['persistent_entrypoint']
+    assert receipt['installed']['scientific_shell']
+    assert receipt['installed']['compiled_branding']
+    assert receipt['installed']['synthetic_chat_guard']
+    assert receipt['browser']['unchanged_release_clean_file_cohorts'] == 2
+    assert receipt['all_scientific_workflows_qualified'] is False
     readme = (ROOT/'README.md').read_text()
     link = html.unescape(re.search(r'<a href="(https://console.nebius.com/serverless/endpoint/create\?[^"]+)"',readme)[1])
     selected = parse_qs(urlsplit(link).query)['image']
-    assert selected == [receipt['image'].rsplit(':',1)[0]+'@'+MANIFEST]
+    assert selected == [receipt['image'].rsplit(':',1)[0]+'@'+receipt['manifest']]
     assert len(values['SCIENTIFIC_AI_RELEASE_IMAGE']) < 128
 
 
 def test_receipt_preserves_real_scope_and_unknown_provider_usage():
     receipt = evidence()
+    assert receipt['manifest'] == MANIFEST and receipt['config'] == CONFIG
     assert receipt['source'] == '65b88e24ca1ed20d73b6a6c7eef0ef8366e6d21e'
     assert receipt['independent_installed']['configured_uid'] == 0
     assert receipt['independent_installed']['sdk_tests_passed'] == 20
