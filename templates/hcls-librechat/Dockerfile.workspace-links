@@ -13,6 +13,13 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-link
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
  && node /opt/hcls-librechat/verify-workspace-installed.mjs
+COPY templates/hcls-librechat/upload-artifact.py /opt/bionemo/upload-artifact.py
+COPY skills/scientific-ai/ /app/skill/
+COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-tests,ro \
+    node /tmp/workspace-tests/scripts/test-skills-installed.cjs \
+ && /opt/scientific-client/bin/python /tmp/workspace-tests/test_mdprecheck_runner.py
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
-      ai.nebius.scientific.release="workspace-links-20261016"
+      ai.nebius.scientific.release="workspace-links-20261016" \
+      ai.nebius.scientific.skills.version="2026.10.16.7"

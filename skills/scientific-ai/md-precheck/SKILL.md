@@ -35,6 +35,12 @@ intent. An older report without the requested intent is not a substitute.
 Cancelled, timed-out or infrastructure-failed attempts do not count as completed
 checks; explain the failure and offer a retry. Never report them as a clean pass.
 
+If the user explicitly asks to **run the check again**, use the installed
+runner's `--rerun` with a new output directory and idempotency key. This requests
+a fresh operation even when identical inputs have an earlier report. Resume
+that same command/receipt after an interruption. Do not call an explicit rerun
+"prohibited", or describe a reused report as a new check.
+
 ## Preferred LibreChat execution
 
 After consent, use the [installed runner](scripts/run-precheck.py) for a workspace
