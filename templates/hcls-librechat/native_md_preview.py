@@ -1,11 +1,14 @@
 """Publish measured MD reports and optional final coordinates, without inference."""
 import argparse
+import csv
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath
 import subprocess
+import shlex
 import sys
 import tempfile
 
@@ -14,6 +17,37 @@ import tempfile
 if not (Path(__file__).parent / 'scientific_verified_results.py').is_file():
     sys.path.insert(0, '/opt/bionemo')
 from scientific_verified_results import verified_md_inputs, verify, within
+
+
+def render_report(folder, output, workspace, repeats):
+    """Render in private phase scratch; only the study publisher issues links.
+
+    Reuse the native verifier, measurements and report format. Its standalone
+    write_report() is workspace-only and cannot publish scratch paths.
+    """
+    from native_md_report import collect, FIELDS, markdown
+    report = collect(folder, workspace, repeats)
+    if not report['complete']:
+        raise ValueError('Native timing evidence is incomplete: ' + '; '.join(report['gaps']))
+    csv_buffer = io.StringIO(newline='')
+    writer = csv.DictWriter(csv_buffer, fieldnames=FIELDS)
+    writer.writeheader()
+    for row in report['timing_rows']:
+        writer.writerow({**row, 'command': shlex.join(row['command'])})
+    rendered = {'native-timing-report.json': json.dumps(report, indent=2) + '\n',
+                'native-timings.csv': csv_buffer.getvalue(),
+                'native-timing-report.md': markdown(report, workspace)}
+    output.mkdir(parents=True, exist_ok=True)
+    for name, value in rendered.items():
+        target = output / name
+        if target.exists() and target.read_bytes() != value.encode():
+            raise ValueError('Existing report differs; choose a new output directory: ' + name)
+    for name, value in rendered.items():
+        target = output / name
+        if not target.exists():
+            with target.open('x') as stream:
+                stream.write(value)
+    return list(rendered)
 
 
 def argument(command, option, default):
@@ -111,11 +145,7 @@ def main():
     manifest = within(Path(bindings['inputs']['native_manifest']), workspace)
     if manifest.name != 'native-files.json':
         raise ValueError('Expected exact native-files.json, not a platform result envelope.')
-    from native_md_report import write_report
-    report = write_report(manifest.parent, args.output_dir, workspace, repeats)
-    if not report['complete']:
-        raise ValueError('Native timing evidence is incomplete: ' + '; '.join(report['gaps']))
-    files = [Path(item['path']).name for item in report['files']]
+    files = render_report(manifest.parent, args.output_dir, workspace, repeats)
     if options.get('structure_preview', True):
         files += render_preview(manifest.parent, args.output_dir, workspace)
     print(json.dumps({'files': files, 'inference_submitted': False}))

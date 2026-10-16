@@ -110,6 +110,27 @@ def test_saved_phase_cli_uses_the_same_verified_manifest(tmp_path, renderer, mon
     assert json.loads((tmp_path / 'preview/native-timing-report.json').read_text())['complete']
 
 
+def test_phase_scratch_is_not_a_workspace_publication(tmp_path, renderer, monkeypatch, capsys):
+    from native_md_report import write_report
+    workspace = tmp_path / 'workspace'
+    fixture(workspace / 'run')
+    scratch = tmp_path / 'private-phase'
+    scratch.mkdir()
+    binding = scratch / 'input-bindings.json'
+    binding.write_text(json.dumps({'schema': 'scientific-python-bindings/v1',
+        'inputs': {'native_manifest': str(workspace / 'run/native-files.json')},
+        'parameters': {'expected_repeats': 3}}))
+    monkeypatch.setenv('WORKSPACE', str(workspace))
+    monkeypatch.setattr('sys.argv', ['preview', '--inputs', str(binding), '--output-dir', str(scratch / 'output')])
+    preview.main()
+    result = json.loads(capsys.readouterr().out)
+    assert 'md-structure-preview.html' in result['files']
+    assert 'workspace_url' not in json.dumps(result)
+    write_report(workspace / 'run', workspace / 'reference', workspace, 3)
+    for name in ['native-timing-report.json', 'native-timing-report.md', 'native-timings.csv']:
+        assert (scratch / 'output' / name).read_bytes() == (workspace / 'reference' / name).read_bytes()
+
+
 @pytest.mark.parametrize('options', [{'expected_repeats': True}, {'expected_repeats': 0},
                                    {'structure_preview': 'true'}, {'unknown': 1}])
 def test_invalid_report_parameters_never_render(tmp_path, renderer, monkeypatch, options):
