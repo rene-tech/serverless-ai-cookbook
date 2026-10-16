@@ -1,21 +1,30 @@
 # syntax=docker/dockerfile:1.7
-# Branding only: retain the persistent-state and shared-registration runtime.
+# Restore the complete Scientific AI client over the current native-operation
+# runtime. The parent contains workspace uploads but lost the scientific shell.
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:c8fb3b90b563d2184f1c842ea1547e190f6caa93c951883aabdf26e9b2461bef
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/branding \
     cp /tmp/branding/ScientificLanding.tsx /app/client/src/components/Chat/Landing.tsx \
+ && cp /tmp/branding/ScientificGettingStarted.tsx /tmp/branding/WorkspaceInlineCode.tsx /app/client/src/components/ \
+ && cp /tmp/branding/ScientificExecutionOutput.tsx /app/client/src/components/Chat/Messages/Content/ \
+ && cp /tmp/branding/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
+ && cp /tmp/branding/demos/comparison.ts /app/client/src/components/scientific-comparison.ts \
+ && cp /tmp/branding/demos/run-display.ts /app/client/src/components/scientific-run-display.ts \
+ && node /tmp/branding/patch-client.mjs \
+ && node /tmp/branding/patch-execution-ui.mjs \
+ && node /tmp/branding/demos/patch.mjs client \
  && cp /tmp/branding/PoweredByFooter.tsx /app/client/src/components/Chat/Footer.tsx \
  && cp /tmp/branding/AuthPoweredByFooter.tsx /app/client/src/components/Auth/Footer.tsx \
  && cp /tmp/branding/ScientificBranding.test.tsx /app/client/src/components/Chat/ \
  && node /tmp/branding/patch-branding.mjs /app/client \
- && node /tmp/branding/patch-subagent-empty-conversation.mjs /app/client \
  && node /tmp/branding/brand-client.mjs /app/client /tmp/branding/assets --source \
  && node --test /tmp/branding/brand-client.test.mjs \
  && cd /app/client \
  && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/Chat/ScientificBranding.test.tsx \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
  && node /tmp/branding/brand-client.mjs /app/client/dist /tmp/branding/assets --verify \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs \
  && mkdir -p /release/app/client /release/opt/hcls-librechat \
  && cp -a /app/client/dist /app/client/public /app/client/src /app/client/index.html /release/app/client/ \
  && cp /tmp/branding/brand-client.mjs /tmp/branding/patch-branding.mjs /release/opt/hcls-librechat/ \
