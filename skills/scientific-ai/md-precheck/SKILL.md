@@ -26,10 +26,15 @@ completed operation; `warn` and `fail` still mean a check was performed.
 Changed file bytes, scientific intent, selected files, probe options or checker
 runtime need a new lookup/offer. Do not claim a prior check covers changed inputs.
 Keep the result/operation ID in the workload's existing receipt directory.
+Do not scan operation history or infer a match from filenames, timestamps or
+input bytes alone. Use the exact lookup with **all requested options**, including
+intent. An older report without the requested intent is not a substitute.
+Cancelled, timed-out or infrastructure-failed attempts do not count as completed
+checks; explain the failure and offer a retry. Never report them as a clean pass.
 
 ## Prepare and invoke
 
-1. Read `get_model_schema(model_id="mdprecheck")`; use the deployed bounds and
+1. Read `get_model_schema(model_id="mdprecheck", protocol="native", tool_name="run_mdprecheck")`; use the deployed bounds and
    typed `run_mdprecheck` contract. Missing authorization is not permission to
    use an administrator key. Report unavailability and let MD proceed if desired.
 2. Bundle the prepared coordinates, topology **and all includes**, MDP, optional
@@ -62,6 +67,13 @@ Keep the result/operation ID in the workload's existing receipt directory.
 6. Poll `get_scientific_status`, then `get_scientific_result`. Download the
    returned `artifacts.json` and `artifacts.html` with the trusted artifact
    tools, preserving checksums. Keep embedded HTML/structures out of chat.
+
+If the client cannot discover `run_mdprecheck` or `lookup_mdprecheck`, refresh
+the MCP connection once. Do not repeatedly search for guessed tools. The
+documented REST path remains available with the same caller key; otherwise
+report the missing client tool instead of claiming that a different old result
+satisfies the requested check. The installed native invocation helper accepts
+the finalized artifact **object**, not a workspace filename, as `input`.
 
 ## Interpret honestly
 
