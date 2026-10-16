@@ -23,7 +23,32 @@ not need another offer. Do not make mdprecheck mandatory or alter scientific
 settings to pass it. Advisory questions and file inventories do not need this
 decision. Continue below after resolving this choice.
 
-For model execution, read `scientific-gateway`. App ID: **gromacs**. This is the NVIDIA NGC
+## Simple prepared simulation: use the installed composer
+
+After consent/check/authorized repair, prepare and validate the exact TPR with
+CPU `gmx grompp` (or `convert-tpr` for a duration-only copy). For a new single
+simulation plus progress/results, use this one command:
+
+```sh
+/opt/scientific-client/bin/python /opt/bionemo/prepare_gromacs_study.py \
+  --source /workspace/md/validated-inputs --tpr simulation.tpr \
+  --duration-ns 1 --output /workspace/md/new-study
+```
+
+Replace paths and duration with this request. The TPR must encode that duration;
+the helper validates it without changing scientific settings. It bundles the
+inputs and composes the existing saved study with measured timings and an
+interactive final structure. It does **not** submit MD. Call
+`run_scientific_workflow` with its exact returned `next_call.arguments` once.
+The live card then finishes observation, verified downloads and rendering.
+Do not hand-write this standard plan, read helper source, invoke a second batch
+client, or spend calls rediscovering phases already validated by this composer.
+The actual batch executor validates the live App contract before upload.
+Continuation, multiple replicas, enhanced sampling and custom multi-stage
+protocols retain the existing advanced workflows below; do not replace them
+with this new-run-only helper.
+
+For advanced/manual model execution, read `scientific-gateway`. App ID: **gromacs**. This is the NVIDIA NGC
 GROMACS HPC distribution behind the existing durable scientific-batch API,
 not an NVIDIA NIM HTTP API, a folding neural network, or a docking engine.
 Installing this skill does not establish that a particular runtime is released.

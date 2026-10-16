@@ -6,7 +6,8 @@ license: Apache-2.0
 
 # MD input precheck
 
-Read `scientific-gateway`. The hosted App is **mdprecheck**. It checks input
+The hosted App is **mdprecheck**. The installed runner handles gateway discovery;
+read `scientific-gateway` only for the manual API path below. It checks input
 files; it does not run the production simulation, repair a system, or prove
 scientific validity. The platform keeps the checker source private. Customers
 do not need its repository, a local installation, or a GPU.
@@ -80,6 +81,11 @@ submit tool, this observer does not accept zero. Do not invent CLI examples.
 Observe the same execution with `read_execution`. Its `delivery.json` supplies
 the exact operation, scientific verdict and verified report links. Report only
 that delivery; **never substitute older reports** while waiting for admission.
+Copy the returned HTML `workspace_url` as a Markdown link immediately so it
+renders inline; no extra viewer tool or hand-written link is needed. After an
+authorized repair/recheck, use the GROMACS skill's `prepare_gromacs_study.py`
+composer for the ordinary new-run-plus-results workflow, not a hand-written
+study or guessed batch CLI flags.
 Use the returned `read_execution` identity and 30-second bounded waits; the
 checker's native `op-...` ID is not a UUID accepted by `workbench_get_operation`.
 After terminal output, read only needed report fields; do not poll that job again.

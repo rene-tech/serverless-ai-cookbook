@@ -41,6 +41,26 @@ def test_folding_and_docking_coordinates_reach_ui_not_text(bridge, monkeypatch):
     assert bridge.TOOL['annotations']['readOnlyHint'] is True
 
 
+def test_html_reports_return_exact_authenticated_inline_links_not_html(bridge):
+    path = bridge.WORKSPACE / 'precheck original' / 'report.html'
+    path.parent.mkdir()
+    path.write_text('<!doctype html><html><body>Measured report</body></html>')
+    result = bridge.call_media_viewer({'files': [{'path': str(path), 'label': 'Precheck [original]'}]})
+    assert len(result['content']) == 1
+    text = result['content'][0]['text']
+    assert 'tab=workspace' in text and 'precheck+original%2Freport.html' in text
+    assert 'Precheck \\[original\\]' in text
+    assert '<html>' not in text and 'resubmit compute' in text
+
+
+@pytest.mark.parametrize('data', [b'', b'not an HTML document', b'\xff\xfe'])
+def test_empty_or_spoofed_reports_remain_errors(bridge, data):
+    path = bridge.WORKSPACE / 'report.html'
+    path.write_bytes(data)
+    with pytest.raises(ValueError):
+        bridge.call_media_viewer({'files': [{'path': str(path), 'label': 'Report'}]})
+
+
 def test_multiple_operations_render_one_synchronized_overlay(bridge, monkeypatch):
     other = '22222222-2222-4222-8222-222222222222'
     seen = []

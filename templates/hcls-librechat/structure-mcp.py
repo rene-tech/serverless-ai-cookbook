@@ -15,6 +15,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import urlencode
 import uuid
 
 MAX_BYTES = 4 * 1024 * 1024
@@ -323,7 +324,7 @@ def call_viewer(args):
 
 
 MEDIA_TOOL = {'name': 'visualize_workspace_media',
-              'description': 'Display verified image, video or audio files already stored under /workspace in an inline gallery. Use this for PNG/JPEG/WebP/GIF, MP4/WebM, WAV/MP3/OGG/FLAC; never use visualize_structure for those formats. Pass only files:[{path,label}] and optional title. Files are read locally, signature-checked and bounded; no URL is fetched and no compute is submitted. Include the returned UI resource marker verbatim.',
+              'description': 'Display verified images, video, audio or HTML reports already stored under /workspace. HTML uses authenticated workspace links rendered inline by LibreChat; copy those links unchanged. Other media uses the returned UI resource marker. Supports PNG/JPEG/WebP/GIF, MP4/WebM, WAV/MP3/OGG/FLAC and HTML. Pass files:[{path,label}] and optional title. Files are read locally and bounded; no URL is fetched and no compute is submitted.',
               'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
               'inputSchema': {'type': 'object', 'additionalProperties': False,
                               'properties': {'files': {'type': 'array', 'minItems': 1, 'maxItems': MAX_MEDIA_FILES,
@@ -366,17 +367,18 @@ def call_media_viewer(args):
     title = args.get('title', 'Scientific media')
     if not isinstance(title, str) or not title.strip() or len(title) > 160:
         raise ValueError('Title must be nonempty text, at most 160 characters.')
-    items, total, paths = [], 0, set()
+    items, reports, total, paths = [], [], 0, set()
     for requested_item in requested:
         label = requested_item['label']
         if not isinstance(label, str) or not label.strip() or len(label) > 100:
             raise ValueError('Every media file needs a nonempty label of at most 100 characters.')
-        path, size = workspace_file(requested_item['path'], MAX_MEDIA_BYTES)
+        is_report = isinstance(requested_item['path'], str) and Path(requested_item['path']).suffix.lower() in {'.html', '.htm'}
+        path, size = workspace_file(requested_item['path'], MAX_MEDIA_TOTAL_BYTES if is_report else MAX_MEDIA_BYTES)
         if path in paths:
             raise ValueError('Workspace media paths must be unique.')
         paths.add(path)
         suffix = path.suffix.lower()
-        if suffix not in MEDIA_TYPES:
+        if suffix not in MEDIA_TYPES and not is_report:
             raise ValueError('Unsupported workspace media type. Use PNG/JPEG/WebP/GIF, MP4/WebM, WAV/MP3/OGG/FLAC.')
         total += size
         if total > MAX_MEDIA_TOTAL_BYTES:
@@ -388,13 +390,30 @@ def call_media_viewer(args):
             data = path.read_bytes()
         except OSError:
             raise ValueError('Workspace media file cannot be read.') from None
+        if is_report:
+            try:
+                text = data.decode('utf-8')
+            except UnicodeDecodeError:
+                raise ValueError('HTML report must be UTF-8.') from None
+            if len(data) != size or not re.search(r'<(?:!doctype\s+html|html|head|body)\b', text, re.I):
+                raise ValueError('Workspace report is empty or is not an HTML document.')
+            relative = path.relative_to(WORKSPACE).as_posix()
+            url = '/demos?' + urlencode({'tab': 'workspace', 'path': path.parent.relative_to(WORKSPACE).as_posix(), 'file': relative})
+            safe_label = re.sub(r'([\\\[\]])', r'\\\1', label.strip())
+            reports.append(f'[{safe_label}]({url})')
+            continue
         if len(data) != size or not media_signature(data, suffix):
             raise ValueError('Workspace media content does not match its supported file type.')
         mime, kind = MEDIA_TYPES[suffix]
         items.append({'label': label.strip(), 'mime': mime, 'kind': kind,
                       'data': base64.b64encode(data).decode('ascii')})
+    content = []
+    if reports:
+        content.append({'type': 'text', 'text': 'Include these verified workspace links unchanged in the answer. LibreChat renders their HTML inline in its existing isolated report viewer; do not paste HTML or resubmit compute.\n' + '\n'.join(reports)})
+    if not items:
+        return {'content': content}
     resource_id = f'media{uuid.uuid4().hex}'
-    return {'content': [
+    return {'content': content + [
         {'type': 'text', 'text': f'Inline media viewer prepared with {len(items)} verified workspace file(s). Include the supplied UI resource marker verbatim in the answer. Files larger than the bounded viewer limit remain downloadable through Workspace.'},
         {'type': 'resource', 'resource': {'uri': f'ui://scientific/media/{resource_id}',
          'mimeType': 'text/html', 'text': media_html(title.strip(), items)}}]}

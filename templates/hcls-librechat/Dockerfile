@@ -32,6 +32,9 @@ COPY templates/hcls-librechat/uploads/ /tmp/workspace-uploads/
 COPY templates/hcls-librechat/speech/workshop-client.js /app/client/src/components/workshop-client.js
 RUN cp /tmp/workspace-uploads/*.tsx /tmp/workspace-uploads/*.js /app/client/src/components/ \
  && node /tmp/workspace-uploads/patch.mjs
+COPY templates/hcls-librechat/WorkspaceReportPreview.tsx templates/hcls-librechat/WorkspaceMarkdownLinks.ts templates/hcls-librechat/ScientificStudyPreview.tsx /app/client/src/components/
+COPY templates/hcls-librechat/patch-report-preview.mjs /tmp/patch-report-preview.mjs
+RUN node /tmp/patch-report-preview.mjs
 WORKDIR /app/client
 RUN node /tmp/branding/patch-branding.mjs /app/client \
  && node /tmp/branding/brand-client.mjs /app/client /tmp/branding/assets --source \
@@ -100,6 +103,8 @@ COPY templates/hcls-librechat/execution-mcp.py /opt/bionemo/execution-mcp.py
 COPY templates/hcls-librechat/scientific_verified_results.py /opt/bionemo/scientific_verified_results.py
 COPY templates/hcls-librechat/native_md_report.py /opt/bionemo/report-native-md.py
 COPY templates/hcls-librechat/native_md_report.py /opt/bionemo/native_md_report.py
+COPY templates/hcls-librechat/native_md_preview.py /opt/bionemo/native_md_preview.py
+COPY templates/hcls-librechat/prepare_gromacs_study.py /opt/bionemo/prepare_gromacs_study.py
 COPY templates/hcls-librechat/scientific_starter.py /opt/bionemo/scientific_starter.py
 COPY templates/hcls-librechat/invoke-native.py /opt/bionemo/invoke-native.py
 COPY templates/hcls-librechat/scientific_receipts.py /opt/bionemo/scientific_receipts.py

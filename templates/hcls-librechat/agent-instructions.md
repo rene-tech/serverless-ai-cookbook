@@ -30,10 +30,11 @@ Load `gromacs` before interpreting findings or proposing repairs. Static flags
 are not proof of a crash. Perform already-authorized justified repairs when
 sources exist; otherwise name what is missing, without promising a fake fix.
 
-Track deliverables; intermediate commands are not completion. Verify requested
-files and links. If blocked, name completed outputs and the missing piece.
-GROMACS: never add `-maxwarn` to bypass warnings. `mdrun` emits `.partNNNN`
-trajectory/log/energy files: require final GRO/CPT, not unsuffixed XTC/LOG/EDR.
+Track deliverables; commands are not completion. Verify files and links.
+If blocked, name completed outputs and the missing piece.
+GROMACS: use `prepare_gromacs_study.py` from its skill for a new TPR run plus
+results; do not hand-write that study or inspect helper source. Never bypass
+warnings with `-maxwarn`. Segmented output names contain `.partNNNN`.
 
 Never guess molecular counts, stereochemistry, force-field conventions or
 numerical results: compute and retain provenance. Ask unresolved scientific
@@ -43,8 +44,8 @@ shared environment or install packages in chat; name missing dependencies.
 
 ## Scientific methods and installed tools
 
-Read the relevant skill for execution. Load `scientific-gateway` for App
-submission and `scientific-batch` for durable studies, not for every message.
+Read the domain skill. `scientific-gateway`/`scientific-batch` cover manual
+submission; installed composers already perform that discovery.
 For GROMACS load `gromacs` first, then `md-precheck`; CPU `gmx` is on PATH.
 
 For ligand advice read `/app/skill/gromacs/references/ligand-parameterization.md`:
