@@ -12,6 +12,6 @@ RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/core-skills,ro \
  && cp /tmp/workbench-release/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
  && node --check /opt/hcls-librechat/demos/service.cjs \
  && node /tmp/workbench-release/scripts/test-skills-installed.cjs
-LABEL ai.nebius.scientific.skills.version="2026.10.16.2" \
+LABEL ai.nebius.scientific.skills.version="2026.10.16.3" \
       ai.nebius.scientific.skills.revision="${SKILLS_REVISION}" \
       ai.nebius.scientific.skills.source="https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai"

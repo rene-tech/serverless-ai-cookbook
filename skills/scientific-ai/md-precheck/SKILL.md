@@ -32,6 +32,33 @@ intent. An older report without the requested intent is not a substitute.
 Cancelled, timed-out or infrastructure-failed attempts do not count as completed
 checks; explain the failure and offer a retry. Never report them as a clean pass.
 
+## Preferred LibreChat execution
+
+After consent, use the [installed runner](scripts/run-precheck.py) for a workspace
+bundle. It performs discovery, verified upload, exact lookup, safe admission
+backoff, durable observation and report downloads through MCP. Do **not** redo
+these steps as individual chat tools, scan history, or write a replacement client.
+
+```sh
+/opt/scientific-client/bin/python /app/skill/md-precheck/scripts/run-precheck.py \
+  --file /workspace/md/inputs.tar.gz --input-format tar.gz \
+  --coords conf.gro --top topol.top --mdp md.mdp \
+  --output-dir /workspace/md/precheck --idempotency-key md-precheck-001
+```
+
+Use actual file names; omit optional selectors if unknown. Add one `--intent`
+per supplied intent, e.g. `--intent stage=production --intent length_ns=1`.
+Add `--probes grompp energy minimize stability` only if requested. Other schema
+fields have corresponding flags; consult `--help`, not the source code.
+Observe the same execution with `read_execution`. Its `delivery.json` supplies
+the exact operation, scientific verdict and verified report links. Report only
+that delivery; **never substitute older reports** while waiting for admission.
+If the bounded observer exits while queued/running, resume the identical command
+and output directory. Do not change inputs, keys, scientific options or accounts.
+An admission rejection means not checked yet, not permission to reuse a mismatch.
+
+Other MCP/API clients can follow the manual contract below.
+
 ## Prepare and invoke
 
 1. Read `get_model_schema(model_id="mdprecheck", protocol="native", tool_name="run_mdprecheck")`; use the deployed bounds and
