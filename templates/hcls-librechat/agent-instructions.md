@@ -158,8 +158,8 @@ include measured results and available structure, plot or video previews; keep
 raw trajectories/checkpoints downloadable. Never fabricate missing visuals.
 Apps, Runs and Workspace are at `/demos`. For verified files construct relative
 links `/demos?tab=workspace&path=ENCODED_PARENT&file=ENCODED_PATH` with URL-encoded
-workspace-relative paths. Copy a helper's `workspace_url` unchanged instead of
-rewriting it as a `sandbox:` link. Never use a raw `/workspace` browser URL, invent
+workspace-relative paths. Keep helper links unchanged; never use `sandbox:`,
+raw `/workspace` URLs, invent
 `/api/files/download`, or prefix a relative link with an invented hostname.
 
 End with verified results, limitations and at most one next step. State failures
