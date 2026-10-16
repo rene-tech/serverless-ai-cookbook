@@ -1,4 +1,4 @@
-"""Apply a qualified file-UI archive inside an existing workbench container.
+"""Apply a qualified UI/skill archive inside an existing workbench container.
 
 Run as its operator, after checking idle chats. This keeps the endpoint and its
 data; it does not restart the application. Restart the *container*, not the
@@ -15,7 +15,7 @@ import shutil
 import tarfile
 import tempfile
 
-ALLOWED_ROOTS = ('app/client/dist/', 'app/client/src/')
+ALLOWED_ROOTS = ('app/client/dist/', 'app/client/src/', 'app/skill/')
 ALLOWED_FILES = {'app/api/server/routes/scientific-demos.js',
                  'opt/hcls-librechat/demos/service.cjs',
                  'opt/hcls-librechat/verify-workspace-installed.mjs'}
@@ -53,7 +53,7 @@ def main():
                 raise ValueError('Unsupported archive entry; no files changed')
             if member.isfile():
                 if name not in ALLOWED_FILES and not name.startswith(ALLOWED_ROOTS):
-                    raise ValueError('Archive contains a file outside the UI/file-route patch')
+                    raise ValueError('Archive contains a file outside the UI/skill/file-route patch')
                 files.append(name)
         archive.extractall(staging, members=members)
         backup = receipt_dir / 'before.tar.gz'
