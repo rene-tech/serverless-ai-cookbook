@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
-# Additive UI and status projection over the exact deployed precheck release.
-# The final single layer preserves the pinned client, installed scientific
-# runtimes, viewers, credentials wiring and durable study supervisor.
+# UI and status projection over the exact deployed precheck release.
+# Compact its 125-layer ancestry so this release and future patches can load
+# on Docker/Serverless. Preserve the parent runtime configuration below.
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:3ba84351d86a1160407faef7dcd18e0985253e36a6d3501bb556b6575c31159e
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
@@ -26,19 +26,35 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/progress-relea
  && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit src/components/WorkspaceReportPreview.test.tsx \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
- && node /opt/hcls-librechat/verify-workspace-installed.mjs \
- && mkdir -p /release/app/client /release/app/api/server/routes /release/opt/bionemo /release/opt/hcls-librechat/demos \
- && cp -a /app/client/dist /app/client/src /release/app/client/ \
- && cp -a /app/skill /release/app/ \
- && cp /app/agent-instructions.md /release/app/ \
- && cp /opt/bionemo/scientific_study.py /release/opt/bionemo/ \
- && cp /opt/hcls-librechat/patch-report-preview.mjs /release/opt/hcls-librechat/ \
- && cp /opt/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/mcp.cjs /release/opt/hcls-librechat/demos/ \
- && cp /app/api/server/routes/scientific-demos.js /release/app/api/server/routes/
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs
 
-FROM ${WORKBENCH_BASE}
+FROM scratch
+COPY --from=assembled / /
 USER root
-COPY --from=assembled /release/ /
+WORKDIR /app
+# Exact environment/entrypoint/healthcheck of the immutable base above. These
+# are defaults only; customer credentials/state remain deployment-time inputs.
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    NODE_VERSION=24.16.0 YARN_VERSION=1.22.22 HUSKY=0 \
+    HOST=0.0.0.0 PORT=3080 NODE_ENV=production \
+    MONGO_URI=mongodb://127.0.0.1:27017/LibreChat \
+    CONFIG_PATH=/data/hcls-librechat/librechat.yaml \
+    DEPLOYMENT_SKILLS_DIR=/app/skill \
+    ALLOW_REGISTRATION=true ALLOW_EMAIL_LOGIN=true \
+    ENDPOINTS=agents,custom,openAI,anthropic \
+    APP_TITLE="Nebius Scientific AI Workspace" \
+    ALLOW_UNVERIFIED_EMAIL_LOGIN=true ALLOW_PASSWORD_RESET=false \
+    LOG_TO_FILE=false SEARCH=false SCHEDULES_SINGLE_PROCESS=true \
+    OPENAI_API_KEY=user_provided ANTHROPIC_API_KEY=user_provided \
+    SCIENTIFIC_MODELS_API_BASE_URL=https://89.169.99.188/v1 \
+    SCIENTIFIC_MODELS_MCP_URL=https://89.169.99.188/mcp \
+    SCIENTIFIC_CHAT_REASONING_EFFORT=high \
+    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072 \
+    SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true
+EXPOSE 3080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3080/health
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "python3", "/opt/hcls-librechat/state-supervisor.py", "--", "/usr/local/bin/hcls-librechat-entrypoint"]
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.title="Nebius Scientific AI Workspace" \
