@@ -3,6 +3,8 @@
 !templates/hcls-librechat/
 !templates/hcls-librechat/Dockerfile.gromacs-prep
 !templates/hcls-librechat/agent-instructions.md
+!templates/hcls-librechat/scientific_verified_results.py
+!templates/hcls-librechat/native_md_report.py
 !templates/hcls-librechat/scripts/
 !templates/hcls-librechat/scripts/test-skills-installed.cjs
 !templates/hcls-librechat/scripts/gromacs-prep/

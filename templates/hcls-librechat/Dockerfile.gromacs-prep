@@ -32,8 +32,15 @@ COPY templates/hcls-librechat/scripts/gromacs-prep/ /opt/hcls-librechat/gromacs-
 COPY skills/scientific-ai/ /app/skill/
 COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
 COPY templates/hcls-librechat/scripts/test-skills-installed.cjs /opt/hcls-librechat/gromacs-prep/test-skills-installed.cjs
+# The pinned ancestor predates the report helper. Include its dependency and
+# both canonical entry points explicitly, rather than inheriting them by chance.
+COPY templates/hcls-librechat/scientific_verified_results.py /opt/bionemo/scientific_verified_results.py
+COPY templates/hcls-librechat/native_md_report.py /opt/bionemo/native_md_report.py
+COPY templates/hcls-librechat/native_md_report.py /opt/bionemo/report-native-md.py
 RUN /usr/local/bin/gmx --version \
  && python3 /opt/hcls-librechat/gromacs-prep/verify.py --output /tmp/gromacs-prep-acceptance \
+ && /opt/scientific-client/bin/python /opt/bionemo/report-native-md.py --help \
+ && /opt/scientific-client/bin/python /opt/bionemo/native_md_report.py --help \
  && node /opt/hcls-librechat/gromacs-prep/test-skills-installed.cjs
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL ai.nebius.scientific.gromacs-prep.version="2026.4" \

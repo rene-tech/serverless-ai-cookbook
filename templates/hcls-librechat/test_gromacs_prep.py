@@ -4,6 +4,9 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 
 import pytest
 
@@ -89,3 +92,24 @@ def test_skill_distinguishes_duration_and_structural_repairs():
     assert "original input SHA-256" in skill
     assert "never suppress warnings with `-maxwarn`" in skill
     assert "not proof of an inevitable" in skill
+
+
+def test_final_image_installs_and_executes_native_report_helper(tmp_path):
+    dockerfile = (ROOT / "Dockerfile.gromacs-prep").read_text()
+    includes = (ROOT / "Dockerfile.gromacs-prep.dockerignore").read_text().splitlines()
+    files = {
+        "scientific_verified_results.py": "scientific_verified_results.py",
+        "native_md_report.py": "native_md_report.py",
+        "report-native-md.py": "native_md_report.py",
+    }
+    for target, source in files.items():
+        assert f"COPY templates/hcls-librechat/{source} /opt/bionemo/{target}" in dockerfile
+        assert f"!templates/hcls-librechat/{source}" in includes
+        shutil.copyfile(ROOT / source, tmp_path / target)
+    for name in ("report-native-md.py", "native_md_report.py"):
+        assert f"/opt/scientific-client/bin/python /opt/bionemo/{name} --help" in dockerfile
+        completed = subprocess.run([sys.executable, str(tmp_path / name), "--help"],
+                                   cwd=tmp_path, text=True, capture_output=True, timeout=10)
+        assert completed.returncode == 0, completed.stderr
+        assert "--receipt-dir" in completed.stdout
+        assert "--expected-repeats" in completed.stdout
