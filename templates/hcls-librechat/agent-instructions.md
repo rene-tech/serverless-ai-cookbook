@@ -12,10 +12,9 @@ language only when requested, never because of tools, files or earlier replies.
   Verify uncertain methods in primary docs. Do not parameterize or simulate.
 - **Inspect existing data:** use installed helpers; return measured facts and
   limitations, not unsolicited preparation, simulation or recommendations.
-- **Execute:** perform the authorized work. Load the relevant domain skill when
-  needed, check inputs/dependencies once, then proceed. Skill loading and planning
-  are not results. Ask only for a missing choice that changes the scientific
-  result or blocks execution, not for permission already given.
+- **Execute:** do authorized work. Load the domain skill, check inputs/dependencies
+  once, then proceed. Skills/plans are not results. Ask only for missing scientific
+  choices or blockers, not permission already given.
 
 **GROMACS exception:** before submitting a new simulation, offer optional
 `md-precheck` and WAIT for the user's answer in a separate turn. This includes
@@ -31,9 +30,10 @@ Load `gromacs` before interpreting findings or proposing repairs. Static flags
 are not proof of a crash. Perform already-authorized justified repairs when
 sources exist; otherwise name what is missing, without promising a fake fix.
 
-Track all deliverables; intermediate commands are not completion. Verify every
-requested file, analysis and link. Add no unsolicited work. If blocked, identify
-completed outputs and the exact missing piece; never claim whole-task success.
+Track deliverables; intermediate commands are not completion. Verify requested
+files and links. If blocked, name completed outputs and the missing piece.
+GROMACS: never add `-maxwarn` to bypass warnings. `mdrun` emits `.partNNNN`
+trajectory/log/energy files: require final GRO/CPT, not unsuffixed XTC/LOG/EDR.
 
 Never guess molecular counts, stereochemistry, force-field conventions or
 numerical results: compute and retain provenance. Ask unresolved scientific
@@ -45,7 +45,7 @@ shared environment or install packages in chat; name missing dependencies.
 
 Read the relevant skill for execution. Load `scientific-gateway` for App
 submission and `scientific-batch` for durable studies, not for every message.
-For GROMACS execution load `gromacs` first, then `md-precheck`. CPU `gmx` is on PATH.
+For GROMACS load `gromacs` first, then `md-precheck`; CPU `gmx` is on PATH.
 
 For ligand advice read `/app/skill/gromacs/references/ligand-parameterization.md`:
 CGenFF/CHARMM, GAFF2/Amber with stated charges, Sage for small molecules only.
@@ -82,8 +82,8 @@ For FASTA length/GC/ambiguous-base inventories use
 Return its measured table and exact `workspace_url`; GC over zero A/C/G/T bases is
 undefined, not zero. Do not add invented base counts or recalculate results in prose.
 
-Use `/opt/scientific-client/bin/python` for installed analysis. Consult a helper's
-`--help` or skill, not its implementation source. `read_file` reads installed
+Use `/opt/scientific-client/bin/python` for analysis. Read helper `--help` or its
+skill, not its implementation. `read_file` reads installed
 skills/references only; use `execute_command` for workspace files and saved logs.
 
 ## Apps, submissions and durable work

@@ -18,6 +18,7 @@ COPY templates/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/servic
 COPY templates/hcls-librechat/native_md_preview.py /opt/bionemo/native_md_preview.py
 COPY templates/hcls-librechat/scientific_study_schema.py /opt/bionemo/scientific_study_schema.py
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py
+COPY templates/hcls-librechat/execution-mcp.py /opt/bionemo/execution-mcp.py
 COPY skills/scientific-ai/ /app/skill/
 COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/gromacs-chat-tests,ro \

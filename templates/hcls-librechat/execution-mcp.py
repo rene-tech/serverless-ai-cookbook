@@ -9,6 +9,7 @@ import fcntl
 import hashlib
 import os
 from pathlib import Path
+import re
 import shlex
 import signal
 import subprocess
@@ -331,6 +332,44 @@ def study_argument(value):
     return value
 
 
+def submit_checked_study(plan, output):
+    """Reject impossible output promises before reserving model work.
+
+    The segmented GROMACS runtime preserves part files. This check belongs to
+    new admission, not frozen worker implementations or existing-study replay.
+    It never edits scientific settings or silently drops a requested artifact.
+    """
+    import scientific_study
+    if not (output / 'study-binding.json').exists():
+        for phase in plan.get('steps', []):
+            if phase.get('kind') != 'batch' or phase.get('model') not in {'gromacs', 'gromacs-mpi'}:
+                continue
+            reference = phase.get('parameters')
+            if not isinstance(reference, str):
+                continue  # Deferred files are checked by the existing runner.
+            path = workspace_path(reference, 'parameters')
+            parameters = json.loads(path.read_bytes())
+            if not isinstance(parameters, dict) or not isinstance(parameters.get('jobs'), list):
+                continue  # Existing request validators own other shape errors.
+            for job in parameters.get('jobs', []):
+                if not isinstance(job, dict) or not isinstance(job.get('steps'), list):
+                    continue
+                for step in job.get('steps', []):
+                    if not isinstance(step, dict) or step.get('command') != 'mdrun' or not isinstance(step.get('expected_outputs', []), list):
+                        continue
+                    invalid = [name for name in step.get('expected_outputs', [])
+                               if isinstance(name, str) and Path(name).suffix in {'.xtc', '.trr', '.edr', '.log', '.tng'}
+                               and not re.search(r'\.part[0-9]+\.', Path(name).name)]
+                    if invalid:
+                        raise ValueError('No study was admitted. GROMACS mdrun uses -noappend: trajectory, energy and log '
+                            'outputs have .partNNNN names, not ' + ', '.join(invalid) + '. '
+                            'Require the actual final coordinate/checkpoint files (for example md.gro and md.cpt). '
+                            'For a combined trajectory add an explicit trjcat step with {"files":"md.part*.xtc"} '
+                            'and require its distinct output. Preserve the protocol, reporting and visualization phases; '
+                            'correct the draft and retry. Do not add -maxwarn to bypass scientific warnings.')
+    return scientific_study.submit(plan, output)
+
+
 def run_scientific_workflow(args):
     """Typed launch of the existing durable client, not a new model transport."""
     workspace = Path(WORKSPACE).resolve()
@@ -338,8 +377,7 @@ def run_scientific_workflow(args):
     if 'study' in args:
         if 'steps' in args or 'plan_file' in args or args.get('resume'):
             raise ValueError('Whole studies use one immutable study plan; no separate steps, plan_file or manual resume.')
-        import scientific_study
-        return scientific_study.submit(study_argument(args['study']), output)
+        return submit_checked_study(study_argument(args['study']), output)
     if ('steps' in args) == ('plan_file' in args):
         raise ValueError('Supply typed steps OR an existing plan_file, not both.')
     index_dir = ROOT / 'workflow-index'
@@ -357,8 +395,7 @@ def run_scientific_workflow(args):
         if parsed.get('schema') == 'scientific-workflow/v2':
             if args.get('resume'):
                 raise ValueError('Whole studies resume automatically from their immutable receipt; omit resume.')
-            import scientific_study
-            return scientific_study.submit(parsed, output)
+            return submit_checked_study(parsed, output)
     resume = args.get('resume', False)
     if not isinstance(resume, bool):
         raise ValueError('resume must be a boolean.')
