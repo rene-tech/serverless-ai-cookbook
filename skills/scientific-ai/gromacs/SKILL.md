@@ -162,10 +162,14 @@ For a direct client, the installed command shape is:
 
 Authentication comes from the configured client environment. The legacy
 `/opt/bionemo` installation path is not a separate product/server name. In
-LibreChat prefer the durable study executor so observation survives disconnect.
-For a new benchmark study, first discover `batch` and `native-md-timing` with
-`describe_scientific_workflow`. Plan both the simulation and its deterministic
-native report **before** submission; see [the saved-study example](references/timing-study.md).
+LibreChat, use the durable study executor for a new simulation with results,
+timing or visualization. Do not start the direct command above then stop with
+“say continue”. Load `scientific-batch` and read
+[the complete saved-study example](references/timing-study.md) before submission.
+Discover `batch`, `native-md-timing` and, for visualization, `python-script` with
+`describe_scientific_workflow`. Plan simulation, reporting and requested previews
+**together before** submitting. The live study card completes these without
+further chat turns, including after a disconnect.
 Declare the helper's Markdown as a report deliverable, and CSV/JSON as measured
 outputs. A generic `report` section using `operation-timing` on `result.json`
 does not extract native GROMACS commands, repeats or ns/day. Do not substitute
@@ -180,6 +184,12 @@ explicit `args`, optional `stdin` group selections, relative `directory` and
 accepted. Select groups by inspecting the system, not by guessing group numbers.
 For multiple trajectory parts, the explicit argument `{"files":"md.part*.xtc"}`
 expands files without a shell. A literal `*.xtc` string does not do that.
+The platform uses `-noappend`: do not demand unsuffixed `md.xtc`, `md.edr` or
+`md.log` as `mdrun.expected_outputs`; these are partitioned native files.
+Require the actual final coordinate/checkpoint names instead. If a combined
+trajectory is needed, use a subsequent `trjcat` step with the explicit file
+expansion and a distinct output name, then require that output. Retain all
+original parts. A missing-output error is not evidence that dynamics crashed.
 
 The `gromacs` shape is one GPU, one thread-MPI rank, up to eight CPU threads.
 Native automatic offload is the default. Do not force PME/update onto the GPU

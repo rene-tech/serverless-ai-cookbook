@@ -14,13 +14,16 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/gromacs-chat,r
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
  && node /opt/hcls-librechat/verify-workspace-installed.mjs
 COPY templates/hcls-librechat/scientific-study-admission.cjs /opt/hcls-librechat/scientific-study-admission.cjs
+COPY templates/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/service.cjs
+COPY templates/hcls-librechat/native_md_preview.py /opt/bionemo/native_md_preview.py
 COPY skills/scientific-ai/ /app/skill/
 COPY templates/hcls-librechat/agent-instructions.md /app/agent-instructions.md
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/gromacs-chat-tests,ro \
     node /tmp/gromacs-chat-tests/scripts/test-skills-installed.cjs \
  && node --test /tmp/gromacs-chat-tests/test-scientific-study-admission.cjs \
+ && TYPESCRIPT_MODULE=/app/node_modules/typescript node --test /tmp/gromacs-chat-tests/demos/progress-contract.test.cjs /tmp/gromacs-chat-tests/demos/service.test.cjs \
  && /opt/scientific-client/bin/python /tmp/gromacs-chat-tests/test_mdprecheck_runner.py
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       ai.nebius.scientific.release="gromacs-workflow-20261016" \
-      ai.nebius.scientific.skills.version="2026.10.16.8"
+      ai.nebius.scientific.skills.version="2026.10.16.9"

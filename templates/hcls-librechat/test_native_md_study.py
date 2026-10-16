@@ -128,6 +128,9 @@ def test_portable_saved_study_example_passes_real_admission_validation(mounted):
         path = mounted / ('input.tar.gz' if name == 'source' else 'parameters.json')
         path.write_text('offline fixture' if name == 'source' else '{}')
         example['steps'][0][name] = str(path)
+    preview = mounted / 'preview-native-md.py'
+    preview.write_bytes((Path(__file__).parent / 'native_md_preview.py').read_bytes())
+    example['steps'][2]['arguments']['script'] = str(preview)
     assert study.validate(example)
     assert example['steps'][1]['method'] == 'native-md-timing'
     assert example['steps'][1]['arguments']['expected_repeats'] == 3

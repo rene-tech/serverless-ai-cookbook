@@ -71,6 +71,17 @@ function customerOperation(value) {
   if (progress) result.progress = progress;
   return result;
 }
+function normalizedOperation(envelope, expectedId) {
+  const nested = envelope?.operation && typeof envelope.operation === 'object' ? envelope.operation : null;
+  const sources = nested ? [envelope, nested] : [envelope];
+  const ids = sources.flatMap(value => [value?.id, value?.operation_id]).filter(value => value !== undefined);
+  if (!ids.length || ids.some(id => !RUN_ID.test(id) || id !== (expectedId || ids[0]))) {
+    throw failure('Platform returned a mismatched operation.', 502);
+  }
+  // Native compatibility envelopes use operation_id inside the summary, while
+  // older clients used id. Preserve outer model/timing fields and both aliases.
+  return customerOperation({ ...envelope, ...nested, id: ids[0], operation_id: ids[0] });
+}
 function customerBatch(value) {
   return pickFields(value, ['status', 'result_published', 'created_at', 'started_at', 'completed_at',
     'failure_code', 'completed_steps', 'failed_steps', 'step_count']);
@@ -363,13 +374,9 @@ async function operationResult(key, operationId) {
     platform(key, 'GET', `/v1/operations/${operationId}`),
     platform(key, 'GET', `/v1/operations/${operationId}/result`),
   ]);
-  const nestedOperation = operationEnvelope.operation;
-  const operation = customerOperation(nestedOperation && typeof nestedOperation === 'object' ? nestedOperation : operationEnvelope);
+  const operation = normalizedOperation(operationEnvelope, operationId);
   const resultOperation = resultEnvelope.operation;
-  if (operation?.id !== operationId
-      || (resultOperation && typeof resultOperation === 'object' && resultOperation.id !== operationId)) {
-    throw failure('Platform returned a mismatched operation result.', 502);
-  }
+  if (resultOperation && typeof resultOperation === 'object') normalizedOperation(resultEnvelope, operationId);
   const result = resultOperation && typeof resultOperation === 'object' ? resultEnvelope.result : resultEnvelope;
   if (result?.schema !== 'fs2-serve.nebius.ai/operation-artifact-result/v1') {
     const workspace_file = await retainResult(key, operationId, Buffer.from(JSON.stringify(result)));
@@ -442,8 +449,7 @@ function runEntry(operation, previous = {}, metadata = {}) {
 async function track(owner, key, operationId, metadata = {}, timeoutMs = 45000) {
   if (!RUN_ID.test(operationId || '')) throw failure('Supply a valid operation ID.');
   const current = await platform(key, 'GET', `/v1/operations/${operationId}`, undefined, undefined, timeoutMs);
-  const operation = current.operation && typeof current.operation === 'object' ? current.operation : current;
-  if (operation.id !== operationId) throw failure('Platform returned a mismatched operation.', 502);
+  const operation = normalizedOperation(current, operationId);
   const existing = await optionalRead(path.join(runDirectory(owner, key), operationId + '.json'), {});
   const entry = runEntry({ ...operation, ...(current.progress ? { progress: current.progress } : {}) }, existing, metadata);
   await saveRun(owner, key, entry);
@@ -493,7 +499,10 @@ async function runs(owner, key, { cursor, limit = 50 } = {}) {
   }
   if (!Array.isArray(history.data)) throw failure('Platform operation history has an invalid response.', 502);
   const byId = new Map(existing.data.map((item) => [item.id, item]));
-  return { data: history.data.map((operation) => runEntry(operation, byId.get(operation.id), { source: 'platform' })),
+  return { data: history.data.map((row) => {
+    const operation = normalizedOperation(row);
+    return runEntry(operation, byId.get(operation.id), { source: 'platform' });
+  }),
     next_cursor: history.next_cursor || null, history_available: true };
 }
 async function studies(key, action = 'list', id) {
@@ -548,8 +557,7 @@ async function trackedRuns(owner, key, existing) {
       }
       try {
         const value = await platform(key, 'GET', `/v1/operations/${item.id}`);
-        const operation = value.operation && typeof value.operation === 'object' ? value.operation : value;
-        if (operation.id !== item.id) throw failure('Platform returned a mismatched operation.', 502);
+        const operation = normalizedOperation(value, item.id);
         const entry = runEntry({ ...operation, ...(value.progress ? { progress: value.progress } : {}) }, item);
         await saveRun(owner, key, entry);
         refreshed.push(entry);

@@ -1,11 +1,16 @@
 # Durable native timing reports
 
-Use this when a user requests a new MD run plus a native throughput/timing
-report. Read `scientific-batch` and discover the installed `batch` and
-`native-md-timing` methods. The complete plan below is illustrative: retain the
+Use this when a user requests a new MD run plus results, timing or visualization.
+Read `scientific-batch` and discover the installed `batch`, `native-md-timing`
+and `python-script` methods. The complete plan below is illustrative: retain the
 user's archive, parameters, identity, display name and actual repeat count.
 Three repeats here means three distinct native simulation step IDs, not three
-resumed segments or three statistically independent replicas.
+resumed segments or three statistically independent replicas. The preview step
+uses the installed deterministic renderer, not an LLM-written analysis. Copy
+`/opt/bionemo/native_md_preview.py` to `/workspace/md/preview-native-md.py` before
+admission; the executor freezes its bytes. This example has one job with three
+simulation steps, so it publishes one final-coordinate PDB. For multiple jobs
+declare `final-structure-2.pdb` etc.; the viewer supports up to four jobs.
 
 ```json
 {
@@ -35,9 +40,23 @@ resumed segments or three statistically independent replicas.
         "manifest_file": {"step": "simulate", "file": "native-files.json"},
         "expected_repeats": 3
       }
+    },
+    {
+      "id": "visualize",
+      "kind": "analysis",
+      "method": "python-script",
+      "arguments": {
+        "script": "/workspace/md/preview-native-md.py",
+        "inputs": [{"name": "native_manifest", "file": {"step": "simulate", "file": "native-files.json"}}],
+        "parameters": {},
+        "outputs": ["md-structure-preview.html", "md-structure-preview.json", "final-structure-1.pdb"]
+      }
     }
   ],
   "deliverables": [
+    {"name": "Interactive final structure", "role": "report", "source": {"step": "visualize", "file": "md-structure-preview.html"}},
+    {"name": "Final structure coordinates", "role": "support", "source": {"step": "visualize", "file": "final-structure-1.pdb"}},
+    {"name": "Preview provenance", "role": "provenance", "source": {"step": "visualize", "file": "md-structure-preview.json"}},
     {"name": "Native timing report", "role": "report", "source": {"step": "timings", "file": "native-timing-report.md"}},
     {"name": "Native timing rows", "role": "metrics", "source": {"step": "timings", "file": "native-timings.csv"}},
     {"name": "Native timing provenance", "role": "provenance", "source": {"step": "timings", "file": "native-timing-report.json"}},
@@ -54,7 +73,11 @@ a report. Correct an unadmitted draft; retain an accepted study's identity.
 
 Study admission is not completion. The durable worker finishes native execution,
 downloads/hash-checks the original result and logs, then publishes the report in
-Runs → Whole studies even if the chat disconnects. Read the saved study's terminal
+the live chat card and Runs → Whole studies even if the chat disconnects.
+The final-coordinate preview is interactive 3D, not a trajectory animation or
+proof of equilibration. Larger structures are explicitly protein-only in the
+preview; full original coordinates and trajectories remain in the native files.
+Read the saved study's terminal
 state and verified downloads before claiming the benchmark is finished. The
 native timing JSON must have `complete: true`, the actual requested repeat count
 and nonempty timing rows. Source logs and commands remain linked and unmodified.

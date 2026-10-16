@@ -46,6 +46,31 @@ test('actual tracking consumes top-level progress and saves only customer status
   assert.doesNotMatch(JSON.stringify(result), /private-|gpu_count|native_job_id/);
 });
 
+test('native summaries with operation_id preserve identity, model, units and terminal state', async () => {
+  const service = await setup;
+  const id = crypto.randomUUID();
+  global.fetch = async () => new Response(JSON.stringify({ id, operation_id: id, model_id: 'gromacs',
+    status: 'SUCCEEDED', operation: { operation_id: id, status: 'succeeded' }, progress }));
+  const result = await service.waitOperation('qa-native-envelope', 'qa-only-fixture', id, 0);
+  assert.equal(result.id, id);
+  assert.equal(result.operation.operation_id, id);
+  assert.equal(result.model_id, 'gromacs');
+  assert.equal(result.terminal, true);
+  assert.equal(result.operation.progress.steps[0].rate, 210);
+  assert.doesNotMatch(JSON.stringify(result), /private-|gpu_count|native_job_id/);
+});
+
+test('conflicting nested or outer IDs remain errors, not a fallback to another run', async () => {
+  const service = await setup;
+  const id = crypto.randomUUID(), other = crypto.randomUUID();
+  for (const body of [{ id, operation: { operation_id: other, status: 'succeeded' } },
+    { id: other, operation: { operation_id: id, status: 'succeeded' } },
+    { id, operation_id: other, status: 'succeeded' }, { status: 'succeeded' }]) {
+    global.fetch = async () => new Response(JSON.stringify(body));
+    await assert.rejects(service.track('qa-mismatched-envelope', 'qa-only-fixture', id), /mismatched operation/);
+  }
+});
+
 test('older cached terminal rows are projected when backend history is unavailable', async () => {
   const service = await setup;
   const id = crypto.randomUUID();
