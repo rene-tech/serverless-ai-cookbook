@@ -138,7 +138,17 @@ def preflight_parameters(tool_schema: dict, parameters: object, source: bytes | 
     and measured bytes. It is never persisted or submitted; the final request is
     still validated against the real finalized upload reference.
     """
-    schema = tool_schema.get('properties', {}).get('parameters')
+    request_schema = tool_schema.get('properties', {}).get('request')
+    visited = set()
+    while isinstance(request_schema, dict) and '$ref' in request_schema:
+        reference = request_schema['$ref']
+        if not isinstance(reference, str) or not reference.startswith('#/') or reference in visited:
+            raise RuntimeError('Scientific request schema has an unsupported reference; no upload was submitted.')
+        visited.add(reference)
+        request_schema = tool_schema
+        for component in reference[2:].split('/'):
+            request_schema = request_schema.get(component.replace('~1', '/').replace('~0', '~'), {})
+    schema = request_schema.get('properties', {}).get('parameters') if isinstance(request_schema, dict) else None
     if not isinstance(schema, (dict, bool)):
         raise RuntimeError('Scientific submission tool has no parameters schema; no upload was submitted.')
     measured = {'artifact_id': '00000000-0000-4000-8000-000000000001',
@@ -236,7 +246,7 @@ class OperationReadHTTP:
         method, params = request.get('method'), request.get('params', {})
         if method not in {'initialize', 'server/discover', 'tools/list'} and not (
                 method == 'tools/call' and isinstance(params, dict)
-                and params.get('name') in {'get_scientific_status', 'get_scientific_result'}
+                and params.get('name') in {'get_operation', 'get_operation_result'}
                 and params.get('arguments', {}).get('operation_id') == self.operation_id):
             return
         self.failure = {'http_status': response.status_code}
@@ -320,11 +330,11 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                 async with Client(streamable_http_client(endpoint, http_client=mcp_http),
                                   read_timeout_seconds=timeout) as connection:
                     while True:
-                        phase, observation.failure = 'get_scientific_status', None
+                        phase, observation.failure = 'get_operation', None
                         status = await call(connection, phase, {'operation_id': operation_id})
                         phase, observation.failure = None, None
                         save(args.output / 'status.json', status)
-                        operation = status.get('operation', status)
+                        operation = status['operation']
                         receipt['state'] = operation['status']
                         save(receipt_path, receipt)
                         if receipt['state'] != announced_state:
@@ -335,7 +345,7 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                                               'observation': 'state_changed'}), flush=True)
                             announced_state = receipt['state']
                         if recovery and (operation['status'] != 'succeeded'
-                                or not status.get('batch', {}).get('result_published')):
+                                or not operation.get('result_available')):
                             raise RuntimeError('Existing operation is not a published successful result: '
                                                + operation['status'] + '. No model work was submitted.')
                         if operation['status'] in TERMINAL:
@@ -343,8 +353,8 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                             raise RuntimeError('Scientific batch ended in ' + operation['status']
                                                + '; operation ' + operation_id
                                                + '. Retained status/diagnostics: ' + str(args.output))
-                        if status.get('batch', {}).get('result_published'):
-                            phase = 'get_scientific_result'
+                        if operation.get('result_available'):
+                            phase = 'get_operation_result'
                             result = await call(connection, phase, {'operation_id': operation_id})
                             phase, observation.failure = None, None
                             if result.get('operation_id') != operation_id:
@@ -406,11 +416,11 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
 
 
 def scientific_contract(discovery: dict) -> dict:
-    contracts = discovery.get('contracts', [discovery])
+    contracts = discovery['contracts']
     contract = next((item for item in contracts if item.get('protocol') == 'scientific-batch-v1'), {})
     # The real get_model_schema response publishes shared artifact policies at
     # its top level, alongside contracts; do not discard them while selecting a
-    # transport. Keep older nested responses compatible without mutating either.
+    # transport. Read the current published fields without mutating discovery.
     published = {field: discovery[field] for field in
                  ('artifact_manifest_schema', 'input_artifact_contract') if field in discovery}
     return {**contract, **published} if published else contract
@@ -420,7 +430,7 @@ def selected_source_contract(contract: dict, parameters: dict, args):
     """Select the already-published input role; no filename or model-name rules."""
     policy = contract.get('input_artifact_contract')
     if not policy:
-        return None, None  # Older servers still validate the final request.
+        return None, None  # Artifact-role policy is optional for current Apps.
     context = {'operation': getattr(args, 'operation', None), 'parameters': parameters}
     if 'entry' in policy:
         source, selection = policy['entry'], 'the published input entry'
@@ -441,7 +451,7 @@ def resolve_source_compression(contract: dict, parameters: dict, args, source: b
     """Resolve omitted transport metadata only; never edit source/scientific bytes.
 
     Explicit choices are left to the existing strict preflight. Plain inputs keep
-    the historical none behavior. Compressed inputs require a uniquely allowed
+    the uncompressed encoding. Compressed inputs require a uniquely allowed
     published encoding and its actual magic bytes, never a filename inference.
     """
     explicit = getattr(args, 'compression', None)
@@ -459,7 +469,7 @@ def resolve_source_compression(contract: dict, parameters: dict, args, source: b
             'actual source signature. No upload or inference was submitted.')
     resolved = argparse.Namespace(**{**vars(args), 'compression': detected})
     return resolved, {'selection': 'published-single-encoding-and-source-signature' if detected != 'none'
-                      else 'legacy-uncompressed-default', 'compression': detected,
+                      else 'uncompressed-source-signature', 'compression': detected,
                       'source_signature': detected}
 
 
@@ -528,10 +538,13 @@ async def upload(http, model: str, data: bytes | FileSource, media_type: str, co
             check(await storage.put(handle["url"],
                 content=data.chunks() if isinstance(data, FileSource) else data,
                 headers={**handle.get("headers", {}), "content-length": str(len(data))}))
-    result = check(await http.post(
+    finalized = check(await http.post(
         "/v1/scientific-artifacts/uploads/" + quote(begun["upload_id"], safe="") + ":finalize",
-        json={"operation_id": begun["operation_id"]},
+        json={},
     )).json()
+    if finalized.get('state') != 'finalized' or not isinstance(finalized.get('artifact'), dict):
+        raise RuntimeError('Upload did not return a finalized artifact.')
+    result = finalized['artifact']
     for key, value in measured.items():
         if key != "model_id" and result.get(key) != value:
             raise RuntimeError("Finalized artifact metadata mismatch.")
@@ -642,14 +655,14 @@ async def collect_manifest(http, reference: dict, output: Path, *, diagnostics=F
 
 async def retain_terminal_diagnostics(client, status: dict, output: Path, receipt: dict, *, http=None) -> None:
     """Keep a failed run's published explanation without treating it as success."""
-    operation = status.get('operation', status)
+    operation = status['operation']
     if operation.get('status') not in TERMINAL:
         raise ValueError('Terminal diagnostics require an unsuccessful terminal operation.')
     receipt['state'] = operation['status']
-    receipt['failure_code'] = operation.get('error_code') or status.get('batch', {}).get('failure_code')
-    if status.get('batch', {}).get('result_published') or operation.get('result_available'):
+    receipt['failure_code'] = operation.get('error_code')
+    if operation.get('result_available'):
         try:
-            result = await call(client, 'get_scientific_result', {'operation_id': receipt['operation_id']})
+            result = await call(client, 'get_operation_result', {'operation_id': receipt['operation_id']})
             save(output / 'failure-result.json', result)
             receipt['failure_result'] = 'failure-result.json'
             if http is not None and result.get('output_manifest'):
@@ -852,11 +865,11 @@ async def _run(args) -> dict:
                             "application/vnd.fs2.scientific-manifest+json", "none",
                             args.idempotency_key + "-manifest")
                         save(receipt_path, receipt)
-                    request = {"schema": "fs2-serve.nebius.ai/scientific-run-request/v1",
+                    request = {"request": {"schema": "fs2-serve.nebius.ai/scientific-run-request/v1",
                                "operation": args.operation, "service_class": args.service_class,
                                "input_manifest": receipt["manifest_artifact"], "parameters": parameters,
                                "client_context": {"display_name": args.display_name,
-                                                  "correlation_id": args.idempotency_key},
+                                                  "correlation_id": args.idempotency_key}},
                                "idempotency_key": args.idempotency_key}
                     Draft202012Validator(tool.input_schema).validate(request)
                     save(args.output / "request.json", request)

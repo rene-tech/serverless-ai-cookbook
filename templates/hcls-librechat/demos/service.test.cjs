@@ -298,8 +298,12 @@ test('parallel operation tracking cannot overwrite another run or mix changed ke
   const service = await setup;
   const ids = Array.from({ length: 30 }, () => 'op-' + crypto.randomBytes(8).toString('hex'));
   const originalFetch = global.fetch;
-  global.fetch = async (url) => {
-    if (String(url).includes('/v1/operations?')) return new Response('{}', { status: 404 });
+  global.fetch = async (url, options) => {
+    if (String(url).includes('/v1/operations?')) return new Response(JSON.stringify({
+      data: options.headers.Authorization === 'Bearer one-key'
+        ? ids.map((id) => ({ id, status: 'succeeded', model_id: 'test-app' })) : [],
+      next_cursor: null,
+    }));
     await new Promise((resolve) => setTimeout(resolve, 5));
     const id = String(url).split('/').pop();
     return new Response(JSON.stringify({ id, status: 'succeeded', model_id: 'test-app',
@@ -309,7 +313,7 @@ test('parallel operation tracking cannot overwrite another run or mix changed ke
     await Promise.all(ids.map((id) => service.track('parallel-scientist', 'one-key', id)));
     const records = await service.runs('parallel-scientist', 'one-key');
     assert.deepEqual(new Set(records.data.map((row) => row.id)), new Set(ids));
-    assert.equal(records.history_available, false);
+    assert.equal(records.history_available, true);
     assert.deepEqual((await service.runs('parallel-scientist', 'another-key')).data, []);
   } finally { global.fetch = originalFetch; }
 });

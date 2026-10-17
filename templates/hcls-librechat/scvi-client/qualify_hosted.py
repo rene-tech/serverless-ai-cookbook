@@ -164,7 +164,7 @@ def main(*, require_qa=True):
             response.raise_for_status()
             tools = rpc("tools/list", {})
             selected = [item for item in tools["tools"] if item["name"] == submit_tool]
-            if len(selected) != 1 or "parameters" not in selected[0]["inputSchema"]["properties"]:
+            if len(selected) != 1 or "request" not in selected[0]["inputSchema"]["properties"]:
                 raise ValueError(f"Typed {submit_tool} tool is absent")
             save(args.output / "mcp-tool.json", selected[0])
         if args.discover_only:
@@ -178,7 +178,7 @@ def main(*, require_qa=True):
             key = args.idempotency_key or prefix + "-hosted-20261006-" + args.cohort
             def submit():
                 if args.protocol == "mcp":
-                    return tool(submit_tool, {**body, "idempotency_key": key}, admission=True)
+                    return tool(submit_tool, {"request": body, "idempotency_key": key}, admission=True)
                 response = request_with_retry(client, "POST", f"/v1/models/{args.model_id}:submit",
                                retryable=True, json=body, headers={"Idempotency-Key": key})
                 if response.status_code == 429:
@@ -199,39 +199,29 @@ def main(*, require_qa=True):
         if not operation_id:
             raise ValueError("Supply an existing operation or a finalized request")
         if args.cancel:
-            cancelled = (tool("cancel_scientific_run", {"operation_id": operation_id}) if args.protocol == "mcp"
+            cancelled = (tool("cancel_operation", {"operation_id": operation_id}) if args.protocol == "mcp"
                          else checked(request_with_retry(client, "POST", f"/v1/operations/{operation_id}:cancel",
                                       retryable=True)))
             save(args.output / "cancellation.json", cancelled)
         deadline = time.monotonic() + args.timeout
         previous = None
         while time.monotonic() < deadline:
-            status = (tool("get_scientific_status", {"operation_id": operation_id}) if args.protocol == "mcp"
+            status = (tool("get_operation", {"operation_id": operation_id}) if args.protocol == "mcp"
                       else checked(request_with_retry(client, "GET", f"/v1/operations/{operation_id}")))
             save(args.output / "status.json", status)
-            state = status["batch"]["status"] if "batch" in status else status["status"]
+            state = status["operation"]["status"]
             if state != previous:
                 print(json.dumps({"operation_id": operation_id, "protocol": args.protocol, "status": state}), flush=True)
                 previous = state
-            published = status["batch"]["result_published"] if "batch" in status else status["result_available"]
+            published = status["operation"]["result_available"]
             if state in {"succeeded", "failed", "cancelled"} and published:
-                if args.protocol == "mcp":
-                    generic = tool("get_operation", {"operation_id": operation_id})
-                    save(args.output / "generic-operation.json", generic)
-                    if not generic["result_available"]:
-                        raise ValueError("Generic MCP polling incorrectly hides the published batch result")
                 break
             time.sleep(10)
         else:
             raise TimeoutError("Operation retained; do not duplicate work")
-        result = (tool("get_scientific_result", {"operation_id": operation_id}) if args.protocol == "mcp"
+        result = (tool("get_operation_result", {"operation_id": operation_id}) if args.protocol == "mcp"
                   else checked(request_with_retry(client, "GET", f"/v1/operations/{operation_id}/result")))
         save(args.output / "result.json", result)
-        if args.protocol == "mcp":
-            generic_result = tool("get_operation_result", {"operation_id": operation_id})
-            save(args.output / "generic-result.json", generic_result)
-            if generic_result != result:
-                raise ValueError("Generic and scientific MCP result tools disagree")
 
         def download(pointer):
             destination = args.output / "artifacts" / pointer["artifact_id"]

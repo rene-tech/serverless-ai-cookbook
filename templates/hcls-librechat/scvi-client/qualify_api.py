@@ -69,16 +69,34 @@ def post_with_admission_wait(client, endpoint, *, wait_seconds, **kwargs):
         time.sleep(min(delay, remaining))
 
 
+def finalized_artifact(client, upload_id, digest, size):
+    value = checked(client.post(
+        f"/v1/scientific-artifacts/uploads/{upload_id}:finalize", json={}
+    ))
+    if value.get("state") != "finalized" or not isinstance(value.get("artifact"), dict):
+        raise ValueError("Upload did not return a finalized artifact")
+    ref = value["artifact"]
+    if (ref.get("sha256"), ref.get("size_bytes")) != (digest, size):
+        raise ValueError("The finalized upload does not match this input")
+    return ref
+
+
 def multipart_file(client, objects, reserved, path, size, receipt):
     endpoint = reserved.get("multipart_path")
     if not endpoint:
         raise RuntimeError(
             "The deployed artifact API does not advertise multipart upload"
         )
-    common = {"operation_id": reserved["operation_id"]}
-    session = checked(client.post(endpoint, json={**common, "action": "start"}))
+    response = client.post(endpoint, json={"action": "start"})
+    if response.status_code == 409 and response.json().get("detail", {}).get("code") == "UPLOAD_CONTENT_PRESENT":
+        # The immutable byte object was transferred before this invocation.
+        # Its digest is still verified by finalization, never by a job lookup.
+        return
+    session = checked(response)
     save(receipt, session)
-    common["multipart_upload_id"] = session["multipart_upload_id"]
+    common = {"multipart_upload_id": session["multipart_upload_id"]}
+    if session["status"] in {"uploaded", "finalized"}:
+        return
     present = checked(client.post(endpoint, json={**common, "action": "list"}))
     part_size = session["part_size_bytes"]
     total = (size + part_size - 1) // part_size
@@ -229,35 +247,15 @@ def main(*, require_qa=True):
                 return value
             reservation_receipt = args.output / (suffix + "-upload.json")
             completion_receipt = args.output / (suffix + "-transfer-completed.json")
-            if reservation_receipt.exists():
+            if reservation_receipt.exists() and completion_receipt.exists():
                 previous = json.loads(reservation_receipt.read_text())
-                status = checked(
-                    client.get(f"/v1/operations/{previous['operation_id']}")
-                )
                 # A lost finalize response must not restart a completed
                 # multipart upload or attempt to overwrite its write-once key.
-                if completion_receipt.exists() or status["status"] == "succeeded":
-                    ref = checked(
-                        client.post(
-                            f"/v1/scientific-artifacts/uploads/{previous['upload_id']}:finalize",
-                            json={"operation_id": previous["operation_id"]},
-                        )
-                    )
-                    if (ref["sha256"], ref["size_bytes"]) != (digest, size):
-                        raise ValueError("Input changed; use a new run directory")
-                    save(receipt, ref)
-                    print(
-                        json.dumps(
-                            {
-                                "uploaded": suffix,
-                                "size_bytes": size,
-                                "verified": True,
-                                "resumed_finalization": True,
-                            }
-                        ),
-                        flush=True,
-                    )
-                    return ref
+                ref = finalized_artifact(client, previous["upload_id"], digest, size)
+                save(receipt, ref)
+                print(json.dumps({"uploaded": suffix, "size_bytes": size, "verified": True,
+                                  "resumed_finalization": True}), flush=True)
+                return ref
             reserved = post_with_admission_wait(
                 client,
                 "/v1/scientific-artifacts/uploads",
@@ -273,38 +271,14 @@ def main(*, require_qa=True):
             )
             save(
                 args.output / (suffix + "-upload.json"),
-                {k: reserved[k] for k in ("operation_id", "upload_id")},
+                {"upload_id": reserved["upload_id"]},
             )
-            status = checked(client.get(f"/v1/operations/{reserved['operation_id']}"))
-            if status["status"] == "succeeded":
-                ref = checked(
-                    client.post(
-                        f"/v1/scientific-artifacts/uploads/{reserved['upload_id']}:finalize",
-                        json={"operation_id": reserved["operation_id"]},
-                    )
-                )
-                if (ref["sha256"], ref["size_bytes"]) != (digest, size):
-                    raise ValueError("The reused upload does not match this input")
-                save(receipt, ref)
-                print(
-                    json.dumps(
-                        {
-                            "uploaded": suffix,
-                            "size_bytes": size,
-                            "verified": True,
-                            "reused_verified_upload": True,
-                        }
-                    ),
-                    flush=True,
-                )
-                return ref
-            headers = {**reserved["handle"]["headers"], "content-length": str(size)}
             started = time.monotonic()
             # Separate client: do not send the platform bearer to object storage.
             with httpx.Client(
                 timeout=httpx.Timeout(900, connect=15), trust_env=False
             ) as objects:
-                if size > 100 * 1024**2:
+                if size > 100 * 1024**2 or "handle" not in reserved:
                     multipart_file(
                         client,
                         objects,
@@ -314,20 +288,15 @@ def main(*, require_qa=True):
                         args.output / (suffix + "-multipart.json"),
                     )
                 else:
+                    headers = {**reserved["handle"]["headers"], "content-length": str(size)}
                     with path.open("rb") as handle:
                         response = objects.put(
                             reserved["handle"]["url"], content=handle, headers=headers
                         )
-                    if response.is_error:
+                    if response.is_error and response.status_code not in {409, 412}:
                         raise RuntimeError(f"Object upload HTTP {response.status_code}")
             save(completion_receipt, {"sha256": digest, "size_bytes": size})
-            ref = checked(
-                client.post(
-                    f"/v1/scientific-artifacts/uploads/{reserved['upload_id']}:finalize",
-                    json={"operation_id": reserved["operation_id"]},
-                )
-            )
-            assert (ref["sha256"], ref["size_bytes"]) == (digest, size)
+            ref = finalized_artifact(client, reserved["upload_id"], digest, size)
             save(receipt, ref)
             save(
                 args.output / (suffix + "-transfer.json"),

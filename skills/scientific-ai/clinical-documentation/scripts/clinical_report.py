@@ -140,8 +140,15 @@ class Platform:
                 # An object-storage URL must never receive the platform bearer.
                 with httpx.Client(timeout=300, trust_env=False, follow_redirects=False) as storage:
                     check(storage.put(upload["handle"]["url"], content=handle, headers=upload["handle"]["headers"]))
-        artifact = check(self.client.post("/v1/scientific-artifacts/uploads/" + quote(upload["upload_id"], safe="")
-                                          + ":finalize", json={"operation_id": upload["operation_id"]})).json()
+        finalized = check(self.client.post("/v1/scientific-artifacts/uploads/" + quote(upload["upload_id"], safe="")
+                                          + ":finalize", json={})).json()
+        if finalized.get('state') != 'finalized' or not isinstance(finalized.get('artifact'), dict):
+            raise ValueError('Upload did not return a finalized artifact.')
+        artifact = finalized['artifact']
+        if any(artifact.get(field) != expected for field, expected in {
+                'sha256': content_hash, 'size_bytes': path.stat().st_size,
+                'media_type': media_type, 'compression': 'none'}.items()):
+            raise ValueError('Finalized audio artifact does not match the original bytes.')
         save(target, artifact)
         return artifact
 
@@ -165,7 +172,7 @@ class Platform:
                 save(folder / "response.json", result)
                 save(state_path, {**state, "status": "succeeded", "elapsed_seconds": time.monotonic() - started})
                 return result
-            state["operation_id"] = value.get("id") or value["operation_id"]
+            state["operation_id"] = value["operation_id"]
             state["submitted_at"] = datetime.now(UTC).isoformat()
             save(state_path, state)
         endpoint = "/v1/operations/" + quote(state["operation_id"], safe="")

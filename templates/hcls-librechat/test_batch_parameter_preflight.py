@@ -15,11 +15,13 @@ batch = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(batch)
 
 PARAMETERS = {'checkpoint': 'protenix-v2', 'msa_mode': 'none', 'sample_count': 1, 'model_seeds': [7]}
-SCHEMA = {'type': 'object', 'properties': {'parameters': {
+MODEL_SCHEMA = {
     'type': 'object', 'additionalProperties': False, 'required': list(PARAMETERS),
     'properties': {'checkpoint': {'const': 'protenix-v2'}, 'msa_mode': {'enum': ['none', 'precomputed']},
                    'sample_count': {'type': 'integer', 'minimum': 1, 'maximum': 5},
-                   'model_seeds': {'type': 'array', 'minItems': 1, 'items': {'type': 'integer'}}}}}}
+                   'model_seeds': {'type': 'array', 'minItems': 1, 'items': {'type': 'integer'}}}}
+SCHEMA = {'type': 'object', 'properties': {'request': {'type': 'object',
+    'properties': {'parameters': MODEL_SCHEMA}}}}
 ARGS = argparse.Namespace(media_type='application/json', compression='none')
 
 
@@ -45,18 +47,20 @@ def test_invalid_types_fields_and_bounds_are_rejected(value):
 
 
 def test_root_schema_references_remain_resolvable():
-    schema = {'$defs': {'model': SCHEMA['properties']['parameters']},
-              'properties': {'parameters': {'$ref': '#/$defs/model'}}}
+    schema = {'$defs': {'model': MODEL_SCHEMA,
+                       'request': {'properties': {'parameters': {'$ref': '#/$defs/model'}}}},
+              'properties': {'request': {'$ref': '#/$defs/request'}}}
     batch.preflight_parameters(schema, PARAMETERS, b'{}', ARGS)
     with pytest.raises(batch.ParameterPreflightError):
         batch.preflight_parameters(schema, {**PARAMETERS, 'sample_count': 0}, b'{}', ARGS)
 
 
 def test_uploaded_bundle_uses_only_validation_reference_and_does_not_edit_input():
-    schema = {'properties': {'parameters': {'type': 'object', 'required': ['source'], 'properties': {
+    parameters_schema = {'type': 'object', 'required': ['source'], 'properties': {
         'source': {'type': 'object', 'required': ['kind', 'artifact_id', 'sha256', 'size_bytes'],
                    'properties': {'kind': {'const': 'uploaded-bundle'}, 'artifact_id': {'type': 'string'},
-                                  'size_bytes': {'const': 2}, 'sha256': {'const': batch.digest(b'{}')}}}}}}}
+                                  'size_bytes': {'const': 2}, 'sha256': {'const': batch.digest(b'{}')}}}}}
+    schema = {'properties': {'request': {'properties': {'parameters': parameters_schema}}}}
     original = {'source': {'kind': 'uploaded-bundle'}}
     batch.preflight_parameters(schema, original, b'{}', ARGS)
     assert original == {'source': {'kind': 'uploaded-bundle'}}

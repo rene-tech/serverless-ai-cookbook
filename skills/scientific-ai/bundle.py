@@ -58,8 +58,10 @@ def verify(root=ROOT):
 
 
 def check_catalog(catalog, root=ROOT):
-    """A visible catalog can be a grant-limited subset, but not contain unmapped Apps."""
-    visible = {row.get('id') or row.get('model_id') for row in catalog['models']}
+    """Validate the public website's catalog projection, not the authenticated API."""
+    if not isinstance(catalog.get('models'), list):
+        raise ValueError('Expected the current public website models list')
+    visible = {row['id'] for row in catalog['models']}
     if not visible or None in visible:
         raise ValueError('Catalog is empty or lacks model identifiers')
     covered = {model for models in manifest(root)['skills'].values() for model in models}

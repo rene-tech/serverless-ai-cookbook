@@ -203,7 +203,7 @@ if __name__ == '__main__':
     if not command:
         parser.error('a runtime command is required')
     if os.environ.get('SCIENTIFIC_REQUIRE_PERSISTENT_STATE', 'false').lower() != 'true':
-        # Explicit backwards compatibility. Legacy instances are not advertised
-        # as restart/replacement-safe and must be exported before migration.
+        # Explicit self-service ephemeral mode. Without durable state configured,
+        # this deployment is not restart/replacement-safe; export before replacing.
         os.execvpe(command[0], command, os.environ)
     raise SystemExit(supervise(args.root, command))

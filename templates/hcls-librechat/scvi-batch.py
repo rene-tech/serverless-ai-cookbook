@@ -103,9 +103,10 @@ def run(args, runner=subprocess.run):
     admission = load(output / 'run/admission.json')
     operation_id = admission['operation']['id'] if admission else operation_id
     status = load(output / 'run/status.json') or {}
-    state = status.get('batch', {}).get('status', status.get('status'))
+    operation = status.get('operation', {})
+    state = operation.get('status')
     if code:
-        published = status.get('batch', {}).get('result_published', status.get('result_available', False))
+        published = operation.get('result_available', False)
         pending = bool(operation_id) and (
             state in ('accepted', 'queued', 'running')
             or (state in ('succeeded', 'failed', 'cancelled') and not published)

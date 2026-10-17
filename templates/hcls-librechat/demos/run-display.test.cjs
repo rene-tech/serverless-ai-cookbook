@@ -8,17 +8,10 @@ const source = ts.transpileModule(fs.readFileSync(`${__dirname}/run-display.ts`,
 }).outputText;
 const exported = {};
 vm.runInNewContext(source, { exports: exported });
-test('pending uploads never masquerade as GPU execution or capacity waiting', () => {
-  const display = exported.runDisplay({ protocol: 'scientific-artifact-upload-v1', status: 'queued' });
-  assert.equal(display.status, 'Upload pending');
-  assert.equal(display.showComputeTiming, false);
-  assert.equal(display.showResult, false);
-  assert.match(display.description, /not inference/);
-  assert.equal(display.terminal, false);
-});
-test('finalized uploads and failed uploads keep distinct terminal labels', () => {
-  assert.equal(exported.runDisplay({ protocol: 'scientific-artifact-upload-v1', status: 'succeeded' }).status, 'Upload finalized');
-  assert.equal(exported.runDisplay({ operation: { protocol: 'scientific-artifact-upload-v1' }, status: 'failed' }).status, 'Upload failed');
+test('artifact reservations are not displayed or cancelled as model jobs', () => {
+  const ui = fs.readFileSync(`${__dirname}/Demos.tsx`, 'utf8');
+  assert.doesNotMatch(ui, /Cancel upload|display\.upload/);
+  assert.doesNotMatch(source, /scientific-artifact-upload-v1/);
 });
 test('ordinary inference preserves status, preemption and result availability', () => {
   assert.equal(exported.runDisplay({ protocol: 'scientific-batch-v1', status: 'succeeded' }).showResult, true);
@@ -41,7 +34,7 @@ test('batch orchestration does not masquerade as admitted GPU execution', () => 
     }
   }
 });
-test('legacy cold_start_seconds label includes queue instead of claiming activation time', () => {
+test('accepted-to-ready includes queue instead of claiming activation time', () => {
   const display = exported.runDisplay({ protocol: 'openai-chat', status: 'succeeded' });
   assert.equal(display.showComputeTiming, true);
   assert.equal(display.readyTimingLabel, 'Accepted → ready (includes queue)');

@@ -3,10 +3,11 @@
   "commit": "b2aa0c2b24e3c3e9d258f9980468d4d1945a38ea",
   "path": "k8s-inference/models/visual-science/scvi-scanvi",
   "license": "Apache-2.0",
-  "note": "Unmodified canonical clients. Fix transport upstream, then refresh these pinned files; do not develop a second implementation here.",
+  "note": "Retained Apache-2.0 source provenance. The API and hosted clients are maintained here for the current Scientific AI contract: upload_id-only reservations, finalized artifact envelopes, request-wrapped scientific tools and generic operation controls. Do not copy fixes into the public Solutions Library without publication authorization.",
+  "contract_revision": "scientific-ai-current-20261017",
   "files": {
-    "qualify_api.py": "5fdda1d5ea352587c7a72504b986269c4ba0241c28d8e7f236b284bdc43ec691",
-    "qualify_hosted.py": "3f6df4e636766af3d1bdb196df522461ea8b61241a2c4e8c2369a604707bc3a6",
+    "qualify_api.py": "85735b09dcc24429b95f7297987eab3712ab9e3f0b843238d3c1ec873e72cc47",
+    "qualify_hosted.py": "ebaa481c26f648cac766b96ce92e4cb479bcfa5dd4a990dc87748b8e5943b51c",
     "qualify_outputs.py": "5d8908ca4672ade5df32af57551a72476c836920488aa4c40f9795fcbbbfcf80"
   }
 }

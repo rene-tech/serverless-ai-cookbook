@@ -42,7 +42,7 @@ test('actual tracking consumes top-level progress and saves only customer status
     progress, batch: { status: 'running', result_published: false, native_job_id: 'private-native-job' } }));
   const result = await service.track('qa-user', 'qa-only-fixture', id);
   assert.equal(result.operation.progress.steps[0].rate, 210);
-  assert.deepEqual(result.batch, { status: 'running', result_published: false });
+  assert.equal(result.batch, undefined);
   assert.doesNotMatch(JSON.stringify(result), /private-|gpu_count|native_job_id/);
 });
 
@@ -71,7 +71,7 @@ test('conflicting nested or outer IDs remain errors, not a fallback to another r
   }
 });
 
-test('older cached terminal rows are projected when backend history is unavailable', async () => {
+test('missing native history fails explicitly without displaying obsolete cached rows', async () => {
   const service = await setup;
   const id = ('op-' + crypto.randomBytes(8).toString('hex'));
   const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
@@ -80,10 +80,7 @@ test('older cached terminal rows are projected when backend history is unavailab
   await fs.writeFile(path.join(folder, id + '.json'), JSON.stringify({ id, status: 'succeeded',
     updated_at: new Date().toISOString(), operation: { ...operation(id), status: 'succeeded' } }));
   global.fetch = async () => new Response('{}', { status: 404 });
-  const result = await service.runs('old-client', 'fixture-key');
-  assert.equal(result.data.length, 1);
-  assert.equal(result.data[0].operation.progress.steps[0].completed_units, 2.5);
-  assert.doesNotMatch(JSON.stringify(result), /private-|gpu_count|native_job_id/);
+  await assert.rejects(service.runs('old-client', 'fixture-key'), error => error.status === 404);
 });
 
 test('MCP status help names measured units and checkpoint distinction, not fabricated throughput', () => {

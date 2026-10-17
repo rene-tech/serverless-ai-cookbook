@@ -181,7 +181,7 @@ def main():
         next_log_capture = 0
         while time.monotonic() < until:
             index += 1
-            status = mcp.call("get_scientific_status", {"operation_id": receipt["operation_id"]})
+            status = mcp.call("get_operation", {"operation_id": receipt["operation_id"]})
             save(args.output / "observations" / f"{index:05d}-status.json", status)
             operation = status["operation"]
             if operation["id"] != receipt["operation_id"]:
@@ -240,7 +240,7 @@ def main():
                     detail.raise_for_status()
                     save(args.output / "operator-accounting.json", detail.json())
                 if operation["status"] == "succeeded" and status["batch"]["result_published"]:
-                    envelope = mcp.call("get_scientific_result", {"operation_id": receipt["operation_id"]})
+                    envelope = mcp.call("get_operation_result", {"operation_id": receipt["operation_id"]})
                     save(args.output / "result-envelope.json", envelope)
                     outputs = resolve(mcp.client, envelope, args.output, artifact)
                     save(args.output / "verified-artifacts.json", outputs)

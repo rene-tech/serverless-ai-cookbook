@@ -172,15 +172,13 @@ def test_typed_inventory_preserves_measured_files_without_ending_request(monkeyp
         return {'schema': 'scientific-verified-delivery/v1', 'report_markdown': 'Measured fixture',
                 'status': 'completed', 'result_count': 1, 'inference_submitted': False}
     monkeypatch.setattr(execution, 'deliver_scientific_results', measured)
-    final = execution.inspect_mmcif_inventory({'path': 'exact.cif', 'finish_request': True})
-    intermediate = execution.inspect_mmcif_inventory({'path': 'exact.cif', 'finish_request': False})
     current = execution.inspect_mmcif_inventory({'path': 'exact.cif'})
-    assert final['schema'] == 'scientific-mmcif-inventory/v1'
-    assert intermediate['schema'] == 'scientific-mmcif-inventory/v1'
     assert current['schema'] == 'scientific-mmcif-inventory/v1'
     assert 'Continue any requested exports' in current['guidance']
-    assert seen == [{'results': [{'kind': 'mmcif', 'path': 'exact.cif'}]}] * 3
+    assert seen == [{'results': [{'kind': 'mmcif', 'path': 'exact.cif'}]}]
     for invalid in ({}, {'path': ''}, {'path': 'exact.cif', 'finish_request': 'true'},
+                    {'path': 'exact.cif', 'finish_request': True},
+                    {'path': 'exact.cif', 'finish_request': False},
                     {'path': 'exact.cif', 'finish_request': True, 'report': 'invented'}):
         with pytest.raises(ValueError, match='exact input path'):
             execution.inspect_mmcif_inventory(invalid)

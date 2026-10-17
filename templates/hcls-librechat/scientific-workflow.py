@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""Resume a durable sequential workflow using the existing native/batch clients.
+"""Current whole-study CLI and internal native/batch phase transport.
 
-The JSON plan has schema scientific-workflow/v1 and steps with unique id plus
-the client's named arguments (underscores, not CLI dashes). Batch steps use the
-existing batch arguments. Native steps specify kind=native plus model, input,
-output and idempotency_key. Each step uses
-an immutable idempotency_key and output directory. Observation timeout is NOT
-completion: later steps start only after the previous receipt is verified.
-No new inference is attempted after ambiguous admission or an application error.
+The public plan is scientific-workflow/v2. The durable study supervisor passes
+validated transport steps internally; there is no alternate public plan format.
+Each step retains its immutable idempotency key and output directory. An
+observation timeout never signals completion or permits duplicate inference.
 """
 import argparse
 import asyncio
@@ -72,8 +69,8 @@ def transport_disconnect(error):
 
 
 def prepare(plan):
-    if plan.get('schema') != 'scientific-workflow/v1' or not plan.get('steps'):
-        raise ValueError('Expected scientific-workflow/v1 with nonempty steps.')
+    if not isinstance(plan, dict) or set(plan) != {'steps'} or not plan['steps']:
+        raise ValueError('Internal transport requires nonempty validated steps.')
     ids, outputs = set(), set()
     for step in plan['steps']:
         identifier = step.get('id', '')
@@ -165,25 +162,6 @@ async def run_native_step(arguments, execute):
         # invoke-native marks success only after saving complete result bytes.
         return {**result, 'native_state': 'succeeded', 'state': 'verified'}
     return result
-
-
-async def caller_policy():
-    """Optional self-description, never an admission reservation or internal API."""
-    origin = os.environ['SCIENTIFIC_MODELS_MCP_URL'].rstrip('/').removesuffix('/mcp')
-    async with httpx2.AsyncClient(timeout=15, trust_env=False) as http:
-        try:
-            response = await http.get(origin + '/v1/me', headers={
-                'authorization': 'Bearer ' + os.environ['SCIENTIFIC_MODELS_API_KEY']})
-            if response.status_code == 404:
-                return {'available': False, 'reason': 'server_does_not_expose_self_description'}
-            response.raise_for_status()
-            body = response.json()
-            return {'available': True, **{key: body[key] for key in
-                ('tenant_id', 'principal_id', 'max_concurrency', 'concurrency_scope',
-                 'counted_states', 'available_slots') if key in body}}
-        except (httpx2.HTTPError, ValueError):
-            return {'available': False, 'reason': 'self_description_unavailable',
-                    'note': 'Admission remains enforced by the server.'}
 
 
 async def run(plan, output, wait_seconds=1800, poll_seconds=10, run_step=None, clock=time.monotonic,
@@ -329,38 +307,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--plan', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--wait-seconds', type=float, default=1800,
-                        help='Observation duration; 0 waits until terminal. Resume the same plan/output.')
-    parser.add_argument('--poll-seconds', type=float, default=10)
     parser.add_argument('--validate-only', action='store_true',
                         help='Read and hash every referenced source/input/parameter file; no uploads or inference.')
     args = parser.parse_args()
-    if args.wait_seconds < 0 or args.poll_seconds < 1:
-        parser.error('wait-seconds must be nonnegative and poll-seconds at least 1.')
     plan = json.loads(args.plan.read_text())
-    if plan.get('schema') == 'scientific-workflow/v2':
-        import scientific_study
-        if args.validate_only:
-            print(json.dumps({'schema': plan['schema'], 'steps': len(plan['steps']),
-                              'files': list(scientific_study.validate(plan).values()), 'inference_submitted': False}))
-            return
-        result = scientific_study.submit(plan, args.output)
-        print(json.dumps(result))
-        # The dedicated supervisor owns execution. CLI acceptance is not
-        # completion and must not trigger a misleading shell && chain.
-        raise SystemExit(0 if result['state'] == 'completed' else 75)
-    preflight = validate_files(plan)
+    import scientific_study
+    scientific_study.validate(plan)
     if args.validate_only:
-        print(json.dumps(preflight))
+        print(json.dumps({'schema': plan['schema'], 'steps': len(plan['steps']),
+                          'files': list(scientific_study.validate(plan).values()), 'inference_submitted': False}))
         return
-    with receipt_lock(args.output):
-        save(args.output / 'file-preflight.json', preflight)
-        save(args.output / 'caller-policy.json', asyncio.run(caller_policy()))
-        result = asyncio.run(run(plan, args.output,
-                                 args.wait_seconds, args.poll_seconds))
-    print(json.dumps({'state': result['state'], 'completed_steps': result['completed_steps'],
-                      'resume': str(args.output)}))
-    # An incomplete observation must not allow an && chain to claim completion.
+    result = scientific_study.submit(plan, args.output)
+    print(json.dumps(result))
+    # CLI admission is not completion; the dedicated supervisor owns execution.
     raise SystemExit(0 if result['state'] == 'completed' else 75)
 
 

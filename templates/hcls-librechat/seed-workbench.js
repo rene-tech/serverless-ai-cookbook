@@ -6,9 +6,6 @@ const coreAgentInstructions = readFileSync(
   process.env.SCIENTIFIC_CORE_INSTRUCTIONS_PATH || '/app/agent-instructions.md', 'utf8',
 ).trim();
 
-const gatewayInstructions = readFileSync(
-  process.env.SCIENTIFIC_AGENT_INSTRUCTIONS_PATH || '/app/scientific-agent-instructions.md', 'utf8',
-).trim();
 const gettingStartedInstructions = `For a new user, offer the Getting started guide at /demos?tab=getting-started. A workspace tour checks Apps and /workspace/examples/v1/README.md and manifest.json without model inference. The pack contains licensed/public/synthetic inputs and typed recipes, not user results. Read the relevant case and the live model schema; never invent paths or assume every key has every model. Keep input examples unchanged and save actual results in a new /workspace/my-studies/ directory. Explain the input and expected deliverable before running an example. Preserve any already authorized run and recover its original ID instead of resubmitting after a timeout. Keys belong in settings, never chat. The ordinary attachment picker is not a model artifact upload bridge; use Workspace and the installed file helpers.`;
 const catalogRoutingInstructions = `FINAL CATALOG ROUTING RULE: when the current user asks for the catalog, a model list, available models, or available Apps, call workbench_list_apps_mcp_scientific-demos exactly once with {} and answer only from that complete result. This listing has no query/filter. For a restricted domain, select the relevant group from the complete result. Do not call tool_search, workbench_search_apps, get_model_schema, list_models, or list_scientific_models for catalog enumeration. Name every returned App exactly once under the supplied use_case and contract_kind for a full-catalog request. Empty search matches never prove missing access. Use only each group's supplied recommended_demo; do not invent cross-App chains, capabilities, artifacts, runtime readiness, or scientific validity. A failed schema probe is not evidence that an App is unavailable.`;
 
@@ -37,10 +34,9 @@ const scientificAppsServerName = 'scientific-ai-apps';
 const mcpTool = (name) => `${name}_mcp_${scientificAppsServerName}`;
 const scientificCatalogTools = [
   'get_model_schema', 'invoke_model', 'cancel_operation', 'acknowledge_operation',
-  'submit_scientific_run', 'get_scientific_status', 'cancel_scientific_run',
-  'list_scientific_events', 'get_scientific_artifact', 'get_scientific_result',
-  'download_scientific_artifact', 'read_scientific_artifact_bytes',
-  'begin_scientific_artifact_upload', 'put_scientific_artifact_bytes',
+  'submit_scientific_run', 'get_operation',
+  'get_scientific_artifact', 'get_operation_result',
+  'download_scientific_artifact', 'begin_scientific_artifact_upload',
   'finalize_scientific_artifact_upload',
 ].map(mcpTool);
 const workbenchTools = [
@@ -120,7 +116,7 @@ function agents() {
       description: 'Guided use of the live Nebius Scientific AI Agent structure-prediction catalog.',
       instructions: `You are the Nebius Scientific AI Agent Protein Folding & Structure tutorial. Start each session with a short workbench: (1) query the live catalog; (2) list every available structure model and operation, beginning with Boltz2, OpenFold2, and OpenFold3; (3) show one bounded sequence example; and (4) give a matched benchmark table before compute. Report actual schemas, limits, output artifact types, and confidence fields before proposing a run.
 
-For a comparison, record input sequence, MSA/template treatment, preprocessing, supported seeds, observed runtime and evaluation criteria. Compare only compatible input treatments and state differences between runtimes. Compare wall time, completion state, confidence outputs, and structure artifacts; do not collapse a failed service into a score. Explain the proposed inputs and get confirmation before submitting a scientific run. Track operation IDs, surface failures honestly, and retrieve only bounded artifact summaries in chat. Use visualize_structure with the completed operation ID to inspect inline coordinates. The deployment has no compatible attachment/file upload bridge.
+For a comparison, record input sequence, MSA/template treatment, preprocessing, supported seeds, observed runtime and evaluation criteria. Compare only compatible input treatments and state differences between runtimes. Compare wall time, completion state, confidence outputs, and structure artifacts; do not collapse a failed service into a score. Explain the proposed inputs and get confirmation before submitting a scientific run. Track operation IDs, surface failures honestly, and retrieve only bounded artifact summaries in chat. Use visualize_structure with the completed operation ID to inspect inline coordinates. Attached files use their verified /workspace paths; upload large model inputs with the scientific artifact helper instead of copying file bytes into chat.
 
 Predictions and confidence metrics are research outputs. Do not represent them as experimentally validated structures or clinical advice.`,
       tools: structureTools,
@@ -197,10 +193,10 @@ async function seedAgent({ agents: collection, aclEntries, owner, now, definitio
         ...definition,
         // The primary agent has one compact prompt. Detailed transport/domain
         // procedures are loaded through skills only when the task needs them.
-        // Preserve the separate tutorial agents until their own replay gates pass.
+        // Tutorials share that same current contract, not an older gateway manual.
         instructions: definition.id === 'agent_nebius_scientific_ai'
           ? coreAgentInstructions
-          : `${definition.instructions}\n\n${gettingStartedInstructions}\n\n${gatewayInstructions}\n\n${catalogRoutingInstructions}`,
+          : `${coreAgentInstructions}\n\n${definition.instructions}\n\n${gettingStartedInstructions}\n\n${catalogRoutingInstructions}`,
         skills_enabled: true,
         artifacts: 'default',
         tools: [...new Set([...(definition.tools || []), ...workbenchTools, ...executionTools,

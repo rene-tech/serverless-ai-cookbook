@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
-# Native Scientific AI job IDs over the exact qualified inline-report client.
-# Activate with the native-ID backend, never as an independent client rollout.
+# Current-only Scientific AI contracts over the qualified inline-report client.
+# Activate API route/helper/UI changes together with the matching platform API.
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:eda632a87822dd9f87a43fb0de6cc3f6e617fcbeb72d13403f4049ad423ab838
 FROM ${WORKBENCH_BASE}
 USER root
@@ -12,13 +12,45 @@ RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/native-skills,ro \
     --mount=type=bind,source=templates/hcls-librechat,target=/tmp/native-client,ro \
     python3 /tmp/native-skills/bundle.py verify \
  && cp -a /tmp/native-skills/. /app/skill/ \
+ && cp /tmp/native-client/invoke-native.py /tmp/native-client/upload-artifact.py \
+       /tmp/native-client/scientific-workflow.py /tmp/native-client/scientific_study.py \
+       /tmp/native-client/scientific_study_schema.py /tmp/native-client/scientific_receipts.py \
+       /tmp/native-client/scvi-batch.py /tmp/native-client/scvi-integrate.py \
+       /tmp/native-client/folding-comparison.py /tmp/native-client/diffdock-campaign.py \
+       /tmp/native-client/genmol-generate.py /tmp/native-client/ct-segmentation.py \
+       /tmp/native-client/ct-segmentation-batch.py /tmp/native-client/cxr-analysis.py \
+       /tmp/native-client/recording-batch.py /tmp/native-client/proteinmpnn-design.py \
+       /tmp/native-client/msa-search.py /tmp/native-client/sam2-segment.py \
+       /tmp/native-client/wan-image-to-video.py /opt/bionemo/ \
+ && cp -a /tmp/native-client/scvi-client/. /opt/bionemo/scvi-client/ \
+ && cp /tmp/native-client/demos/mcp.cjs /opt/hcls-librechat/demos/ \
+ && cp /tmp/native-client/demos/router.cjs /app/api/server/routes/scientific-demos.js \
+ && cp /tmp/native-client/seed-workbench.js /app/seed-hcls-workbench.js \
+ && cp /tmp/native-client/seed-merge.cjs /app/seed-merge.cjs \
+ && cp /tmp/native-client/state-supervisor.py /opt/hcls-librechat/ \
+ && cp /tmp/native-client/WorkspaceReportPreview.tsx /tmp/native-client/WorkspaceReportPreview.test.tsx \
+       /tmp/native-client/ScientificStudyPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/native-client/uploads/workspace-files.js /app/client/src/components/ \
+ && cp /tmp/native-client/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
+ && cp /tmp/native-client/demos/run-display.ts /app/client/src/components/scientific-run-display.ts \
  && python3 -m py_compile /opt/bionemo/structure-mcp.py /opt/bionemo/execution-mcp.py /opt/bionemo/invoke-scientific-batch.py \
+ && /opt/scientific-client/bin/python /opt/bionemo/scvi-batch.py --help \
  && node --check /opt/hcls-librechat/demos/service.cjs \
+ && node --check /app/api/server/routes/scientific-demos.js \
+ && node --check /app/seed-hcls-workbench.js \
  && TYPESCRIPT_MODULE=/app/node_modules/typescript node --test \
       /tmp/native-client/demos/operation-wait.test.cjs \
       /tmp/native-client/demos/progress-contract.test.cjs /tmp/native-client/demos/service.test.cjs \
- && node /tmp/native-client/scripts/test-skills-installed.cjs
+      /tmp/native-client/demos/run-display.test.cjs /tmp/native-client/demos/report-preview.test.cjs \
+      /tmp/native-client/uploads/test-workspace-files.mjs \
+ && node /tmp/native-client/scripts/test-skills-installed.cjs \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit \
+      src/components/WorkspaceReportPreview.test.tsx src/components/ScientificStudyPreview.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
-      ai.nebius.scientific.skills.version="2026.10.17.1" \
-      ai.nebius.scientific.release="native-identities-20261017"
+      ai.nebius.scientific.skills.version="2026.10.17.2" \
+      ai.nebius.scientific.release="current-only-native-identities-20261017"

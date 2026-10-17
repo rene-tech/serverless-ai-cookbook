@@ -39,7 +39,7 @@ def test_exact_selector_reaches_native_client_and_is_in_immutable_plan(mounted, 
         assert getattr(args,'tool',None) == value['steps'][0].get('tool_name')
         assert args.input.read_text() == '{"unchanged_input":true}\n'
         return {'state':'succeeded','operation_id':'retained-test-operation'}
-    transported={'schema':'scientific-workflow/v1','steps':[
+    transported={'steps':[
         {**value['steps'][0],'output':str(mounted/'operation')}]}
     result=asyncio.run(workflow.run(transported,mounted/'workflow',native_run_step=execute))
     assert result['state']=='completed' and len(calls)==1 and value==frozen

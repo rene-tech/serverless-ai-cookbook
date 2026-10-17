@@ -831,7 +831,7 @@ async def run_model(step, record):
     for field in ('input', 'source', 'parameters', 'source_artifact'):
         if field in converted:
             converted[field] = str(path_in_workspace(converted[field]))
-    plan = {'schema': 'scientific-workflow/v1', 'steps': [converted]}
+    plan = {'steps': [converted]}
     workflow.validate_files(plan)
     result = await workflow.run(plan, root / 'workflow', wait_seconds=10)
     observed = result.get('step_states', {}).get(step['id'], {})
@@ -989,9 +989,9 @@ async def cancel_known_operation(operation, scientific, intent):
                 raise ValueError('Cancellation receipt belongs to another operation; no request was sent.')
             if not saved:
                 save(intent, {'operation_id': operation, 'state': 'sending'})
-                await workflow.batch.call(client, 'cancel_scientific_run' if scientific else 'cancel_operation', {'operation_id': operation})
+                await workflow.batch.call(client, 'cancel_operation', {'operation_id': operation})
                 save(intent, {'operation_id': operation, 'state': 'sent'})
-            result = await workflow.batch.call(client, 'get_scientific_status' if scientific else 'get_operation', {'operation_id': operation})
+            result = await workflow.batch.call(client, 'get_operation', {'operation_id': operation})
     # Native status is flat: its "operation" field is a name such as
     # "generate-media". Scientific status can wrap the operation object.
     operation_status = result['operation'] if isinstance(result.get('operation'), dict) else result
@@ -1122,7 +1122,7 @@ def completion_summaries(record, artifacts):
 
     The full file is always retained. The preview byte ceiling is a display
     bound, never an execution/admission limit or silently truncated table.
-    Legacy studies without producer registration have no projection.
+    A step without producer registration has no summary projection.
     """
     if record.get('state') != 'completed':
         return []
@@ -1163,14 +1163,12 @@ def completion_summaries(record, artifacts):
 def model_progress(record, plan):
     """Read the supervisor's last status; never submit, poll or mutate the study.
 
-    Older supervisors already retain these files on every observation. Binding
-    each file to the recorded operation lets a UI-only patch show an active run
-    without restarting its worker or changing its frozen input manifest.
+    Bind each retained observation to its recorded operation. Reading progress
+    never restarts the worker or changes the frozen input manifest.
     """
     fields = {'schema', 'available', 'updated_at', 'stale', 'stale_after_seconds', 'current_step_id'}
     step_fields = {'step_id', 'state', 'unit', 'completed_units', 'durable_completed_units', 'target_units',
-                   'rate', 'rate_unit', 'rate_source', 'rate_window_seconds', 'completed_ns',
-                   'durable_completed_ns', 'target_ns', 'ns_per_day', 'ns_per_day_source',
+                   'rate', 'rate_unit', 'rate_source', 'rate_window_seconds',
                    'initial_step', 'target_step', 'observed_step', 'durable_step', 'timestep_ps',
                    'observed_at', 'durable_at', 'rate_updated_at', 'stale'}
     def project(value, names):
@@ -1197,8 +1195,7 @@ def model_progress(record, plan):
             if (operation.get('id') or operation.get('operation_id')) != operation_id:
                 continue
             progress = status.get('progress', operation.get('progress'))
-            if not isinstance(progress, dict) or progress.get('schema') not in {
-                    'scientific-ai/progress/v1', 'scientific-ai/md-progress/v1'}:
+            if not isinstance(progress, dict) or progress.get('schema') != 'scientific-ai/progress/v1':
                 continue
             rows = progress.get('steps', [])
             if not isinstance(rows, list):

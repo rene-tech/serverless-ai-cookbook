@@ -61,9 +61,9 @@ class Fixture:
                 result = {'error': {'code': 'ADMISSION_LIMIT_REACHED', 'retryable': True, 'admission': 'not-submitted'}}
             else:
                 result = {'operation': {'id': 'op-new', 'status': 'QUEUED'}}
-        elif name == 'get_scientific_status':
+        elif name == 'get_operation':
             result = {'operation': {'id': value['operation_id'], 'status': self.status}}
-        elif name == 'get_scientific_result':
+        elif name == 'get_operation_result':
             result = {'operation': {'id': value['operation_id']}, 'result': {'status': 'warn', 'findings': [],
                 'workload_fingerprint': 'different-options' if self.wrong else 'exact-options',
                 'artifacts': self.pointers}}

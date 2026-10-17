@@ -10,8 +10,7 @@ import pytest
 import scientific_study as study
 from scientific_study_schema import describe_workflow
 from test_native_md_report import recorded_run, bind_result
-
-pytest_plugins = ('test_scientific_study',)
+from test_scientific_study import mounted  # noqa: F401 - shared isolated workspace fixture
 
 
 def analysis_plan(manifest, expected=3):

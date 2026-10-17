@@ -49,11 +49,10 @@ const pickFields = (value, names) => value && typeof value === 'object' && !Arra
   ? Object.fromEntries(names.filter((name) => Object.prototype.hasOwnProperty.call(value, name)).map((name) => [name, value[name]])) : {};
 const PROGRESS_FIELDS = ['schema', 'available', 'updated_at', 'stale', 'stale_after_seconds', 'current_step_id'];
 const PROGRESS_STEP_FIELDS = ['step_id', 'state', 'unit', 'completed_units', 'durable_completed_units', 'target_units',
-  'rate', 'rate_unit', 'rate_source', 'rate_window_seconds', 'completed_ns', 'durable_completed_ns', 'target_ns',
-  'ns_per_day', 'ns_per_day_source', 'initial_step', 'target_step', 'observed_step', 'durable_step', 'timestep_ps',
+  'rate', 'rate_unit', 'rate_source', 'rate_window_seconds', 'initial_step', 'target_step', 'observed_step', 'durable_step', 'timestep_ps',
   'observed_at', 'durable_at', 'rate_updated_at', 'stale'];
 function customerProgress(value) {
-  if (!value || !['scientific-ai/progress/v1', 'scientific-ai/md-progress/v1'].includes(value.schema)) return undefined;
+  if (!value || value.schema !== 'scientific-ai/progress/v1') return undefined;
   const scalars = (row, fields) => Object.fromEntries(Object.entries(pickFields(row, fields))
     .filter(([, item]) => item === null || ['string', 'boolean'].includes(typeof item)
       || (typeof item === 'number' && Number.isFinite(item))));
@@ -61,7 +60,6 @@ function customerProgress(value) {
     .map((step) => scalars(step, PROGRESS_STEP_FIELDS)) };
 }
 // Status is a public scientific contract, not a dump of the execution backend.
-// Also project cached rows from before the backend privacy change.
 function customerOperation(value) {
   const result = pickFields(value, ['id', 'operation_id', 'model_id', 'protocol', 'status', 'state', 'display_name',
     'created_at', 'accepted_at', 'activation_started_at', 'ready_at', 'started_at', 'completed_at', 'updated_at',
@@ -81,10 +79,6 @@ function normalizedOperation(envelope, expectedId) {
   }
   // Status envelopes may be nested; every identity must name the same native execution.
   return customerOperation({ ...envelope, ...nested, id: ids[0], operation_id: ids[0] });
-}
-function customerBatch(value) {
-  return pickFields(value, ['status', 'result_published', 'created_at', 'started_at', 'completed_at',
-    'failure_code', 'completed_steps', 'failed_steps', 'step_count']);
 }
 function customerCatalogItem(value) {
   return pickFields(value, ['id', 'model_id', 'display_name', 'description', 'enabled', 'capabilities', 'protocols',
@@ -242,7 +236,6 @@ async function listApps(key, query = '') {
   const normalizeSearch = (value) => value.toLowerCase().replace(/[-_]+/g, ' ').trim();
   const normalized = normalizeSearch(query);
   // Common requests for the whole catalog are not literal model-name filters.
-  // Keep this compatibility for HTTP callers and older cached MCP definitions.
   const search = /^(all|all apps|all models|everything|\*)$/.test(normalized) ? '' : normalized;
   const data = [...apps.values()].filter((item) => !search || normalizeSearch(JSON.stringify(item)).includes(search));
   const groups = USE_CASE_ORDER.map((useCase) => ({
@@ -368,9 +361,9 @@ function evidenceGuidance(value, summary, artifact) {
 
 async function operationResult(key, operationId) {
   if (!OPERATION_ID.test(operationId || '')) throw failure('Supply the native operation ID returned by submission.');
-  // The production API returns the result body directly. Older gateways and the
-  // local fixture wrap it in { operation, result }, so accept both shapes while
-  // independently binding the response to the requested operation identity.
+  // Scientific batch operations publish their scientific result directly;
+  // endpoint and speech operations publish {operation, result}. These are
+  // current execution contracts, each bound to the requested native identity.
   const [operationEnvelope, resultEnvelope] = await Promise.all([
     platform(key, 'GET', `/v1/operations/${operationId}`),
     platform(key, 'GET', `/v1/operations/${operationId}/result`),
@@ -404,19 +397,15 @@ async function operationResult(key, operationId) {
   } };
 }
 
-function runFile(owner) {
-  if (!owner) throw failure('LibreChat user identity is missing.', 401);
-  return path.join(ROOT, 'workbench', hash(owner), 'runs.json');
-}
 function runDirectory(owner, key) {
-  return path.join(path.dirname(runFile(owner)), 'runs', hash(privateKey(key)));
+  if (!owner) throw failure('LibreChat user identity is missing.', 401);
+  return path.join(ROOT, 'workbench', hash(owner), 'runs', hash(privateKey(key)));
 }
 async function optionalRead(filename, fallback) {
   try { return await read(filename); }
   catch (error) { if (error.code === 'ENOENT') return fallback; throw error; }
 }
 async function tracked(owner, key) {
-  const legacy = await optionalRead(runFile(owner), { data: [] });
   const folder = runDirectory(owner, key);
   let filenames;
   try { filenames = await fs.readdir(folder); }
@@ -424,10 +413,8 @@ async function tracked(owner, key) {
   const current = await Promise.all(filenames.filter((name) => OPERATION_ID.test(name.replace(/\.json$/, ''))
     && name.endsWith('.json')).map((name) => read(path.join(folder, name))));
   // One atomic file per operation avoids lost updates when UI and MCP processes
-  // save different operations concurrently. Legacy rows are reauthorized below.
-  const data = new Map((legacy.data || []).map((item) => [item.id, { ...item, legacy: true }]));
-  for (const item of current) data.set(item.id, item);
-  return { data: [...data.values()] };
+  // save different operations concurrently.
+  return { data: current };
 }
 async function saveRun(owner, key, entry) {
   const folder = runDirectory(owner, key);
@@ -454,7 +441,7 @@ async function track(owner, key, operationId, metadata = {}, timeoutMs = 45000) 
   const existing = await optionalRead(path.join(runDirectory(owner, key), operationId + '.json'), {});
   const entry = runEntry({ ...operation, ...(current.progress ? { progress: current.progress } : {}) }, existing, metadata);
   await saveRun(owner, key, entry);
-  return { ...entry, ...(current.batch ? { batch: customerBatch(current.batch) } : {}) };
+  return entry;
 }
 async function waitOperation(owner, key, operationId, waitSeconds = 15) {
   if (!Number.isInteger(waitSeconds) || waitSeconds < 0 || waitSeconds > 30) throw failure('wait_seconds must be between 0 and 30.');
@@ -487,17 +474,7 @@ async function runs(owner, key, { cursor, limit = 50 } = {}) {
     throw failure('Invalid operation history page.');
   }
   const existing = await tracked(owner, key);
-  let history;
-  try {
-    history = await platform(key, 'GET', `/v1/operations?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`);
-  } catch (error) {
-    if (error.status !== 404) throw error;
-    // Older deployments do not have discovery. Keep saved runs usable during a
-    // rolling upgrade and state this limitation instead of pretending completeness.
-    return { ...(await trackedRuns(owner, key, existing)), history_available: false,
-      history_notice: 'Automatic history is unavailable on this platform version. Only explicitly saved runs are shown.',
-      next_cursor: null };
-  }
+  const history = await platform(key, 'GET', `/v1/operations?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`);
   if (!Array.isArray(history.data)) throw failure('Platform operation history has an invalid response.', 502);
   const byId = new Map(existing.data.map((item) => [item.id, item]));
   return { data: history.data.map((row) => {
@@ -542,36 +519,6 @@ async function studies(key, action = 'list', id) {
       catch { fail('Study observer returned an invalid status; original work is unchanged.', 'STUDY_OBSERVER_INVALID_RESPONSE'); }
     });
   });
-}
-async function trackedRuns(owner, key, existing) {
-  const pending = [...existing.data].sort((a, b) => (b.accepted_at || b.first_seen_at || '')
-    .localeCompare(a.accepted_at || a.first_seen_at || ''));
-  const refreshed = [];
-  // Bound platform fanout while preserving every saved operation. A terminal
-  // operation is immutable; refresh its permission periodically, not every 5s.
-  await Promise.all(Array.from({ length: Math.min(4, pending.length) }, async () => {
-    while (pending.length) {
-      const item = pending.shift();
-      if (!item.legacy && item.operation && TERMINAL_STATES.has(item.status)
-          && Date.now() - Date.parse(item.updated_at) < 60000) {
-        refreshed.push({ ...item, operation: customerOperation(item.operation) }); continue;
-      }
-      try {
-        const value = await platform(key, 'GET', `/v1/operations/${item.id}`);
-        const operation = normalizedOperation(value, item.id);
-        const entry = runEntry({ ...operation, ...(value.progress ? { progress: value.progress } : {}) }, item);
-        await saveRun(owner, key, entry);
-        refreshed.push(entry);
-      } catch (error) {
-        // A changed key must not expose previously attached another-tenant rows.
-        if ([401, 403, 404].includes(error.status)) continue;
-        if (!item.legacy) refreshed.push({ ...item, operation: customerOperation(item.operation),
-          refresh_error: error.message, refresh_status: error.status || 500 });
-      }
-    }
-  }));
-  refreshed.sort((a, b) => (b.accepted_at || b.first_seen_at || '').localeCompare(a.accepted_at || a.first_seen_at || ''));
-  return { data: refreshed };
 }
 
 function workspacePath(relative = '') {

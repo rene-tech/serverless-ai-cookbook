@@ -10,7 +10,7 @@ spec.loader.exec_module(workflow)
 
 
 def plan(tmp_path):
-    return {'schema': 'scientific-workflow/v1', 'steps': [
+    return {'steps': [
         {'id': name, 'model': name, 'tool': 'submit_' + name, 'operation': 'design',
          'source': str(tmp_path / 'input'), 'parameters': str(tmp_path / 'parameters'),
          'output': str(tmp_path / name), 'media_type': 'text/plain', 'entry_name': 'input',
@@ -40,7 +40,7 @@ def test_observation_is_not_completion_and_resume_does_not_advance(tmp_path):
 
 def test_preflight_reports_all_missing_and_invalid_files_before_admission(tmp_path):
     (tmp_path / 'bad.json').write_text('not JSON')
-    prepared = {'schema': 'scientific-workflow/v1', 'steps': [
+    prepared = {'steps': [
         {'id': name, 'kind': 'native', 'model': 'fixture', 'input': str(tmp_path / filename),
          'output': str(tmp_path / name), 'idempotency_key': 'original-' + name}
         for name, filename in [('first', 'missing.json'), ('second', 'bad.json'), ('third', 'also-missing.json')]]}
@@ -91,18 +91,6 @@ def test_changed_plan_refuses_resume(tmp_path):
         asyncio.run(workflow.run(args, tmp_path / 'flow', run_step=step))
 
 
-def test_optional_self_route_has_older_server_fallback(monkeypatch):
-    monkeypatch.setenv('SCIENTIFIC_MODELS_MCP_URL', 'https://example.test/mcp')
-    monkeypatch.setenv('SCIENTIFIC_MODELS_API_KEY', 'test-only')
-    class HTTP:
-        async def __aenter__(self): return self
-        async def __aexit__(self, *args): pass
-        async def get(self, *args, **kwargs):
-            return type('Response', (), {'status_code': 404})()
-    monkeypatch.setattr(workflow.httpx2, 'AsyncClient', lambda **kwargs: HTTP())
-    assert asyncio.run(workflow.caller_policy())['available'] is False
-
-
 def test_single_wrapped_explicit_rejection_is_waiting_not_unknown(tmp_path):
     async def step(args):
         raise ExceptionGroup('transport cleanup', [workflow.batch.ExplicitRejection({
@@ -114,7 +102,7 @@ def test_single_wrapped_explicit_rejection_is_waiting_not_unknown(tmp_path):
 
 
 def native_plan(tmp_path):
-    return {'schema': 'scientific-workflow/v1', 'steps': [
+    return {'steps': [
         {'id': name, 'kind': 'native', 'model': name,
          'input': str(tmp_path / (name + '.json')), 'output': str(tmp_path / name),
          'idempotency_key': 'original-key-' + name} for name in ('speech-a', 'speech-b')]}

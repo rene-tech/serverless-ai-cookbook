@@ -26,14 +26,16 @@ def fixture(tmp_path, corrupt=False, status=200):
     class Client:
         async def call_tool(self, name, arguments):
             calls.append((name, arguments))
-            if name == 'begin_model_artifact_upload':
+            if name == 'begin_scientific_artifact_upload':
                 assert arguments['sha256'] == ref['sha256']
                 assert arguments['size_bytes'] == len(content)
-                return {'structuredContent': {'operation_id': 'operation-fixture', 'upload_id': 'upload-fixture',
+                return {'structuredContent': {'upload_id': 'upload-fixture',
                     'handle': {'method': 'PUT', 'url': 'https://objects.example.invalid/signed-secret',
                                'headers': {'Content-Type': 'text/plain'}}}}
-            assert name == 'finalize_model_artifact_upload'
-            return {'structuredContent': dict(ref, sha256='0' * 64) if corrupt else ref}
+            assert name == 'finalize_scientific_artifact_upload'
+            assert arguments == {'upload_id': 'upload-fixture'}
+            return {'structuredContent': {'state': 'finalized',
+                'artifact': dict(ref, sha256='0' * 64) if corrupt else ref}}
     class Objects:
         async def put(self, url, *, content: object, headers):
             transferred = b''.join([chunk async for chunk in content])
@@ -53,6 +55,7 @@ def test_actual_bytes_are_hashed_streamed_verified_and_replayed_without_transfer
     first = asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
     assert first['artifact'] == ref
     assert first['state'] == 'finalized'
+    assert first['upload_id'] == 'upload-fixture' and 'operation_id' not in first
     second = asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
     assert second['artifact'] == ref
     assert len(calls) == 2
@@ -90,7 +93,7 @@ def test_mismatched_finalized_ref_cannot_become_model_input(tmp_path):
     assert not (args.output_dir / 'artifact.json').exists()
 
 
-def test_file_mutation_cancels_only_its_known_upload_reservation(tmp_path):
+def test_file_mutation_preserves_reservation_without_cancelling_an_execution(tmp_path):
     args, client, http, _, _ = fixture(tmp_path)
     real_put, real_call = http.put, client.call_tool
     cancelled = []
@@ -106,7 +109,8 @@ def test_file_mutation_cancels_only_its_known_upload_reservation(tmp_path):
     http.put, client.call_tool = put, call
     with pytest.raises(ValueError, match='changed during transfer'):
         asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
-    assert cancelled == ['operation-fixture']
+    assert cancelled == []
+    assert json.loads((args.output_dir / 'receipt.json').read_text())['state'] == 'input_changed'
     assert not (args.output_dir / 'artifact.json').exists()
 
 
@@ -161,7 +165,7 @@ def test_ambiguous_conditional_put_uses_whole_object_verification(tmp_path, erro
     result = asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
     assert result['state'] == 'finalized' and result['artifact'] == ref
     assert len(puts) == 1
-    assert [name for name, _ in calls] == ['begin_model_artifact_upload', 'finalize_model_artifact_upload']
+    assert [name for name, _ in calls] == ['begin_scientific_artifact_upload', 'finalize_scientific_artifact_upload']
     attempt = result['upload_attempts'][0]
     assert attempt['phases']['object_put']['status'] == 'unconfirmed'
     assert attempt['phases']['object_put']['error_type'] == error_type.__name__
@@ -179,7 +183,7 @@ def test_transport_failure_never_assumes_object_exists_or_matches(tmp_path, veri
     async def disconnected(*positional, **keywords):
         raise httpx2.ReadError('lost response')
     async def call(name, arguments):
-        if name != 'finalize_model_artifact_upload':
+        if name != 'finalize_scientific_artifact_upload':
             return await real_call(name, arguments)
         if verification == 'missing':
             return {'isError': True, 'content': [{'type': 'text', 'text': 'object missing'}]}
@@ -190,7 +194,7 @@ def test_transport_failure_never_assumes_object_exists_or_matches(tmp_path, veri
             changed['size_bytes'] += 1
         else:
             changed.pop('artifact_id')
-        return {'structuredContent': changed}
+        return {'structuredContent': {'state': 'finalized', 'artifact': changed}}
     http.put, client.call_tool = disconnected, call
     with pytest.raises((RuntimeError, ValueError)):
         asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
@@ -209,12 +213,12 @@ def test_changed_local_bytes_after_lost_put_cannot_be_finalized(tmp_path):
         if name == 'cancel_operation':
             cancelled.append(arguments['operation_id'])
             return {'structuredContent': {'status': 'cancelled'}}
-        assert name != 'finalize_model_artifact_upload'
+        assert name != 'finalize_scientific_artifact_upload'
         return await real_call(name, arguments)
     http.put, client.call_tool = disconnected, call
     with pytest.raises(ValueError, match='changed during transfer'):
         asyncio.run(module.transfer(client, http, args, 'https://gateway.example.invalid/mcp', 'fixture-key'))
-    assert cancelled == ['operation-fixture']
+    assert cancelled == []
     assert not (args.output_dir / 'artifact.json').exists()
 
 

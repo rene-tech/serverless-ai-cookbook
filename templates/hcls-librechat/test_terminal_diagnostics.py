@@ -18,12 +18,12 @@ def test_failed_run_keeps_result_or_diagnostics_failure_without_resubmission(tmp
                 'failure_code': 'native-stage-error'}
     monkeypatch.setattr(client, 'call', rpc)
     receipt = {'operation_id': 'original-operation', 'state': 'running'}
-    status = {'operation': {'id': 'original-operation', 'status': 'failed', 'error_code': 'Error'},
-              'batch': {'result_published': True}}
+    status = {'operation': {'id': 'original-operation', 'status': 'failed', 'error_code': 'Error',
+              'result_available': True}}
     asyncio.run(client.retain_terminal_diagnostics(None, status, tmp_path, receipt))
     saved = json.loads((tmp_path / 'receipt.json').read_text())
     assert saved['state'] == 'failed'
-    assert requests == [('get_scientific_result', {'operation_id': 'original-operation'})]
+    assert requests == [('get_operation_result', {'operation_id': 'original-operation'})]
     assert 'verified_artifacts' not in saved
     if fetch_fails:
         assert saved['diagnostics_read_error_type'] == 'ConnectionError'
@@ -48,7 +48,7 @@ def test_failed_manifest_downloads_only_diagnostics_without_success_claim(
         tmp_path, monkeypatch, semantic_type, accepted):
     downloads = []
     async def rpc(connection, tool, arguments):
-        assert tool == 'get_scientific_result'
+        assert tool == 'get_operation_result'
         return {'operation_id': 'original-operation', 'terminal_status': 'failed',
                 'semantic_validation': {'status': 'failed'},
                 'output_manifest': {'artifact_id': 'manifest'}}
@@ -66,7 +66,7 @@ def test_failed_manifest_downloads_only_diagnostics_without_success_claim(
     monkeypatch.setattr(client, 'call', rpc)
     monkeypatch.setattr(client, 'download', download)
     receipt = {'operation_id': 'original-operation'}
-    status = {'operation': {'status': 'failed'}, 'batch': {'result_published': True}}
+    status = {'operation': {'status': 'failed', 'result_available': True}}
     asyncio.run(client.retain_terminal_diagnostics(None, status, tmp_path, receipt, http=object()))
     saved = json.loads((tmp_path / 'receipt.json').read_text())
     assert saved['state'] == 'failed' and 'verified_artifacts' not in saved
@@ -88,7 +88,7 @@ def test_conflicting_operation_cannot_supply_failure_artifacts(tmp_path, monkeyp
     monkeypatch.setattr(client, 'call', rpc)
     monkeypatch.setattr(client, 'collect_manifest', collect)
     receipt = {'operation_id': 'original-operation'}
-    status = {'operation': {'status': 'failed'}, 'batch': {'result_published': True}}
+    status = {'operation': {'status': 'failed', 'result_available': True}}
     asyncio.run(client.retain_terminal_diagnostics(None, status, tmp_path, receipt, http=object()))
     assert receipt['state'] == 'failed'
     assert receipt['diagnostics_read_error_type'] == 'RuntimeError'

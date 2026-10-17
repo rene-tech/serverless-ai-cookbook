@@ -31,25 +31,6 @@ EXECUTE_WAIT_DEFAULT_SECONDS = 5
 EXECUTE_WAIT_MAX_SECONDS = 10
 READ_WAIT_DEFAULT_SECONDS = 15
 TEXT = {'type': 'string', 'minLength': 1}
-STEP_COMMON = {'kind': TEXT, 'id': TEXT, 'model': TEXT, 'idempotency_key': TEXT,
-               'receipt_directory': {**TEXT, 'description': 'Optional existing workspace receipt directory for explicit recovery; otherwise output_directory/steps/id.'}}
-NATIVE_STEP_SCHEMA = {'type': 'object', 'additionalProperties': False,
-    'required': ['kind', 'id', 'model', 'input_file', 'idempotency_key'],
-    'properties': {**STEP_COMMON, 'kind': {'const': 'native'},
-        'input_file': {**TEXT, 'description': 'Existing JSON FILE PATH containing model fields: absolute /workspace/... or relative to /workspace, NOT relative to output_directory. Never an inline object or array.'}}}
-BATCH_REQUIRED = ['kind', 'id', 'model', 'tool', 'operation', 'source_file', 'parameters_file',
-                  'media_type', 'entry_name', 'semantic_type', 'idempotency_key', 'display_name']
-BATCH_OPTIONAL = ['compression', 'service_class', 'source_artifact_file']
-BATCH_STEP_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': BATCH_REQUIRED,
-    'properties': {**STEP_COMMON, **{name: TEXT for name in BATCH_REQUIRED + BATCH_OPTIONAL},
-        'kind': {'const': 'batch'},
-        'source_file': {**TEXT, 'description': 'Existing source file: absolute /workspace/... or relative to /workspace, NOT output_directory.'},
-        'parameters_file': {**TEXT, 'description': 'Existing JSON parameter file using the selected live contract: absolute /workspace/... or relative to /workspace, NOT output_directory. For uploaded-bundle set source={"kind":"uploaded-bundle"}; the client fills the exact finalized source_file artifact fields before validation/submission. Do not invent artifact IDs or read helper implementation to construct them.'},
-        'entry_name': {**TEXT, 'description': 'Exact logical name from get_model_schema.input_artifact_contract, NOT a filename or run ID. Select entry, operation-specific entry or source_kinds entry as published.'},
-        'semantic_type': {**TEXT, 'description': 'Exact semantic_type in the published input_artifact_contract; never construct one from a model name.'},
-        'media_type': {**TEXT, 'description': 'Published media type of source_file bytes, for example application/json. NOT the outer scientific-manifest media type.'},
-        'compression': {**TEXT, 'description': 'Actual source_file compression allowed by the published input_artifact_contract; bytes are never silently recompressed.'},
-        'source_artifact_file': {**TEXT, 'description': 'Optional finalized artifact-reference JSON file matching the exact source bytes.'}}}
 
 
 def workspace_path(value, name):
@@ -60,32 +41,6 @@ def workspace_path(value, name):
     if not path.is_relative_to(workspace):
         raise ValueError(name + ' must be inside the mounted workspace.')
     return path
-
-
-def canonical_steps(steps, output):
-    """Translate advertised typed file fields into the existing runner schema."""
-    if not isinstance(steps, list) or not steps:
-        raise ValueError('steps must be a nonempty list of typed native/batch steps.')
-    plan = {'schema': 'scientific-workflow/v1', 'steps': []}
-    for step in steps:
-        kind = step.get('kind') if isinstance(step, dict) else None
-        schema = NATIVE_STEP_SCHEMA if kind == 'native' else BATCH_STEP_SCHEMA if kind == 'batch' else None
-        if schema is None:
-            raise ValueError('Every step must specify kind=native or kind=batch.')
-        if set(schema['required']) - step.keys() or step.keys() - schema['properties'].keys():
-            raise ValueError('Step fields differ from the advertised ' + kind + ' schema.')
-        if any(not isinstance(value, str) or not value for value in step.values()):
-            raise ValueError('Step fields must be nonempty strings; input_file/parameters_file are paths, not inline JSON.')
-        converted = {name: value for name, value in step.items()
-                     if name not in {'input_file', 'source_file', 'parameters_file', 'source_artifact_file', 'receipt_directory'}}
-        for external, internal in (('input_file', 'input'), ('source_file', 'source'),
-                                   ('parameters_file', 'parameters'), ('source_artifact_file', 'source_artifact')):
-            if external in step:
-                converted[internal] = str(workspace_path(step[external], external))
-        converted['output'] = str(workspace_path(step['receipt_directory'], 'receipt_directory')
-                                  if 'receipt_directory' in step else output / 'steps' / step['id'])
-        plan['steps'].append(converted)
-    return plan
 
 
 def save(path, value):
@@ -257,12 +212,9 @@ def deliver_scientific_results(args):
 
 def inspect_mmcif_inventory(args):
     if (not isinstance(args, dict) or not isinstance(args.get('path'), str) or
-            not args['path'].strip() or set(args) - {'path', 'finish_request'} or
-            ('finish_request' in args and not isinstance(args['finish_request'], bool))):
-        raise ValueError('Supply the exact input path; legacy finish_request must be boolean if present.')
+            not args['path'].strip() or set(args) != {'path'}):
+        raise ValueError('Supply only the exact input path.')
     result = deliver_scientific_results({'results': [{'kind': 'mmcif', 'path': args['path']}]})
-    # Accept a saved client's old argument, but never let inspection bypass
-    # continuation and silently drop a requested CSV, plot or later analysis.
     result['schema'] = 'scientific-mmcif-inventory/v1'
     result['guidance'] = ('Measured inventory only, not completion of the whole request or MD validation. '
                           'Continue any requested exports or analysis. Once those are complete, call '
@@ -372,64 +324,18 @@ def submit_checked_study(plan, output):
 
 
 def run_scientific_workflow(args):
-    """Typed launch of the existing durable client, not a new model transport."""
-    workspace = Path(WORKSPACE).resolve()
+    """Launch the current durable whole-study contract without schema conversion."""
+    if not isinstance(args, dict) or set(args) - {'study', 'plan_file', 'output_directory'}:
+        raise ValueError('Supply only study OR plan_file and output_directory.')
+    if ('study' in args) == ('plan_file' in args):
+        raise ValueError('Supply study OR an existing plan_file, not both.')
     output = workspace_path(args.get('output_directory'), 'output_directory')
     if 'study' in args:
-        if 'steps' in args or 'plan_file' in args or args.get('resume'):
-            raise ValueError('Whole studies use one immutable study plan; no separate steps, plan_file or manual resume.')
         return submit_checked_study(study_argument(args['study']), output)
-    if ('steps' in args) == ('plan_file' in args):
-        raise ValueError('Supply typed steps OR an existing plan_file, not both.')
-    index_dir = ROOT / 'workflow-index'
-    index_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if 'steps' in args:
-        plan_bytes = (json.dumps(canonical_steps(args['steps'], output), sort_keys=True, indent=2) + '\n').encode()
-        plan_path = index_dir / (hashlib.sha256(plan_bytes).hexdigest() + '.prepared.json')
-        plan_path.write_bytes(plan_bytes)
-    else:
-        plan_path = workspace_path(args.get('plan_file'), 'plan_file')
-        if not plan_path.is_file():
-            raise ValueError('plan_file does not exist: ' + str(plan_path))
-        plan_bytes = plan_path.read_bytes()
-        parsed = json.loads(plan_bytes)
-        if parsed.get('schema') == 'scientific-workflow/v2':
-            if args.get('resume'):
-                raise ValueError('Whole studies resume automatically from their immutable receipt; omit resume.')
-            return submit_checked_study(parsed, output)
-    resume = args.get('resume', False)
-    if not isinstance(resume, bool):
-        raise ValueError('resume must be a boolean.')
-    python = os.environ.get('SCIENTIFIC_CLIENT_PYTHON', '/opt/scientific-client/bin/python')
-    runner = os.environ.get('SCIENTIFIC_WORKFLOW_RUNNER', '/opt/bionemo/scientific-workflow.py')
-    command = [python, runner, '--plan', str(plan_path), '--output', str(output), '--wait-seconds', '0']
-    identity = hashlib.sha256(plan_bytes + b'\0' + str(output).encode()).hexdigest()
-    index = index_dir / (identity + '.json')
-    with (index_dir / (identity + '.lock')).open('w') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        previous = json.loads(index.read_text()) if index.exists() else {}
-        if previous.get('job_id'):
-            current = read_job({'job_id': previous['job_id'], 'wait_seconds': 0})
-            if current['status'] in ('starting', 'running', 'completed') or not resume:
-                return {**current, 'workflow_identity': identity, 'reused_existing_job': True,
-                        'resume_required': current['status'] not in ('starting', 'running', 'completed')}
-        checked = subprocess.run(command + ['--validate-only'], capture_output=True, text=True, timeout=60)
-        if checked.returncode:
-            raise ValueError('Workflow file preflight failed before admission. ' + checked.stderr[-3000:])
-        preflight = json.loads(checked.stdout)
-        # Preserve the exact plan bytes used for the preflight and eventual job.
-        if identity != hashlib.sha256(plan_path.read_bytes() + b'\0' + str(output).encode()).hexdigest():
-            raise ValueError('Plan changed during preflight; no workflow was started.')
-        frozen_plan = index_dir / (identity + '.plan.json')
-        frozen_plan.write_bytes(plan_bytes)
-        command[command.index('--plan') + 1] = str(frozen_plan)
-        started = execute({'command': shlex.join(command), 'cwd': str(workspace),
-                           'timeout_seconds': 0, 'wait_seconds': 10})
-        save(index, {'job_id': started['job_id'], 'plan_file': str(plan_path),
-                     'output_directory': str(output), 'previous_job_id': previous.get('job_id')})
-        return {**started, 'workflow_identity': identity, 'preflight_steps': preflight['steps'],
-                'preflight_files': len(preflight['files']), 'reused_existing_job': False,
-                'guidance': 'Poll this execution job; model operations and exact receipts remain in the workflow output. Completion still requires scientific analysis.'}
+    plan_path = workspace_path(args.get('plan_file'), 'plan_file')
+    if not plan_path.is_file():
+        raise ValueError('plan_file does not exist: ' + str(plan_path))
+    return submit_checked_study(study_argument(plan_path.read_text()), output)
 
 
 def recover_scientific_results(args):
@@ -598,7 +504,7 @@ TOOLS = [
      'inputSchema': {'type': 'object', 'additionalProperties': False,
         'required': ['path'], 'properties': {
             'path': {**TEXT, 'description': 'Exact existing workspace mmCIF file path.'},
-            'finish_request': {'type': 'boolean', 'deprecated': True, 'description': 'Legacy argument accepted for saved conversations; no longer ends the request.'}}}},
+            }}},
     {'name': 'run_starter_example',
      'description': 'Run one explicitly requested installed molecular-dynamics starter example with unchanged packaged inputs. Preferred over loading skills or assembling shell commands for an existing example: this validates its manifest, recipe, native parameters and hashes, then invokes the existing authorized batch client for live schema checks, admission, polling and result publication. Supply the case directory, exact engine and a fresh output directory. One job/idempotency identity is retained; identical calls observe it, never rerun it. No cross-tenant lookup or model/force-field substitution. After completion use deliver_scientific_results kind=native-md. These short examples do not establish converged sampling. For custom protocols/analysis use the native workflow tools and domain skill.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': True},
@@ -649,19 +555,18 @@ TOOLS = [
                     'compression': {'enum': ['none', 'gzip', 'zstd'], 'description': 'Explicit encoding of the unchanged source bytes from the published input contract. No recompression or filename-based metadata inference.'},
                     'idempotency_key': {'type': 'string', 'minLength': 8, 'maxLength': 200}}}}}}},
     {'name': 'run_scientific_workflow',
-     'description': 'Preferred whole-study launch: supply inline study (a v2 object or its complete strict JSON text) OR plan_file pointing to existing scientific-workflow/v2 JSON, plus output_directory. Both representations use identical validation and immutable identity: no duplicate keys, non-finite numbers, inferred defaults or schema conversion. Prefer compose_scientific_workflow for longer plans: small typed groups produce a validated immutable plan_file. If preflight rejects a draft, correct that same v2 plan while preserving analysis/deliverables; do not downgrade to legacy v1 or shell CLI. Include ordered preparation, native/batch/clinical, deterministic analysis and final deliverables. File references are existing workspace paths or {step,file}; native result.json and batch output-manifest.json preserve their verified sibling artifacts. Supported mindeval analysis consumes full saved record paths directly without new model calls. The worker continues after chat disconnect or process restart and publishes verified final files in Runs. Do NOT ask for mechanical continue to run declared phases. Repeating the same plan/output returns the same study; unknown admissions stop for inspection. Only explicitly requested legacy steps/v1 omit whole-study analysis. No budgets are increased; completion is not scientific validation.',
+     'description': 'Launch a durable whole study: supply inline study (a scientific-workflow/v2 object or its complete strict JSON text) OR plan_file pointing to that JSON, plus output_directory. Both use identical validation and immutable identity: no duplicate keys, non-finite numbers, inferred defaults or schema conversion. Prefer compose_scientific_workflow for longer plans. If preflight rejects a draft, correct that plan while preserving analysis/deliverables. Include ordered preparation, native/batch/clinical, deterministic analysis and final deliverables. File references are existing workspace paths or {step,file}; native result.json and batch output-manifest.json preserve verified sibling artifacts. MindEval analysis consumes saved record paths without new model calls. The worker continues after chat disconnect or process restart and publishes verified files in Runs. Do NOT ask for mechanical continue. Repeating the same plan/output returns the same study; unknown admissions stop for inspection. No budgets are increased; completion is not scientific validation.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': True},
      'inputSchema': {'type': 'object', 'additionalProperties': False,
-        'required': ['output_directory'], 'oneOf': [{'required': ['steps'], 'not': {'anyOf': [{'required': ['plan_file']}, {'required': ['study']}]}},
-            {'required': ['plan_file'], 'not': {'anyOf': [{'required': ['steps']}, {'required': ['study']}]}},
-            {'required': ['study'], 'not': {'anyOf': [{'required': ['steps']}, {'required': ['plan_file']}]}}], 'properties': {
+        'required': ['output_directory'], 'oneOf': [
+            {'required': ['plan_file'], 'not': {'required': ['study']}},
+            {'required': ['study'], 'not': {'required': ['plan_file']}}], 'properties': {
             'study': {'oneOf': [STUDY_SCHEMA, {'type': 'string', 'minLength': 1,
                 'description': 'Complete strict JSON text encoding the SAME scientific-workflow/v2 object. Parsed once, then validated identically; duplicate keys, NaN/Infinity, invalid schema and double encoding are rejected before admission. Prefer a finalized composer plan_file for longer plans.'}]},
-            'plan_file': {'type': 'string', 'description': 'Existing workspace JSON file: scientific-workflow/v2 launches the full durable study; scientific-workflow/v1 retains legacy native/batch-only behavior. Mutually exclusive with study and steps.'}, 'output_directory': {'type': 'string'},
-            'steps': {'type': 'array', 'minItems': 1, 'items': {'oneOf': [NATIVE_STEP_SCHEMA, BATCH_STEP_SCHEMA]}},
-            'resume': {'type': 'boolean', 'default': False}}}},
+            'plan_file': {'type': 'string', 'description': 'Existing workspace scientific-workflow/v2 JSON file. Mutually exclusive with study. The study resumes automatically from its immutable receipt.'},
+            'output_directory': {'type': 'string'}}}},
     {'name': 'execute_command',
-     'description': 'Execute Bash as root in this application container. Install packages with apt-get/pip/npm, run Python, download internet resources, read/write any container path and mounted storage. /workspace is the durable Object Storage bucket mount, NOT a seekable POSIX disk: use scientific_receipts.staged_output for NPZ/ZIP/HDF5/closed database backups, close the local writer then verify publication; no live SQLite/WAL guarantee. Use byte copies, not chmod/copystat. This is real execution, not a code suggestion. Launch wait_seconds is 0 to 10, default 5; omit it for normal launches. Preserve an exact shell command entirely inside command: a CLI --operation-wait-seconds or legacy --wait-seconds token is command text and must never be moved into this tool\'s wait_seconds field. Do not copy read_execution wait_seconds=30 into this tool. For long work save job_id and use read_execution to observe that same job; do not submit again. Returns 4000 output bytes by default with a full log file pointer; compute summaries locally instead of dumping source/data. timeout_seconds is the separate command deadline; 0 disables that deadline. Root applies to the container and its mounts, not the cloud host. Never print credentials.',
+     'description': 'Execute Bash as root in this application container. Install packages with apt-get/pip/npm, run Python, download internet resources, read/write any container path and mounted storage. /workspace is the durable Object Storage bucket mount, NOT a seekable POSIX disk: use scientific_receipts.staged_output for NPZ/ZIP/HDF5/closed database backups, close the local writer then verify publication; no live SQLite/WAL guarantee. Use byte copies, not chmod/copystat. This is real execution, not a code suggestion. Launch wait_seconds is 0 to 10, default 5; omit it for normal launches. Preserve an exact shell command entirely inside command: a CLI --operation-wait-seconds or --wait-seconds token is command text and must never be moved into this tool\'s wait_seconds field. Do not copy read_execution wait_seconds=30 into this tool. For long work save job_id and use read_execution to observe that same job; do not submit again. Returns 4000 output bytes by default with a full log file pointer; compute summaries locally instead of dumping source/data. timeout_seconds is the separate command deadline; 0 disables that deadline. Root applies to the container and its mounts, not the cloud host. Never print credentials.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': True, 'openWorldHint': True},
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['command'],
         'properties': {'command': {'type': 'string'}, 'cwd': {'type': 'string'},
@@ -670,7 +575,7 @@ TOOLS = [
                 'default': EXECUTE_WAIT_DEFAULT_SECONDS,
                 'description': 'Launch-response wait only: 0 to 10 seconds, default 5. Omit for a normal launch. This is not the command timeout or read_execution observation wait. Longer work continues under its saved job_id; call read_execution, never launch it again.'}}}},
     {'name': 'read_execution',
-     'description': 'Observe the same saved job_id, including after reconnecting. Whole-study v2 jobs return durable phase status and verified final artifacts; their supervisor resumes across process restart without a chat continuation. Generic commands and legacy workflows remain process-bound: their receipts survive but their process does not survive container restart. For ordinary command observations wait_seconds max30 (default15) has effective max25 inside the unchanged30-second MCP deadline. Never relaunch merely to poll or call pending inference completed analysis.',
+     'description': 'Observe the same saved job_id, including after reconnecting. Whole studies return durable phase status and verified final artifacts; their supervisor resumes across process restart without a chat continuation. Generic commands remain process-bound: their receipts survive but their process does not survive container restart. For ordinary command observations wait_seconds max30 (default15) has effective max25 inside the unchanged30-second MCP deadline. Never relaunch merely to poll or call pending inference completed analysis.',
      'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['job_id'],
         'properties': {'job_id': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0},

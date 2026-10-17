@@ -3,7 +3,7 @@
 
 Large inputs, credentials and raw results stay on disk. Reusing the output
 directory resumes the saved operation; ambiguous admission is never retried.
-Native is the compatibility default; ``--protocol openai-chat`` supports
+Native is the default protocol; ``--protocol openai-chat`` supports
 artifact-backed multimodal chat without moving image bytes through the LLM.
 """
 import argparse
@@ -121,7 +121,7 @@ class NativeContractError(ValueError):
 def select_contract(schema, arguments, tool_name=None, protocol='native'):
     """Never infer a capability from catalog order or modify model arguments.
 
-    A named tool is authoritative. Legacy unnamed callers may select only one
+    A named tool is authoritative. Unnamed callers may select only one
     validating contract; overlapping contracts require an explicit choice.
     """
     contracts = [c for c in schema['contracts'] if c.get('protocol') == protocol]
@@ -306,7 +306,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--model', required=True)
     parser.add_argument('--protocol', choices=('native', 'openai-chat'), default='native',
-                        help='Published model protocol. Native remains the compatibility default.')
+                        help='Published model protocol; native is the default.')
     parser.add_argument('--tool', help='Exact tool_name returned by get_model_schema; required when contracts overlap.')
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)

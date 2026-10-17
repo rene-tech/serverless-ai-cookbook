@@ -74,8 +74,9 @@ def test_uploaded_bundle_help_and_typed_schema_explain_existing_binding():
     execution_spec = importlib.util.spec_from_file_location('binding_execution', ROOT / 'execution-mcp.py')
     execution = importlib.util.module_from_spec(execution_spec)
     execution_spec.loader.exec_module(execution)
-    description = execution.BATCH_STEP_SCHEMA['properties']['parameters_file']['description']
-    assert 'uploaded-bundle' in description and 'finalized source_file' in description
+    from scientific_study_schema import BATCH
+    description = BATCH['properties']['parameters']['description']
+    assert 'uploaded-bundle' in description
     instructions = (ROOT.parents[1] / 'life-science/bionemo-librechat/scientific-agent-instructions.md').read_text()
     assert 'pass `tool_name`' in instructions
     skill = (ROOT.parents[1] / 'skills/scientific-ai/generative-media/SKILL.md').read_text()
@@ -101,11 +102,11 @@ def test_batch_upload_hashes_and_verifies_exact_compressed_file():
                 assert json['size_bytes'] == len(data)
                 assert headers['idempotency-key'] == 'batch-input-fixture'
                 return Response({'max_content_bytes': 1000, 'content_path': '/v1/scientific-artifacts/uploads/fixture/content',
-                                 'operation_id': 'operation-fixture', 'upload_id': 'fixture'})
-            assert json == {'operation_id': 'operation-fixture'}
-            return Response({'artifact_id': 'artifact-fixture', 'size_bytes': len(data),
+                                 'upload_id': 'fixture'})
+            assert json == {}
+            return Response({'state': 'finalized', 'artifact': {'artifact_id': 'artifact-fixture', 'size_bytes': len(data),
                              'sha256': hashlib.sha256(data).hexdigest(),
-                             'media_type': 'application/gzip', 'compression': 'gzip'})
+                             'media_type': 'application/gzip', 'compression': 'gzip'}})
         async def put(self, path, *, content, headers):
             assert content == data and headers['content-length'] == str(len(data))
             calls.append(('PUT', path, len(content)))

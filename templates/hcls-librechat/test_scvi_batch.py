@@ -38,7 +38,7 @@ def test_pending_and_recovery_preserve_operation(tmp_path, state, published, exp
         commands.append(command)
         if 'qualify_hosted' in command:
             pipeline.save(value.output / 'run/admission.json', {'operation': {'id': 'op-1'}})
-            pipeline.save(value.output / 'run/status.json', {'batch': {'status': state, 'result_published': published}})
+            pipeline.save(value.output / 'run/status.json', {'operation': {'status': state, 'result_available': published}})
             return types.SimpleNamespace(returncode=1)
         return types.SimpleNamespace(returncode=0)
 
@@ -101,7 +101,7 @@ def test_recovery_never_appends_or_replaces_prior_logs(tmp_path, monkeypatch):
         kwargs['stdout'].write('attempt ' + str(len(calls)) + '\n')
         if 'qualify_hosted' in command:
             pipeline.save(value.output / 'run/admission.json', {'operation': {'id': 'op-retained'}})
-            pipeline.save(value.output / 'run/status.json', {'batch': {'status': 'running'}})
+            pipeline.save(value.output / 'run/status.json', {'operation': {'status': 'running'}})
             return types.SimpleNamespace(returncode=1)
         return types.SimpleNamespace(returncode=0)
 

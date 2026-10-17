@@ -59,7 +59,7 @@ def test_exact_native_flat_and_scientific_wrapped_status(mounted, monkeypatch, s
     status = result['operation']['status'] if scientific else result['status']
     assert first == second == {'state': 'cancelling' if status == 'running' else 'cancelled', 'operation_id': 'known-op'}
     assert [tool for tool, _ in calls] == ([
-        'cancel_scientific_run', 'get_scientific_status', 'get_scientific_status'] if scientific else [
+        'cancel_operation', 'get_operation', 'get_operation'] if scientific else [
         'cancel_operation', 'get_operation', 'get_operation'])
     assert all(arguments == {'operation_id': 'known-op'} for _, arguments in calls)
     assert json.dumps(result, sort_keys=True) == saved_result  # terminal backend result is untouched

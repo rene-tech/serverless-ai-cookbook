@@ -252,6 +252,9 @@ def load(path: Path):
         source = versions[-1] if versions else path
         if not versions and not source.exists():
             return None
+        if path.name == 'receipt.json' and not versions:
+            raise RuntimeError(f'Unsupported archived receipt without a journal: {path}. '
+                               'The file is preserved. Do not resubmit or infer an admission state.')
         try:
             value = json.loads(source.read_text(encoding='utf-8'))
             if not isinstance(value, dict):

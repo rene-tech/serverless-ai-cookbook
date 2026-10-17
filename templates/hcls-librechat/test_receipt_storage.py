@@ -59,12 +59,14 @@ def test_incomplete_latest_journal_is_never_replaced_with_pre_admission_state(wr
         scientific_receipts.load(target)
 
 
-def test_legacy_receipt_without_journal_remains_resumable(tmp_path):
+def test_archived_receipt_without_journal_is_preserved_not_interpreted(tmp_path):
     from scientific_receipts import load
     target = tmp_path / 'receipt.json'
     assert load(target) is None
     target.write_text('{"operation_id":"old-operation","state":"running"}')
-    assert load(target)['operation_id'] == 'old-operation'
+    with pytest.raises(RuntimeError, match='Unsupported archived receipt'):
+        load(target)
+    assert target.read_text() == '{"operation_id":"old-operation","state":"running"}'
 
 
 def test_client_lock_is_local_and_excludes_same_receipt_only(tmp_path, monkeypatch):

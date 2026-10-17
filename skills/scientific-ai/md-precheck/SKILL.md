@@ -128,7 +128,7 @@ Other MCP/API clients can follow the manual contract below.
    `probes` may include `grompp`, `energy`, `minimize`, `stability`; these use
    CPU and require original sources. Default probe length is 5,000 steps,
    maximum 100,000; this is not the production duration. Overall limit: 30 min.
-6. Poll `get_scientific_status`, then `get_scientific_result`. Download the
+6. Poll `get_operation`, then `get_operation_result`. Download the
    returned `artifacts.json` and `artifacts.html` with the trusted artifact
    tools, preserving checksums. Return the verified workspace HTML link so
    LibreChat renders its inline report viewer; never paste the HTML into chat.

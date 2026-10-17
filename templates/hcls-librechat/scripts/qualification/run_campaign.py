@@ -263,7 +263,7 @@ def execute_case(mcp, person, case, args, manifest_path, tools):
         save(path, receipt)
     while time.monotonic() - start < args.case_timeout:
         try:
-            status = mcp.call("get_scientific_status" if batch else "get_operation", {"operation_id": receipt["operation_id"]})
+            status = mcp.call("get_operation", {"operation_id": receipt["operation_id"]})
             operation = status["operation"] if isinstance(status.get("operation"), dict) else status
         except (httpx.HTTPError, ToolError) as error:
             receipt["attempts"].append({"at": now(), "outcome": "poll_error", "error_type": type(error).__name__})
@@ -279,7 +279,7 @@ def execute_case(mcp, person, case, args, manifest_path, tools):
             save(path, receipt)
             return receipt
         if operation["status"] == "succeeded" and (not batch or status.get("batch", {}).get("result_published")):
-            envelope = mcp.call("get_scientific_result" if batch else "get_operation_result", {"operation_id": receipt["operation_id"]})
+            envelope = mcp.call("get_operation_result", {"operation_id": receipt["operation_id"]})
             save(folder / "result-envelope.json", envelope)
             if batch:
                 from batch_transport import resolve as resolve_batch

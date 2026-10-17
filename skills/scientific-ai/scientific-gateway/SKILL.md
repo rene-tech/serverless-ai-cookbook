@@ -18,11 +18,11 @@ key determines the visible Apps and owns the resulting operations and artifacts.
    the complete authorized catalog without filters. For a domain question select
    the relevant returned group; do not enumerate domains through keyword retries.
    `workbench_search_apps` is a separate literal phrase search: zero matches do
-   not mean zero permissions. For a named App, read its schema directly. Legacy `list_models` and
-   `list_scientific_models` remain fallbacks when the workbench helper is absent.
+   not mean zero permissions. For a named App, read its schema directly. Portable
+   clients without the workbench helper use hosted `list_models` and `list_scientific_models`.
    Compare their `tool_catalog_revision`; refresh tools when it changes.
 2. Call `get_model_schema` with the selected public `model_id` and protocol.
-3. Use the returned `contracts[].tool_name`, flat `input_schema`, examples,
+3. Use the returned `contracts[].tool_name`, exact `input_schema`, examples,
    source references and active-runtime identity. Independent Apps using the
    same underlying model remain separate Apps.
 4. Prefer that named typed tool. Do not infer fields from a model's name, an
@@ -31,11 +31,10 @@ key determines the visible Apps and owns the resulting operations and artifacts.
 
 Named serving tools accept the model fields directly plus optional
 `idempotency_key` and `wait_seconds`; named scientific tools accept the
-scientific run fields directly plus optional `idempotency_key`. Do not wrap new
-calls in `payload` or `request`. Do not send `model` to a named OpenAI-chat tool:
-the App already selects it. The generic `invoke_model` and
-`submit_scientific_run` envelopes are compatibility routes for model-agnostic
-clients, not the default for a skill-directed call.
+scientific run object in `request` plus `idempotency_key`. Do not wrap native
+model fields in `request` or `payload`; scientific tools use their advertised
+request wrapper. Do not send `model` to a named OpenAI-chat tool: the App already
+selects it. Use the exact discovered schema rather than another endpoint's shape.
 
 If this skill disagrees with the tool's current schema, the tool schema wins.
 Do not silently omit unsupported scientific inputs or switch models. Explain the
@@ -55,12 +54,12 @@ specific incompatibility and ask the user to choose a supported workflow.
     and operator console. Never translate it to a UUID or look for an alias.
     Prefer `workbench_get_operation` for bounded waiting and
     `workbench_get_operation_result` for verified result recovery; hosted
-    `get_scientific_status` and `get_scientific_result` use the same ID.
+    `get_operation` and `get_operation_result` use the same ID.
     Live audio sessions use their actual native `ses-...` session ID;
     synchronous predictions retain their native `sync-...` receipt ID.
-- Scientific submissions return an operation plus batch state. Poll
-  `get_scientific_status`; do not request the retired archive event stream.
-  Wait for result publication, then call `get_scientific_result` and retrieve
+- Scientific submissions return native operation state. Poll
+  `get_operation`; do not request the retired archive event stream.
+  Wait for `operation.result_available`, then call `get_operation_result` and retrieve
   the returned artifacts. Execution success alone may precede publication.
 - Treat `queued`, `activating`, and `running` as nonterminal, not proof of
   advancing execution or a specific capacity problem. Do not resubmit or
@@ -87,9 +86,10 @@ Chat attachments and local paths are not gateway artifacts. For every input:
 
 1. Read the actual caller-owned bytes outside the language-model context.
 2. Compute exact SHA-256, byte count, media type and compression.
-3. Let the installed trusted file helper call `begin_model_artifact_upload`,
-   transfer through its handle/HTTPS content path and finalize. Scientific
-   begin/finalize names remain aliases; raw byte tools are not agent-visible.
+3. Let the installed trusted file helper call `begin_scientific_artifact_upload`,
+   transfer through its handle/HTTPS content path and call
+   `finalize_scientific_artifact_upload`. Require `state: finalized` and use its
+   `artifact` object. Raw byte tools are not agent-visible.
 4. Build a canonical manifest from the returned immutable artifact references;
    upload and finalize that manifest too.
 5. Submit the named scientific tool with the finalized manifest reference.
@@ -120,19 +120,16 @@ contract metadata is not permission to guess. Keep rejected receipts unchanged;
 an explicitly corrected request has new metadata/identity and must not replace
 an accepted or unknown admission.
 
-For sequential native, batch or mixed multi-App work use the packaged
-`/opt/scientific-client/bin/python /opt/bionemo/scientific-workflow.py --help`.
-It delegates to the existing clients and advances only after a verified
-terminal receipt and saved result. Native steps set `kind: native` and provide
-`id`, `model`, absolute `input` and `output` paths, and `idempotency_key`;
-`output` is the existing native receipt directory. Batch steps retain the
-existing batch-client fields. A short wait returning queued/running is not completion and
-must not trigger the next stage. The immutable plan and each step keep the
-original output directory and idempotency key; a known concurrency rejection
-waits visibly, while ambiguous admission or application failure stops for
-inspection. A long-running execution job can wait until terminal without tying
-up a chat turn; retain its execution ID. Run directly through the durable
-executor, not shell backgrounding/nohup or chmod on the Object Storage mount.
+For sequential native, batch or mixed multi-App work use `run_scientific_workflow`
+with a `scientific-workflow/v2` study. Discover its current phase schemas using
+`describe_scientific_workflow`; `compose_scientific_workflow` can build a larger
+plan. Include requested analysis and deliverables. Native phases name actual
+input files; batch phases name source and parameter files. The durable
+supervisor advances only after verified results and resumes the immutable
+study after reconnects. A short queued/running observation is not completion.
+Known non-admitted concurrency rejection waits visibly; ambiguous admission or
+application failure stops for inspection. Keep the study ID and original
+idempotency keys. Do not use shell backgrounding/nohup or chmod on Object Storage.
 Native speech calls consume concurrency too; do not submit them all in parallel
 when the caller policy allows only one active operation. Do not change keys to evade a rejected
 or unknown admission. Optional `/v1/me` describes caller policy, not real-time
@@ -149,8 +146,8 @@ reserved capacity.
   idempotency identity, back off, and check the saved operation.
 - For a terminal model failure, report the public model/App, operation ID,
   timestamps and returned structured error. Do not label acceptance as success.
-- Raw serving results may be the result body or a legacy `{operation, result}`
-  envelope. Large serving results use `operation-artifact-result/v1`; the
+- Current endpoint and speech results use `{operation, result}`; scientific
+  batch results are run documents. Large endpoint results use `operation-artifact-result/v1`; the
   workbench resolver saves verified full JSON and returns compact metadata.
   Scientific
   results are versioned run documents whose output manifests point to artifacts.

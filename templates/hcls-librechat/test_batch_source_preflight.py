@@ -50,7 +50,7 @@ def test_ordinary_plain_input_omission_preserves_none(policy):
     args = arguments()
     resolved, provenance = batch.resolve_source_compression(policy, {}, args, b'{"unchanged":true}')
     assert resolved.compression == 'none' and args.compression is None
-    assert provenance['selection'] == 'legacy-uncompressed-default'
+    assert provenance['selection'] == 'uncompressed-source-signature'
     batch.preflight_source(policy, {}, resolved, 18)
 
 
@@ -105,7 +105,7 @@ def install_mock_context(tmp_path, monkeypatch, explicit, allowed=('gzip',), sto
     class MCP(Context):
         async def list_tools(self):
             return SimpleNamespace(tools=[SimpleNamespace(name='submit_fixture',
-                input_schema={'properties': {'parameters': {'type': 'object'}}},
+                input_schema={'properties': {'request': {'properties': {'parameters': {'type': 'object'}}}}},
                 model_dump=lambda **kwargs: {'name': 'submit_fixture'})])
     async def discovery(connection, name, args):
         calls.append(name)

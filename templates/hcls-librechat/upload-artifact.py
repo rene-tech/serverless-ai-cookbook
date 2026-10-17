@@ -100,10 +100,10 @@ async def transfer(client, object_http, args, endpoint, key):
     record['state'] = 'reserving'
     save(receipt, record)
     # Same immutable identity is safe to replay after a lost reservation response.
-    reserved = await timed_phase('reservation', lambda: call('begin_model_artifact_upload', dict(content, model_id=args.model,
+    reserved = await timed_phase('reservation', lambda: call('begin_scientific_artifact_upload', dict(content, model_id=args.model,
                            media_type=args.media_type, idempotency_key=args.idempotency_key,
                            **encoding), 'reservation.json'))
-    record.update(operation_id=reserved['operation_id'], upload_id=reserved['upload_id'], state='reserved')
+    record.update(upload_id=reserved['upload_id'], state='reserved')
     save(receipt, record)
     handle = reserved['handle']
     if handle.get('method') != 'PUT' or not handle.get('url', '').startswith('https://'):
@@ -142,19 +142,19 @@ async def transfer(client, object_http, args, endpoint, key):
         'duration_seconds': time.monotonic() - hash_start, 'status': 'completed'}
     save(receipt, record)
     if after_transfer != content:
-        # This reservation cannot be used for the changed file. Release only our
-        # own known upload operation, preserving both the transfer and cancel receipt.
+        # This immutable upload reservation cannot become a model input. Keep
+        # its receipt for diagnosis; an upload ID is not an execution to cancel.
         record['state'] = 'input_changed'
         attempt['status'] = 'input_changed'
-        save(receipt, record)
-        cancelled = await call('cancel_operation', {'operation_id': reserved['operation_id']}, 'cancel.json')
-        record['cancellation'] = cancelled
         save(receipt, record)
         raise ValueError('Local file changed during transfer; do not reuse this upload identity.')
     record['state'] = 'verifying'
     save(receipt, record)
-    artifact = await timed_phase('finalization', lambda: call('finalize_model_artifact_upload',
-                          {'operation_id': reserved['operation_id'], 'upload_id': reserved['upload_id']}, 'finalize.json'))
+    finalized = await timed_phase('finalization', lambda: call('finalize_scientific_artifact_upload',
+                          {'upload_id': reserved['upload_id']}, 'finalize.json'))
+    if finalized.get('state') != 'finalized' or not isinstance(finalized.get('artifact'), dict):
+        raise ValueError('Upload did not return a finalized artifact.')
+    artifact = finalized['artifact']
     if any(artifact.get(field) != expected for field, expected in {**content, **encoding}.items()) or not artifact.get('artifact_id'):
         attempt['status'] = 'metadata_verification_failed'
         save(receipt, record)
@@ -184,7 +184,7 @@ def main():
     parser.add_argument('--file', required=True, type=Path)
     parser.add_argument('--media-type', required=True)
     parser.add_argument('--compression', choices=['none', 'gzip', 'zstd'],
-                        help='Explicit transport encoding from the live input contract; bytes are not recompressed. Omission preserves legacy uncompressed identity.')
+                        help='Explicit transport encoding from the live input contract; bytes are not recompressed. The default is uncompressed.')
     parser.add_argument('--output-dir', required=True, type=Path)
     parser.add_argument('--idempotency-key', required=True)
     args = parser.parse_args()
@@ -195,7 +195,7 @@ def main():
     try:
         with receipt_lock(args.output_dir):
             result = asyncio.run(run(args))
-        print(json.dumps({'state': result['state'], 'operation_id': result['operation_id'],
+        print(json.dumps({'state': result['state'], 'upload_id': result['upload_id'],
                           'artifact': result['artifact'], 'artifact_file': str(args.output_dir / 'artifact.json')}))
     except Exception as error:
         print(json.dumps({'state': 'error', 'error_type': type(error).__name__,

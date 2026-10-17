@@ -10,10 +10,10 @@ const id = '11111111-1111-5111-8111-111111111111';
 const href = `/demos?tab=runs&study=${id}`;
 const state = (status = 'running') => ({ id, state: status, completed_steps: [], step_count: 2,
   model_progress: [{ study_step_id: 'simulate', operation_id: 'retained-operation', progress: {
-    schema: 'scientific-ai/md-progress/v1', available: true, updated_at: new Date().toISOString(),
+    schema: 'scientific-ai/progress/v1', available: true, updated_at: new Date().toISOString(),
     gpu_type: 'DO-NOT-EXPOSE-HARDWARE', gpu_count: 8, image: 'DO-NOT-EXPOSE-IMAGE',
     steps: [{ step_id: 'production', state: status === 'completed' ? 'completed' : 'running', unit: 'ns',
-      completed_ns: 0.25, durable_completed_ns: 0.2, target_ns: 1, ns_per_day: 217.8,
+      completed_units: 0.25, durable_completed_units: 0.2, target_units: 1, rate: 217.8, rate_unit: 'ns/day',
       rate_updated_at: new Date().toISOString(), observed_at: new Date().toISOString() }],
   } }], artifacts: [] });
 function mount(link = href) {

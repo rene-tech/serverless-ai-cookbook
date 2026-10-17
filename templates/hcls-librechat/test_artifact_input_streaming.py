@@ -78,9 +78,10 @@ def test_same_origin_upload_streams_and_finalizes_exact_metadata(tmp_path):
             calls.append(path)
             if path.endswith('/uploads'):
                 return Response({'max_content_bytes': len(source), 'content_path': '/upload',
-                                 'upload_id': 'fixture', 'operation_id': 'operation'})
-            return Response({'artifact_id': 'stored', 'sha256': source.sha256, 'size_bytes': len(source),
-                             'media_type': 'application/octet-stream', 'compression': 'none'})
+                                 'upload_id': 'fixture'})
+            assert json == {}
+            return Response({'state': 'finalized', 'artifact': {'artifact_id': 'stored', 'sha256': source.sha256, 'size_bytes': len(source),
+                             'media_type': 'application/octet-stream', 'compression': 'none'}})
         async def put(self, path, *, content, headers):
             assert not isinstance(content, bytes)
             checksum = hashlib.sha256()
@@ -111,10 +112,11 @@ def test_large_presigned_upload_streams_without_forwarding_platform_credentials(
         async def post(self, path, *, json, headers=None):
             calls.append(path)
             if path.endswith('/uploads'):
-                return Response({'max_content_bytes': 1, 'upload_id': 'fixture', 'operation_id': 'operation',
+                return Response({'max_content_bytes': 1, 'upload_id': 'fixture',
                     'handle': {'url': 'https://storage.example.test/input', 'headers': {'x-object': 'bound'}}})
-            return Response({'artifact_id': 'stored', 'sha256': source.sha256, 'size_bytes': len(source),
-                             'media_type': 'application/octet-stream', 'compression': 'none'})
+            assert json == {}
+            return Response({'state': 'finalized', 'artifact': {'artifact_id': 'stored', 'sha256': source.sha256, 'size_bytes': len(source),
+                             'media_type': 'application/octet-stream', 'compression': 'none'}})
 
     class Storage:
         async def __aenter__(self):

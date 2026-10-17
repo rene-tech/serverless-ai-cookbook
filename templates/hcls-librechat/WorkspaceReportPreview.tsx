@@ -13,7 +13,7 @@ function previewKind(path: string) {
   return type?.startsWith('image/') ? 'image' : type?.startsWith('video/') ? 'video' : null;
 }
 
-/** Older live clients can adopt static UI assets without restarting their API. */
+/** Read the current authenticated, size-bounded preview endpoint. */
 export async function readWorkspacePreview(path: string): Promise<Blob> {
   const controller = new AbortController();
   let exceeded = false;
@@ -21,19 +21,11 @@ export async function readWorkspacePreview(path: string): Promise<Blob> {
     onDownloadProgress: (event: { loaded: number }) => {
       if (event.loaded > PREVIEW_LIMIT + 1) { exceeded = true; controller.abort(); }
     } };
-  const read = async (route: string, legacy = false) => {
-    const response = await request.getResponse<Blob>(`/api/scientific-demos/workspace/${route}?path=${encodeURIComponent(path)}`,
-      { ...options, ...(legacy ? { headers: { Range: `bytes=0-${PREVIEW_LIMIT}` } } : {}) });
+  try {
+    const response = await request.getResponse<Blob>(`/api/scientific-demos/workspace/preview?path=${encodeURIComponent(path)}`,
+      options);
     if (response.data.size > PREVIEW_LIMIT) throw new Error('preview_limit');
     return response.data;
-  };
-  try {
-    try { return await read('preview'); }
-    catch (problem) {
-      // Never retry a permissions error or failed backend as another path.
-      if ((problem as { response?: { status?: number } })?.response?.status !== 404) throw problem;
-      return await read('file', true);
-    }
   } catch (problem) {
     if (exceeded) throw new Error('preview_limit');
     throw problem;

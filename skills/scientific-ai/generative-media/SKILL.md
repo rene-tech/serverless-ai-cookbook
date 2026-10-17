@@ -92,8 +92,8 @@ the existing file-based batch helper with the exact published artifact roles.
 The native Cosmos transfer request has its own typed control-input fields;
 do not copy the LeRobot parameter shape into the native request.
 
-Use the existing typed `run_scientific_workflow` batch step with source_file
-pointing to the actual archive and parameters_file containing the scientific
+Use the current `run_scientific_workflow` study with a batch phase whose `source`
+points to the actual archive and `parameters` names a file containing scientific
 settings plus `"source":{"kind":"uploaded-bundle"}`. The client uploads the
 source and injects its verified artifact reference; do not invent an ID or read
 its implementation. For LeRobot, select the exact published

@@ -10,10 +10,10 @@ from mcp_types import INTERNAL_ERROR, INVALID_PARAMS
 
 from test_scientific_batch_client import client
 
-OPERATION = '4e333485-573f-42ac-af81-a919cdf20913'
+OPERATION = 'op-4e333485573f42ac'
 
 
-def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_status', states=()):
+def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_operation', states=()):
     """Use the real SDK and an isolated mock HTTP server, including handshakes."""
     args = argparse.Namespace(source=tmp_path / 'source', parameters=tmp_path / 'parameters',
                               model='fixture', output=tmp_path / 'run', idempotency_key='original-key',
@@ -29,7 +29,7 @@ def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_sta
                 'source_artifact': {'artifact_id': 'unchanged-source'},
                 'manifest_artifact': {'artifact_id': 'unchanged-manifest'}}
     client.save(args.output / 'receipt.json', original)
-    previous = {'operation': {'id': OPERATION, 'status': 'running'}, 'batch': {'result_published': False}}
+    previous = {'operation': {'id': OPERATION, 'status': 'running', 'result_available': False}}
     client.save(args.output / 'status.json', previous)
     data = json.dumps({'entries': []}).encode()
     result = {'operation_id': OPERATION, 'terminal_status': 'succeeded',
@@ -71,10 +71,10 @@ def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_sta
             # The SDK reads metadata to validate a returned tool result.
             return rpc_response(request, message, {'tools': [{
                 'name': name, 'inputSchema': {'type': 'object'}}
-                for name in ('get_scientific_status', 'get_scientific_result')]})
+                for name in ('get_operation', 'get_operation_result')]})
         assert message['method'] == 'tools/call', 'No admission after saved operation'
         name, arguments = message['params']['name'], message['params']['arguments']
-        assert name in {'get_scientific_status', 'get_scientific_result'}
+        assert name in {'get_operation', 'get_operation_result'}
         assert arguments == {'operation_id': OPERATION}
         calls.append(name)
         if name == fault_tool and fault_queue:
@@ -88,10 +88,10 @@ def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_scientific_sta
                 return rpc_response(request, message, fault['rpc'], error=True)
             return rpc_response(request, message, {'isError': True, 'content': [{
                 'type': 'text', 'text': json.dumps({'error': fault})}]})
-        state = state_queue.pop(0) if name == 'get_scientific_status' and state_queue else 'succeeded'
-        document = ({'operation': {'id': OPERATION, 'status': state},
-                     'batch': {'result_published': state == 'succeeded'}}
-                    if name == 'get_scientific_status' else result)
+        state = state_queue.pop(0) if name == 'get_operation' and state_queue else 'succeeded'
+        document = ({'operation': {'id': OPERATION, 'status': state,
+                     'result_available': state == 'succeeded'}}
+                    if name == 'get_operation' else result)
         return rpc_response(request, message, {'content': [{'type': 'text', 'text': json.dumps(document)}]})
 
     original_http, original_sleep = client.httpx2.AsyncClient, asyncio.sleep
@@ -119,7 +119,7 @@ def test_progress_reports_state_changes_once_without_payloads_or_extra_submissio
     assert [event['state'] for event in progress] == ['queued', 'running', 'succeeded']
     assert all(event['operation_id'] == OPERATION for event in events)
     assert all(set(event) == {'operation_id', 'state', 'observation'} for event in progress)
-    assert calls == ['get_scientific_status'] * 5 + ['get_scientific_result', 'artifact-read']
+    assert calls == ['get_operation'] * 5 + ['get_operation_result', 'artifact-read']
     assert 'synthetic-key-never-in-receipts' not in json.dumps(events)
 
 
@@ -133,7 +133,7 @@ def test_actual_sdk_transient_reconnect_preserves_operation_and_never_submits(tm
     args, original, _, calls, sessions, _ = resumed_run(tmp_path, monkeypatch, [fault])
     receipt = asyncio.run(client.run(args))
     assert receipt['state'] == 'verified' and len(sessions) == 2
-    assert calls == ['get_scientific_status', 'get_scientific_status', 'get_scientific_result', 'artifact-read']
+    assert calls == ['get_operation', 'get_operation', 'get_operation_result', 'artifact-read']
     for field in ('operation_id', 'identity', 'source_artifact', 'manifest_artifact'):
         assert receipt[field] == original[field]
     assert receipt['observation_failure_count'] == 1
@@ -159,7 +159,7 @@ def test_permanent_error_stops_promptly_without_changing_saved_status(tmp_path, 
     with pytest.raises(Exception):
         asyncio.run(client.run(args))
     receipt = client.load_receipt(args.output / 'receipt.json')
-    assert len(sessions) == 1 and calls == ['get_scientific_status'] and not delays
+    assert len(sessions) == 1 and calls == ['get_operation'] and not delays
     assert receipt['state'] == original['state'] and receipt['operation_id'] == OPERATION
     assert client.load_receipt(args.output / 'status.json') == previous
     assert not receipt['observation_errors'][0]['retry_scheduled']
@@ -169,7 +169,7 @@ def test_repeated_server_failures_have_fixed_budget_and_remain_resumable(tmp_pat
     args, original, previous, calls, sessions, delays = resumed_run(tmp_path, monkeypatch, [503] * 5)
     receipt = asyncio.run(client.run(args))
     assert receipt['state'] == 'running' and len(sessions) == 5
-    assert calls == ['get_scientific_status'] * 5 and delays == [1, 2, 4, 8]
+    assert calls == ['get_operation'] * 5 and delays == [1, 2, 4, 8]
     assert receipt['operation_id'] == OPERATION and receipt['identity'] == original['identity']
     assert client.load_receipt(args.output / 'status.json') == previous
     assert not receipt['observation_errors'][-1]['retry_scheduled']
@@ -183,7 +183,7 @@ def test_deadline_prevents_retry_and_preserves_authoritative_state(tmp_path, mon
     args.wait_seconds = 0
     receipt = asyncio.run(client.run(args))
     assert receipt['state'] == 'running' and len(sessions) == 1 and not delays
-    assert calls == ['get_scientific_status']
+    assert calls == ['get_operation']
     assert client.load_receipt(args.output / 'status.json') == previous
 
 
@@ -203,7 +203,7 @@ def test_check_once_has_a_real_connection_budget_and_collects_completed_work(tmp
     assert timeouts and receipt['state'] == 'verified'
     assert receipt['operation_id'] == original['operation_id']
     assert len(sessions) == 1 and not delays
-    assert calls == ['get_scientific_status', 'get_scientific_result', 'artifact-read']
+    assert calls == ['get_operation', 'get_operation_result', 'artifact-read']
 
 
 def test_check_once_reads_pending_work_only_once_without_sleeping(tmp_path, monkeypatch):
@@ -211,15 +211,15 @@ def test_check_once_reads_pending_work_only_once_without_sleeping(tmp_path, monk
     args.wait_seconds = 0
     receipt = asyncio.run(client.run(args))
     assert receipt['state'] == 'running' and receipt['operation_id'] == original['operation_id']
-    assert calls == ['get_scientific_status'] and len(sessions) == 1 and not delays
+    assert calls == ['get_operation'] and len(sessions) == 1 and not delays
 
 
 def test_result_read_retries_but_successful_status_does_not_reset_its_failure_budget(tmp_path, monkeypatch):
     args, _, _, calls, sessions, _ = resumed_run(tmp_path, monkeypatch, [503] * 5,
-                                               fault_tool='get_scientific_result')
+                                               fault_tool='get_operation_result')
     receipt = asyncio.run(client.run(args))
     assert receipt['state'] == 'succeeded', 'Published is not yet hash-verified client success'
-    assert len(sessions) == 5 and calls == ['get_scientific_status', 'get_scientific_result'] * 5
+    assert len(sessions) == 5 and calls == ['get_operation', 'get_operation_result'] * 5
     assert 'verified_artifacts' not in receipt
 
 
@@ -228,7 +228,7 @@ def test_completed_recovery_uses_same_bounded_read_only_path(tmp_path, monkeypat
     args = argparse.Namespace(recover_operation_id=OPERATION, output=tmp_path / 'fresh-recovery')
     receipt = asyncio.run(client.recover_completed(args))
     assert receipt['state'] == 'verified' and len(sessions) == 2
-    assert calls == ['get_scientific_status', 'get_scientific_status', 'get_scientific_result', 'artifact-read']
+    assert calls == ['get_operation', 'get_operation', 'get_operation_result', 'artifact-read']
 
 
 def test_mixed_exception_group_cannot_hide_permanent_validation_failure():
@@ -263,7 +263,7 @@ def test_transient_handshake_can_reconnect_without_submission(tmp_path, monkeypa
     args, _, _, calls, sessions, _ = resumed_run(tmp_path, monkeypatch, [503], fault_tool='initialize')
     assert asyncio.run(client.run(args))['state'] == 'verified'
     assert len(sessions) == 2
-    assert calls == ['get_scientific_status', 'get_scientific_result', 'artifact-read']
+    assert calls == ['get_operation', 'get_operation_result', 'artifact-read']
 
 
 def test_ambiguous_mutation_is_never_retried_by_observation_policy(tmp_path, monkeypatch):
@@ -279,7 +279,7 @@ def test_ambiguous_mutation_is_never_retried_by_observation_policy(tmp_path, mon
         async def __aexit__(self, *args): return False
         async def list_tools(self):
             return SimpleNamespace(tools=[SimpleNamespace(name=args.tool,
-                input_schema={'type': 'object', 'properties': {'parameters': {'type': 'object'}}},
+                input_schema={'type': 'object', 'properties': {'request': {'properties': {'parameters': {'type': 'object'}}}}},
                 model_dump=lambda **kwargs: {'name': args.tool})])
     async def rpc(connection, name, arguments):
         calls.append(name)

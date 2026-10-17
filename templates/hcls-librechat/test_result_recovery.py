@@ -12,7 +12,7 @@ import pytest
 from test_execution import SCRIPT, call
 from test_scientific_batch_client import client
 
-OPERATION = '4e333485-573f-42ac-af81-a919cdf20913'
+OPERATION = 'op-4e333485573f42ac'
 
 
 def setup_client(tmp_path, monkeypatch):
@@ -48,10 +48,10 @@ def setup_client(tmp_path, monkeypatch):
     async def rpc(connection, name, arguments):
         tools.append(name)
         assert arguments == {'operation_id': OPERATION}
-        if name == 'get_scientific_status':
-            return {'operation': {'id': OPERATION, 'status': result['terminal_status']},
-                    'batch': {'result_published': result['terminal_status'] == 'succeeded'}}
-        assert name == 'get_scientific_result'
+        if name == 'get_operation':
+            return {'operation': {'id': OPERATION, 'status': result['terminal_status'],
+                    'result_available': result['terminal_status'] == 'succeeded'}}
+        assert name == 'get_operation_result'
         return result
     monkeypatch.setenv('SCIENTIFIC_MODELS_MCP_URL', 'https://platform.example/mcp')
     monkeypatch.setenv('SCIENTIFIC_MODELS_API_KEY', 'test-owned-key')
@@ -66,7 +66,7 @@ def test_recovers_exact_manifest_and_children_without_inference(tmp_path, monkey
     args, _, requests, tools = setup_client(tmp_path, monkeypatch)
     receipt = asyncio.run(client.recover_completed(args))
     assert receipt['state'] == 'verified'
-    assert tools == ['get_scientific_status', 'get_scientific_result']
+    assert tools == ['get_operation', 'get_operation_result']
     assert len(requests) == 3
     bundle = receipt['verified_artifacts'][1]
     assert bundle['name'] == 'bundle' and bundle['compression'] == 'zstd'
@@ -86,7 +86,7 @@ def test_disconnected_transfer_resumes_original_operation_and_exact_files(tmp_pa
     assert (args.output / 'output-00.artifact').read_bytes() == first
     assert requests.count('/v1/artifacts/result/content') == 1
     assert requests.count('/v1/artifacts/bundle/content') == 2
-    assert set(tools) == {'get_scientific_status', 'get_scientific_result'}
+    assert set(tools) == {'get_operation', 'get_operation_result'}
 
 
 @pytest.mark.parametrize('state', ['running', 'failed', 'preempted'])
@@ -95,7 +95,7 @@ def test_pending_or_failed_operation_never_downloads_or_resubmits(tmp_path, monk
     result['terminal_status'] = state
     with pytest.raises(RuntimeError, match='No model work was submitted'):
         asyncio.run(client.recover_completed(args))
-    assert tools == ['get_scientific_status'] and requests == []
+    assert tools == ['get_operation'] and requests == []
 
 
 def test_different_identity_or_changed_download_is_not_overwritten(tmp_path, monkeypatch):
@@ -106,7 +106,7 @@ def test_different_identity_or_changed_download_is_not_overwritten(tmp_path, mon
     with pytest.raises(RuntimeError, match='Existing artifact bytes differ'):
         asyncio.run(client.recover_completed(args))
     assert target.read_bytes() == b'retained corruption' and len(requests) == 3
-    args.recover_operation_id = 'b9a1bf61-f2bc-4677-9692-fab8c76248c9'
+    args.recover_operation_id = 'op-b9a1bf61f2bc4677'
     with pytest.raises(ValueError, match='different operation or caller'):
         asyncio.run(client.recover_completed(args))
 
@@ -143,7 +143,7 @@ print(json.dumps({'state':'verified','inference_submitted':False}))
     monkeypatch.setattr(module, 'WORKSPACE', str(tmp_path))
     monkeypatch.setattr(module, 'ROOT', tmp_path / 'jobs')
     with pytest.raises(ValueError, match='another operation'):
-        module.recover_scientific_results({**args, 'operation_id': 'b9a1bf61-f2bc-4677-9692-fab8c76248c9'})
+        module.recover_scientific_results({**args, 'operation_id': 'op-b9a1bf61f2bc4677'})
     assert len(list((tmp_path / 'jobs').glob('*/request.json'))) == 1
     assert 'recover_scientific_results_mcp_environment-execution' in SCRIPT.with_name('seed-workbench.js').read_text()
     assert 'apt-get install -y --no-install-recommends zstd' in SCRIPT.with_name('Dockerfile').read_text()

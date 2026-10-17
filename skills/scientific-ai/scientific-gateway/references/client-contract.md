@@ -10,9 +10,9 @@ This reference supplements `SKILL.md`. Live `tools/list` and
   headers. TLS verification remains enabled.
 - Authentication: `Authorization: Bearer <ordinary inference API key>` supplied
   by the client configuration. Never use an admin bootstrap token.
-- A practical full-workflow key has `catalog.read`, `inference.invoke`,
-  `mcp.invoke`, `operations.read`, `operations.result`, and, if cancellation is
-  offered, `operations.cancel`, plus a model allowlist.
+- A practical full-workflow key has `read:catalog`, `run:submit`,
+  `read:operations`, `read:results`, `artifacts:write`, and, if cancellation is
+  offered, `run:control`, plus a model allowlist.
 - Ordinary serving operation access is tied to the exact submitting key and
   principal. Preserve that identity until required results are retrieved.
 - Tool discovery is authorization-aware, private, and uncached. Subscribe to
@@ -20,35 +20,25 @@ This reference supplements `SKILL.md`. Live `tools/list` and
   `tool_catalog_revision` and refetch tools when it changes; reconnect after
   replacing credentials.
 
-The current server uses MCP SDK 2.1.1 and supports modern and legacy protocol
-negotiation. Let LibreChat manage `MCP-Protocol-Version`, request routing headers,
+The MCP SDK handles protocol negotiation. Let LibreChat manage
+`MCP-Protocol-Version`, request routing headers,
 client capabilities and JSON-RPC envelopes. Do not configure those as static
 headers because method and tool-name values change per call.
 
 ## Limits and retention
 
-The following are source defaults, not promises about every deployment. Use
-limits and expiry timestamps returned by the server when available.
-
-| Boundary | Default |
-| --- | ---: |
-| Raw HTTP/MCP request | 16 MiB |
-| Decoded inline artifact | 16 MiB |
-| Upstream response body | 128 MiB |
-| Stored artifact | 1 TiB |
-| Signed upload/download handle | 600 seconds |
-| Serving synchronous wait maximum | 30 seconds |
+Use the current model schema, upload reservation and download handle for
+request limits, allowed encodings, size bounds and expiry. Do not reuse limits
+from an earlier deployment. A signed transfer handle expires independently of
+the API key and the underlying immutable artifact.
 
 Raw bytes are not exposed as agent tools. The trusted client uploads through
 the handle/content path returned by reservation and downloads through the
 authorized HTTP content route or a download handle. Manifest inspection returns
 compact metadata rather than base64. Keep transfers outside model context.
 
-Ordinary payload/result TTL defaults to 24 hours and operation metadata to seven
-days. Scientific artifacts/results default to 90 days. Use returned expiry
-fields; settings are configurable. Request-debug capture is operator-only and
-currently has no automatic deletion job. Never assume a chat history is the
-durable store for an output.
+Use returned retention/expiry fields and the tenant's configured storage policy.
+Never assume a chat history is the durable store for an output.
 
 ## Tool families
 
@@ -59,12 +49,12 @@ Core tools cover:
 - native operation reads: `get_operation`, `get_operation_result`, and the
   advertised native lifecycle tools; no UUID job aliases;
 - native async serving (`operation.id` beginning `op-`): the App's named typed
-  submission tool, `get_scientific_status`, then `get_scientific_result`;
-- scientific runs: `submit_scientific_run`, `get_scientific_status`,
-  `list_scientific_events`, `get_scientific_result`, `cancel_scientific_run`;
-- artifacts: `begin_model_artifact_upload`, `finalize_model_artifact_upload`,
-  their scientific aliases, `get_scientific_artifact`,
-  `inspect_scientific_artifact_manifest`, and download handles.
+  submission tool, `get_operation`, then `get_operation_result`;
+- scientific runs: the App's typed submission tool, `get_operation`,
+  `get_operation_result`, `cancel_operation`;
+- artifacts: `begin_scientific_artifact_upload`, `finalize_scientific_artifact_upload`,
+  `get_scientific_artifact`, `download_scientific_artifact` and
+  `multipart_scientific_artifact_upload`.
 
 There is also one named typed tool per authorized App. Paused/disabled acceptance
 clones are excluded; restricted keys see fewer Apps. Discover the current count
@@ -74,7 +64,7 @@ instead of treating a historical event catalog as the deployed contract.
 
 | Example returned ID | Hosted status tool | Hosted result tool |
 | --- | --- | --- |
-| `op-e74c396a38794261` | `get_scientific_status` | `get_scientific_result` |
+| `op-e74c396a38794261` | `get_operation` | `get_operation_result` |
 | `ses-0123456789abcdef` (live session) | `get_operation` | `get_operation_result` |
 
 These are shape examples, not authority to read another caller's operation.
@@ -89,7 +79,7 @@ or switch credentials.
 
 ## Scientific batch document
 
-The typed named tool exposes the exact fields. The canonical run schema is
+The typed named tool exposes `request` and `idempotency_key`. The run object's schema is
 `fs2-serve.nebius.ai/scientific-run-request/v1`, including the advertised
 operation, an allowed `service_class`, a finalized `input_manifest`,
 model-specific `parameters`, and optional `client_context` identifiers. Use one
@@ -99,7 +89,12 @@ invent service classes or infrastructure priority; use discovery values.
 For files, reserve/write/finalize each real input, build a manifest containing
 the immutable returned references, serialize it canonically, then upload and
 finalize the manifest. Fixture artifact IDs in examples are not caller-owned.
-After submission, poll status/events and wait for result publication. The
+An upload reservation returns `upload_id`, not a job ID. Finalize with that ID;
+the response is `{"state":"finalized","artifact":{...}}`. Multipart commands
+use the outer upload ID plus `action`, optional `multipart_upload_id` and
+`part_numbers`; there is no operation to poll or cancel for a reservation.
+Manifests use `entries`, each with `name` and `artifact`, never role/ref aliases.
+After submission, poll status and wait for `operation.result_available`. The
 scientific result describes attempts, execution identity, semantic validation
 and output artifacts. Download the output manifest and its entries; verify exact
 SHA-256 and byte size.

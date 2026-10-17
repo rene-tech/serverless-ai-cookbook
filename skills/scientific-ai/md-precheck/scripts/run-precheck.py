@@ -103,7 +103,7 @@ async def execute(args, client, object_http, endpoint, key):
     op = record['operation_id']
     print(json.dumps({'operation_id': op, 'reused': record.get('reused', False)}), flush=True)
     while True:
-        state = await call('get_scientific_status', {'operation_id': op}, 'status.json')
+        state = await call('get_operation', {'operation_id': op}, 'status.json')
         if state.get('operation', {}).get('id') != op:
             raise ValueError('Status identity mismatch; inspect status.json.')
         record['state'] = state['operation']['status']
@@ -115,7 +115,7 @@ async def execute(args, client, object_http, endpoint, key):
         if time.monotonic() >= deadline:
             raise TimeoutError('Check still pending; resume this command and operation, not a new job.')
         await asyncio.sleep(5)
-    envelope = await call('get_scientific_result', {'operation_id': op}, 'result.json')
+    envelope = await call('get_operation_result', {'operation_id': op}, 'result.json')
     result = envelope['result']
     if envelope['operation']['id'] != op or result['workload_fingerprint'] != fingerprint:
         raise ValueError('Report does not cover the exact requested inputs/options; refusing delivery.')

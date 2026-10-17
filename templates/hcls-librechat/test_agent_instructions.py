@@ -108,7 +108,8 @@ Promise.resolve(vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), con
             self.assertTrue(primary['skills_enabled'])
             self.assertGreater(len(agents), 1)
             tutorial = next(a for a in agents if a['id'] == 'agent_protein_structure')
-            self.assertIn('LEGACY_MANUAL_MUST_NOT_BE_IN_PRIMARY', tutorial['instructions'])
+            self.assertNotIn('LEGACY_MANUAL_MUST_NOT_BE_IN_PRIMARY', tutorial['instructions'])
+            self.assertTrue(tutorial['instructions'].startswith((HERE / 'agent-instructions.md').read_text().strip()))
 
 
 if __name__ == '__main__':

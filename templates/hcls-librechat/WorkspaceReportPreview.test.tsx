@@ -67,22 +67,18 @@ test('a missing report is an explicit preview failure, never a fabricated pass o
   expect(read).toHaveBeenCalledTimes(1);
 });
 
-test('old clients use one bounded read-only file fallback only for missing preview route', async () => {
-  read.mockRejectedValueOnce({ response: { status: 404 } }).mockResolvedValueOnce({ data: blob(html) });
-  expect(await (await readWorkspacePreview('qa/report.html')).text()).toBe(html);
-  expect(read.mock.calls[1][0]).toBe('/api/scientific-demos/workspace/file?path=qa%2Freport.html');
-  expect(read.mock.calls[1][1].headers.Range).toBe('bytes=0-8388608');
-  for (const status of [401, 403, 500, 503]) {
+test('failed preview never retries through another route', async () => {
+  for (const status of [401, 403, 404, 500, 503]) {
     read.mockReset().mockRejectedValue({ response: { status } });
     await expect(readWorkspacePreview('qa/report.html')).rejects.toEqual({ response: { status } });
     expect(read).toHaveBeenCalledTimes(1);
   }
 });
 
-test('oversized preview responses or a legacy range-ignoring server stop at the preview bound', async () => {
+test('oversized preview responses stop at the preview bound', async () => {
   read.mockResolvedValue({ data: { size: 8388609 } });
   await expect(readWorkspacePreview('qa/report.html')).rejects.toThrow('preview_limit');
-  read.mockReset().mockRejectedValueOnce({ response: { status: 404 } }).mockImplementationOnce(async (_url, options) => {
+  read.mockReset().mockImplementationOnce(async (_url, options) => {
     options.onDownloadProgress({ loaded: 8388610 });
     expect(options.signal.aborted).toBe(true);
     throw new Error('cancelled');

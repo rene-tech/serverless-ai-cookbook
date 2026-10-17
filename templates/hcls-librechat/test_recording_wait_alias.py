@@ -25,6 +25,7 @@ ROOT = Path(__file__).parent
         "wan-image-to-video.py",
     ],
 )
-def test_helper_keeps_legacy_wait_and_exposes_operation_wait(script):
+def test_helper_exposes_only_current_operation_wait_option(script):
     source = (ROOT / script).read_text()
-    assert "'--operation-wait-seconds', '--wait-seconds', dest='wait_seconds'" in source
+    assert "'--operation-wait-seconds', dest='wait_seconds'" in source
+    assert "add_argument('--operation-wait-seconds', '--wait-seconds'" not in source

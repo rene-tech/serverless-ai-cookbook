@@ -97,10 +97,10 @@ submission through either interface; repeat the same identity only to recover
 an uncertain admission, not to create a second comparison run accidentally.
 
 Both paths return the same durable operation. Observe it at
-`GET /v1/operations/{id}` / `get_scientific_status`, read
-`GET /v1/operations/{id}/result` / `get_scientific_result` after publication, and
+`GET /v1/operations/{id}` / `get_operation`, read
+`GET /v1/operations/{id}/result` / `get_operation_result` after publication, and
 download/hash-check the manifest's artifacts. Cancel explicitly through
-`POST /v1/operations/{id}:cancel` / `cancel_scientific_run` when requested.
+`POST /v1/operations/{id}:cancel` / `cancel_operation` when requested.
 An HTTP timeout is not cancellation. Record the interface and its timing
 separately from engine runtime; a transport comparison must use a distinct
 deliberate operation per run, the same input bytes and unchanged physics.

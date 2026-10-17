@@ -49,18 +49,19 @@ def test_links_resolve_in_downloadable_bundle():
 
 
 @pytest.mark.parametrize('operation_id,status_tool,result_tool', [
-    ('op-e74c396a38794261', 'get_scientific_status', 'get_scientific_result'),
-    ('00000000-0000-4000-8000-000000000001', 'get_operation', 'get_operation_result'),
+    ('op-e74c396a38794261', 'get_operation', 'get_operation_result'),
+    ('ses-0123456789abcdef', 'get_operation', 'get_operation_result'),
 ])
-def test_native_and_original_uuid_polling_guidance(operation_id, status_tool, result_tool):
+def test_native_operation_polling_guidance(operation_id, status_tool, result_tool):
     reference = (ROOT / 'scientific-gateway/references/client-contract.md').read_text()
-    row = f'| `{operation_id}` | `{status_tool}` | `{result_tool}` |'
+    label = ' (live session)' if operation_id.startswith('ses-') else ''
+    row = f'| `{operation_id}`{label} | `{status_tool}` | `{result_tool}` |'
     assert row in reference
-    assert 'Pass the unchanged `operation.id` as `operation_id`' in text('scientific-gateway')
-    assert 'Do not use the UUID-only' in text('scientific-gateway')
-    assert '`workbench_get_operation*` helpers do not accept native `op-*`' in reference
+    assert 'Save and report the exact returned operation ID' in text('scientific-gateway')
+    assert 'Never translate it to a UUID' in text('scientific-gateway')
+    assert 'recovery and visualization accept the same native ID' in reference
     assert 'not authority to read another caller' in reference
-    assert 'submit again or switch credentials' in reference
+    assert 'submit again or switch credentials' in ' '.join(reference.split())
     assert '- serving: `invoke_model`, `get_operation`' not in reference
 
 
@@ -70,6 +71,8 @@ def test_new_catalog_app_requires_deliberate_workflow_coverage():
         bundle.check_catalog({'models': [{'id': 'unreviewed-new-model'}]})
     with pytest.raises(ValueError):
         bundle.check_catalog({'models': []})
+    with pytest.raises(ValueError, match='public website'):
+        bundle.check_catalog({'data': [{'id': 'scvi-scanvi'}]})
 
 
 @pytest.mark.parametrize('model,example', [
