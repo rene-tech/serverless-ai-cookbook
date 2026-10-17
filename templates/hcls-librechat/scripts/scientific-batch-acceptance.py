@@ -11,8 +11,9 @@ the existing operation to have succeeded and uses the configured credentials.
 No model, source, parameters or idempotency key is needed for recovery.
 For recovery-only help, add --help to that recovery command.
 
-The output directory is the resume boundary. Re-running it polls the saved
-operation; it never silently resubmits after ambiguous admission.
+The output directory is the resume boundary. Re-running it observes the saved
+operation or reconciles a lost admission with the exact saved request/key.
+It never creates a replacement request or changes scientific parameters.
 """
 
 import argparse
@@ -64,6 +65,7 @@ ARTIFACT_DOWNLOAD_ATTEMPTS = 4
 ARTIFACT_DOWNLOAD_WORKERS = 4
 OPERATION_READ_ATTEMPTS = 5
 OPERATION_READ_TIMEOUT = 60
+ADMISSION_REPLAY_ATTEMPTS = 3
 TRANSIENT_READ_HTTP = {408, 429, 500, 502, 503, 504}
 
 
@@ -806,13 +808,16 @@ def admission_binding(args, receipt):
 def recover_saved_admission(args, receipt):
     """Recover an exact acceptance saved just before the operation receipt.
 
-    No admission is replayed. Missing or mismatched responses remain ambiguous.
+    A missing ACK can be reconciled by replaying the exact idempotent request.
+    A mismatched ACK is an evidence error, not permission to submit again.
     """
     if receipt.get('operation_id') or receipt.get('state') not in {'submitting', 'admission_unknown'}:
         return receipt
     try:
         binding = admission_binding(args, receipt)
         saved = load_receipt(args.output / 'admission.json')
+        if saved is None:
+            return receipt
         if not isinstance(saved, dict) or saved.get('binding') != binding:
             raise ValueError('No matching journaled acknowledgement.')
         operation = batch_operation(saved['response'], model_id=args.model)
@@ -824,19 +829,75 @@ def recover_saved_admission(args, receipt):
     return receipt
 
 
-async def run(args) -> dict:
+def recoverable_admission(receipt):
+    """Bound retries across worker restarts, not merely one Python invocation."""
+    return bool(receipt and receipt.get('state') in {'submitting', 'admission_unknown'}
+        and not receipt.get('operation_id') and receipt.get('request_sha256')
+        and receipt.get('request_descriptor') and receipt.get('identity')
+        and receipt.get('admission_replay_attempts', 0) < ADMISSION_REPLAY_ATTEMPTS)
+
+
+async def admit(client, args, receipt, request):
+    binding = admission_binding(args, receipt)
+    receipt['state'] = 'submitting'
+    save(args.output / 'receipt.json', receipt)
     try:
-        return await _run(args)
-    except ExceptionGroup as error:
-        # MCP/AnyIO may wrap the local validation exception during context
-        # teardown. Preserve only this exact single-leaf rejection; mixed or
-        # unrelated transport/model errors retain their original group.
-        leaf = error
-        while isinstance(leaf, BaseExceptionGroup) and len(leaf.exceptions) == 1:
-            leaf = leaf.exceptions[0]
-        if isinstance(leaf, (ParameterPreflightError, SourcePreflightError, ToolAvailabilityError)):
-            raise leaf from error
+        accepted = await call(client, args.tool, request)
+    except ExplicitRejection as error:
+        receipt.update(state='rejected', last_rejection=error.error)
+        save(args.output / 'receipt.json', receipt)
         raise
+    except Exception:
+        receipt['state'] = 'admission_unknown'
+        save(args.output / 'receipt.json', receipt)
+        raise
+    operation = batch_operation(accepted, model_id=args.model)
+    if operation['status'] == 'admission_pending':
+        # A prepared ID is not native admission. Preserve the same request;
+        # do not leave the client polling an operation that does not exist yet.
+        receipt['state'] = 'admission_unknown'
+        save(args.output / 'receipt.json', receipt)
+        raise httpx2.ReadError('Exact request admission remains pending.')
+    save(args.output / 'admission.json', {'binding': binding, 'response': accepted})
+    save(args.output / 'submission.json', accepted)
+    receipt.update(operation_id=operation['operation_id'], state=operation['status'])
+    save(args.output / 'receipt.json', receipt)
+
+
+async def replay_admission(args, receipt, headers):
+    """The current Scientific AI contract deduplicates this exact owner/key/body.
+
+    Never rebuild/upload a request, discover another tool, or choose an ID from
+    a jobs list. Source and caller identity were checked by _run before entry.
+    """
+    admission_binding(args, receipt)
+    if not recoverable_admission(receipt):
+        raise RuntimeError('Exact admission reconciliation attempts exhausted; preserve the original request.')
+    receipt['admission_replay_attempts'] = receipt.get('admission_replay_attempts', 0) + 1
+    save(args.output / 'receipt.json', receipt)
+    request = load_receipt(args.output / 'request.json')
+    async with httpx2.AsyncClient(headers=headers, timeout=180, trust_env=False) as http:
+        async with Client(streamable_http_client(receipt['identity']['endpoint'], http_client=http)) as client:
+            await admit(client, args, receipt, request)
+
+
+async def run(args) -> dict:
+    while True:
+        try:
+            return await _run(args)
+        except Exception as error:
+            # Reuse the existing transport classifier, but only for a saved
+            # idempotent admission. Scientific/application failures never retry.
+            receipt = load_receipt(args.output / 'receipt.json')
+            if recoverable_admission(receipt) and operation_read_failure(error)['retryable']:
+                await asyncio.sleep(min(2 ** receipt.get('admission_replay_attempts', 0), 8))
+                continue
+            leaf = error
+            while isinstance(leaf, BaseExceptionGroup) and len(leaf.exceptions) == 1:
+                leaf = leaf.exceptions[0]
+            if leaf is not error and isinstance(leaf, (ParameterPreflightError, SourcePreflightError, ToolAvailabilityError)):
+                raise leaf from error
+            raise
 
 
 async def _run(args) -> dict:
@@ -860,6 +921,12 @@ async def _run(args) -> dict:
     receipt = recover_saved_admission(args, receipt)
     save(receipt_path, receipt)
     headers = {"authorization": "Bearer " + key}
+    if receipt.get('state') in {'submitting', 'admission_unknown'} and not receipt.get('operation_id'):
+        await replay_admission(args, receipt, headers)
+    if getattr(args, 'reconcile_only', False):
+        if not receipt.get('operation_id'):
+            raise RuntimeError('No prior admission exists to reconcile.')
+        return receipt  # The study executor owns subsequent observation/results.
     async with httpx2.AsyncClient(base_url=origin, headers=headers, timeout=180,
                                   trust_env=False, follow_redirects=False) as http:
         if not receipt.get("operation_id"):
@@ -949,25 +1016,8 @@ async def _run(args) -> dict:
                                                   "correlation_id": args.idempotency_key}}
                     request = submission_arguments(tool.input_schema, body, args.idempotency_key)
                     save(args.output / "request.json", request)
-                    receipt["state"] = "submitting"
                     receipt['request_sha256'] = digest(canonical(request))
-                    binding = admission_binding(args, receipt)
-                    save(receipt_path, receipt)
-                    try:
-                        accepted = await call(client, args.tool, request)
-                    except ExplicitRejection as error:
-                        receipt.update(state="rejected", last_rejection=error.error)
-                        save(receipt_path, receipt)
-                        raise
-                    except Exception:
-                        receipt["state"] = "admission_unknown"
-                        save(receipt_path, receipt)
-                        raise
-                    save(args.output / 'admission.json', {'binding': binding, 'response': accepted})
-                    save(args.output / "submission.json", accepted)
-                    operation = batch_operation(accepted, model_id=args.model)
-                    receipt.update(operation_id=operation['operation_id'], state=operation['status'])
-                    save(receipt_path, receipt)
+                    await admit(client, args, receipt, request)
         return await observe_operation(args, http, endpoint, headers, receipt, receipt_path)
 
 

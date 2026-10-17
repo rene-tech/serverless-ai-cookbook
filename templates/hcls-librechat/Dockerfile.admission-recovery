@@ -1,0 +1,14 @@
+# syntax=docker/dockerfile:1.7
+# Transport-only update over the current identity/inline-viewer release.
+# Preserve scientific_study.py, which active analyses pin by exact bytes.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:f672767e083a15a0d3373115b84071e334a159d66f6fa74d18b5cb95a8a7a05c
+FROM ${WORKBENCH_BASE}
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
+    cp /tmp/client/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
+ && cp /tmp/client/scientific-workflow.py /tmp/client/scientific-study-worker.py /opt/bionemo/ \
+ && /opt/scientific-client/bin/python -m py_compile \
+    /opt/bionemo/invoke-scientific-batch.py /opt/bionemo/scientific-workflow.py /opt/bionemo/scientific-study-worker.py
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="exact-admission-recovery-20261017"

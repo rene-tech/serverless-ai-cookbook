@@ -175,7 +175,11 @@ async def run(plan, output, wait_seconds=1800, poll_seconds=10, run_step=None, c
                                      'completed_steps': [], 'step_states': {}}
     if receipt['plan_sha256'] != identity:
         raise ValueError('Workflow plan changed. Preserve this workflow and its original receipts.')
-    if receipt.get('state') in {'failed', 'admission_unknown'}:
+    current = next((step for step in plan['steps'] if step['id'] == receipt.get('current_step')), None)
+    child = load(Path(current['output']) / 'receipt.json') if current else None
+    reconcile = (current and current.get('kind', 'batch') == 'batch'
+        and (batch.recoverable_admission(child) or (child or {}).get('operation_id')))
+    if receipt.get('state') == 'failed' or (receipt.get('state') == 'admission_unknown' and not reconcile):
         raise RuntimeError('Workflow requires inspection; retained failure must not be silently retried.')
     save(output / 'plan.json', plan)
     deadline = clock() + wait_seconds if wait_seconds else float('inf')

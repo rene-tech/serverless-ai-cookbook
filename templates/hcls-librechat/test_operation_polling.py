@@ -268,7 +268,7 @@ def test_transient_handshake_can_reconnect_without_submission(tmp_path, monkeypa
     assert calls == ['get_operation', 'get_operation_result', 'artifact-read']
 
 
-def test_ambiguous_mutation_is_never_retried_by_observation_policy(tmp_path, monkeypatch):
+def test_ambiguous_mutation_uses_separate_bounded_exact_reconciliation(tmp_path, monkeypatch):
     args = argparse.Namespace(source=tmp_path / 'input', parameters=tmp_path / 'parameters',
         output=tmp_path / 'new', model='fixture', tool='submit_fixture', operation='simulate',
         idempotency_key='original-new-admission', media_type='application/json', compression='none',
@@ -302,11 +302,15 @@ def test_ambiguous_mutation_is_never_retried_by_observation_policy(tmp_path, mon
     monkeypatch.setattr(client, 'Client', lambda *args, **kwargs: Context())
     monkeypatch.setattr(client, 'call', rpc)
     monkeypatch.setattr(client, 'upload', upload)
+    async def no_sleep(delay): pass
+    monkeypatch.setattr(client.asyncio, 'sleep', no_sleep)
     with pytest.raises(MCPError):
         asyncio.run(client.run(args))
-    assert calls == ['get_model_schema', 'upload', 'upload', 'submit_fixture']
+    expected = ['get_model_schema', 'upload', 'upload'] + ['submit_fixture'] * 4
+    assert calls == expected
     receipt = client.load_receipt(args.output / 'receipt.json')
     assert receipt['state'] == 'admission_unknown' and 'operation_id' not in receipt
-    with pytest.raises(RuntimeError, match='ambiguous'):
+    assert receipt['admission_replay_attempts'] == 3
+    with pytest.raises(RuntimeError, match='attempts exhausted'):
         asyncio.run(client.run(args))
-    assert calls == ['get_model_schema', 'upload', 'upload', 'submit_fixture']
+    assert calls == expected

@@ -130,22 +130,102 @@ def test_saved_ack_recovers_after_receipt_write_loss_without_resubmitting(tmp_pa
 
 
 @pytest.mark.parametrize('model', CONTRACTS)
-def test_lost_response_without_ack_never_resubmits(tmp_path, monkeypatch, model):
+@pytest.mark.parametrize('before_acceptance', [True, False])
+def test_lost_response_reconciles_exact_saved_request(tmp_path, monkeypatch, model, before_acceptance):
     args, calls, uploads = setup_submission(tmp_path, monkeypatch, model)
     call = client.call
+    requests = []
     async def disconnected(connection, name, arguments):
-        result = await call(connection, name, arguments)
         if name == args.tool:
-            raise client.httpx2.ReadError('synthetic lost response')
-        return result
+            requests.append(copy.deepcopy(arguments))
+            if len(requests) == 1:
+                if not before_acceptance:
+                    await call(connection, name, arguments)
+                raise client.httpx2.ReadError('synthetic lost response')
+        return await call(connection, name, arguments)
+    async def no_sleep(delay): pass
     monkeypatch.setattr(client, 'call', disconnected)
-    with pytest.raises(client.httpx2.ReadError):
+    monkeypatch.setattr(client.asyncio, 'sleep', no_sleep)
+    result = asyncio.run(client.run(args))
+    assert result['operation_id'] == OP and result['admission_replay_attempts'] == 1
+    assert requests[0] == requests[1] == client.load_receipt(args.output / 'request.json')
+    assert [name for name, _ in calls].count('get_model_schema') == 1 and len(uploads) == 2
+
+
+@pytest.mark.parametrize('model', CONTRACTS)
+def test_persistent_lost_response_has_durable_bounded_reconciliation(tmp_path, monkeypatch, model):
+    args, calls, uploads = setup_submission(tmp_path, monkeypatch, model)
+    original = client.call
+    async def broken(connection, name, arguments):
+        result = await original(connection, name, arguments)
+        if name == args.tool:
+            raise ExceptionGroup('SDK cleanup', [client.httpx2.ReadError('lost')])
+        return result
+    async def no_sleep(delay): pass
+    monkeypatch.setattr(client, 'call', broken)
+    monkeypatch.setattr(client.asyncio, 'sleep', no_sleep)
+    with pytest.raises(ExceptionGroup):
         asyncio.run(client.run(args))
-    assert client.load_receipt(args.output / 'receipt.json')['state'] == 'admission_unknown'
-    original_calls = copy.deepcopy(calls)
-    with pytest.raises(RuntimeError, match='ambiguous'):
+    saved = client.load_receipt(args.output / 'receipt.json')
+    assert saved['state'] == 'admission_unknown' and saved['admission_replay_attempts'] == 3
+    submitted = [arguments for name, arguments in calls if name == args.tool]
+    assert len(submitted) == 4 and all(item == submitted[0] for item in submitted)
+    with pytest.raises(RuntimeError, match='attempts exhausted'):
         asyncio.run(client.run(args))
-    assert calls == original_calls and len(uploads) == 2
+    assert len([name for name, _ in calls if name == args.tool]) == 4 and len(uploads) == 2
+
+
+@pytest.mark.parametrize('model', CONTRACTS)
+@pytest.mark.parametrize('changed', [None, 'owner', 'source', 'parameters', 'key', 'tool', 'request'])
+def test_process_restart_replays_only_unchanged_request(tmp_path, monkeypatch, model, changed):
+    args, calls, uploads = setup_submission(tmp_path, monkeypatch, model)
+    original = client.call
+    async def died(connection, name, arguments):
+        result = await original(connection, name, arguments)
+        if name == args.tool:
+            raise SystemExit('process died after native admission')
+        return result
+    monkeypatch.setattr(client, 'call', died)
+    with pytest.raises(SystemExit):
+        asyncio.run(client.run(args))
+    monkeypatch.setattr(client, 'call', original)
+    before = len(calls)
+    if changed == 'owner': monkeypatch.setenv('SCIENTIFIC_MODELS_API_KEY', 'different-key')
+    elif changed == 'source': args.source.write_bytes(b'different')
+    elif changed == 'parameters': args.parameters.write_text('{}')
+    elif changed == 'key': args.idempotency_key = 'different-key'
+    elif changed == 'tool': args.tool = 'another-tool'
+    elif changed == 'request':
+        request = client.load_receipt(args.output / 'request.json')
+        request['idempotency_key'] = 'different-key'
+        client.save(args.output / 'request.json', request)
+    if changed:
+        with pytest.raises((ValueError, RuntimeError)):
+            asyncio.run(client.run(args))
+        assert len(calls) == before
+    else:
+        result = asyncio.run(client.run(args))
+        assert result['operation_id'] == OP and result['admission_replay_attempts'] == 1
+        submitted = [arguments for name, arguments in calls if name == args.tool]
+        assert len(submitted) == 2 and submitted[0] == submitted[1]
+    assert len(uploads) == 2
+
+
+def test_prepared_pending_id_is_reconciled_not_claimed_as_admitted(tmp_path, monkeypatch):
+    args, calls, uploads = setup_submission(tmp_path, monkeypatch, 'gromacs')
+    original = client.call
+    async def pending(connection, name, arguments):
+        result = await original(connection, name, arguments)
+        if name == args.tool and [n for n, _ in calls].count(args.tool) == 1:
+            return {'operation_id': OP, 'model_id': args.model, 'status': 'ADMISSION_PENDING',
+                    'state': 'admission-unknown', 'retry_same_idempotency_key': True}
+        return result
+    async def no_sleep(delay): pass
+    monkeypatch.setattr(client, 'call', pending)
+    monkeypatch.setattr(client.asyncio, 'sleep', no_sleep)
+    result = asyncio.run(client.run(args))
+    assert result['state'] == 'queued' and result['admission_replay_attempts'] == 1
+    assert [name for name, _ in calls].count(args.tool) == 2 and len(uploads) == 2
 
 
 @pytest.mark.parametrize('model', CONTRACTS)
