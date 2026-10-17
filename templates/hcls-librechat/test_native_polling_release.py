@@ -17,15 +17,15 @@ def evidence():
 def test_pointer_and_console_link_select_exact_published_bytes():
     # Historical receipts remain immutable; compare the current default only
     # with its own published release evidence, not the old precheck-only image.
-    receipt = json.loads((ROOT/'docs/evidence/client-update-20261017.json').read_text())
+    receipt = json.loads((ROOT/'docs/evidence/catalog-contract-20261017.json').read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
     assert receipt['all_scientific_workflows_qualified'] is False
-    assert receipt['manifest'] == 'sha256:eaf15340996e3507a40ae0dd377351c6ea35b609ff6e90c36fe52fe009818618'
-    assert receipt['source'] == '19bcad5b3a50ad780388a646eb36d3bd86789e18'
+    assert receipt['manifest'] == 'sha256:6ee584d9b02c6b60cc4c2f7cf6d961185a2afb470d2e4ad878d9990d9c9a4580'
+    assert receipt['source'] == 'b66b3266bdc6545152a0a9be44d5c09ceef8df62'
     assert receipt['contract'] == {
         'native_operation_ids': True,
         'upload_identity': 'upload_id',
@@ -57,6 +57,17 @@ def test_ui_update_does_not_claim_automatic_reloads_or_scientific_requalificatio
     assert receipt['fleet']['authenticated_logins_verified'] == 6
     assert receipt['fleet']['processes_unchanged']
     assert receipt['fleet']['provider_base_image_changed'] is False
+
+
+def test_catalog_correction_is_live_but_not_a_blanket_workflow_qualification():
+    receipt = json.loads((ROOT/'docs/evidence/catalog-contract-20261017.json').read_text())
+    assert receipt['inherited_ui_receipt'] == 'client-update-20261017.json'
+    assert receipt['installed_catalog_tests_passed'] == 26
+    assert receipt['real_chat']['passed'] and receipt['real_chat']['completed_turns'] == 2
+    assert receipt['real_chat']['scientific_submissions'] == 0
+    assert receipt['fleet']['clients_verified'] == 5
+    assert receipt['fleet']['current_cached_processes_verified'] == 7
+    assert receipt['all_scientific_workflows_qualified'] is False
 
 
 def test_historical_precheck_evidence_preserves_its_original_scope():

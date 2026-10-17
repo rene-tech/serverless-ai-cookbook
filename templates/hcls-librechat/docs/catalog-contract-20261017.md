@@ -1,8 +1,9 @@
 # Current App catalog contract — 17 October 2026
 
-Candidate source: `b66b3266bdc6545152a0a9be44d5c09ceef8df62`.
-Production deployment remains pending until the release owner records the
-published image digest, retained-client readback and actual QA chat acceptance.
+Runtime source: `b66b3266bdc6545152a0a9be44d5c09ceef8df62`.
+Published and deployed image `catalog-contract-20261017-r1`, digest
+`sha256:6ee584d9b02c6b60cc4c2f7cf6d961185a2afb470d2e4ad878d9990d9c9a4580`.
+All five retained clients are patched; the shared default selects this image.
 
 ## Cause and correction
 
@@ -40,13 +41,31 @@ Private receipts: `catalog-failure-20261017.sc7CKw/checks.json`,
 `qa-catalog-probe.json`, `qa-candidate.json`, `rene-candidate.json`,
 `focused-base-tests.log`, `demos-base-tests.log` and `studies-base-unchanged.log`.
 
-## Rollout handoff
+## Applied rollout and real chat
 
 `Dockerfile.catalog-contract` overlays the qualified client-update base
 `sha256:eaf15340996e3507a40ae0dd377351c6ea35b609ff6e90c36fe52fe009818618`
 and runs the installed catalog/service tests. The only changed service export
-is `listApps`; its new private helpers remain in its closure. The release owner
-must preserve existing processes while updating that export in the API and
-each scientific-demos MCP process, then verify the actual QA chat path.
-The image digest, default pointers and applied fleet receipts belong to that
-separate release closeout; this candidate report does not assert deployment.
+is `listApps`; its new private helpers remain in its closure. It was replaced
+in the existing API and scientific-demos MCP service objects on all five
+retained clients. Process identities, chat/worker state, credentials and the
+inline report assets were unchanged by the patch. Future MCP processes read
+the same updated installed file; no reconnect is required for existing ones.
+
+Two actual QA chat questions (full catalog and molecular-dynamics access) each
+made one successful `workbench_list_apps` call, with complete current results
+and the expected Apps in the assistant's answer. They completed in 7.1 and
+4.9 seconds without scientific submissions. This is observed chat latency,
+not a serving-capacity measurement.
+
+Readback through seven existing cached API/MCP service objects across the five
+clients matched their exact authorized catalog, including 37/37 for Rene.
+Every diagnostic inspector was closed. No account, access grant or model was
+changed. The image retains the separately qualified open-tab update notice,
+admission recovery and inline report UI; it is not all-workflow qualification.
+
+Private rollout/build/chat/readback evidence: `precheck-inline-20261017.Lsa7Dt`.
+The [sanitized release receipt](evidence/catalog-contract-20261017.json), shared
+selector and README launch button pin the same immutable image. Provider base
+image metadata remains unchanged after in-place patching: future recreation
+must select this default and preserve existing state/storage bindings.
