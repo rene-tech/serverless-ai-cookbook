@@ -113,7 +113,7 @@ async def reconcile_observation(identifier):
                         wait_seconds=0, recover_only=True)
                     if step.get('tool_name'):
                         arguments['tool'] = step['tool_name']
-                    child = await workflow.run_native_step(argparse.Namespace(**arguments))
+                    child = await workflow.run_native_step(argparse.Namespace(**arguments), workflow.native.run)
                 else:
                     arguments = {'compression': None, 'service_class': 'customer-batch',
                         **{key: value for key, value in arguments.items() if key not in {'id', 'kind'}}}
@@ -156,6 +156,8 @@ def next_study(items):
     """Fair observation slices; only ambiguous admission/cancellation blocks."""
     eligible = []
     for item in sorted(items, key=lambda item: item['created_at']):
+        # list_studies returns a customer view, not private retry bookkeeping.
+        item = load(studies.directory(item['id']) / 'receipt.json') or item
         cancelled = (studies.directory(item['id']) / 'cancel-request.json').exists()
         observe = observation_step(item)
         if item.get('queue_blocked') and not observe and not item.get('observation_recovery') and (
