@@ -1,0 +1,26 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:mdprecheck-sync-20261017",
+  "manifest": "sha256:76b04c61341afab7d763df4d972692d124ad8c8d2adc685a8223012aecd7a70b",
+  "source": "a8fafa3c394137505aa9cf6f618b3bf59ded6d17",
+  "base_manifest": "sha256:ac5a4f7dbd458842fd38d87009db06cc6b365d5547a4f061d81752259c4cb9af",
+  "foundation_receipt": "current-contract-release-20261017.json",
+  "skills_version": "2026.10.17.3",
+  "all_scientific_workflows_qualified": false,
+  "sustainable_capacity_measured": false,
+  "contract": {
+    "native_operation_ids": true,
+    "upload_identity": "upload_id",
+    "paired_preview_api_and_ui_required": true,
+    "request_shape": "exact-discovered-current-tool-schema",
+    "progress_schema": "scientific-ai/progress/v1",
+    "precheck_execution": "synchronous-only",
+    "precheck_async_fallback": false,
+    "mcp_timeout_ms": 2400000
+  },
+  "installed_runner_tests": 9,
+  "retained_clients": 5,
+  "api_and_supervisor_processes_preserved": true,
+  "inline_report_visually_verified": true,
+  "private_checker_source_included": false,
+  "provider_base_image_changed": false
+}

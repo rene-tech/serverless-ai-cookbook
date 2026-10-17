@@ -17,21 +17,24 @@ def evidence():
 def test_pointer_and_console_link_select_exact_published_bytes():
     # Historical receipts remain immutable; compare the current default only
     # with its own published release evidence, not the old precheck-only image.
-    receipt = json.loads((ROOT/'docs/evidence/current-contract-release-20261017.json').read_text())
+    receipt = json.loads((ROOT/'docs/evidence/mdprecheck-sync-release-20261017.json').read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
     assert receipt['all_scientific_workflows_qualified'] is False
-    assert receipt['manifest'] == 'sha256:ac5a4f7dbd458842fd38d87009db06cc6b365d5547a4f061d81752259c4cb9af'
-    assert receipt['source'] == '717e5fd87a3b1f58761c4664d7d0c68a511f1169'
+    assert receipt['manifest'] == 'sha256:76b04c61341afab7d763df4d972692d124ad8c8d2adc685a8223012aecd7a70b'
+    assert receipt['source'] == 'a8fafa3c394137505aa9cf6f618b3bf59ded6d17'
     assert receipt['contract'] == {
         'native_operation_ids': True,
         'upload_identity': 'upload_id',
         'paired_preview_api_and_ui_required': True,
         'request_shape': 'exact-discovered-current-tool-schema',
         'progress_schema': 'scientific-ai/progress/v1',
+        'precheck_execution': 'synchronous-only',
+        'precheck_async_fallback': False,
+        'mcp_timeout_ms': 2400000,
     }
     bundle = json.loads((ROOT.parents[1]/'skills/scientific-ai/manifest.json').read_text())
     assert values['SCIENTIFIC_AI_SKILLS_VERSION'] == bundle['version']

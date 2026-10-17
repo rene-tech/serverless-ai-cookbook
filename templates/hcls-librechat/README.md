@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Aac5a4f7dbd458842fd38d87009db06cc6b365d5547a4f061d81752259c4cb9af&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A76b04c61341afab7d763df4d972692d124ad8c8d2adc685a8223012aecd7a70b&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,11 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:current-contract-20261017-717e5fd87a3b`,
-digest `sha256:ac5a4f7dbd458842fd38d87009db06cc6b365d5547a4f061d81752259c4cb9af`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:mdprecheck-sync-20261017`,
+digest `sha256:76b04c61341afab7d763df4d972692d124ad8c8d2adc685a8223012aecd7a70b`.
+The [synchronous-precheck release](docs/mdprecheck-sync-release-20261017.md)
+returns completed precheck reports in one call with a 40-minute client timeout,
+no background Job or asynchronous fallback, and the existing inline viewer.
 The [current-contract release receipt](docs/current-contract-release-20261017.md)
 records exact qualification and limits. This release uses one native job identity,
 current discovered REST/MCP schemas and paired authenticated inline-report API/UI
@@ -85,7 +88,7 @@ Its 37 canonical customer skills (85 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. The selected image contains skills
-`2026.10.17.2`; runtime source is `717e5fd87a3b1f58761c4664d7d0c68a511f1169`.
+`2026.10.17.3`; runtime source is `a8fafa3c394137505aa9cf6f618b3bf59ded6d17`.
 See its exact-image receipt for installed components, retained login/history,
 and actual browser/file/agent checks. This is client lifecycle/interface evidence,
 not qualification of every scientific workflow, autonomous skill selection,
