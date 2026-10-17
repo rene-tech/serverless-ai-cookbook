@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Af672767e083a15a0d3373115b84071e334a159d66f6fa74d18b5cb95a8a7a05c&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A7bec331506c04eabb00eb64d943bb63f9474edb75a5bdf3f913bb69c105ebce0&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,8 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workflow-identity-20261017-r5`,
-digest `sha256:f672767e083a15a0d3373115b84071e334a159d66f6fa74d18b5cb95a8a7a05c`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:admission-recovery-20261017-r1`,
+digest `sha256:7bec331506c04eabb00eb64d943bb63f9474edb75a5bdf3f913bb69c105ebce0`.
 The [workflow identity correction](docs/workflow-native-identity-release-20261017.md)
 removes the remaining public study UUIDs: chat and progress panels show only
 actual native Serverless job IDs. Saved workflows are observed by their owned
