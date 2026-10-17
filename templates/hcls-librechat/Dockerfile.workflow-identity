@@ -6,7 +6,7 @@ FROM ${WORKBENCH_BASE}
 USER root
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
     --mount=type=bind,source=skills/scientific-ai,target=/tmp/skills,ro \
-    cp /tmp/client/scientific_workflow_view.py /tmp/client/execution-mcp.py /opt/bionemo/ \
+    cp /tmp/client/scientific_workflow_view.py /tmp/client/execution-mcp.py /tmp/client/scientific-workflow.py /opt/bionemo/ \
  && cp /tmp/client/scientific-study-admission.cjs /tmp/client/scientific-agent-budget.cjs /opt/hcls-librechat/ \
  && cp /tmp/client/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
  && cp /tmp/client/demos/router.cjs /app/api/server/routes/scientific-demos.js \
@@ -29,5 +29,5 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
  && node /opt/hcls-librechat/verify-workspace-installed.mjs
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
-      ai.nebius.scientific.skills.version="2026.10.17.4" \
+      ai.nebius.scientific.skills.version="2026.10.17.5" \
       ai.nebius.scientific.release="native-workflow-identity-20261017"

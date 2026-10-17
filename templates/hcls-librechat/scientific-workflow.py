@@ -315,10 +315,12 @@ def main():
         print(json.dumps({'schema': plan['schema'], 'steps': len(plan['steps']),
                           'files': list(scientific_study.validate(plan).values()), 'inference_submitted': False}))
         return
-    result = scientific_study.submit(plan, args.output)
+    from scientific_workflow_view import public_workflow
+    result = public_workflow(scientific_study.submit(plan, args.output))
     print(json.dumps(result))
     # CLI admission is not completion; the dedicated supervisor owns execution.
-    raise SystemExit(0 if result['state'] == 'completed' else 75)
+    # A saved admission is a successful command, not a failed local simulation.
+    raise SystemExit(0 if result.get('study_admission') == 'accepted' else 75)
 
 
 if __name__ == '__main__':

@@ -40,6 +40,11 @@ the helper validates it without changing scientific settings. It bundles the
 inputs and composes the existing saved study with measured timings and an
 interactive final structure. It does **not** submit MD. Call
 `run_scientific_workflow` with its exact returned `next_call.arguments` once.
+Use the named MCP tool, not a Python import or shell launcher. The saved
+workflow location is not a job ID: show only its native `op-...` operations.
+Return its `progress_url` as a Markdown link for inline updates; do not create
+a shell polling loop or read private registry UUIDs. A later status question
+uses `read_scientific_workflow` with the original `output_directory` once.
 The live card then finishes observation, verified downloads and rendering.
 Do not hand-write this standard plan, read helper source, invoke a second batch
 client, or spend calls rediscovering phases already validated by this composer.

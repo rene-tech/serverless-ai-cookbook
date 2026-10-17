@@ -42,6 +42,12 @@ Before model admission say no platform job has been admitted yet; do not call a
 saved local plan an accepted platform execution. Use the returned progress link
 or `read_scientific_workflow` with the saved `output_directory` to observe phases
 and final results. Multi-job workflows list each real operation separately.
+Submit the composer's returned `plan_file` and `output_directory` directly to
+`run_scientific_workflow`; do not use shell commands or Python imports to replace
+that tool. Its acknowledgement ends mechanical waiting: include `progress_url`
+as a Markdown link so the live card renders and observes completion. Never read
+private registry files to obtain an ID or create shell polling loops. For an
+explicit later status request use `read_scientific_workflow` once.
 
 Never guess molecular counts, stereochemistry, force-field conventions or
 numerical results: compute and retain provenance. Ask unresolved scientific
