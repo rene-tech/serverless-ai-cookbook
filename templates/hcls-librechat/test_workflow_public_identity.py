@@ -80,6 +80,18 @@ def test_existing_record_is_observed_without_rewriting_or_relaunching(mounted, m
     assert internal['id'] not in json.dumps(result)
 
 
+def test_non_native_identifiers_are_not_exposed_or_resolved(mounted):
+    record = studies.submit(plan(), mounted / 'unconfirmed')
+    record['steps'] = {'simulate': {'state': 'completed', 'operation_id': record['id']}}
+    record['model_progress'] = [{'study_step_id': 'simulate', 'operation_id': record['id'],
+                                'progress': {'available': True, 'unit': 'ns'}}]
+    result = view.public_workflow(record)
+    assert result['operations'] == [] and result['operation_admission'] == 'unknown'
+    assert record['id'] not in json.dumps(result)
+    assert result['model_progress'][0]['progress']['unit'] == 'ns'
+    assert record['model_progress'][0]['operation_id'] == record['id']
+
+
 def test_output_binding_and_owner_are_required(mounted, monkeypatch):
     internal = studies.submit(plan(), mounted / 'owned')
     with pytest.raises((ValueError, FileNotFoundError)):

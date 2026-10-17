@@ -12,6 +12,12 @@ from urllib.parse import urlencode
 from scientific_study import (path_in_workspace, owner_identity, get, request_cancel,
                               list_studies, engine_status)
 
+NATIVE_OPERATION = re.compile(r'op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?')
+
+
+def native_operation(value):
+    return isinstance(value, str) and NATIVE_OPERATION.fullmatch(value) is not None
+
 
 def public_workflow(value):
     """Expose native jobs, never the supervisor's private receipt-directory key.
@@ -30,18 +36,25 @@ def public_workflow(value):
     result['durable_workflow'] = True
     result.setdefault('state', 'admission_pending')
     result['operations'] = []
+    unconfirmed_identity = False
     for step_id, step in value.get('steps', {}).items():
         candidates = ([{'operation_id': step['operation_id'], 'state': step.get('state')}]
                       if step.get('operation_id') else [])
         candidates.extend(step.get('operations', []))
         for operation in candidates:
             identifier = operation.get('operation_id')
-            if isinstance(identifier, str) and re.fullmatch(r'op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?', identifier):
+            if native_operation(identifier):
                 result['operations'].append({'step_id': step_id, 'operation_id': identifier,
                     'state': operation.get('state', operation.get('status'))})
+            elif identifier:
+                unconfirmed_identity = True
+    for measurement in result.get('model_progress', []):
+        if not native_operation(measurement.get('operation_id')):
+            unconfirmed_identity = unconfirmed_identity or bool(measurement.get('operation_id'))
+            measurement.pop('operation_id', None)
     if len(result['operations']) == 1:
         result['operation_id'] = result['operations'][0]['operation_id']
-    result['operation_admission'] = ('unknown' if value.get('admission_unknown') or
+    result['operation_admission'] = ('unknown' if unconfirmed_identity or value.get('admission_unknown') or
         value.get('study_admission') == 'unknown' else
         'admitted' if result['operations'] else 'not_admitted')
     result['progress_url'] = '/demos?' + urlencode({'tab': 'runs', 'workflow': value['output_directory']})
