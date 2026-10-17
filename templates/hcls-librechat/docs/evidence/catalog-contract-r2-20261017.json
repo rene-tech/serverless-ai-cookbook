@@ -1,0 +1,25 @@
+{
+  "source": "4fa1c8802e49dbc14a89f1fd6a0cd0a599e12154",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:catalog-contract-20261017-r2",
+  "manifest": "sha256:17d77ad5676d98f719f42f26c1b57188bdd647643e087ff5715e06dfdbf1d00d",
+  "base_manifest": "sha256:6ee584d9b02c6b60cc4c2f7cf6d961185a2afb470d2e4ad878d9990d9c9a4580",
+  "skills_version": "2026.10.17.5",
+  "client_revision": "462aba2d8f256726",
+  "inherited_ui_receipt": "client-update-20261017.json",
+  "previous_catalog_receipt": "catalog-contract-20261017.json",
+  "all_scientific_workflows_qualified": false,
+  "contract": {
+    "native_operation_ids": true,
+    "upload_identity": "upload_id",
+    "paired_preview_api_and_ui_required": true,
+    "request_shape": "exact-discovered-current-tool-schema",
+    "progress_schema": "scientific-ai/progress/v1",
+    "precheck_execution": "synchronous-only",
+    "precheck_async_fallback": false,
+    "mcp_timeout_ms": 2400000
+  },
+  "installed_catalog_tests_passed": 27,
+  "real_chat": {"passed": true, "completed_turns": 2, "catalog_reads_per_turn": 1, "scientific_submissions": 0},
+  "fleet": {"clients_verified": 5, "current_cached_processes_verified": 7, "processes_unchanged_by_patch": true,
+            "provider_base_image_changed": false}
+}

@@ -1,5 +1,30 @@
 # Current App catalog contract — 17 October 2026
 
+## Current follow-up: OpenAI-compatible Apps
+
+Source `4fa1c8802e49dbc14a89f1fd6a0cd0a599e12154`, image
+`catalog-contract-20261017-r2`, digest
+`sha256:17d77ad5676d98f719f42f26c1b57188bdd647643e087ff5715e06dfdbf1d00d`.
+The initial correction below covered native and scientific-batch Apps but
+omitted the current `openai-chat` protocol. Granting an owner the full catalog
+exposed that gap: two valid chat/image Apps caused whole-list rejection.
+The parser now accepts that explicit current protocol, retaining operations and
+typed tool names. This is not a fallback parser or a model-name allowlist.
+
+The exact image passed 27 catalog/service tests. All five retained clients were
+patched without restarting API/MCP or scientific workers. Two fresh internal QA
+chat questions each performed one successful catalog read, with no scientific
+submissions. The complete owner catalog and all 53 schemas were read separately;
+metadata access does not qualify every model's execution. Existing credentials,
+owner mappings and other customers' grants were not changed by this client fix.
+The earlier full-suite limitations below remain explicitly outside this fix.
+
+Private receipt packet: `rene-all-models-20261017.6UhGX2`.
+The [r2 receipt](evidence/catalog-contract-r2-20261017.json), release selector and
+README launch button select the same bytes. Original r1 evidence is retained.
+
+## Historical initial correction (r1)
+
 Runtime source: `b66b3266bdc6545152a0a9be44d5c09ceef8df62`.
 Published and deployed image `catalog-contract-20261017-r1`, digest
 `sha256:6ee584d9b02c6b60cc4c2f7cf6d961185a2afb470d2e4ad878d9990d9c9a4580`.
