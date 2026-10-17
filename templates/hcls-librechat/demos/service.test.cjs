@@ -223,10 +223,12 @@ test('artifact-backed operation results are verified and compacted for the agent
 test('compact discovery filters Apps and does not emit scientific input schemas', async () => {
   const service = await setup;
   const originalFetch = global.fetch;
-  global.fetch = async (url) => new Response(JSON.stringify({ data: String(url).endsWith('/v1/models')
-    ? [{ id: 'openfold2', protocols: ['native'], operations: ['predict-structure'], input_schema: { huge: 'x'.repeat(50000) } }]
-    : [{ model_id: 'protenix-v2', display_name: 'Protenix', operations: ['predict-complex-structure'],
-      parameters_schema: { huge: 'x'.repeat(50000) }, mcp_tool_description: 'Protein complex prediction' }] }));
+  global.fetch = async () => new Response(JSON.stringify({ object: 'list', data: [
+    { id: 'openfold2', model_id: 'openfold2', protocol: 'native', operations: ['predict-structure'],
+      tool_name: 'predict_openfold2', input_schema: { huge: 'x'.repeat(50000) } },
+    { id: 'protenix-v2', model_id: 'protenix-v2', display_name: 'Protenix', operations: ['predict-complex-structure'],
+      execution_mode: 'scientific-batch', capabilities: { native_dag: true, gpu_classes: ['private-device'] },
+      request_schema: { huge: 'x'.repeat(50000) }, description: 'Protein complex prediction' }] }));
   try {
     const all = await service.listApps('fixture-key');
     assert.equal(all.count, 2);
@@ -257,9 +259,9 @@ test('MD capability search includes AMBER and MPI without broadening caller gran
   const service = await setup;
   const originalFetch = global.fetch;
   let authorized = ['amber', 'gromacs', 'gromacs-mpi', 'lammps', 'namd'];
-  global.fetch = async (url) => new Response(JSON.stringify({ data: String(url).endsWith('/v1/models')
-    ? [] : authorized.map((model_id) => ({ model_id,
+  global.fetch = async () => new Response(JSON.stringify({ object: 'list', data: authorized.map((model_id) => ({ id: model_id, model_id,
       display_name: model_id === 'amber' ? 'AMBER26 · PMEMD and AmberTools' : model_id,
+      execution_mode: 'scientific-batch', capabilities: { native_checkpoint_resume: true },
       operations: ['run-workflow'] })) }));
   try {
     for (const query of ['molecular dynamics', 'Molecular-Dynamics', ' molecular_dynamics ']) {

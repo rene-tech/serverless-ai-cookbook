@@ -1,0 +1,8 @@
+**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/demos/
+!templates/hcls-librechat/demos/service.cjs
+!templates/hcls-librechat/demos/catalog.test.cjs
+!templates/hcls-librechat/demos/service.test.cjs
+!templates/hcls-librechat/demos/worker-fixture.cjs

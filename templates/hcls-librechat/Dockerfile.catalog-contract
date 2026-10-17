@@ -1,0 +1,14 @@
+# syntax=docker/dockerfile:1.7
+# Correct current catalog parsing while preserving the qualified client/runtime.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:eaf15340996e3507a40ae0dd377351c6ea35b609ff6e90c36fe52fe009818618
+FROM ${WORKBENCH_BASE}
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat/demos,target=/tmp/catalog-contract,ro \
+    cp /tmp/catalog-contract/service.cjs /tmp/catalog-contract/catalog.test.cjs \
+       /tmp/catalog-contract/service.test.cjs /tmp/catalog-contract/worker-fixture.cjs /opt/hcls-librechat/demos/ \
+ && node --check /opt/hcls-librechat/demos/service.cjs \
+ && NODE_PATH=/app/node_modules node --test /opt/hcls-librechat/demos/catalog.test.cjs \
+       /opt/hcls-librechat/demos/service.test.cjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="current-catalog-contract-20261017"

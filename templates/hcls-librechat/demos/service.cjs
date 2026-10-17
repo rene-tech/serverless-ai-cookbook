@@ -169,10 +169,16 @@ const DEMO_OPERATION_PRIORITY = {
   'Generative media': ['generate-video', 'generate-image', 'generate-music'],
 };
 
-function appContract(item, source) {
-  if (source === 'scientific-models') return 'scientific-batch';
-  const capabilities = [...(item.capabilities || []), ...(item.protocols || [])];
-  return capabilities.includes('openai-chat') ? 'chat' : 'native';
+function catalogContractError() {
+  return Object.assign(failure('The authorized App catalog returned an unsupported response format. '
+    + 'Contact support; do not interpret this as missing model access or a transient service failure.', 502),
+  { code: 'CATALOG_CONTRACT_INVALID', retryable: false });
+}
+
+function appContract(item) {
+  if (item.execution_mode === 'scientific-batch') return 'scientific-batch';
+  if (item.protocol === 'native') return item.operations.includes('chat') ? 'chat' : 'native';
+  throw catalogContractError();
 }
 
 function appUseCase(item) {
@@ -211,26 +217,25 @@ function recommendedApp(group) {
 
 async function listApps(key, query = '') {
   if (typeof query !== 'string' || query.length > 200) throw failure('Supply a short App name or capability.');
-  const catalogs = await Promise.all([platform(key, 'GET', '/v1/models'), platform(key, 'GET', '/v1/scientific-models')]);
-  if (catalogs.some((catalog) => !Array.isArray(catalog.data))) {
-    throw failure('The authorized App catalog could not be read completely. Retry discovery; do not interpret this as missing model access.', 503);
-  }
+  // The current catalog includes both native Apps and scientific batches.
+  // Capabilities are a structured object, not a list of protocol names.
+  const catalog = await platform(key, 'GET', '/v1/models');
+  if (catalog?.object !== 'list' || !Array.isArray(catalog.data)) throw catalogContractError();
   const apps = new Map();
-  for (const [index, catalog] of catalogs.entries()) for (const item of catalog.data || []) {
-    const id = item.id || item.model_id;
-    if (!id) continue;
-    const previous = apps.get(id) || {};
-    const contractKind = appContract(item, index === 0 ? 'models' : 'scientific-models');
-    const contractKinds = [...new Set([...(previous.contract_kinds || []), contractKind])];
-    apps.set(id, { ...previous, model_id: id, display_name: item.display_name || previous.display_name || id,
-      use_case: previous.use_case || appUseCase(item),
-      contract_kind: contractKinds.length === 1 ? contractKinds[0] : 'multiple',
-      contract_kinds: contractKinds,
-      ...(item.protocols ? { protocols: item.protocols } : {}),
-      ...(item.operations ? { operations: item.operations } : {}),
-      ...(item.capabilities ? { capabilities: item.capabilities } : {}),
-      ...(item.mcp_tool_name ? { tool_name: item.mcp_tool_name } : {}),
-      ...(item.mcp_tool_description ? { description: item.mcp_tool_description.slice(0, 500) } : {}),
+  for (const item of catalog.data) {
+    if (!item || typeof item.model_id !== 'string' || !item.model_id.trim() || item.id !== item.model_id
+        || apps.has(item.model_id) || !Array.isArray(item.operations)
+        || item.operations.some(operation => typeof operation !== 'string')
+        || (item.display_name !== undefined && typeof item.display_name !== 'string')
+        || (item.tool_name != null && typeof item.tool_name !== 'string')
+        || (item.description !== undefined && typeof item.description !== 'string')) throw catalogContractError();
+    const contractKind = appContract(item);
+    apps.set(item.model_id, { model_id: item.model_id, display_name: item.display_name || item.model_id,
+      use_case: appUseCase(item), contract_kind: contractKind, contract_kinds: [contractKind],
+      operations: item.operations,
+      ...(item.protocol ? { protocol: item.protocol } : {}),
+      ...(item.tool_name ? { tool_name: item.tool_name } : {}),
+      ...(item.description ? { description: item.description.slice(0, 500) } : {}),
     });
   }
   const normalizeSearch = (value) => value.toLowerCase().replace(/[-_]+/g, ' ').trim();
