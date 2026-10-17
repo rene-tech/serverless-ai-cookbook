@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Af125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,12 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:observer-recovery-20261017-r2`,
-digest `sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:future-jobs-20261017-r1`,
+digest `sha256:f125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6`.
+The [future-image build gate](docs/future-image-recovery-20261017.md) verifies
+the installed observer/queue code. CLI and console defaults both select immutable
+image bytes; no post-start hotpatch is required on a new deployment. Existing
+endpoints are not updated or replaced by this release.
 The [observer recovery correction](docs/observer-recovery-20261017.md) reconnects
 existing operations after status-read failures without resubmitting science.
 Saved studies receive fair observation turns; a running remote job no longer

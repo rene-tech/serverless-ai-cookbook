@@ -36,6 +36,8 @@ def setup_client(tmp_path, monkeypatch):
             assert method == 'GET'
             requested.append(path)
             name = path.split('/')[-2]
+            if name == 'bundle' and (tmp_path / 'disconnect-always').exists():
+                raise ConnectionError('retained failed transfer')
             if name == 'bundle' and (tmp_path / 'disconnect-once').exists():
                 (tmp_path / 'disconnect-once').unlink()
                 raise ConnectionError('retained failed transfer')
@@ -79,14 +81,31 @@ def test_recovers_exact_manifest_and_children_without_inference(tmp_path, monkey
 def test_disconnected_transfer_resumes_original_operation_and_exact_files(tmp_path, monkeypatch):
     args, _, requests, tools = setup_client(tmp_path, monkeypatch)
     (tmp_path / 'disconnect-once').touch()
-    with pytest.raises(ConnectionError):
-        asyncio.run(client.recover_completed(args))
-    first = (args.output / 'output-00.artifact').read_bytes()
     receipt = asyncio.run(client.recover_completed(args))
-    assert receipt['operation_id'] == OPERATION
-    assert (args.output / 'output-00.artifact').read_bytes() == first
+    assert receipt['operation_id'] == OPERATION and receipt['state'] == 'verified'
+    assert (args.output / 'output-00.artifact').read_bytes() == b'{"retained":true}'
+    assert receipt['observation_failure_count'] == 1
     assert requests.count('/v1/artifacts/result/content') == 1
     assert requests.count('/v1/artifacts/bundle/content') == 2
+    assert set(tools) == {'get_operation', 'get_operation_result'}
+
+
+def test_persistent_transfer_outage_is_bounded_and_resumes_without_inference(tmp_path, monkeypatch):
+    args, _, requests, tools = setup_client(tmp_path, monkeypatch)
+    marker = tmp_path / 'disconnect-always'
+    marker.touch()
+    delays = []
+    async def sleep(seconds):
+        delays.append(seconds)
+    monkeypatch.setattr(asyncio, 'sleep', sleep)
+    with pytest.raises(RuntimeError, match='exhausted its observation budget'):
+        asyncio.run(client.recover_completed(args))
+    assert requests.count('/v1/artifacts/bundle/content') == client.OPERATION_READ_ATTEMPTS
+    assert len(delays) == client.OPERATION_READ_ATTEMPTS - 1
+    marker.unlink()
+    receipt = asyncio.run(client.recover_completed(args))
+    assert receipt['operation_id'] == OPERATION and receipt['state'] == 'verified'
+    assert requests.count('/v1/artifacts/result/content') == 1
     assert set(tools) == {'get_operation', 'get_operation_result'}
 
 

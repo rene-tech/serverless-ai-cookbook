@@ -1,0 +1,36 @@
+{
+  "source": "f43adea48b72c5f1d722b01461d591d8556a315f",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:future-jobs-20261017-r1",
+  "manifest": "sha256:f125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6",
+  "config": "sha256:c5d05937e20cd23228d1de685941ffdf1bf2c6caf3dde145d9295ea565d3494b",
+  "base_manifest": "sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386",
+  "runtime_receipt": "observer-recovery-20261017.json",
+  "skills_version": "2026.10.17.5",
+  "scope": "image-packaging-and-future-deployment-only",
+  "all_scientific_workflows_qualified": false,
+  "runtime_files": {
+    "invoke-scientific-batch.py": "becb89e72ee5009caeb40782953eade3ba11ef9cb22527a3df1d18c150d0f933",
+    "scientific-workflow.py": "9a731f2af374ab23abbe8f848feb76261a0b69a72f33cdf4fe223e6432561ad1",
+    "scientific-study-worker.py": "41d534c320a0683f9ae78ca7fc0eab15729f4c4226c707dd8025e78b43c865db"
+  },
+  "installed_tests": {
+    "consecutive_clean_cohorts": 2,
+    "tests_per_cohort": 139,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "installed_source_files_verified": 11,
+    "compiled_branding_verified": true,
+    "old_unfixed_image_rejected": true,
+    "network": "none",
+    "customer_mounts": 0
+  },
+  "changes_to_running_endpoints": 0,
+  "provider_endpoints_created_or_restarted": 0,
+  "scientific_submissions": 0,
+  "provider_recreation_tested": false,
+  "unrelated_baseline_failures": [
+    "tests.py::test_saved_agents_receive_gateway_instructions_and_skills",
+    "tests.py::test_product_does_not_use_tenant_branding"
+  ]
+}

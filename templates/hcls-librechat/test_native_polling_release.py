@@ -17,16 +17,18 @@ def evidence():
 def test_pointer_and_console_link_select_exact_published_bytes():
     # Historical receipts remain immutable; compare the current default only
     # with its own published release evidence, not the old precheck-only image.
-    receipt = json.loads((ROOT/'docs/evidence/observer-recovery-20261017.json').read_text())
+    receipt = json.loads((ROOT/'docs/evidence/future-image-recovery-20261017.json').read_text())
+    runtime = json.loads((ROOT/'docs/evidence'/receipt['runtime_receipt']).read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
     assert receipt['all_scientific_workflows_qualified'] is False
-    assert receipt['manifest'] == 'sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386'
-    assert receipt['source'] == '138bfaec44ba7932e424827b9c6ed4337c435aa5'
-    assert receipt['contract'] == {
+    assert receipt['manifest'] == 'sha256:f125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6'
+    assert receipt['source'] == 'f43adea48b72c5f1d722b01461d591d8556a315f'
+    assert receipt['base_manifest'] == runtime['manifest']
+    assert runtime['contract'] == {
         'native_operation_ids': True,
         'upload_identity': 'upload_id',
         'paired_preview_api_and_ui_required': True,
@@ -43,6 +45,15 @@ def test_pointer_and_console_link_select_exact_published_bytes():
     selected = parse_qs(urlsplit(link).query)['image']
     assert selected == [receipt['image'].rsplit(':',1)[0]+'@'+receipt['manifest']]
     assert len(values['SCIENTIFIC_AI_RELEASE_IMAGE']) < 128
+
+
+def test_image_only_release_does_not_claim_live_endpoint_replacement():
+    receipt = json.loads((ROOT/'docs/evidence/future-image-recovery-20261017.json').read_text())
+    assert receipt['installed_tests']['consecutive_clean_cohorts'] == 2
+    assert receipt['installed_tests']['tests_per_cohort'] == 139
+    assert receipt['installed_tests']['old_unfixed_image_rejected']
+    assert receipt['changes_to_running_endpoints'] == receipt['scientific_submissions'] == 0
+    assert not receipt['provider_recreation_tested']
 
 
 def test_ui_update_does_not_claim_automatic_reloads_or_scientific_requalification():
