@@ -85,15 +85,18 @@ def test_create_finalize_one_group_no_admission_then_existing_launcher(mounted, 
     assert len(data) == first['size_bytes']
     assert draft.compose(args)['replayed'] is True
     launched = execution.run_scientific_workflow({'plan_file': first['plan_file'], 'output_directory': str(mounted / 'final')})
-    assert execution.run_scientific_workflow({'study': json.loads(data), 'output_directory': str(mounted / 'final')})['id'] == launched['id']
+    repeated = execution.run_scientific_workflow({'study': json.loads(data), 'output_directory': str(mounted / 'final')})
+    assert repeated['output_directory'] == launched['output_directory'] and repeated['reused_existing_study']
+    assert not {'id', 'job_id', 'study_id'} & launched.keys()
+    internal = study.list_studies()[0]['id']
     # Finalized revisions are never rewritten by later draft edits.
     edited = draft.compose({'draft_directory': args['draft_directory'], 'expected_sha256': first['sha256'], 'title': 'New draft'})
     assert Path(first['plan_file']).read_bytes() == data
     assert edited['sha256'] != first['sha256'] and not edited['finalized']
     assert draft.compose(args)['current_sha256'] == edited['sha256']
     assert draft.compose({'draft_directory': args['draft_directory']})['sha256'] == edited['sha256']
-    asyncio.run(study.advance(launched['id']))
-    completed = asyncio.run(study.advance(launched['id']))
+    asyncio.run(study.advance(internal))
+    completed = asyncio.run(study.advance(internal))
     assert completed['state'] == 'completed'
     report = next(item for item in completed['artifacts'] if item['name'] == 'report.md')
     assert Path(report['path']).stat().st_size > 0
@@ -131,7 +134,8 @@ def test_source_changes_after_admission_keep_existing_failure(mounted):
     value = draft.compose({**initial(mounted), 'finalize': True})
     saved = execution.run_scientific_workflow({'plan_file': value['plan_file'], 'output_directory': str(mounted / 'final')})
     (mounted / 'rows.csv').write_text('measurement,value\nchanged,8\n')
-    assert asyncio.run(study.advance(saved['id']))['state'] == 'failed'
+    assert 'id' not in saved
+    assert asyncio.run(study.advance(study.list_studies()[0]['id']))['state'] == 'failed'
     assert not (mounted / 'final' / 'completion-manifest.json').exists()
 
 

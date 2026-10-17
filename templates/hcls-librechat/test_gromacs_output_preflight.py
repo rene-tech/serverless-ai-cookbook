@@ -48,14 +48,24 @@ def test_exact_observed_failed_request_is_rejected_before_admission(mounted, mon
 def test_valid_or_other_engine_outputs_are_not_rewritten(mounted, monkeypatch, command, outputs, model):
     value = plan(mounted, outputs, command, model)
     before = copy.deepcopy(value)
-    monkeypatch.setattr(study, 'submit', lambda p, out: {'plan': p, 'output': str(out)})
+    submitted = []
+    def submit(p, out):
+        submitted.append(copy.deepcopy(p))
+        return {'id': 'private-receipt', 'output_directory': str(out), 'steps': {}, 'state': 'queued'}
+    monkeypatch.setattr(study, 'submit', submit)
     result = execution.run_scientific_workflow({'study': value, 'output_directory': str(mounted / 'run')})
-    assert result['plan'] == before and value == before
+    assert submitted == [before] and value == before
+    assert result['output_directory'] == str(mounted / 'run') and result['operations'] == []
+    assert 'private-receipt' not in json.dumps(result)
 
 
-def test_existing_study_replay_keeps_its_original_identity(mounted, monkeypatch):
+def test_existing_workflow_replay_exposes_only_its_native_identity(mounted, monkeypatch):
     value = plan(mounted, ['md.xtc'])
     output = mounted / 'run'; output.mkdir()
     (output / 'study-binding.json').write_text('{}')
-    monkeypatch.setattr(study, 'submit', lambda p, out: {'id': 'original-study'})
-    assert execution.run_scientific_workflow({'study': value, 'output_directory': str(output)}) == {'id': 'original-study'}
+    monkeypatch.setattr(study, 'submit', lambda p, out: {'id': 'private-receipt',
+        'output_directory': str(out), 'steps': {'simulate': {'operation_id': 'op-original-job', 'state': 'running'}}})
+    result = execution.run_scientific_workflow({'study': value, 'output_directory': str(output)})
+    assert result['operation_id'] == 'op-original-job'
+    assert result['output_directory'] == str(output)
+    assert 'private-receipt' not in json.dumps(result)

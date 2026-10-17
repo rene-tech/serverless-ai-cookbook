@@ -70,18 +70,22 @@ def test_file_backed_v2_uses_same_frozen_receipt_and_guaranteed_outputs(mounted)
     schema = next(item['inputSchema'] for item in execution.TOOLS if item['name'] == 'run_scientific_workflow')
     Draft202012Validator(schema).validate(args)
     first = execution.run_scientific_workflow(args)
-    assert execution.run_scientific_workflow(args)['id'] == first['id']
-    assert execution.run_scientific_workflow({'study': plan, 'output_directory': args['output_directory']})['id'] == first['id']
+    repeated = execution.run_scientific_workflow(args)
+    assert repeated['output_directory'] == first['output_directory'] and repeated['reused_existing_study']
+    repeated = execution.run_scientific_workflow({'study': plan, 'output_directory': args['output_directory']})
+    assert repeated['output_directory'] == first['output_directory'] and repeated['reused_existing_study']
+    assert not {'id', 'job_id', 'study_id'} & first.keys()
+    internal = study.list_studies()[0]['id']
     # The source plan is copied, not executed as a mutable plan-file pointer.
     plan_file.write_text('broken later edit')
-    assert json.loads((study.directory(first['id']) / 'plan.json').read_bytes()) == plan
-    result = asyncio.run(study.advance(first['id']))
-    result = asyncio.run(study.advance(first['id']))
+    assert json.loads((study.directory(internal) / 'plan.json').read_bytes()) == plan
+    result = asyncio.run(study.advance(internal))
+    result = asyncio.run(study.advance(internal))
     assert result['state'] == 'completed'
-    record = json.loads((study.directory(first['id']) / 'receipt.json').read_bytes())
+    record = json.loads((study.directory(internal) / 'receipt.json').read_bytes())
     assert set(PHASE_OUTPUTS['report'][0]) <= record['steps']['report']['files'].keys()
     assert len(study.list_studies()) == 1
-    assert 'test-private' not in (study.directory(first['id']) / 'receipt.json').read_text()
+    assert 'test-private' not in (study.directory(internal) / 'receipt.json').read_text()
 
 
 def test_file_backed_v2_freezes_input_and_rejects_manual_resume(mounted):
@@ -92,12 +96,13 @@ def test_file_backed_v2_freezes_input_and_rejects_manual_resume(mounted):
     path = mounted / 'plan.json'
     path.write_text(json.dumps(plan))
     args = {'plan_file': str(path), 'output_directory': str(mounted / 'final')}
-    with pytest.raises(ValueError, match='resume automatically'):
+    with pytest.raises(ValueError, match='Supply only'):
         execution.run_scientific_workflow({**args, 'resume': True})
     assert study.list_studies() == []
     saved = execution.run_scientific_workflow(args)
     rows.write_text('measurement,value\na,2\n')
-    assert asyncio.run(study.advance(saved['id']))['state'] == 'failed'
+    assert 'id' not in saved
+    assert asyncio.run(study.advance(study.list_studies()[0]['id']))['state'] == 'failed'
     assert not (mounted / 'final' / 'completion-manifest.json').exists()
 
 

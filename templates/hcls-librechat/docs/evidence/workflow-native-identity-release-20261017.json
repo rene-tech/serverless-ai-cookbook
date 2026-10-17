@@ -1,0 +1,42 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workflow-identity-20261017-r4",
+  "manifest": "sha256:ec6173111c7db811d1814bc9ba03d056644aff841f13414f31f06e5df5a12de1",
+  "source": "319f7e517df82a6905442df990e61b515547f47e",
+  "base_manifest": "sha256:76b04c61341afab7d763df4d972692d124ad8c8d2adc685a8223012aecd7a70b",
+  "skills_version": "2026.10.17.5",
+  "canonical_skills": 37,
+  "loaded_skills_per_retained_client": 85,
+  "retained_clients": 5,
+  "managed_agents_per_retained_client": 6,
+  "contract": {
+    "job_identity": "native-operation-only",
+    "workflow_locator": "owned-output-directory",
+    "public_workflow_uuid": false,
+    "legacy_uuid_resolver": false,
+    "observer_tool": "read_scientific_workflow",
+    "cli_admission_exit_code": 0,
+    "inline_progress_and_results": true
+  },
+  "offline_checks": {
+    "python_workflow_tests_passed": 159,
+    "installed_node_tests_passed": 71,
+    "installed_node_tests_skipped": 0,
+    "react_tests_passed": 10,
+    "deployment_link_tests_passed": 6,
+    "production_build_passed": true,
+    "branding_verified": true,
+    "skill_bundle_verified": true
+  },
+  "final_live_cohorts": [
+    {"cohort": 3, "native_operation_id": "op-c1ce88a08ba80189", "completed_phases": 2, "executed_steps": 50000, "durable_steps": 50000, "duration_ns": 0.1, "hash_verified_artifacts": 8, "chat_inline_report_and_3d": true, "same_id_visible_in_serverless_jobs": true},
+    {"cohort": 4, "native_operation_id": "op-1aa28c0363f5ed79", "completed_phases": 2, "executed_steps": 50000, "durable_steps": 50000, "duration_ns": 0.1, "hash_verified_artifacts": 8, "chat_inline_report_and_3d": true, "same_id_visible_in_serverless_jobs": true}
+  ],
+  "live_cli_replay": {"same_native_id": true, "new_execution_admitted": false, "public_uuid_absent": true, "exit_code": 0},
+  "all_retained_clients": {"public_health_and_login": true, "candidate_asset_hash": true, "loaded_skill_bodies_current": true, "observer_registered": true, "api_and_supervisor_processes_preserved": true, "scientific_executor_unchanged": true, "maintenance_finalized": true},
+  "provider_base_image_changed": false,
+  "private_checker_source_included": false,
+  "customer_key_inference_used": false,
+  "all_scientific_workflows_qualified": false,
+  "sustainable_capacity_measured": false,
+  "known_limitations": ["Qualification-scale MD, not scientific convergence", "Native timing report step counters remain unknown where absent; separate live progress is measured", "Provider VM recreation requires the current pinned image or reapplication of the recorded overlay"]
+}
