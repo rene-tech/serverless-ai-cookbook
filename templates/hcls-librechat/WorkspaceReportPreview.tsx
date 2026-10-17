@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { request } from 'librechat-data-provider';
 import { workspaceCodeHref } from './WorkspaceInlineCode';
 import type { ReactNode } from 'react';
@@ -49,7 +49,13 @@ export function isolatedReportHtml(html: string): string {
   const policy = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
     + "img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; "
     + "object-src 'none'; base-uri 'none'; form-action 'none'";
-  return '<!doctype html><meta http-equiv="Content-Security-Policy" content="' + policy + '">' + html;
+  // Virtualized chats can initialize a plot while its frame has zero size.
+  // Repaint on visibility using the report's own resize handlers; never rewrite
+  // the saved scientific artifact, reset its camera or weaken its sandbox.
+  const visibility = '<script>window.addEventListener("message",function(event){'
+    + 'if(event.source===window.parent&&event.data?.type==="scientific-report-visible")'
+    + 'requestAnimationFrame(function(){window.dispatchEvent(new Event("resize"));});});</script>';
+  return '<!doctype html><meta http-equiv="Content-Security-Policy" content="' + policy + '">' + visibility + html;
 }
 
 type PrecheckSummary = { status: string; verdict: string; counts: { fail?: number; warn?: number; info?: number } };
@@ -78,6 +84,7 @@ export function nativeMdSummary(value: unknown): NativeMdSummary | null {
 }
 
 export default function WorkspaceReportPreview({ href, children }: { href: string; children: ReactNode }) {
+  const frame = useRef<HTMLIFrameElement>(null);
   const reportPath = workspaceReportPath(href);
   const [expanded, setExpanded] = useState(true);
   const [html, setHtml] = useState<string | null>(null);
@@ -98,6 +105,18 @@ export default function WorkspaceReportPreview({ href, children }: { href: strin
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch { setError('Download unavailable. The original workspace link remains available.'); }
   };
+  useEffect(() => {
+    const target = frame.current;
+    if (!html || !expanded || !target) return;
+    const repaint = () => target.contentWindow?.postMessage({ type: 'scientific-report-visible' }, '*');
+    const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(
+      (entries) => { if (entries.some(entry => entry.isIntersecting)) repaint(); },
+      { threshold: [0, 0.25, 0.5, 0.75, 1] });
+    observer?.observe(target);
+    target.addEventListener('load', repaint);
+    repaint();
+    return () => { observer?.disconnect(); target.removeEventListener('load', repaint); };
+  }, [html, expanded]);
   useEffect(() => {
     if (!reportPath || !expanded) return;
     let cancelled = false;
@@ -148,7 +167,7 @@ export default function WorkspaceReportPreview({ href, children }: { href: strin
     </span>
     {error && <span role="status" className="my-2 block text-sm">{error}</span>}
     {expanded && !html && !mediaUrl && !mdSummary && !error && <span role="status" className="block text-sm">Loading the saved result; no new model work is submitted.</span>}
-    {expanded && html && <iframe title="Scientific report" srcDoc={html} sandbox="allow-scripts"
+    {expanded && html && <iframe ref={frame} title="Scientific report" srcDoc={html} sandbox="allow-scripts"
       referrerPolicy="no-referrer" className="block h-[640px] w-full resize-y rounded border border-border-light bg-white" />}
     {expanded && kind === 'image' && mediaUrl && <img src={mediaUrl} alt={reportPath.split('/').pop() || 'Scientific result'} className="block max-h-[640px] w-full object-contain" />}
     {expanded && kind === 'video' && mediaUrl && <video src={mediaUrl} controls preload="metadata" className="block max-h-[640px] w-full" aria-label="Scientific trajectory video" />}

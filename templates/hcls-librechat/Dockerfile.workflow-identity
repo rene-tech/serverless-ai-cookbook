@@ -14,6 +14,7 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
  && cp /tmp/client/demos/router.cjs /app/api/server/routes/scientific-demos.js \
  && cp /tmp/client/agent-instructions.md /app/agent-instructions.md \
  && cp /tmp/client/ScientificStudyPreview.tsx /tmp/client/ScientificStudyPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/client/WorkspaceReportPreview.tsx /tmp/client/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
  && cp /tmp/client/ScientificExecutionOutput.tsx /tmp/client/ScientificExecutionOutput.test.tsx /app/client/src/components/Chat/Messages/Content/ \
  && cp /tmp/client/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
  && node /tmp/client/patch-report-preview.mjs \
@@ -25,7 +26,7 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
     node --test /tmp/client/test-scientific-study-admission.cjs /tmp/client/test-scientific-study-admission-boundary.cjs \
  && cd /app/client \
  && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit \
-    src/components/ScientificStudyPreview.test.tsx src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
+    src/components/ScientificStudyPreview.test.tsx src/components/WorkspaceReportPreview.test.tsx src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
  && node /opt/hcls-librechat/verify-workspace-installed.mjs

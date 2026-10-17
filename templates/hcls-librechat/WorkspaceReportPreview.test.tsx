@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import WorkspaceReportPreview, { workspaceReportPath, isolatedReportHtml, precheckSummary, nativeMdSummary, readWorkspacePreview } from './WorkspaceReportPreview';
 import { request } from 'librechat-data-provider';
 import workspaceMarkdownLinks from './WorkspaceMarkdownLinks';
@@ -13,6 +13,36 @@ const summary = { schema: 'mdprecheck/check/v1', status: 'warn', verdict: 'Three
 const blob = (text: string) => ({ size: text.length, text: async () => text });
 
 beforeEach(() => { read.mockReset(); });
+
+test('scrolling a saved report into view repaints it without reloading data or relaxing isolation', async () => {
+  const original = global.IntersectionObserver;
+  let visibility: IntersectionObserverCallback;
+  const disconnect = jest.fn();
+  global.IntersectionObserver = jest.fn((callback) => {
+    visibility = callback;
+    return { observe: jest.fn(), disconnect, unobserve: jest.fn() };
+  }) as unknown as typeof IntersectionObserver;
+  read.mockResolvedValue({ data: blob(html) });
+  try {
+    const rendered = render(<WorkspaceReportPreview href="/demos?tab=workspace&path=qa&file=structure.html">Structure</WorkspaceReportPreview>);
+    const frame = await screen.findByTitle('Scientific report') as HTMLIFrameElement;
+    const message = jest.spyOn(frame.contentWindow!, 'postMessage');
+    act(() => visibility([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+    expect(message).toHaveBeenCalledWith({ type: 'scientific-report-visible' }, '*');
+    message.mockClear();
+    act(() => visibility([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver));
+    expect(message).not.toHaveBeenCalled();
+    fireEvent.load(frame);
+    expect(message).toHaveBeenCalledTimes(1);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
+    expect(frame.getAttribute('srcdoc')).toContain('event.source===window.parent');
+    expect(frame.getAttribute('srcdoc')).toContain('window.dispatchEvent(new Event("resize"))');
+    expect(frame.getAttribute('srcdoc')).toContain("connect-src 'none'");
+    rendered.unmount();
+    expect(disconnect).toHaveBeenCalled();
+  } finally { global.IntersectionObserver = original; }
+});
 
 test('the exact customer sandbox links become authenticated links before URL sanitization', () => {
   const htmlPath = 'demos/gromacs-1000ns/precheck/report.html';
