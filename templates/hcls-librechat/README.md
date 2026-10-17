@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A7bec331506c04eabb00eb64d943bb63f9474edb75a5bdf3f913bb69c105ebce0&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Aeaf15340996e3507a40ae0dd377351c6ea35b609ff6e90c36fe52fe009818618&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,12 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:admission-recovery-20261017-r1`,
-digest `sha256:7bec331506c04eabb00eb64d943bb63f9474edb75a5bdf3f913bb69c105ebce0`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:client-update-20261017-r1`,
+digest `sha256:eaf15340996e3507a40ae0dd377351c6ea35b609ff6e90c36fe52fe009818618`.
+The [open-tab update notice](docs/client-update-20261017.md) detects a newer
+UI on focus or within one minute while visible. Reload is explicit and confirmed;
+no running study or unsent draft is interrupted automatically. Previously open
+tabs need one normal reload to install this behavior.
 The [workflow identity correction](docs/workflow-native-identity-release-20261017.md)
 removes the remaining public study UUIDs: chat and progress panels show only
 actual native Serverless job IDs. Saved workflows are observed by their owned

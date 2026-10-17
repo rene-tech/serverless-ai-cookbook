@@ -17,15 +17,15 @@ def evidence():
 def test_pointer_and_console_link_select_exact_published_bytes():
     # Historical receipts remain immutable; compare the current default only
     # with its own published release evidence, not the old precheck-only image.
-    receipt = json.loads((ROOT/'docs/evidence/mdprecheck-sync-release-20261017.json').read_text())
+    receipt = json.loads((ROOT/'docs/evidence/client-update-20261017.json').read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
     assert receipt['all_scientific_workflows_qualified'] is False
-    assert receipt['manifest'] == 'sha256:76b04c61341afab7d763df4d972692d124ad8c8d2adc685a8223012aecd7a70b'
-    assert receipt['source'] == 'a8fafa3c394137505aa9cf6f618b3bf59ded6d17'
+    assert receipt['manifest'] == 'sha256:eaf15340996e3507a40ae0dd377351c6ea35b609ff6e90c36fe52fe009818618'
+    assert receipt['source'] == '19bcad5b3a50ad780388a646eb36d3bd86789e18'
     assert receipt['contract'] == {
         'native_operation_ids': True,
         'upload_identity': 'upload_id',
@@ -43,6 +43,20 @@ def test_pointer_and_console_link_select_exact_published_bytes():
     selected = parse_qs(urlsplit(link).query)['image']
     assert selected == [receipt['image'].rsplit(':',1)[0]+'@'+receipt['manifest']]
     assert len(values['SCIENTIFIC_AI_RELEASE_IMAGE']) < 128
+
+
+def test_ui_update_does_not_claim_automatic_reloads_or_scientific_requalification():
+    receipt = json.loads((ROOT/'docs/evidence/client-update-20261017.json').read_text())
+    assert receipt['browser']['real_open_tab_transition']
+    assert receipt['browser']['unsent_draft_preserved']
+    assert receipt['browser']['reload_confirmation_cancelled_without_navigation']
+    assert receipt['browser']['exact_report_visually_verified']
+    assert receipt['browser']['automatic_reload'] is False
+    assert receipt['browser']['new_scientific_operations'] == 0
+    assert receipt['fleet']['clients_verified'] == 5
+    assert receipt['fleet']['authenticated_logins_verified'] == 6
+    assert receipt['fleet']['processes_unchanged']
+    assert receipt['fleet']['provider_base_image_changed'] is False
 
 
 def test_historical_precheck_evidence_preserves_its_original_scope():

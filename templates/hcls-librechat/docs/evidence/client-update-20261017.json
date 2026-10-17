@@ -1,0 +1,34 @@
+{
+  "source": "19bcad5b3a50ad780388a646eb36d3bd86789e18",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:client-update-20261017-r1",
+  "manifest": "sha256:eaf15340996e3507a40ae0dd377351c6ea35b609ff6e90c36fe52fe009818618",
+  "base_manifest": "sha256:7bec331506c04eabb00eb64d943bb63f9474edb75a5bdf3f913bb69c105ebce0",
+  "skills_version": "2026.10.17.5",
+  "client_revision": "462aba2d8f256726",
+  "all_scientific_workflows_qualified": false,
+  "contract": {
+    "native_operation_ids": true,
+    "upload_identity": "upload_id",
+    "paired_preview_api_and_ui_required": true,
+    "request_shape": "exact-discovered-current-tool-schema",
+    "progress_schema": "scientific-ai/progress/v1",
+    "precheck_execution": "synchronous-only",
+    "precheck_async_fallback": false,
+    "mcp_timeout_ms": 2400000
+  },
+  "installed_tests": {"express": 7, "react": 15, "production_build": true, "branding": true},
+  "browser": {
+    "real_open_tab_transition": true,
+    "unsent_draft_preserved": true,
+    "reload_confirmation_cancelled_without_navigation": true,
+    "exact_report_visually_verified": true,
+    "automatic_reload": false,
+    "new_scientific_operations": 0
+  },
+  "fleet": {
+    "clients_verified": 5,
+    "authenticated_logins_verified": 6,
+    "processes_unchanged": true,
+    "provider_base_image_changed": false
+  }
+}
