@@ -23,7 +23,7 @@ def test_default_help_exposes_complete_read_only_recovery_mode():
 
 def test_recovery_help_does_not_require_submission_arguments():
     result = subprocess.run([sys.executable, str(HELPER), '--recover-operation-id',
-                             '00000000-0000-4000-8000-000000000001', '--help'],
+                             'op-1111222233334444', '--help'],
                             capture_output=True, text=True, check=True)
     usage = result.stdout.split('\n\n', 1)[0]
     assert '--recover-operation-id' in usage and '--output' in usage
@@ -38,7 +38,7 @@ def test_complete_installed_skill_example_selects_only_recovery(monkeypatch, tmp
     arguments = shlex.split(recovery[0].replace('\\\n', ''))
     assert arguments[:2] == ['/opt/scientific-client/bin/python',
                              '/opt/bionemo/invoke-scientific-batch.py']
-    operation = '00000000-0000-4000-8000-000000000001'
+    operation = 'op-1111222233334444'
     arguments[arguments.index('OPERATION_ID')] = operation
     arguments[arguments.index('/workspace/md/recovered')] = str(tmp_path / 'recovered')
     spec = importlib.util.spec_from_file_location('batch_help_test', HELPER)

@@ -20,7 +20,7 @@ spec.loader.exec_module(client)
 
 def test_accepted_response_before_receipt_recovers_without_another_admission(tmp_path):
     args = argparse.Namespace(output=tmp_path, model='model-a', idempotency_key='original-key', operation='fold')
-    operation = {'id': '11111111-2222-4333-8444-555555555555', 'model_id': args.model,
+    operation = {'id': 'op-1111222233334444', 'model_id': args.model,
         'idempotency_key': args.idempotency_key, 'operation': args.operation,
         'protocol': 'scientific-batch-v1', 'status': 'running'}
     client.save(tmp_path / 'submission.json', {'operation': operation})
@@ -33,7 +33,7 @@ def test_accepted_response_before_receipt_recovers_without_another_admission(tmp
     ('operation', 'changed'), ('protocol', 'native'), ('status', 'invented')])
 def test_saved_batch_response_must_match_exact_immutable_request(tmp_path, field, value):
     args = argparse.Namespace(output=tmp_path, model='model-a', idempotency_key='original-key', operation='fold')
-    operation = {'id': '11111111-2222-4333-8444-555555555555', 'model_id': args.model,
+    operation = {'id': 'op-1111222233334444', 'model_id': args.model,
         'idempotency_key': args.idempotency_key, 'operation': args.operation,
         'protocol': 'scientific-batch-v1', 'status': 'running', field: value}
     client.save(tmp_path / 'submission.json', {'operation': operation})

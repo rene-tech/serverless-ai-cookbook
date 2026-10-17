@@ -56,8 +56,8 @@ Core tools cover:
 
 - catalog/schema: `list_models`, `list_scientific_models`,
   `get_tool_catalog_revision`, `get_model_schema`;
-- original UUID serving/history: `get_operation`, `get_operation_result`,
-  and the advertised UUID control tools;
+- native operation reads: `get_operation`, `get_operation_result`, and the
+  advertised native lifecycle tools; no UUID job aliases;
 - native async serving (`operation.id` beginning `op-`): the App's named typed
   submission tool, `get_scientific_status`, then `get_scientific_result`;
 - scientific runs: `submit_scientific_run`, `get_scientific_status`,
@@ -70,23 +70,22 @@ There is also one named typed tool per authorized App. Paused/disabled acceptanc
 clones are excluded; restricted keys see fewer Apps. Discover the current count
 instead of treating a historical event catalog as the deployed contract.
 
-### Preserve the returned ID family
+### One native job identity
 
 | Example returned ID | Hosted status tool | Hosted result tool |
 | --- | --- | --- |
 | `op-e74c396a38794261` | `get_scientific_status` | `get_scientific_result` |
-| `00000000-0000-4000-8000-000000000001` | `get_operation` | `get_operation_result` |
+| `ses-0123456789abcdef` (live session) | `get_operation` | `get_operation_result` |
 
 These are shape examples, not authority to read another caller's operation.
 Native async responses nest the unchanged ID in `operation.id`; `QUEUED` with
 `result_available: false` is acceptance, not a prediction. Never resubmit to
-obtain a different ID or coerce `op-*` into a UUID. The UUID aliases and current
-`workbench_get_operation*` helpers do not accept native `op-*`. Use the hosted
-native lifecycle tools directly, with the same submitting identity; retrieve
-and verify returned artifacts outside model context. Scientific UUID submissions
-may also explicitly name the scientific lifecycle tools: the live tool contract
-wins. A missing lifecycle tool is a concrete client/grant gap, not permission to
-submit again or switch credentials.
+obtain a different ID or coerce `op-*` into a UUID. Workbench polling, result
+recovery and visualization accept the same native ID. Retrieve and verify
+artifacts outside model context. Local execution-process IDs, whole-study IDs
+and artifact IDs identify different objects; none replaces a platform job ID.
+A missing lifecycle tool is a client/grant gap, not permission to submit again
+or switch credentials.
 
 ## Scientific batch document
 

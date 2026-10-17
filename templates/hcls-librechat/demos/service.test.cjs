@@ -184,7 +184,7 @@ test('workspace preserves every byte of arbitrary, empty and Unicode files; pagi
 });
 test('artifact-backed operation results are verified and compacted for the agent', async () => {
   const service = await setup;
-  const operationId = '11111111-1111-4111-8111-111111111111';
+  const operationId = 'op-1111111111111111';
   const artifactId = '22222222-2222-4222-8222-222222222222';
   const payload = Buffer.from(JSON.stringify({ confidence: 72.5, plddt: [70, 80, 90],
     predicted_aligned_error: [[0.25, 1.5], [2.5, 0.25]], structure: 'ATOM '.repeat(1000) }));
@@ -277,7 +277,7 @@ test('MD capability search includes AMBER and MPI without broadening caller gran
 });
 test('inline output is compacted, saved losslessly and never overwrites different evidence', async () => {
   const service = await setup;
-  const id = crypto.randomUUID();
+  const id = 'op-' + crypto.randomBytes(8).toString('hex');
   const result = { structures: [{ pdb: 'ATOM '.repeat(5000), confidence: 0.75 }] };
   const originalFetch = global.fetch;
   global.fetch = async (url) => new Response(JSON.stringify(String(url).endsWith('/result')
@@ -296,7 +296,7 @@ test('inline output is compacted, saved losslessly and never overwrites differen
 });
 test('parallel operation tracking cannot overwrite another run or mix changed keys', async () => {
   const service = await setup;
-  const ids = Array.from({ length: 30 }, () => crypto.randomUUID());
+  const ids = Array.from({ length: 30 }, () => 'op-' + crypto.randomBytes(8).toString('hex'));
   const originalFetch = global.fetch;
   global.fetch = async (url) => {
     if (String(url).includes('/v1/operations?')) return new Response('{}', { status: 404 });
@@ -315,7 +315,7 @@ test('parallel operation tracking cannot overwrite another run or mix changed ke
 });
 test('caller history discovers untracked operations and follows the platform page cursor', async () => {
   const service = await setup;
-  const id = crypto.randomUUID();
+  const id = 'op-' + crypto.randomBytes(8).toString('hex');
   const originalFetch = global.fetch;
   const requests = [];
   global.fetch = async (url, options) => {
@@ -337,7 +337,7 @@ test('caller history discovers untracked operations and follows the platform pag
 });
 test('bounded operation wait preserves terminal and intermediate status without submission', async () => {
   const service = await setup;
-  const id = crypto.randomUUID();
+  const id = 'op-' + crypto.randomBytes(8).toString('hex');
   const originalFetch = global.fetch;
   const calls = [];
   let state = 'queued';

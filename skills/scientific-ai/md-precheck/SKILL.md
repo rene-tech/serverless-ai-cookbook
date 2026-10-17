@@ -86,8 +86,9 @@ renders inline; no extra viewer tool or hand-written link is needed. After an
 authorized repair/recheck, use the GROMACS skill's `prepare_gromacs_study.py`
 composer for the ordinary new-run-plus-results workflow, not a hand-written
 study or guessed batch CLI flags.
-Use the returned `read_execution` identity and 30-second bounded waits; the
-checker's native `op-...` ID is not a UUID accepted by `workbench_get_operation`.
+Use the returned `read_execution` identity and 30-second bounded waits for the
+local observer. The checker's native `op-...` ID also works directly with
+`workbench_get_operation` and the hosted scientific status tools.
 After terminal output, read only needed report fields; do not poll that job again.
 If the bounded observer exits while queued/running, resume the identical command
 and output directory. Do not change inputs, keys, scientific options or accounts.

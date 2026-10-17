@@ -24,7 +24,7 @@ const operation = (id) => ({ id, model_id: 'gromacs', protocol: 'scientific-batc
 
 test('status allowlist preserves scientific progress and strips execution implementation', async () => {
   const service = await setup;
-  const safe = service.customerOperation(operation(crypto.randomUUID()));
+  const safe = service.customerOperation(operation(('op-' + crypto.randomBytes(8).toString('hex'))));
   assert.equal(safe.progress.steps[0].completed_units, 2.5);
   assert.equal(safe.progress.steps[0].durable_completed_units, 2);
   assert.equal(safe.progress.steps[0].rate, 210);
@@ -37,7 +37,7 @@ test('status allowlist preserves scientific progress and strips execution implem
 
 test('actual tracking consumes top-level progress and saves only customer status', async () => {
   const service = await setup;
-  const id = crypto.randomUUID();
+  const id = ('op-' + crypto.randomBytes(8).toString('hex'));
   global.fetch = async () => new Response(JSON.stringify({ operation: { ...operation(id), progress: undefined },
     progress, batch: { status: 'running', result_published: false, native_job_id: 'private-native-job' } }));
   const result = await service.track('qa-user', 'qa-only-fixture', id);
@@ -48,7 +48,7 @@ test('actual tracking consumes top-level progress and saves only customer status
 
 test('native summaries with operation_id preserve identity, model, units and terminal state', async () => {
   const service = await setup;
-  const id = crypto.randomUUID();
+  const id = ('op-' + crypto.randomBytes(8).toString('hex'));
   global.fetch = async () => new Response(JSON.stringify({ id, operation_id: id, model_id: 'gromacs',
     status: 'SUCCEEDED', operation: { operation_id: id, status: 'succeeded' }, progress }));
   const result = await service.waitOperation('qa-native-envelope', 'qa-only-fixture', id, 0);
@@ -62,7 +62,7 @@ test('native summaries with operation_id preserve identity, model, units and ter
 
 test('conflicting nested or outer IDs remain errors, not a fallback to another run', async () => {
   const service = await setup;
-  const id = crypto.randomUUID(), other = crypto.randomUUID();
+  const id = ('op-' + crypto.randomBytes(8).toString('hex')), other = ('op-' + crypto.randomBytes(8).toString('hex'));
   for (const body of [{ id, operation: { operation_id: other, status: 'succeeded' } },
     { id: other, operation: { operation_id: id, status: 'succeeded' } },
     { id, operation_id: other, status: 'succeeded' }, { status: 'succeeded' }]) {
@@ -73,7 +73,7 @@ test('conflicting nested or outer IDs remain errors, not a fallback to another r
 
 test('older cached terminal rows are projected when backend history is unavailable', async () => {
   const service = await setup;
-  const id = crypto.randomUUID();
+  const id = ('op-' + crypto.randomBytes(8).toString('hex'));
   const hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
   const folder = path.join(root, 'workbench', hash('old-client'), 'runs', hash('fixture-key'));
   await fs.mkdir(folder, { recursive: true });

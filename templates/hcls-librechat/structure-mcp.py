@@ -21,6 +21,7 @@ import uuid
 MAX_BYTES = 4 * 1024 * 1024
 MAX_STRUCTURES = 20
 MAX_WORKSPACE_STRUCTURES = 4
+OPERATION_ID = r'^(?:op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?|sync-[a-z0-9](?:[a-z0-9-]{0,56}[a-z0-9])?)$'
 # Media is returned as base64 inside one MCP response. Keep the bound below
 # stdio/client message limits; helpers publish compact listening/viewing
 # previews while retaining lossless masters as authenticated Workspace files.
@@ -229,11 +230,11 @@ TOOL = {'name': 'visualize_structure',
         'description': 'Show an interactive PDB/mmCIF/SDF protein or molecule viewer in chat. For one completed folding/docking operation pass only operation_id and optional title. To overlay a prepared receptor from /workspace with a completed docking operation, pass operation_id plus workspace_files:[{path,label}]. Use operations for two to four completed operation IDs, or workspace_files alone for verified local structures. Never pass model_id, kind, image, audio or video fields. The viewer supports fullscreen, rotation, zoom and representations. It does not submit compute. Include its returned UI resource marker verbatim.',
         'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
         'inputSchema': {'type': 'object', 'additionalProperties': False,
-                        'properties': {'operation_id': {'type': 'string', 'format': 'uuid'},
+                        'properties': {'operation_id': {'type': 'string', 'pattern': OPERATION_ID},
                                        'operations': {'type': 'array', 'minItems': 2, 'maxItems': 4,
                                                       'description': 'Completed operations to compare in one synchronized viewer. Labels should be the exact model names.',
                                                       'items': {'type': 'object', 'additionalProperties': False,
-                                                                'properties': {'operation_id': {'type': 'string', 'format': 'uuid'},
+                                                                'properties': {'operation_id': {'type': 'string', 'pattern': OPERATION_ID},
                                                                                'label': {'type': 'string', 'minLength': 1, 'maxLength': 100}},
                                                                 'required': ['operation_id', 'label']}},
                                        'workspace_files': {'type': 'array', 'minItems': 1, 'maxItems': 4,
@@ -264,10 +265,9 @@ def call_viewer(args):
     operations = []
     entries = workspace_structures(args['workspace_files']) if has_workspace else []
     if 'operation_id' in args:
-        try:
-            operation = str(uuid.UUID(args['operation_id']))
-        except (ValueError, TypeError, AttributeError):
-            raise ValueError('Use the operation UUID returned by the gateway.') from None
+        operation = args['operation_id']
+        if not isinstance(operation, str) or not re.fullmatch(OPERATION_ID, operation):
+            raise ValueError('Use the native op-... ID returned by submission.')
         data = get_result(operation)
         found = collect_structures(data)
         for entry in found:
@@ -281,10 +281,9 @@ def call_viewer(args):
             raise ValueError('operations must contain two to four exact operation_id and label objects.')
         identifiers = []
         for item in requested:
-            try:
-                identifier = str(uuid.UUID(item['operation_id']))
-            except (ValueError, TypeError, AttributeError):
-                raise ValueError('Every comparison operation needs a gateway operation UUID.') from None
+            identifier = item['operation_id']
+            if not isinstance(identifier, str) or not re.fullmatch(OPERATION_ID, identifier):
+                raise ValueError('Every comparison needs its native op-... operation ID.')
             label = item['label']
             if not isinstance(label, str) or not label.strip() or len(label) > 100:
                 raise ValueError('Every comparison operation needs a nonempty model label of at most 100 characters.')

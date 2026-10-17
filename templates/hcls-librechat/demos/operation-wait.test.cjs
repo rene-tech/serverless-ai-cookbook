@@ -15,7 +15,7 @@ after(async () => { await setup; await fs.rm(root, { recursive: true, force: tru
 async function scenario(response, check, waitSeconds = 30) {
   const service = await setup;
   const originals = { now: Date.now, timeout: global.setTimeout, fetch: global.fetch, signal: AbortSignal.timeout };
-  const id = crypto.randomUUID();
+  const id = ('op-' + crypto.randomBytes(8).toString('hex'));
   let clock = 0;
   const calls = [];
   Date.now = () => clock;

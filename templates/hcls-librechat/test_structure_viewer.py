@@ -9,7 +9,7 @@ import pytest
 
 ROOT = Path(__file__).parent
 ASSETS = ROOT.parents[1] / 'life-science/bionemo-librechat'
-OPERATION = '11111111-1111-4111-8111-111111111111'
+OPERATION = 'op-1111111111111111'
 PDB = 'ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1.00 10.00           C\nEND\n'
 SDF = 'water\n  fixture\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\nM  END\n$$$$\n'
 
@@ -62,7 +62,7 @@ def test_empty_or_spoofed_reports_remain_errors(bridge, data):
 
 
 def test_multiple_operations_render_one_synchronized_overlay(bridge, monkeypatch):
-    other = '22222222-2222-4222-8222-222222222222'
+    other = 'op-2222222222222222'
     seen = []
     monkeypatch.setattr(bridge, 'get_result', lambda operation: seen.append(operation) or {'protein': PDB + f'REMARK {operation}\n'})
     result = bridge.call_viewer({'operations': [
@@ -122,7 +122,7 @@ def test_generic_confidence_does_not_claim_plddt_coloring(bridge, monkeypatch):
 @pytest.mark.parametrize('operations', [
     [{'operation_id': OPERATION, 'label': 'one'}],
     [{'operation_id': OPERATION, 'label': 'one'}, {'operation_id': OPERATION, 'label': 'two'}],
-    [{'operation_id': OPERATION, 'label': ''}, {'operation_id': '22222222-2222-4222-8222-222222222222', 'label': 'two'}],
+    [{'operation_id': OPERATION, 'label': ''}, {'operation_id': 'op-2222222222222222', 'label': 'two'}],
 ])
 def test_invalid_multi_operation_requests_do_not_partially_fetch(bridge, monkeypatch, operations):
     fetched = []
@@ -225,7 +225,8 @@ def mock_artifact_transport(bridge, monkeypatch, artifact_updates=None, raw=None
     monkeypatch.setenv('SCIENTIFIC_MODELS_API_KEY', 'fixture-key')
     monkeypatch.setenv('SCIENTIFIC_MODELS_API_BASE_URL', 'https://gateway.example.invalid/v1')
     content = json.dumps({'protein': PDB}).encode()
-    artifact = {'artifact_id': OPERATION, 'size_bytes': len(content),
+    artifact_id = '22222222-2222-4222-8222-222222222222'
+    artifact = {'artifact_id': artifact_id, 'size_bytes': len(content),
                 'sha256': hashlib.sha256(content).hexdigest(), 'compression': 'none'}
     artifact.update(artifact_updates or {})
     envelope = {'schema': 'fs2-serve.nebius.ai/operation-artifact-result/v1',
@@ -238,7 +239,7 @@ def mock_artifact_transport(bridge, monkeypatch, artifact_updates=None, raw=None
             requests.append(request.full_url)
             if request.full_url.endswith('/result'):
                 return io.BytesIO(json.dumps(envelope).encode())
-            assert request.full_url == f'https://gateway.example.invalid/v1/artifacts/{OPERATION}/content'
+            assert request.full_url == f'https://gateway.example.invalid/v1/artifacts/{artifact_id}/content'
             return io.BytesIO(content if raw is None else raw)
     monkeypatch.setattr(bridge.urllib.request, 'build_opener', lambda *args: Opener())
     return requests

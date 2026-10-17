@@ -22,11 +22,12 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import sys
 import tempfile
 import time
 from urllib.parse import quote, urlparse
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import httpx2
 from jsonschema import Draft202012Validator
@@ -669,7 +670,9 @@ async def retain_terminal_diagnostics(client, status: dict, output: Path, receip
 
 async def recover_completed(args) -> dict:
     """Only status/result reads: never reserve, upload, admit, cancel or infer."""
-    operation_id = str(UUID(args.recover_operation_id))
+    operation_id = args.recover_operation_id
+    if not isinstance(operation_id, str) or not re.fullmatch(r'op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?', operation_id):
+        raise ValueError('Use the native op-... operation ID returned by submission.')
     endpoint = os.environ['SCIENTIFIC_MODELS_MCP_URL']
     key = os.environ['SCIENTIFIC_MODELS_API_KEY']
     origin = endpoint.removesuffix('/mcp').removesuffix('/mcp/')
@@ -723,7 +726,9 @@ def recover_saved_admission(args, receipt):
             or operation.get('operation') != args.operation
             or operation.get('status') not in {'queued', 'activating', 'running', 'succeeded', 'failed', 'cancelled', 'expired', 'preempted'}):
         raise RuntimeError('Previous admission is ambiguous; no matching retained acceptance response exists.')
-    operation_id = str(UUID(operation['id']))
+    operation_id = operation['id']
+    if not isinstance(operation_id, str) or not re.fullmatch(r'op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?', operation_id):
+        raise ValueError('Saved admission does not contain a native operation ID.')
     receipt.update(operation_id=operation_id, state=operation['status'], recovered_saved_admission=True)
     save(args.output / 'receipt.json', receipt)
     return receipt

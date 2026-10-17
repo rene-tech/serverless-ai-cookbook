@@ -51,17 +51,15 @@ specific incompatibility and ask the user to choose a supported workflow.
 - Save and report the exact returned operation ID; do not convert it to a UUID.
   Choose the lifecycle tools by that ID and the live submission-tool description,
   not by whether the App is called "serving" or "scientific":
-  - Native IDs beginning `op-` (including durable ADMET serving): call
-    `get_scientific_status`, then `get_scientific_result` after result publication.
-    Pass the unchanged `operation.id` as `operation_id`. Do not use the UUID-only
-    `get_operation`, `get_operation_result` or `workbench_get_operation*` helpers.
-  - Original UUID IDs: prefer `workbench_get_operation` for bounded waiting and
-    `workbench_get_operation_result` for verified file-backed results where
-    supported; the hosted `get_operation` / `get_operation_result` aliases
-    preserve these original IDs. Follow a scientific tool's explicit lifecycle
-    instructions for scientific UUID runs.
+  - Every job uses the native Serverless `op-...` ID across API, MCP, workbench
+    and operator console. Never translate it to a UUID or look for an alias.
+    Prefer `workbench_get_operation` for bounded waiting and
+    `workbench_get_operation_result` for verified result recovery; hosted
+    `get_scientific_status` and `get_scientific_result` use the same ID.
+    Live audio sessions use their actual native `ses-...` session ID;
+    synchronous predictions retain their native `sync-...` receipt ID.
 - Scientific submissions return an operation plus batch state. Poll
-  `get_scientific_status` and incrementally read `list_scientific_events`.
+  `get_scientific_status`; do not request the retired archive event stream.
   Wait for result publication, then call `get_scientific_result` and retrieve
   the returned artifacts. Execution success alone may precede publication.
 - Treat `queued`, `activating`, and `running` as nonterminal, not proof of
@@ -69,8 +67,8 @@ specific incompatibility and ask the user to choose a supported workflow.
   cancel because a chat/tool timeout elapsed. Terminal states are `succeeded`,
   `failed`, `cancelled`, `preempted`, and `expired`.
 - Download and verify outputs before an advertised `acknowledge_operation`;
-  acknowledgement purges an ordinary retained payload/result. Do not assume
-  that this UUID lifecycle action is supported for native `op-*` IDs.
+  acknowledgement purges the operation's ordinary request/result payload,
+  not its separately published scientific artifacts or checkpoints.
 
 ## Scientific artifacts
 

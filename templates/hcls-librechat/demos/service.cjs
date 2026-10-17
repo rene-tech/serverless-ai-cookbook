@@ -11,6 +11,7 @@ const REPORT_PROVIDER = 'https://api.tokenfactory.nebius.com/v1';
 const FILES = ['report.md', 'transcript.txt', 'follow-up.md', 'review.md', 'document.json', 'review.json', 'run.json'];
 const WORKSPACE = process.env.SCIENTIFIC_WORKSPACE || '/workspace';
 const RUN_ID = /^[a-f0-9-]{36}$/i;
+const OPERATION_ID = /^(?:op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?|ses-[a-f0-9]{16}|sync-[a-z0-9](?:[a-z0-9-]{0,56}[a-z0-9])?)$/;
 const TERMINAL_STATES = new Set(['succeeded', 'completed', 'failed', 'cancelled', 'preempted', 'expired']);
 const hash = (text) => crypto.createHash('sha256').update(text).digest('hex');
 const failure = (message, status = 400) => Object.assign(new Error(message), { status });
@@ -75,11 +76,10 @@ function normalizedOperation(envelope, expectedId) {
   const nested = envelope?.operation && typeof envelope.operation === 'object' ? envelope.operation : null;
   const sources = nested ? [envelope, nested] : [envelope];
   const ids = sources.flatMap(value => [value?.id, value?.operation_id]).filter(value => value !== undefined);
-  if (!ids.length || ids.some(id => !RUN_ID.test(id) || id !== (expectedId || ids[0]))) {
+  if (!ids.length || ids.some(id => !OPERATION_ID.test(id) || id !== (expectedId || ids[0]))) {
     throw failure('Platform returned a mismatched operation.', 502);
   }
-  // Native compatibility envelopes use operation_id inside the summary, while
-  // older clients used id. Preserve outer model/timing fields and both aliases.
+  // Status envelopes may be nested; every identity must name the same native execution.
   return customerOperation({ ...envelope, ...nested, id: ids[0], operation_id: ids[0] });
 }
 function customerBatch(value) {
@@ -95,7 +95,8 @@ async function platform(key, method, resource, body, idempotencyKey, timeoutMs =
   const allowed = resource === '/v1/models' || resource === '/v1/scientific-models' || resource === '/v1/storage'
     || resource === '/v1/storage/credentials'
     || /^\/v1\/operations\?limit=\d{1,3}(?:&cursor=[A-Za-z0-9_-]{1,256})?$/.test(resource)
-    || /^\/v1\/operations\/[a-f0-9-]{36}(?::cancel|\/(?:events|result))?$/.test(resource)
+    || /^\/v1\/operations\/[^/:?]+(?::cancel|\/(?:events|result))?$/.test(resource)
+      && OPERATION_ID.test(resource.slice('/v1/operations/'.length).split(/[:/]/)[0])
     || /^\/v1\/workshop\/(catalog|runs(?:\/[a-f0-9-]{36}(?:\/(?:interventions|report|events))?)?)$/.test(resource);
   if (!allowed || !['GET', 'POST'].includes(method)) throw failure('Unsupported platform operation');
   let response;
@@ -121,7 +122,7 @@ async function platform(key, method, resource, body, idempotencyKey, timeoutMs =
     error.code = detail.code || detail.error_code;
     error.retryable = typeof detail.retryable === 'boolean' ? detail.retryable : undefined;
     error.durable_admission = typeof detail.durable_admission === 'boolean' ? detail.durable_admission : undefined;
-    error.operation_id = RUN_ID.test(detail.operation_id || '') ? detail.operation_id : undefined;
+    error.operation_id = OPERATION_ID.test(detail.operation_id || '') ? detail.operation_id : undefined;
     const retryAfter = Number(response.headers.get('retry-after') ?? detail.retry_after_seconds);
     if (Number.isFinite(retryAfter) && retryAfter >= 0) error.retry_after_seconds = retryAfter;
     throw error;
@@ -366,7 +367,7 @@ function evidenceGuidance(value, summary, artifact) {
 }
 
 async function operationResult(key, operationId) {
-  if (!RUN_ID.test(operationId || '')) throw failure('Supply a valid operation ID.');
+  if (!OPERATION_ID.test(operationId || '')) throw failure('Supply the native operation ID returned by submission.');
   // The production API returns the result body directly. Older gateways and the
   // local fixture wrap it in { operation, result }, so accept both shapes while
   // independently binding the response to the requested operation identity.
@@ -420,7 +421,7 @@ async function tracked(owner, key) {
   let filenames;
   try { filenames = await fs.readdir(folder); }
   catch (error) { if (error.code !== 'ENOENT') throw error; filenames = []; }
-  const current = await Promise.all(filenames.filter((name) => RUN_ID.test(name.replace(/\.json$/, ''))
+  const current = await Promise.all(filenames.filter((name) => OPERATION_ID.test(name.replace(/\.json$/, ''))
     && name.endsWith('.json')).map((name) => read(path.join(folder, name))));
   // One atomic file per operation avoids lost updates when UI and MCP processes
   // save different operations concurrently. Legacy rows are reauthorized below.
@@ -447,7 +448,7 @@ function runEntry(operation, previous = {}, metadata = {}) {
   };
 }
 async function track(owner, key, operationId, metadata = {}, timeoutMs = 45000) {
-  if (!RUN_ID.test(operationId || '')) throw failure('Supply a valid operation ID.');
+  if (!OPERATION_ID.test(operationId || '')) throw failure('Supply the native operation ID returned by submission.');
   const current = await platform(key, 'GET', `/v1/operations/${operationId}`, undefined, undefined, timeoutMs);
   const operation = normalizedOperation(current, operationId);
   const existing = await optionalRead(path.join(runDirectory(owner, key), operationId + '.json'), {});

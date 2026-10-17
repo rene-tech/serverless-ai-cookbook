@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1.7
+# Native Scientific AI job IDs over the exact qualified inline-report client.
+# Activate with the native-ID backend, never as an independent client rollout.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:eda632a87822dd9f87a43fb0de6cc3f6e617fcbeb72d13403f4049ad423ab838
+FROM ${WORKBENCH_BASE}
+USER root
+COPY templates/hcls-librechat/demos/service.cjs /opt/hcls-librechat/demos/service.cjs
+COPY templates/hcls-librechat/structure-mcp.py /opt/bionemo/structure-mcp.py
+COPY templates/hcls-librechat/execution-mcp.py /opt/bionemo/execution-mcp.py
+COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py
+RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/native-skills,ro \
+    --mount=type=bind,source=templates/hcls-librechat,target=/tmp/native-client,ro \
+    python3 /tmp/native-skills/bundle.py verify \
+ && cp -a /tmp/native-skills/. /app/skill/ \
+ && python3 -m py_compile /opt/bionemo/structure-mcp.py /opt/bionemo/execution-mcp.py /opt/bionemo/invoke-scientific-batch.py \
+ && node --check /opt/hcls-librechat/demos/service.cjs \
+ && TYPESCRIPT_MODULE=/app/node_modules/typescript node --test \
+      /tmp/native-client/demos/operation-wait.test.cjs \
+      /tmp/native-client/demos/progress-contract.test.cjs /tmp/native-client/demos/service.test.cjs \
+ && node /tmp/native-client/scripts/test-skills-installed.cjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.skills.version="2026.10.17.1" \
+      ai.nebius.scientific.release="native-identities-20261017"

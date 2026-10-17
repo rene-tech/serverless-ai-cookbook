@@ -95,5 +95,18 @@ def test_candidate_preserves_current_workbench_without_dependency_rebuild():
         assert forbidden not in final_stage
     assert 'micromamba create' not in source
     assert 'pip install' not in source
+    # Historical composition stays pinned to its own source release, not the
+    # independently advancing skills manifest of a newer client candidate.
+    assert 'ai.nebius.scientific.skills.version="2026.10.07.6"' in source
+
+
+def test_native_identity_candidate_preserves_runtime_and_qualifies_current_skills():
+    source = (ROOT / 'Dockerfile.native-identities').read_text()
     manifest = json.loads((ROOT.parents[1] / 'skills/scientific-ai/manifest.json').read_text())
+    assert 'lc@sha256:eda632a87822dd9f87a43fb0de6cc3f6e617fcbeb72d13403f4049ad423ab838' in source
     assert f'ai.nebius.scientific.skills.version="{manifest["version"]}"' in source
+    for filename in ('service.cjs', 'structure-mcp.py', 'execution-mcp.py', 'scientific-batch-acceptance.py'):
+        assert filename in source
+    assert 'bundle.py verify' in source and 'test-skills-installed.cjs' in source
+    assert 'operation-wait.test.cjs' in source and 'progress-contract.test.cjs' in source
+    assert 'pip install' not in source and 'micromamba create' not in source

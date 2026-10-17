@@ -22,6 +22,7 @@ from scientific_study_schema import STUDY_SCHEMA, DRAFT_SCHEMA, PHASE_OUTPUTS, d
 
 ROOT = Path(os.environ.get('SCIENTIFIC_EXECUTION_DIR', '/data/hcls-execution'))
 WORKSPACE = os.environ.get('SCIENTIFIC_WORKSPACE', '/workspace')
+OPERATION_ID = r'^op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$'
 # The configured MCP call deadline is 30s. Reserve transport/serialization time;
 # an observation may return earlier but must not race that unchanged deadline.
 MCP_CALL_DEADLINE_SECONDS = 30
@@ -433,7 +434,9 @@ def run_scientific_workflow(args):
 
 def recover_scientific_results(args):
     """Reuse the existing batch client's read-only completed-result path."""
-    operation = str(uuid.UUID(args['operation_id']))
+    operation = args['operation_id']
+    if not isinstance(operation, str) or not re.fullmatch(OPERATION_ID, operation):
+        raise ValueError('Use the native op-... operation ID returned by submission.')
     output = workspace_path(args.get('output_directory'), 'output_directory')
     resume = args.get('resume', False)
     if not isinstance(resume, bool):
@@ -630,7 +633,7 @@ TOOLS = [
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': True},
      'inputSchema': {'type': 'object', 'additionalProperties': False,
         'required': ['operation_id', 'output_directory'], 'properties': {
-            'operation_id': {**TEXT, 'format': 'uuid'}, 'output_directory': TEXT,
+            'operation_id': {**TEXT, 'pattern': OPERATION_ID}, 'output_directory': TEXT,
             'resume': {'type': 'boolean', 'default': False}}}},
     {'name': 'upload_workspace_files',
      'description': 'Upload one or more actual workspace files as immutable model artifacts, sequentially. Preferred over manually reserving handles or hashing/copying bytes through chat. Supply file paths, live-contract media types and explicit compression for encoded bytes; the existing uploader hashes, streams, finalizes and saves exact artifact.json references. For a new scientific batch study prefer its batch source step, which owns upload plus inference and durable analysis; do not separately upload a bundle to work around a rejected study draft. Submit all related files in one call to avoid concurrent reservations. No model inference is run. Repeated identical calls reuse this execution job; resume=true only after inspecting a failed/interrupted receipt. Observe with read_execution and reuse finalized references in native/batch inputs.',
