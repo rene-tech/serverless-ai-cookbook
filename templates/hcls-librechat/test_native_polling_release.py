@@ -15,14 +15,25 @@ def evidence():
 
 
 def test_pointer_and_console_link_select_exact_published_bytes():
-    # Keep the older native-polling evidence immutable; the current pointer has
-    # its own exact-image browser and persistence receipt.
-    receipt = json.loads((ROOT/'docs/evidence/mdprecheck-release-20261016.json').read_text())
+    # Historical receipts remain immutable; compare the current default only
+    # with its own published release evidence, not the old precheck-only image.
+    receipt = json.loads((ROOT/'docs/evidence/client-assets-20261017.json').read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
+    assert receipt['all_scientific_workflows_qualified'] is False
+    assert receipt['asset_delivery_tests'] == {'passed': 7, 'failed': 0, 'skipped': 0}
+    readme = (ROOT/'README.md').read_text()
+    link = html.unescape(re.search(r'<a href="(https://console.nebius.com/serverless/endpoint/create\?[^"]+)"',readme)[1])
+    selected = parse_qs(urlsplit(link).query)['image']
+    assert selected == [receipt['image'].rsplit(':',1)[0]+'@'+receipt['manifest']]
+    assert len(values['SCIENTIFIC_AI_RELEASE_IMAGE']) < 128
+
+
+def test_historical_precheck_evidence_preserves_its_original_scope():
+    receipt = json.loads((ROOT/'docs/evidence/mdprecheck-release-20261016.json').read_text())
     foundation = json.loads((ROOT/'docs/evidence'/receipt['foundation_receipt']).read_text())
     assert receipt['base_manifest'] == foundation['manifest']
     assert receipt['installed']['persistent_entrypoint_unchanged']
@@ -42,11 +53,6 @@ def test_pointer_and_console_link_select_exact_published_bytes():
     assert receipt['rollout']['provider_base_image_changed'] is False
     assert receipt['private_checker_source_included'] is False
     assert receipt['all_scientific_workflows_qualified'] is False
-    readme = (ROOT/'README.md').read_text()
-    link = html.unescape(re.search(r'<a href="(https://console.nebius.com/serverless/endpoint/create\?[^"]+)"',readme)[1])
-    selected = parse_qs(urlsplit(link).query)['image']
-    assert selected == [receipt['image'].rsplit(':',1)[0]+'@'+receipt['manifest']]
-    assert len(values['SCIENTIFIC_AI_RELEASE_IMAGE']) < 128
 
 
 def test_receipt_preserves_real_scope_and_unknown_provider_usage():

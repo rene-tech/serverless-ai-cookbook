@@ -98,6 +98,10 @@ actual browser/agent qualification above.
 
 ## Existing-instance patch and rollback
 
+**17 October correction:** the bridge/hard-refresh procedure below is historical.
+Use [immutable asset delivery](client-assets-20261017.md) and ordinary reload;
+all five retained clients now carry the inline viewer and that correction.
+
 System QA and the reporting operator's existing endpoint were patched in place.
 The API, supervisor and study-worker process identities remained unchanged;
 the previously submitted study was neither canceled nor resubmitted. Other

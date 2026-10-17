@@ -35,9 +35,10 @@ is required. The saved conversation is not rewritten.
   skill changes are part of this release.
 
 The default release pointer and maintained build recipes include the fix.
-Retained QA and reporting-user clients received the identical module, an
-idempotent on-disk server patch, and the scoped live middleware installation.
-Other customer instances were not modified.
+Retained QA and reporting-user clients first received the identical module, an
+idempotent on-disk server patch, and scoped live middleware installation. The
+owner subsequently requested the same rendering fix on every retained client;
+the additional rollout and future-install checks are recorded below.
 
 ## Qualification and limits
 
@@ -83,3 +84,36 @@ For future static patches, install the new assets before atomically replacing
 entry or rely on a hard-refresh instruction as the release mechanism. Verify
 the actually served HTML names the current bundle and that a normal cached
 browser reload renders the exact reported artifact.
+
+## All retained clients and future deployment paths
+
+The authorized follow-up inventories both managed-client projects: exactly five
+retained workbenches. The other three still lacked the report viewer, so patching
+only the asset middleware would not have been sufficient. Their 367 static UI
+files now match the published release byte-for-byte; old hashes were retained
+for existing tabs. The same server middleware and startup patch were installed
+without replacing scientific workers, skills, seeded instructions or customer
+overlays. API, supervisor and study-worker process identities were unchanged.
+
+All five current HTTPS origins return the current bundle and asset revision.
+Six existing logins, including both accounts in the deliberately shared client,
+still authenticate and access their own mounted workspace. Browser checks cover
+ordinary reload with the old entry blocked, a usable authenticated chat composer,
+and the existing QA report. No inference or customer study was submitted.
+
+The README deployment button had retained the old precheck-only image despite
+the updated CLI pointer. Both now select the same current digest, as does the
+generated console link. Twenty-seven deploy-link, networking and release-evidence
+checks pass. Seven actual-image middleware tests pass with no skips. Historical
+release receipts remain unchanged; the current pointer is checked against its
+[own receipt](evidence/client-assets-20261017.json), not an obsolete release.
+
+Private fleet receipts: `/home/tux/secure-handoff/client-assets-fleet-20261017.k2wpozlj`.
+Task: `fs2-inline-reports-all-clients-r20261017`.
+
+Provider endpoint image metadata cannot be edited in place. These preserved
+instances use recorded file overlays, not replacement endpoints. A provider VM
+recreation discards the overlays: use the pinned default when replacing an
+instance while retaining its state volume and bucket, or reapply the recorded
+patch. A normal browser reload is sufficient for currently running instances.
+No customer key, bucket, URL, inference setting or scientific runtime changed.

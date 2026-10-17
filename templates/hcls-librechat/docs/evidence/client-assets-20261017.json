@@ -1,0 +1,22 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:client-assets-20261017-r1",
+  "manifest": "sha256:eda632a87822dd9f87a43fb0de6cc3f6e617fcbeb72d13403f4049ad423ab838",
+  "source": "45c4d4e7ee6ede82256613877266c8ebfa5c8584",
+  "base_manifest": "sha256:36de5582315302a8f203cbf6ea1bdd28fecb65667063f30117378da5912236d8",
+  "skills_version": "2026.10.16.11",
+  "asset_delivery_tests": {"passed": 7, "failed": 0, "skipped": 0},
+  "browser_entry": "index.BxXzWA0S.js",
+  "asset_set_revision": "56d4c3a2922008d0",
+  "retained_fleet": {
+    "clients": 5,
+    "newly_patched_clients": 3,
+    "ui_files_verified_per_new_patch": 367,
+    "existing_logins_verified": 6,
+    "workspace_bindings_verified": 6,
+    "api_and_study_processes_preserved": true,
+    "provider_image_changed": false,
+    "scientific_inference_submitted": false
+  },
+  "scope": "Immutable client asset delivery, saved inline reports and original downloads; scientific runtime unchanged",
+  "all_scientific_workflows_qualified": false
+}
