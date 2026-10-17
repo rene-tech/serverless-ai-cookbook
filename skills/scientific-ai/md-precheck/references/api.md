@@ -25,13 +25,14 @@ and `compression: "none"` returned by finalization.
 
 - Read-only reuse: `POST /v1/mdprecheck/lookup` with this input document.
 - Execute: `POST /v1/models/mdprecheck:invoke` with
-  `{"operation":"check-md-inputs","payload":INPUT_DOCUMENT,"wait_seconds":0}`
-  and an `Idempotency-Key` header. HTTP 202 returns `operation.id`.
-- Observe: `GET /v1/operations/{id}`.
-- Result: `GET /v1/operations/{id}/result` after publication.
+  `{"operation":"check-md-inputs","payload":INPUT_DOCUMENT}`.
+  Set the client timeout to 2400 seconds. HTTP 200 returns the completed `result`
+  and native request receipt. There is no 202, job polling or async fallback.
+  Do not send `Idempotency-Key`, `wait_seconds` or asynchronous controls.
 - Download each report using the existing artifact download API/helper; verify
   size and SHA-256. The JSON result contains compact findings and separate
   `artifacts.html` / `artifacts.json` references.
 
-Execution can succeed while the scientific verdict is `fail` or `warn`. A new
-scientific input needs a new idempotency key. Identical retry uses the old key.
+Execution can succeed while the scientific verdict is `fail` or `warn`.
+After a timeout, look up the exact input/options before explicitly retrying;
+never automatically repeat inference. Uploads retain their own idempotency keys.

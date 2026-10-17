@@ -28,13 +28,13 @@ class Response:
 class Fixture:
     def __init__(self, root):
         self.calls, self.submissions = [], []
-        self.found, self.retry, self.wrong, self.corrupt = False, False, False, False
+        self.found, self.wrong, self.corrupt = False, False, False
         self.reject, self.status = False, 'SUCCEEDED'
         source = root / 'input.tar.gz'
         source.write_bytes(b'public fixture')
         self.args = SimpleNamespace(file=source, output_dir=root / 'reports', input_format='tar.gz',
             idempotency_key='mdprecheck-unit-0001', probes=[], intent=['stage=production'], nsteps=5000,
-            threads=2, define=[], wait_seconds=30, **dict.fromkeys(('coords', 'top', 'mdp', 'ndx', 'tpr',
+            threads=2, define=[], **dict.fromkeys(('coords', 'top', 'mdp', 'ndx', 'tpr',
                                                                   'fasta', 'workflow', 'chain_names')))
         self.args.output_dir.mkdir()
         self.data = {'html': b'<!DOCTYPE html><title>Report</title>', 'json': b'{"status":"warn"}'}
@@ -52,21 +52,13 @@ class Fixture:
             result = {'contracts': [{'input_schema': {'type': 'object'}}]}
         elif name == 'lookup_mdprecheck':
             result = {'found': self.found, 'workload_fingerprint': 'exact-options',
-                      'operation': {'id': 'op-existing', 'status': self.status}}
+                      **self.envelope('sync-existing')}
         elif name == 'run_mdprecheck':
             self.submissions.append(value)
             if self.reject:
                 result = {'error': {'code': 'NOT_AUTHORIZED', 'retryable': False}}
-            elif self.retry and len(self.submissions) == 1:
-                result = {'error': {'code': 'ADMISSION_LIMIT_REACHED', 'retryable': True, 'admission': 'not-submitted'}}
             else:
-                result = {'operation': {'id': 'op-new', 'status': 'QUEUED'}}
-        elif name == 'get_operation':
-            result = {'operation': {'id': value['operation_id'], 'status': self.status}}
-        elif name == 'get_operation_result':
-            result = {'operation': {'id': value['operation_id']}, 'result': {'status': 'warn', 'findings': [],
-                'workload_fingerprint': 'different-options' if self.wrong else 'exact-options',
-                'artifacts': self.pointers}}
+                result = self.envelope('sync-new')
         elif name == 'get_scientific_artifact':
             result = self.pointers[value['artifact_id']]
         elif name == 'download_scientific_artifact':
@@ -74,6 +66,12 @@ class Fixture:
         else:
             raise AssertionError(name)
         return Response(result)
+
+    def envelope(self, oid):
+        return {'operation': {'id': oid, 'status': self.status}, 'result': {
+            'status': 'warn', 'findings': [],
+            'workload_fingerprint': 'different-options' if self.wrong else 'exact-options',
+            'artifacts': self.pointers}}
 
     def stream(self, method, url, headers):
         assert method == 'GET' and 'Authorization' not in headers
@@ -96,16 +94,18 @@ class RunnerTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.temp.cleanup)
         self.fixture = Fixture(Path(self.temp.name))
 
-    async def test_retry_same_identity_then_resume_without_new_submission(self):
+    async def test_direct_result_then_redownload_without_new_submission(self):
         f = self.fixture
-        f.retry = True
         result = await f.run()
-        self.assertEqual(len(f.submissions), 2)
-        self.assertEqual(f.submissions[0], f.submissions[1])
+        self.assertEqual(len(f.submissions), 1)
+        self.assertNotIn('wait_seconds', f.submissions[0])
+        self.assertNotIn('idempotency_key', f.submissions[0])
+        self.assertNotIn('get_operation', f.calls)
+        self.assertNotIn('get_operation_result', f.calls)
         self.assertEqual(result['status'], 'warn')
         self.assertEqual(len(result['files']), 2)
         await f.run()
-        self.assertEqual(len(f.submissions), 2)
+        self.assertEqual(len(f.submissions), 1)
         self.assertNotIn('synthetic-key', (f.args.output_dir / 'receipt.json').read_text())
 
     async def test_exact_lookup_reuses_without_inference(self):
@@ -113,7 +113,7 @@ class RunnerTests(unittest.IsolatedAsyncioTestCase):
         f.found = True
         result = await f.run()
         self.assertTrue(result['reused'])
-        self.assertEqual(result['operation_id'], 'op-existing')
+        self.assertEqual(result['operation_id'], 'sync-existing')
         self.assertEqual(f.submissions, [])
 
     async def test_explicit_rerun_submits_fresh_check_then_resumes_same_operation(self):
@@ -121,10 +121,10 @@ class RunnerTests(unittest.IsolatedAsyncioTestCase):
         f.found, f.args.rerun = True, True
         result = await f.run()
         self.assertFalse(result['reused'])
-        self.assertEqual(result['operation_id'], 'op-new')
+        self.assertEqual(result['operation_id'], 'sync-new')
         self.assertEqual(len(f.submissions), 1)
         resumed = await f.run()
-        self.assertEqual(resumed['operation_id'], 'op-new')
+        self.assertEqual(resumed['operation_id'], 'sync-new')
         self.assertEqual(len(f.submissions), 1)
 
     async def test_rerun_requires_new_receipt_identity(self):
@@ -160,12 +160,15 @@ class RunnerTests(unittest.IsolatedAsyncioTestCase):
             await self.fixture.run()
         self.assertFalse((self.fixture.args.output_dir / 'report.html').exists())
 
-    async def test_cancelled_saved_operation_is_not_resubmitted(self):
-        await self.fixture.run()
-        self.fixture.status = 'CANCELLED'
-        with self.assertRaisesRegex(ValueError, 'terminated'):
-            await self.fixture.run()
-        self.assertEqual(len(self.fixture.submissions), 1)
+    async def test_lost_response_is_not_automatically_resubmitted(self):
+        f = self.fixture
+        f.reject = True
+        with self.assertRaises(ValueError):
+            await f.run()
+        f.reject = False
+        with self.assertRaisesRegex(ValueError, 'response was lost'):
+            await f.run()
+        self.assertEqual(len(f.submissions), 1)
 
 
 if __name__ == '__main__':

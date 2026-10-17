@@ -28,9 +28,9 @@ If repairs are also authorized, perform supported repairs with adequate sources;
 ask only about missing scientific choices, not repeated generic permission.
 
 Use `lookup_mdprecheck` with the exact input reference and options to find an
-earlier check. This is read-only and does not submit compute. A found pending
-operation should be observed, not duplicated. Read the scientific result of a
-completed operation; `warn` and `fail` still mean a check was performed.
+earlier completed check. This is read-only and returns its result directly;
+`warn` and `fail` still mean a check was performed. There are no pending precheck
+jobs and no asynchronous fallback.
 Changed file bytes, scientific intent, selected files, probe options or checker
 runtime need a new lookup/offer. Do not claim a prior check covers changed inputs.
 Keep the result/operation ID in the workload's existing receipt directory.
@@ -42,8 +42,9 @@ checks; explain the failure and offer a retry. Never report them as a clean pass
 
 If the user explicitly asks to **run the check again**, use the installed
 runner's `--rerun` with a new output directory and idempotency key. This requests
-a fresh operation even when identical inputs have an earlier report. Resume
-that same command/receipt after an interruption. Do not call an explicit rerun
+a fresh synchronous call even when identical inputs have an earlier report.
+After a lost response, look up exact inputs before proposing an explicit retry.
+Do not call an explicit rerun
 "prohibited", or describe a reused report as a new check.
 
 ## Preferred LibreChat execution
@@ -57,8 +58,8 @@ not `cp -p`, `chmod`, or `sed -i`. Repair a scratch copy, publish its closed byt
 to a new workspace file and verify them; do not change the source in place.
 
 After consent, use the [installed runner](scripts/run-precheck.py) for a workspace
-bundle. It performs discovery, verified upload, exact lookup, safe admission
-backoff, durable observation and report downloads through MCP. Do **not** redo
+bundle. It performs discovery, verified upload, exact lookup, one synchronous
+check and report downloads through MCP. Do **not** redo
 these steps as individual chat tools, scan history, or write a replacement client.
 Use this runner even when a `precheck/` folder already exists: it verifies the
 current input/options against the live lookup. Choose a new receipt directory
@@ -76,8 +77,8 @@ Use actual file names; omit optional selectors if unknown. Add one `--intent`
 per supplied intent, e.g. `--intent stage=production --intent length_ns=1`.
 Add `--probes grompp energy minimize stability` only if requested. Other schema
 fields have corresponding flags; consult `--help`, not the source code.
-Omit the runner's `--wait-seconds` to use its default; unlike the direct MCP
-submit tool, this observer does not accept zero. Do not invent CLI examples.
+The runner allows 40 minutes for the HTTP/MCP response; no wait or async options
+are accepted. Its `--idempotency-key` names the upload only, not inference retries.
 Observe the same execution with `read_execution`. Its `delivery.json` supplies
 the exact operation, scientific verdict and verified report links. Report only
 that delivery; **never substitute older reports** while waiting for admission.
@@ -86,13 +87,11 @@ renders inline; no extra viewer tool or hand-written link is needed. After an
 authorized repair/recheck, use the GROMACS skill's `prepare_gromacs_study.py`
 composer for the ordinary new-run-plus-results workflow, not a hand-written
 study or guessed batch CLI flags.
-Use the returned `read_execution` identity and 30-second bounded waits for the
-local observer. The checker's native `op-...` ID also works directly with
-`workbench_get_operation` and the hosted scientific status tools.
-After terminal output, read only needed report fields; do not poll that job again.
-If the bounded observer exits while queued/running, resume the identical command
-and output directory. Do not change inputs, keys, scientific options or accounts.
-An admission rejection means not checked yet, not permission to reuse a mismatch.
+Use the returned `read_execution` identity only for the local command. The hosted
+check returns the completed verdict and artifact references in the same call;
+do not poll a platform job. A saved completed response can finish downloading
+without repeating the check. Timeout or rejection is not a scientific pass;
+inspect exact-input lookup before offering an explicit retry.
 
 Other MCP/API clients can follow the manual contract below.
 
@@ -123,13 +122,14 @@ Other MCP/API clients can follow the manual contract below.
    relative files inside the archive. Include `intent`, e.g. `["dt=0.002",
    "length_ns=100", "stage=production"]`, when provided by the user. Do not
    invent reference sequences or silently fetch private data from another service.
-5. Lookup first; with consent, call `run_mdprecheck` with a stable idempotency
-   key and `wait_seconds: 0`. Static checks are the default. If requested,
+5. Lookup first; with consent, call `run_mdprecheck` using only the scientific
+   input/options (no idempotency key, wait or async field). It returns directly.
+   Static checks are the default. If requested,
    `probes` may include `grompp`, `energy`, `minimize`, `stability`; these use
    CPU and require original sources. Default probe length is 5,000 steps,
    maximum 100,000; this is not the production duration. Overall limit: 30 min.
-6. Poll `get_operation`, then `get_operation_result`. Download the
-   returned `artifacts.json` and `artifacts.html` with the trusted artifact
+6. Read `result` in that response. Download its
+   `artifacts.json` and `artifacts.html` with the trusted artifact
    tools, preserving checksums. Return the verified workspace HTML link so
    LibreChat renders its inline report viewer; never paste the HTML into chat.
 

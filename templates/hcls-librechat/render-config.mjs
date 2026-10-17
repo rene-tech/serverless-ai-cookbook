@@ -232,7 +232,7 @@ const config = {
       ...(!sharedGatewayKey ? { customUserVars: { SCIENTIFIC_MODELS_API_KEY: {
         title: 'Scientific AI API key', description: 'Your App-access key, without the Bearer prefix.', sensitive: true,
       } } } : {}),
-      initTimeout: 30000, timeout: 120000, serverInstructions: true,
+      initTimeout: 30000, timeout: 2400000, serverInstructions: true,
     },
   },
 };

@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1.7
+# Preserve the current workbench; change only the checker client and MCP timeout.
+FROM cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:ac5a4f7dbd458842fd38d87009db06cc6b365d5547a4f061d81752259c4cb9af
+USER root
+RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/skills,ro \
+    --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
+    python3 /tmp/skills/bundle.py verify \
+ && cp -a /tmp/skills/. /app/skill/ \
+ && cp /tmp/client/render-config.mjs /opt/hcls-librechat/render-config.mjs \
+ && /opt/scientific-client/bin/python /tmp/client/test_mdprecheck_runner.py \
+ && node /tmp/client/scripts/test-skills-installed.cjs \
+ && node --check /opt/hcls-librechat/render-config.mjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.skills.version="2026.10.17.3" \
+      ai.nebius.scientific.release="mdprecheck-synchronous-20261017"
