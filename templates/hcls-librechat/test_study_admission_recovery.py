@@ -22,6 +22,10 @@ def scenario(tmp_path, monkeypatch):
     monkeypatch.setattr(study, 'workflow_module', lambda: workflow)
     step = {name: str(value) if isinstance(value, Path) else value
             for name, value in vars(args).items() if name not in {'output', 'wait_seconds', 'poll_seconds'}}
+    # Real composer plans omit these optional fields; recovery must use the
+    # same defaults as the original workflow transport.
+    step.pop('compression', None)
+    step.pop('service_class', None)
     step.update(id='simulate', kind='batch')
     plan = {'schema': study.SCHEMA, 'title': 'Admission recovery fixture', 'steps': [step,
         {'id': 'report', 'kind': 'analysis', 'method': 'write-json', 'arguments': {

@@ -52,7 +52,8 @@ async def reconcile(identifier):
         plan = load(root / 'plan.json')
         studies.verify_cancellation_identity(record, plan)
         arguments = studies.resolve(step, record)
-        arguments = {key: value for key, value in arguments.items() if key not in {'id', 'kind'}}
+        arguments = {'compression': None, 'service_class': 'customer-batch',
+                     **{key: value for key, value in arguments.items() if key not in {'id', 'kind'}}}
         arguments.update(output=Path(record['output_directory']) / 'steps' / step['id'] / 'operation',
                          wait_seconds=0, poll_seconds=10, reconcile_only=True)
         for field in ('source', 'parameters', 'source_artifact'):
