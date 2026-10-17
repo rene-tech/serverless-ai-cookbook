@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A17d77ad5676d98f719f42f26c1b57188bdd647643e087ff5715e06dfdbf1d00d&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,12 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:catalog-contract-20261017-r2`,
-digest `sha256:17d77ad5676d98f719f42f26c1b57188bdd647643e087ff5715e06dfdbf1d00d`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:observer-recovery-20261017-r2`,
+digest `sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386`.
+The [observer recovery correction](docs/observer-recovery-20261017.md) reconnects
+existing operations after status-read failures without resubmitting science.
+Saved studies receive fair observation turns; a running remote job no longer
+monopolizes later requests. Native platform admission still controls concurrency.
 The [catalog contract correction](docs/catalog-contract-20261017.md) uses the
 complete current caller-authorized App catalog and typed tool names. It removes
 the obsolete capability-array assumption and duplicate scientific-subset read.

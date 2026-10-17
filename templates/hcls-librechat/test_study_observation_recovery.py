@@ -67,6 +67,7 @@ def test_read_outage_is_backed_off_and_does_not_block_other_saved_requests(tmp_p
     assert record['observation_recovery']['retryable']
     assert record['observation_recovery']['error_type'] == 'EndOfStream'
     assert not record['queue_blocked']
+    assert worker.next_study([study.view(record)]) == (None, None)
     assert worker.next_study(study.list_studies()) == (second['id'], None)
     assert (len(calls), len(uploads)) == sent
 

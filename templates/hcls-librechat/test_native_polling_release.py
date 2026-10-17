@@ -17,15 +17,15 @@ def evidence():
 def test_pointer_and_console_link_select_exact_published_bytes():
     # Historical receipts remain immutable; compare the current default only
     # with its own published release evidence, not the old precheck-only image.
-    receipt = json.loads((ROOT/'docs/evidence/catalog-contract-r2-20261017.json').read_text())
+    receipt = json.loads((ROOT/'docs/evidence/observer-recovery-20261017.json').read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
     assert receipt['all_scientific_workflows_qualified'] is False
-    assert receipt['manifest'] == 'sha256:17d77ad5676d98f719f42f26c1b57188bdd647643e087ff5715e06dfdbf1d00d'
-    assert receipt['source'] == '4fa1c8802e49dbc14a89f1fd6a0cd0a599e12154'
+    assert receipt['manifest'] == 'sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386'
+    assert receipt['source'] == '138bfaec44ba7932e424827b9c6ed4337c435aa5'
     assert receipt['contract'] == {
         'native_operation_ids': True,
         'upload_identity': 'upload_id',
@@ -68,6 +68,19 @@ def test_catalog_correction_is_live_but_not_a_blanket_workflow_qualification():
     assert receipt['fleet']['clients_verified'] == 5
     assert receipt['fleet']['current_cached_processes_verified'] == 7
     assert receipt['all_scientific_workflows_qualified'] is False
+
+
+def test_observer_release_keeps_exact_operations_and_frozen_science():
+    receipt = json.loads((ROOT/'docs/evidence/observer-recovery-20261017.json').read_text())
+    live = receipt['live_acceptance']
+    assert live['scientific_operations'] == live['verified_completed_workflows'] == 2
+    assert live['existing_operation_recovered'] and live['second_request_admitted_before_first_completed']
+    assert live['duplicate_scientific_submissions'] == 0
+    assert not live['remote_worker_disrupted']
+    assert receipt['scientific_executor_bytes_unchanged']
+    assert receipt['fleet']['clients_verified'] == 5
+    assert receipt['fleet']['api_and_state_supervisors_preserved']
+    assert not receipt['sustainable_capacity_measured']
 
 
 def test_historical_precheck_evidence_preserves_its_original_scope():

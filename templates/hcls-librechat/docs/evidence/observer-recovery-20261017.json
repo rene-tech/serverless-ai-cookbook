@@ -1,0 +1,51 @@
+{
+  "source": "138bfaec44ba7932e424827b9c6ed4337c435aa5",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:observer-recovery-20261017-r2",
+  "manifest": "sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386",
+  "base_manifest": "sha256:17d77ad5676d98f719f42f26c1b57188bdd647643e087ff5715e06dfdbf1d00d",
+  "skills_version": "2026.10.17.5",
+  "inherited_catalog_receipt": "catalog-contract-r2-20261017.json",
+  "all_scientific_workflows_qualified": false,
+  "sustainable_capacity_measured": false,
+  "contract": {
+    "native_operation_ids": true,
+    "upload_identity": "upload_id",
+    "paired_preview_api_and_ui_required": true,
+    "request_shape": "exact-discovered-current-tool-schema",
+    "progress_schema": "scientific-ai/progress/v1",
+    "precheck_execution": "synchronous-only",
+    "precheck_async_fallback": false,
+    "mcp_timeout_ms": 2400000
+  },
+  "focused_tests_passed": 201,
+  "installed_imports_and_transport_classifier_passed": true,
+  "scientific_executor_bytes_unchanged": true,
+  "live_acceptance": {
+    "tenant": "system",
+    "transport": "installed environment-execution MCP and public Scientific AI MCP",
+    "scientific_operations": 2,
+    "requested_ns_each": 0.6,
+    "fault": "isolated client ExceptionGroup(EndOfStream) after actual admission",
+    "remote_worker_disrupted": false,
+    "existing_operation_recovered": true,
+    "second_request_admitted_before_first_completed": true,
+    "verified_completed_workflows": 2,
+    "verified_workflow_artifacts_each": 8,
+    "duplicate_scientific_submissions": 0,
+    "browser_visual_regression_tested": false
+  },
+  "authenticated_default_agent": {
+    "completed_turns": 2,
+    "workflow_read_tools": 4,
+    "structure_viewer_calls": 2,
+    "errors": 0,
+    "transport_warnings": 0,
+    "model_or_instructions_changed": false
+  },
+  "fleet": {
+    "clients_verified": 5,
+    "api_and_state_supervisors_preserved": true,
+    "only_idle_observer_workers_restarted": true,
+    "provider_base_image_changed": false
+  }
+}
