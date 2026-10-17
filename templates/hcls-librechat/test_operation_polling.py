@@ -29,7 +29,8 @@ def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_operation', st
                 'source_artifact': {'artifact_id': 'unchanged-source'},
                 'manifest_artifact': {'artifact_id': 'unchanged-manifest'}}
     client.save(args.output / 'receipt.json', original)
-    previous = {'operation': {'id': OPERATION, 'status': 'running', 'result_available': False}}
+    previous = {'operation_id': OPERATION, 'model_id': args.model, 'status': 'RUNNING',
+                'operation': {'operation_id': OPERATION, 'status': 'running', 'result_available': False}}
     client.save(args.output / 'status.json', previous)
     data = json.dumps({'entries': []}).encode()
     result = {'operation_id': OPERATION, 'terminal_status': 'succeeded',
@@ -89,7 +90,8 @@ def resumed_run(tmp_path, monkeypatch, faults, *, fault_tool='get_operation', st
             return rpc_response(request, message, {'isError': True, 'content': [{
                 'type': 'text', 'text': json.dumps({'error': fault})}]})
         state = state_queue.pop(0) if name == 'get_operation' and state_queue else 'succeeded'
-        document = ({'operation': {'id': OPERATION, 'status': state,
+        document = ({'operation_id': OPERATION, 'model_id': args.model, 'status': state.upper(),
+                     'operation': {'operation_id': OPERATION, 'status': state,
                      'result_available': state == 'succeeded'}}
                     if name == 'get_operation' else result)
         return rpc_response(request, message, {'content': [{'type': 'text', 'text': json.dumps(document)}]})
@@ -274,13 +276,14 @@ def test_ambiguous_mutation_is_never_retried_by_observation_policy(tmp_path, mon
     args.source.write_text('{}')
     args.parameters.write_text('{}')
     calls = []
+    schema = {'type': 'object', 'properties': {'request': {'properties': {'parameters': {'type': 'object'}}}}}
     class Context:
         async def __aenter__(self): return self
         async def __aexit__(self, *args): return False
         async def list_tools(self):
             return SimpleNamespace(tools=[SimpleNamespace(name=args.tool,
-                input_schema={'type': 'object', 'properties': {'request': {'properties': {'parameters': {'type': 'object'}}}}},
-                model_dump=lambda **kwargs: {'name': args.tool})])
+                input_schema=schema,
+                model_dump=lambda **kwargs: {'name': args.tool, 'inputSchema': schema})])
     async def rpc(connection, name, arguments):
         calls.append(name)
         if name == 'get_model_schema':

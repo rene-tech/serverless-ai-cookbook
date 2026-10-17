@@ -50,7 +50,7 @@ from scientific_receipts import (
 from native_md_artifacts import materialize_native_outputs
 
 
-TERMINAL = {"failed", "cancelled", "expired", "preempted"}
+TERMINAL = {"failed", "cancelled", "timed_out", "export_failed", "preempted"}
 
 
 class ToolAvailabilityError(RuntimeError):
@@ -131,14 +131,17 @@ class SourcePreflightError(ValueError):
     """A local source/metadata rejection, before this invocation uploads/admission."""
 
 
-def preflight_parameters(tool_schema: dict, parameters: object, source: bytes | FileSource, args) -> None:
-    """Validate the exact advertised parameter schema without reserving an artifact.
+def submission_contract(tool_schema):
+    """Select a current execution family's envelope from its exact tool schema.
 
-    The documented uploaded-bundle binding is checked with a validation-only UUID
-    and measured bytes. It is never persisted or submitted; the final request is
-    still validated against the real finalized upload reference.
+    MD/scVI/MPI tools wrap their typed request; staged scientific tools publish
+    its fields directly. This is discovery, never a failed-call downgrade.
     """
-    request_schema = tool_schema.get('properties', {}).get('request')
+    properties = tool_schema.get('properties', {})
+    wrapped = 'request' in properties
+    if wrapped == ('parameters' in properties):
+        raise ValueError('Submission tool must advertise exactly one scientific request shape.')
+    request_schema = properties['request'] if wrapped else tool_schema
     visited = set()
     while isinstance(request_schema, dict) and '$ref' in request_schema:
         reference = request_schema['$ref']
@@ -148,6 +151,26 @@ def preflight_parameters(tool_schema: dict, parameters: object, source: bytes | 
         request_schema = tool_schema
         for component in reference[2:].split('/'):
             request_schema = request_schema.get(component.replace('~1', '/').replace('~0', '~'), {})
+    if not isinstance(request_schema, dict) or 'parameters' not in request_schema.get('properties', {}):
+        raise ValueError('Submission tool has no typed scientific parameters schema.')
+    return wrapped, request_schema
+
+
+def submission_arguments(tool_schema, body, idempotency_key):
+    wrapped, _ = submission_contract(tool_schema)
+    arguments = {'request': body} if wrapped else dict(body)
+    arguments['idempotency_key'] = idempotency_key
+    Draft202012Validator(tool_schema).validate(arguments)
+    return arguments
+
+
+def preflight_parameters(tool_schema: dict, parameters: object, source: bytes | FileSource, args) -> None:
+    """Validate exact discovered parameters before reserving an artifact.
+
+    The uploaded-bundle placeholder uses measured validation-only fields here;
+    submission later validates the real finalized upload reference.
+    """
+    _, request_schema = submission_contract(tool_schema)
     schema = request_schema.get('properties', {}).get('parameters') if isinstance(request_schema, dict) else None
     if not isinstance(schema, (dict, bool)):
         raise RuntimeError('Scientific submission tool has no parameters schema; no upload was submitted.')
@@ -334,7 +357,8 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                         status = await call(connection, phase, {'operation_id': operation_id})
                         phase, observation.failure = None, None
                         save(args.output / 'status.json', status)
-                        operation = status['operation']
+                        operation = batch_operation(status, operation_id=operation_id,
+                                                    model_id=receipt['identity'].get('model_id'))
                         receipt['state'] = operation['status']
                         save(receipt_path, receipt)
                         if receipt['state'] != announced_state:
@@ -723,6 +747,61 @@ def bind_uploaded_source(parameters: dict, artifact: dict) -> dict:
     return {**parameters, 'source': {'kind': 'uploaded-bundle', **artifact}}
 
 
+def batch_operation(document, *, operation_id=None, model_id=None):
+    """Read the current native scientific status shared by both batch families."""
+    if not isinstance(document, dict):
+        raise ValueError('Scientific operation response must be an object.')
+    actual_id = document.get('operation_id')
+    if (not isinstance(actual_id, str)
+            or not re.fullmatch(r'op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?', actual_id)
+            or (operation_id is not None and actual_id != operation_id)
+            or ('id' in document and document['id'] != actual_id)):
+        raise ValueError('Scientific operation identity differs from its native operation ID.')
+    if (not isinstance(document.get('model_id'), str) or not document['model_id']
+            or (model_id is not None and document['model_id'] != model_id)):
+        raise ValueError('Scientific operation model differs from the submitted model.')
+    operation = document.get('operation')
+    # A prepared but not acknowledged native admission has an ID, but no child
+    # operation publication yet. Observing it does not authorize re-submission.
+    if (operation is None and document.get('status') == 'ADMISSION_PENDING'
+            and document.get('state') == 'admission-unknown'):
+        return {'operation_id': actual_id, 'status': 'admission_pending', 'result_available': False}
+    if (not isinstance(operation, dict) or operation.get('operation_id') != actual_id
+            or not isinstance(document.get('status'), str)
+            or not re.fullmatch(r'[A-Z][A-Z0-9_]*', document['status'])
+            or operation.get('status') != document['status'].lower()
+            or type(operation.get('result_available')) is not bool):
+        raise ValueError('Scientific operation response has inconsistent current status fields.')
+    return operation
+
+
+def admission_binding(args, receipt):
+    """Bind a locally retained ACK to its exact caller and immutable request.
+
+    The server does not echo caller identity or the idempotency key in status.
+    This journal is evidence from the original authenticated submission, not a
+    guessed server field or an instruction to repeat admission.
+    """
+    identity, descriptor = receipt.get('identity', {}), receipt.get('request_descriptor', {})
+    request = load_receipt(args.output / 'request.json')
+    contract = load_receipt(args.output / 'contract.json')
+    if (identity.get('model_id') != args.model or identity.get('idempotency_key') != args.idempotency_key
+            or not identity.get('endpoint') or not identity.get('caller_fingerprint')
+            or descriptor.get('tool') != args.tool or descriptor.get('operation') != args.operation
+            or not isinstance(request, dict) or not isinstance(contract, dict)
+            or contract.get('name') != args.tool
+            or receipt.get('request_sha256') != digest(canonical(request))):
+        raise ValueError('Saved admission has no matching immutable request and caller binding.')
+    schema = contract['inputSchema']
+    wrapped, _ = submission_contract(schema)
+    Draft202012Validator(schema).validate(request)
+    body = request['request'] if wrapped else request
+    if request.get('idempotency_key') != args.idempotency_key or body.get('operation') != args.operation:
+        raise ValueError('Saved admission differs from the original operation or idempotency key.')
+    return {'identity_sha256': digest(canonical(identity)), 'request_sha256': receipt['request_sha256'],
+            'tool': args.tool, 'operation': args.operation}
+
+
 def recover_saved_admission(args, receipt):
     """Recover an exact acceptance saved just before the operation receipt.
 
@@ -730,19 +809,16 @@ def recover_saved_admission(args, receipt):
     """
     if receipt.get('operation_id') or receipt.get('state') not in {'submitting', 'admission_unknown'}:
         return receipt
-    path = args.output / 'submission.json'
-    accepted = json.loads(path.read_bytes()) if path.is_file() else {}
-    operation = accepted.get('operation', accepted)
-    if (not isinstance(operation, dict) or operation.get('model_id') != args.model
-            or operation.get('idempotency_key') != args.idempotency_key
-            or operation.get('protocol') != 'scientific-batch-v1'
-            or operation.get('operation') != args.operation
-            or operation.get('status') not in {'queued', 'activating', 'running', 'succeeded', 'failed', 'cancelled', 'expired', 'preempted'}):
-        raise RuntimeError('Previous admission is ambiguous; no matching retained acceptance response exists.')
-    operation_id = operation['id']
-    if not isinstance(operation_id, str) or not re.fullmatch(r'op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?', operation_id):
-        raise ValueError('Saved admission does not contain a native operation ID.')
-    receipt.update(operation_id=operation_id, state=operation['status'], recovered_saved_admission=True)
+    try:
+        binding = admission_binding(args, receipt)
+        saved = load_receipt(args.output / 'admission.json')
+        if not isinstance(saved, dict) or saved.get('binding') != binding:
+            raise ValueError('No matching journaled acknowledgement.')
+        operation = batch_operation(saved['response'], model_id=args.model)
+    except (ValueError, KeyError, TypeError, RuntimeError) as error:
+        raise RuntimeError('Previous admission is ambiguous; no matching request-bound acknowledgement '
+                           'exists. Preserve the evidence for review; do not resubmit.') from error
+    receipt.update(operation_id=operation['operation_id'], state=operation['status'], recovered_saved_admission=True)
     save(args.output / 'receipt.json', receipt)
     return receipt
 
@@ -804,7 +880,7 @@ async def _run(args) -> dict:
                         raise ToolAvailabilityError(detail['message'])
                     save(args.output / "contract.json", tool.model_dump(mode="json", by_alias=True))
                     discovery = await call(client, 'get_model_schema', {'model_id': args.model,
-                                                                       'protocol': 'scientific-batch-v1'})
+                        'protocol': 'scientific-batch-v1', 'tool_name': args.tool})
                     save(args.output / 'model-contract.json', discovery)
                     contract = scientific_contract(discovery)
                     try:
@@ -865,15 +941,16 @@ async def _run(args) -> dict:
                             "application/vnd.fs2.scientific-manifest+json", "none",
                             args.idempotency_key + "-manifest")
                         save(receipt_path, receipt)
-                    request = {"request": {"schema": "fs2-serve.nebius.ai/scientific-run-request/v1",
+                    body = {"schema": "fs2-serve.nebius.ai/scientific-run-request/v1",
                                "operation": args.operation, "service_class": args.service_class,
                                "input_manifest": receipt["manifest_artifact"], "parameters": parameters,
                                "client_context": {"display_name": args.display_name,
-                                                  "correlation_id": args.idempotency_key}},
-                               "idempotency_key": args.idempotency_key}
-                    Draft202012Validator(tool.input_schema).validate(request)
+                                                  "correlation_id": args.idempotency_key}}
+                    request = submission_arguments(tool.input_schema, body, args.idempotency_key)
                     save(args.output / "request.json", request)
                     receipt["state"] = "submitting"
+                    receipt['request_sha256'] = digest(canonical(request))
+                    binding = admission_binding(args, receipt)
                     save(receipt_path, receipt)
                     try:
                         accepted = await call(client, args.tool, request)
@@ -885,10 +962,10 @@ async def _run(args) -> dict:
                         receipt["state"] = "admission_unknown"
                         save(receipt_path, receipt)
                         raise
+                    save(args.output / 'admission.json', {'binding': binding, 'response': accepted})
                     save(args.output / "submission.json", accepted)
-                    operation = accepted.get("operation", accepted)
-                    receipt.update(operation_id=operation.get("id") or operation["operation_id"],
-                                   state=operation.get("status", "queued"))
+                    operation = batch_operation(accepted, model_id=args.model)
+                    receipt.update(operation_id=operation['operation_id'], state=operation['status'])
                     save(receipt_path, receipt)
         return await observe_operation(args, http, endpoint, headers, receipt, receipt_path)
 

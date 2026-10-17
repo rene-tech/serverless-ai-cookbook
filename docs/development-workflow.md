@@ -60,8 +60,11 @@ archiving does not count as merging a feature. Restore into a detached worktree.
 
 Git integration does not authorize a live rollout. Record deployed image/source
 provenance and preserve clients, models, credentials, storage, Gateway routing
-and monitoring. `forge.nebius.cloud` is intentionally unavailable; use
-`https://89.169.99.188` for current checks and leave its DNS/redirect unchanged.
+and monitoring. The public website `https://forge.nebius.cloud` was restored on
+13 October 2026; the separate API origin remains `https://89.169.99.188`. Verify
+both during Gateway/routing changes using the website repository's
+`scripts/check-public-routing.mjs`. Preserve DNS and customer API/MCP routes;
+do not restore the retired unavailable-page redirect.
 
 Local hooks protect main against deletion/history rewrites and restrict pushes
 to the authorized personal fork. They allow temporary branches. GitHub rulesets

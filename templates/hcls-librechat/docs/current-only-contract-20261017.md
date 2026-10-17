@@ -9,8 +9,11 @@ customer-readiness claim. Root owns integration, image qualification and rollout
   execution-process, consultation and artifact UUIDs identify different objects.
 - All execution families use `get_operation`, `get_operation_result` and
   `cancel_operation`. Native checkpoint continuation uses `resume_scientific_run`.
-- Named scientific batch tools take `request` and `idempotency_key`. Native typed
-  tools retain their published model-specific input. Current MD/staged, native
+- Named MD/scVI/MPI tools take `request` and `idempotency_key`; staged scientific
+  tools (including Protenix/LeRobot/Complexa) take the run fields directly plus
+  `idempotency_key`. The helper selects from the exact discovered schema before
+  uploading/submitting; it never tries an alternate shape after failure. Native
+  typed tools retain their published model-specific input. Current MD/staged, native
   endpoint and speech result envelopes remain distinct; they are not old versions.
 - Uploads use `upload_id`, never a job ID. Finalization returns
   `{ "state": "finalized", "artifact": { ... } }`. Multipart commands use the
@@ -38,6 +41,22 @@ Current `receipt.json` readers require their immutable journal. An archived
 unjournaled receipt raises an explicit local error without modifying its bytes or
 submitting new work. Review those records offline. Existing frozen study workers
 and raw chat/study/result records are not rewritten by this cleanup.
+
+The batch helper retains a journaled `admission.json` tying the actual server
+response to the exact request hash, caller/endpoint/input identity, model, tool,
+operation and idempotency key. This allows recovery if the acknowledgement was
+saved but the main receipt update failed. It reads the current top-level
+`model_id` / `operation_id` and nested `operation.operation_id`, not fields the
+server never echoes. A raw or unmatched saved response remains ambiguous: no
+upload or admission is retried automatically. Preserve it for operator review.
+
+`tests/fixtures/current-batch-contracts.json` contains the published GROMACS and
+Protenix schemas generated from the current backend's `gateway.Submit` MCP
+metadata and staged `compiler.request_schema`. The contract tests compare those
+fixtures with backend sources when installed, and exercise both real envelope
+shapes, parameter rejection before upload, native status, lost ACK recovery,
+and owner/model/request mismatches. These are offline contract tests, not live
+scientific model or release qualification.
 
 The unique native-schema selector, standard MCP structured/text transport,
 OpenAI-compatible model protocol, byte-integrity checks, bounded transient-read
@@ -78,6 +97,13 @@ with `SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true` and configured read-write
 
 ## Source verification
 
+- Post-integration correction: **246 passed, 1 skipped** in 10.84s. The new
+  current-batch contract suite compares both captured schemas with installed
+  backend sources, checks every current MD/scVI/MPI/staged schema's selected
+  shape, and exercises submission/status plus retained ACK versus genuinely
+  lost-ACK recovery for GROMACS and Protenix. Current native `timed_out` and
+  `export_failed` are terminal failures, not indefinite polling states. The
+  skipped test requires retained03 files from the installed qualification gate.
 - Current-contract Python regression set: **375 passed, 2 skipped** in 40.19s.
   Covers typed submission/source preflight, native selection, artifact streaming,
   lost-finalize recovery, status reads, result integrity, durable study admission,

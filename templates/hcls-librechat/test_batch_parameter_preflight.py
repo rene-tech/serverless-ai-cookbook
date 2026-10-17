@@ -15,13 +15,8 @@ batch = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(batch)
 
 PARAMETERS = {'checkpoint': 'protenix-v2', 'msa_mode': 'none', 'sample_count': 1, 'model_seeds': [7]}
-MODEL_SCHEMA = {
-    'type': 'object', 'additionalProperties': False, 'required': list(PARAMETERS),
-    'properties': {'checkpoint': {'const': 'protenix-v2'}, 'msa_mode': {'enum': ['none', 'precomputed']},
-                   'sample_count': {'type': 'integer', 'minimum': 1, 'maximum': 5},
-                   'model_seeds': {'type': 'array', 'minItems': 1, 'items': {'type': 'integer'}}}}
-SCHEMA = {'type': 'object', 'properties': {'request': {'type': 'object',
-    'properties': {'parameters': MODEL_SCHEMA}}}}
+SCHEMA = json.loads((ROOT / 'tests/fixtures/current-batch-contracts.json').read_text())['protenix-v2']['input_schema']
+MODEL_SCHEMA = SCHEMA['properties']['parameters']
 ARGS = argparse.Namespace(media_type='application/json', compression='none')
 
 

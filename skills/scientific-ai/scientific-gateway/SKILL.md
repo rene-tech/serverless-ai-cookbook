@@ -30,10 +30,12 @@ key determines the visible Apps and owns the resulting operations and artifacts.
    missing-tool, or stale-schema error.
 
 Named serving tools accept the model fields directly plus optional
-`idempotency_key` and `wait_seconds`; named scientific tools accept the
-scientific run object in `request` plus `idempotency_key`. Do not wrap native
-model fields in `request` or `payload`; scientific tools use their advertised
-request wrapper. Do not send `model` to a named OpenAI-chat tool: the App already
+`idempotency_key` and `wait_seconds`. Scientific MD/scVI/MPI tools accept the run
+object in `request` plus `idempotency_key`; staged tools such as Protenix,
+LeRobot and Complexa accept those run fields directly plus `idempotency_key`.
+Select the exact shape from the discovered schema before submission; never retry
+a rejected call with a different wrapper. Do not wrap native model fields in
+`request` or `payload`. Do not send `model` to a named OpenAI-chat tool: the App already
 selects it. Use the exact discovered schema rather than another endpoint's shape.
 
 If this skill disagrees with the tool's current schema, the tool schema wins.

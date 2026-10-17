@@ -49,7 +49,8 @@ def setup_client(tmp_path, monkeypatch):
         tools.append(name)
         assert arguments == {'operation_id': OPERATION}
         if name == 'get_operation':
-            return {'operation': {'id': OPERATION, 'status': result['terminal_status'],
+            return {'operation_id': OPERATION, 'model_id': 'fixture', 'status': result['terminal_status'].upper(),
+                    'operation': {'operation_id': OPERATION, 'status': result['terminal_status'],
                     'result_available': result['terminal_status'] == 'succeeded'}}
         assert name == 'get_operation_result'
         return result

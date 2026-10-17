@@ -79,7 +79,10 @@ or switch credentials.
 
 ## Scientific batch document
 
-The typed named tool exposes `request` and `idempotency_key`. The run object's schema is
+Read the exact typed tool schema: MD/scVI/MPI tools expose `request` and
+`idempotency_key`; staged tools expose the run fields directly plus
+`idempotency_key`. These are current execution families, not versions to try
+sequentially. The run object's schema is
 `fs2-serve.nebius.ai/scientific-run-request/v1`, including the advertised
 operation, an allowed `service_class`, a finalized `input_manifest`,
 model-specific `parameters`, and optional `client_context` identifiers. Use one

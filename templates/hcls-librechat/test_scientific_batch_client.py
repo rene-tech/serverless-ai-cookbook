@@ -18,29 +18,6 @@ client = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(client)
 
 
-def test_accepted_response_before_receipt_recovers_without_another_admission(tmp_path):
-    args = argparse.Namespace(output=tmp_path, model='model-a', idempotency_key='original-key', operation='fold')
-    operation = {'id': 'op-1111222233334444', 'model_id': args.model,
-        'idempotency_key': args.idempotency_key, 'operation': args.operation,
-        'protocol': 'scientific-batch-v1', 'status': 'running'}
-    client.save(tmp_path / 'submission.json', {'operation': operation})
-    result = client.recover_saved_admission(args, {'state': 'submitting'})
-    assert result['operation_id'] == operation['id'] and result['recovered_saved_admission']
-    assert client.recover_saved_admission(args, result) == result
-
-
-@pytest.mark.parametrize('field,value', [('model_id', 'another'), ('idempotency_key', 'different'),
-    ('operation', 'changed'), ('protocol', 'native'), ('status', 'invented')])
-def test_saved_batch_response_must_match_exact_immutable_request(tmp_path, field, value):
-    args = argparse.Namespace(output=tmp_path, model='model-a', idempotency_key='original-key', operation='fold')
-    operation = {'id': 'op-1111222233334444', 'model_id': args.model,
-        'idempotency_key': args.idempotency_key, 'operation': args.operation,
-        'protocol': 'scientific-batch-v1', 'status': 'running', field: value}
-    client.save(tmp_path / 'submission.json', {'operation': operation})
-    with pytest.raises(RuntimeError, match='ambiguous'):
-        client.recover_saved_admission(args, {'state': 'admission_unknown'})
-
-
 def test_packaged_helper_and_skill_use_one_canonical_batch_implementation():
     docker = (ROOT / 'Dockerfile').read_text()
     assert 'COPY templates/hcls-librechat/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py' in docker
@@ -175,7 +152,7 @@ def test_reused_finalized_source_must_match_bytes_and_format(tmp_path):
         client.source_reference(source, data + b'changed', args)
 
 
-def test_old_schema_without_manifest_policy_retains_existing_transport():
+def test_current_app_without_optional_manifest_policy():
     client.preflight_source({}, {}, argparse.Namespace(), 100)
 
 
