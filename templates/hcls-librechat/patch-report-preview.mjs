@@ -37,6 +37,7 @@ if (!source.includes(studyImport)) {
 } else if (!source.includes(studyInserted)) {
   throw new Error('Study preview import exists without its renderer seam');
 }
+await writeFile(filename, source);
 
 // Rehype runs before react-markdown strips unsupported schemes. An anchor-only
 // fix is too late: sandbox:/workspace links have already become href="".
