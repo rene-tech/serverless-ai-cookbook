@@ -82,12 +82,6 @@ def bounded_number(args, name, default, maximum):
 
 def read_job(args):
     job_id = str(uuid.UUID(args['job_id']))
-    if os.environ.get('SCIENTIFIC_MODELS_API_KEY') and (os.environ.get('SCIENTIFIC_STUDY_OWNER') or os.environ.get('SEED_DEFAULT_USER_EMAIL')):
-        import scientific_study
-        if (scientific_study.directory(job_id) / 'receipt.json').exists():
-            # The supervisor progresses this job independently; this is one
-            # observation, never another launch or a mechanical chat loop.
-            return scientific_study.get(job_id)
     directory = ROOT / job_id
     if not (directory / 'request.json').is_file():
         raise ValueError('Unknown execution job ID.')
@@ -330,12 +324,18 @@ def run_scientific_workflow(args):
     if ('study' in args) == ('plan_file' in args):
         raise ValueError('Supply study OR an existing plan_file, not both.')
     output = workspace_path(args.get('output_directory'), 'output_directory')
+    import scientific_workflow_view
     if 'study' in args:
-        return submit_checked_study(study_argument(args['study']), output)
+        return scientific_workflow_view.public_workflow(submit_checked_study(study_argument(args['study']), output))
     plan_path = workspace_path(args.get('plan_file'), 'plan_file')
     if not plan_path.is_file():
         raise ValueError('plan_file does not exist: ' + str(plan_path))
-    return submit_checked_study(study_argument(plan_path.read_text()), output)
+    return scientific_workflow_view.public_workflow(submit_checked_study(study_argument(plan_path.read_text()), output))
+
+
+def read_scientific_workflow(args):
+    import scientific_workflow_view
+    return scientific_workflow_view.read_workflow(str(workspace_path(args.get('output_directory'), 'output_directory')))
 
 
 def recover_scientific_results(args):
@@ -565,6 +565,11 @@ TOOLS = [
                 'description': 'Complete strict JSON text encoding the SAME scientific-workflow/v2 object. Parsed once, then validated identically; duplicate keys, NaN/Infinity, invalid schema and double encoding are rejected before admission. Prefer a finalized composer plan_file for longer plans.'}]},
             'plan_file': {'type': 'string', 'description': 'Existing workspace scientific-workflow/v2 JSON file. Mutually exclusive with study. The study resumes automatically from its immutable receipt.'},
             'output_directory': {'type': 'string'}}}},
+    {'name': 'read_scientific_workflow',
+     'description': 'Read a saved whole workflow by its original output_directory. Returns native Serverless operation_id values, phase status, measured progress and verified results. Before model admission there is no platform job ID. This never launches, resumes or duplicates work. Local receipt UUIDs are internal and are not accepted by platform job tools.',
+     'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
+     'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['output_directory'],
+        'properties': {'output_directory': {'type': 'string', 'minLength': 1}}}},
     {'name': 'execute_command',
      'description': 'Execute Bash as root in this application container. Install packages with apt-get/pip/npm, run Python, download internet resources, read/write any container path and mounted storage. /workspace is the durable Object Storage bucket mount, NOT a seekable POSIX disk: use scientific_receipts.staged_output for NPZ/ZIP/HDF5/closed database backups, close the local writer then verify publication; no live SQLite/WAL guarantee. Use byte copies, not chmod/copystat. This is real execution, not a code suggestion. Launch wait_seconds is 0 to 10, default 5; omit it for normal launches. Preserve an exact shell command entirely inside command: a CLI --operation-wait-seconds or --wait-seconds token is command text and must never be moved into this tool\'s wait_seconds field. Do not copy read_execution wait_seconds=30 into this tool. For long work save job_id and use read_execution to observe that same job; do not submit again. Returns 4000 output bytes by default with a full log file pointer; compute summaries locally instead of dumping source/data. timeout_seconds is the separate command deadline; 0 disables that deadline. Root applies to the container and its mounts, not the cloud host. Never print credentials.',
      'annotations': {'readOnlyHint': False, 'destructiveHint': True, 'openWorldHint': True},
@@ -575,7 +580,7 @@ TOOLS = [
                 'default': EXECUTE_WAIT_DEFAULT_SECONDS,
                 'description': 'Launch-response wait only: 0 to 10 seconds, default 5. Omit for a normal launch. This is not the command timeout or read_execution observation wait. Longer work continues under its saved job_id; call read_execution, never launch it again.'}}}},
     {'name': 'read_execution',
-     'description': 'Observe the same saved job_id, including after reconnecting. Whole studies return durable phase status and verified final artifacts; their supervisor resumes across process restart without a chat continuation. Generic commands remain process-bound: their receipts survive but their process does not survive container restart. For ordinary command observations wait_seconds max30 (default15) has effective max25 inside the unchanged30-second MCP deadline. Never relaunch merely to poll or call pending inference completed analysis.',
+     'description': 'Observe a local shell execution, not a Serverless job. Use read_scientific_workflow with output_directory for whole workflows, and get_operation with the native op-... ID for platform jobs. Shell commands remain process-bound: receipts survive but processes do not survive container restart. Observation wait_seconds max30 (default15) has effective max25 inside the unchanged30-second MCP deadline. Never relaunch merely to poll or call pending inference completed analysis.',
      'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False},
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['job_id'],
         'properties': {'job_id': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0},
@@ -610,6 +615,7 @@ def handle_line(line):
                        'compose_scientific_workflow': compose_scientific_workflow,
                        'describe_scientific_workflow': lambda args: describe_workflow(args.get('methods')),
                        'run_scientific_workflow': run_scientific_workflow,
+                       'read_scientific_workflow': read_scientific_workflow,
                        'recover_scientific_results': recover_scientific_results,
                        'upload_workspace_files': upload_workspace_files}[params['name']]
             try:

@@ -309,11 +309,14 @@ def test_existing_stdio_tool_launch_and_reconnect_use_same_durable_identity(moun
 
     args = {'study':value,'output_directory':str(mounted/'stdio')}
     first = call('run_scientific_workflow', args)
-    assert call('run_scientific_workflow', args)['id'] == first['id']
-    assert call('read_execution', {'job_id':first['id'], 'wait_seconds':0})['state'] == 'queued'
-    advance(first['id'])
-    advance(first['id'])
-    done = call('read_execution', {'job_id':first['id'], 'wait_seconds':0})
+    assert call('run_scientific_workflow', args)['output_directory'] == first['output_directory']
+    observation = {'output_directory': first['output_directory']}
+    assert call('read_scientific_workflow', observation)['state'] == 'queued'
+    from scientific_workflow_view import workflow_record
+    internal = workflow_record(first['output_directory'])
+    advance(internal['id'])
+    advance(internal['id'])
+    done = call('read_scientific_workflow', observation)
     assert done['state'] == 'completed' and done['artifacts'][0]['download_url'].startswith('/demos?')
 
 

@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+# Public workflow presentation over the current qualified workbench. The
+# immutable scientific executor is deliberately unchanged for in-flight work.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:76b04c61341afab7d763df4d972692d124ad8c8d2adc685a8223012aecd7a70b
+FROM ${WORKBENCH_BASE}
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
+    --mount=type=bind,source=skills/scientific-ai,target=/tmp/skills,ro \
+    cp /tmp/client/scientific_workflow_view.py /tmp/client/execution-mcp.py /opt/bionemo/ \
+ && cp /tmp/client/scientific-study-admission.cjs /tmp/client/scientific-agent-budget.cjs /opt/hcls-librechat/ \
+ && cp /tmp/client/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
+ && cp /tmp/client/demos/router.cjs /app/api/server/routes/scientific-demos.js \
+ && cp /tmp/client/agent-instructions.md /app/agent-instructions.md \
+ && cp /tmp/client/ScientificStudyPreview.tsx /tmp/client/ScientificStudyPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/client/ScientificExecutionOutput.tsx /tmp/client/ScientificExecutionOutput.test.tsx /app/client/src/components/Chat/Messages/Content/ \
+ && cp /tmp/client/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx \
+ && node /tmp/client/patch-report-preview.mjs \
+ && python3 /tmp/skills/bundle.py verify \
+ && cp -a /tmp/skills/. /app/skill/ \
+ && node --check /opt/hcls-librechat/demos/service.cjs \
+ && node --check /app/api/server/routes/scientific-demos.js \
+ && SCIENTIFIC_ADMISSION_INSTALLED=1 SCIENTIFIC_ADMISSION_GRAPH=/app/node_modules/@librechat/agents/dist/cjs/graphs/Graph.cjs \
+    node --test /tmp/client/test-scientific-study-admission.cjs /tmp/client/test-scientific-study-admission-boundary.cjs \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit \
+    src/components/ScientificStudyPreview.test.tsx src/components/Chat/Messages/Content/ScientificExecutionOutput.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify \
+ && node /opt/hcls-librechat/verify-workspace-installed.mjs
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.skills.version="2026.10.17.4" \
+      ai.nebius.scientific.release="native-workflow-identity-20261017"

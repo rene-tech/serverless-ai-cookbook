@@ -41,7 +41,7 @@ export default function ScientificExecutionOutput({ input, output }: {
       {status && <div className={failed ? 'text-sm text-status-error' : 'text-sm text-text-primary'}>
         Execution: <strong>{status}</strong>
         {typeof result?.exit_code === 'number' && <> · exit {result.exit_code}</>}
-        {job && <div className="mt-1 break-all font-mono text-xs">Job {job}</div>}
+        {job && <div className="mt-1 break-all font-mono text-xs">Local command execution {job} (not a Serverless job)</div>}
         {['starting', 'running', 'publishing', 'queued'].includes(status) &&
           <p className="mt-1 text-xs">Work is still in progress. This tool reply is not a completed scientific result.</p>}
       </div>}

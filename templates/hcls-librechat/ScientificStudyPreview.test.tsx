@@ -1,14 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { request } from 'librechat-data-provider';
-import ScientificStudyPreview, { scientificStudyId } from './ScientificStudyPreview';
+import ScientificStudyPreview, { scientificWorkflowPath } from './ScientificStudyPreview';
 
 jest.mock('librechat-data-provider', () => ({ request: { get: jest.fn(), getResponse: jest.fn() } }));
 const get = request.get as jest.Mock;
 const getResponse = request.getResponse as jest.Mock;
-const id = '11111111-1111-5111-8111-111111111111';
-const href = `/demos?tab=runs&study=${id}`;
-const state = (status = 'running') => ({ id, state: status, completed_steps: [], step_count: 2,
+const directory = "/workspace/qa/run";
+const href = `/demos?tab=runs&workflow=${encodeURIComponent(directory)}`;
+const state = (status = 'running') => ({ output_directory: directory, operations: [{step_id: "simulate", operation_id: "op-native-job"}], state: status, completed_steps: [], step_count: 2,
   model_progress: [{ study_step_id: 'simulate', operation_id: 'retained-operation', progress: {
     schema: 'scientific-ai/progress/v1', available: true, updated_at: new Date().toISOString(),
     gpu_type: 'DO-NOT-EXPOSE-HARDWARE', gpu_count: 8, image: 'DO-NOT-EXPOSE-IMAGE',
@@ -26,10 +26,10 @@ function mount(link = href) {
 beforeEach(() => { get.mockReset(); getResponse.mockReset(); });
 
 test('only exact internal study links are recognized', () => {
-  expect(scientificStudyId(href)).toBe(id);
-  for (const value of ['https://other.invalid'+href, '/demos?tab=runs', href+'&study='+id,
-    href+'&token=anything', href+'#fragment', '/demos?tab=workspace&study='+id,
-    '/demos?tab=runs&study=../other', 'javascript:alert(1)']) expect(scientificStudyId(value)).toBeUndefined();
+  expect(scientificWorkflowPath(href)).toBe(directory);
+  for (const value of ['https://other.invalid'+href, '/demos?tab=runs', href+'&workflow='+directory,
+    href+'&token=anything', href+'#fragment', '/demos?tab=workspace&workflow='+directory,
+    '/demos?tab=runs&study=../other', 'javascript:alert(1)']) expect(scientificWorkflowPath(value)).toBeUndefined();
 });
 
 test('actual measured work and rate render without device/runtime details', async () => {
@@ -39,12 +39,12 @@ test('actual measured work and rate render without device/runtime details', asyn
   expect(screen.getByText('Completed: 0.25 ns · Target: 1 ns')).toBeInTheDocument();
   expect(screen.getByText('Durably checkpointed: 0.2 ns')).toBeInTheDocument();
   expect(view.container.textContent).not.toContain('DO-NOT-EXPOSE');
-  expect(get).toHaveBeenCalledWith(`/api/scientific-demos/studies/${id}`);
+  expect(get).toHaveBeenCalledWith(`/api/scientific-demos/studies/status?output_directory=${encodeURIComponent(directory)}`);
   view.unmount(); view.client.clear();
 });
 
 test('unmeasured work remains unknown and explicit status refresh is read-only', async () => {
-  get.mockResolvedValue({ id, state: 'queued' });
+  get.mockResolvedValue({ output_directory: directory, operations: [{step_id: "simulate", operation_id: "op-native-job"}], state: 'queued' });
   const view = mount();
   await screen.findByText('Scientific progress and rate are not measured yet—not zero.');
   fireEvent.click(screen.getByRole('button', { name: 'Refresh status' }));
@@ -54,7 +54,7 @@ test('unmeasured work remains unknown and explicit status refresh is read-only',
 });
 
 test('errors and wrong study identity are not converted to a completed result', async () => {
-  get.mockResolvedValue({ id: '22222222-2222-5222-8222-222222222222', state: 'completed' });
+  get.mockResolvedValue({ output_directory: '/workspace/other', state: 'completed' });
   const view = mount();
   await screen.findByText(/Live status is unavailable/);
   expect(view.container.textContent).not.toContain('completed');
@@ -63,7 +63,7 @@ test('errors and wrong study identity are not converted to a completed result', 
 });
 
 test('failed state stays failed without exposing a raw traceback or resubmitting', async () => {
-  get.mockResolvedValue({ id, state: 'failed', failure: { message: 'DO-NOT-EXPOSE-PRIVATE-TRACE' } });
+  get.mockResolvedValue({ output_directory: directory, operations: [{step_id: "simulate", operation_id: "op-native-job"}], state: 'failed', failure: { message: 'DO-NOT-EXPOSE-PRIVATE-TRACE' } });
   const view = mount();
   await screen.findByRole('alert');
   expect(screen.getByText('failed')).toBeInTheDocument();

@@ -174,10 +174,10 @@ test('bounded observation of pending scientific work is not a reasoning loop', (
 });
 
 test('pause describes incomplete work without inventing results or exposing earlier turns', () => {
-  const id = '12345678-1234-1234-1234-123456789abc';
-  const text = stopText(new AgentBudgetStop('model_deadline'), [human(), ...round(1, 'submit', {}, { job_id: id, status: 'running' })]);
+  const id = 'op-native-budget-receipt';
+  const text = stopText(new AgentBudgetStop('model_deadline'), [human(), ...round(1, 'submit', {}, { operation_id: id, status: 'running' })]);
   assert.match(text, /incomplete/); assert.match(text, /does not cancel or resubmit/);
   assert.match(text, new RegExp(id)); assert.match(text, /\/demos\?tab=runs/);
-  const reset = stopText(new AgentBudgetStop('repeated_tools'), [...round(1, 'submit', {}, { job_id: id }), human()]);
+  const reset = stopText(new AgentBudgetStop('repeated_tools'), [...round(1, 'submit', {}, { operation_id: id }), human()]);
   assert.doesNotMatch(reset, new RegExp(id));
 });

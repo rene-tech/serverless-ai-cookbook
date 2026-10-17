@@ -1,7 +1,7 @@
 // A confirmed durable admission is a lifecycle fact, not a scientific result.
 // Only the immediately completed, single-call batch can end this chat turn.
 const toolName = 'run_scientific_workflow_mcp_environment-execution';
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const operationId = /^op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/;
 const messageType = (message) => message?.getType?.() ?? message?._getType?.();
 
 function isHostBudgetNotice(message) {
@@ -37,16 +37,22 @@ function studyAdmissionAcknowledgement(messages) {
   if (typeof content !== 'string') return null;
   let receipt;
   try { receipt = JSON.parse(content); } catch { return null; }
-  if (!receipt || Array.isArray(receipt) || receipt.durable_study !== true ||
-      receipt.study_admission !== 'accepted' || !uuid.test(receipt.id ?? '') ||
-      receipt.job_id !== receipt.id || receipt.status !== 'running' ||
-      !['queued', 'running', 'publishing'].includes(receipt.state) ||
+  if (!receipt || Array.isArray(receipt) || receipt.durable_workflow !== true ||
+      receipt.study_admission !== 'accepted' || receipt.id !== undefined || receipt.job_id !== undefined ||
+      typeof receipt.output_directory !== 'string' || !receipt.output_directory.startsWith('/workspace/') ||
+      !Array.isArray(receipt.operations) || receipt.operations.some(row => !operationId.test(row?.operation_id ?? '')) ||
+      !['queued', 'running', 'publishing', 'observation_expired'].includes(receipt.state) ||
       receipt.isError || receipt.error || receipt.failure || receipt.cancellation_failure ||
       receipt.admission_unknown || receipt.cancellation_unknown || receipt.queue_blocked) return null;
-  return `Study accepted: \`${receipt.id}\`. Observed state: **${receipt.state}**.\n\n` +
-    'The saved study continues independently of this chat. Follow progress and verified final files in ' +
-    `[Live progress and results](/demos?tab=runs&study=${receipt.id}). No continue prompt is needed for mechanical waiting.\n\n` +
-    'This acknowledges admission only, not completion or scientific results.';
+  const jobs = [...new Set(receipt.operations.map(row => row.operation_id))];
+  const heading = jobs.length
+    ? `Serverless job${jobs.length > 1 ? 's' : ''}: ${jobs.map(id => `\`${id}\``).join(', ')}.`
+    : 'Workflow saved. No Serverless job has been admitted yet.';
+  return heading + '\n\n' +
+    'Preparation, execution and results continue independently of this chat. ' +
+    `[Live progress and results](/demos?tab=runs&workflow=${encodeURIComponent(receipt.output_directory)}). ` +
+    'The progress panel shows each native job ID when admitted—the same ID as Serverless Jobs.\n\n' +
+    'This is not a completed scientific result. No continue prompt is needed.';
 }
 
 studyAdmissionAcknowledgement.patchBudgetHook = function patchBudgetHook(source) {

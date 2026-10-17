@@ -29,9 +29,10 @@ const { Run } = r('../run.cjs');
 const { HookRegistry } = r('@librechat/agents');
 const { HumanMessage } = r('@langchain/core/messages');
 const name = 'run_scientific_workflow_mcp_environment-execution';
-const id = '11111111-1111-5111-8111-111111111111';
-let saved = { id: 'call-admission', name, output: JSON.stringify({ id, job_id: id,
-  durable_study: true, study_admission: 'accepted', state: 'queued', status: 'running' }) };
+const id = 'op-native-boundary';
+let saved = { id: 'call-admission', name, output: JSON.stringify({ output_directory: '/workspace/test/run',
+  operations: [{ step_id: 'simulate', operation_id: id }],
+  durable_workflow: true, study_admission: 'accepted', state: 'queued' }) };
 if (process.env.SCIENTIFIC_ADMISSION_RETAINED_V59_MESSAGES) {
   const raw = JSON.parse(fs.readFileSync(process.env.SCIENTIFIC_ADMISSION_RETAINED_V59_MESSAGES));
   const calls = (raw.body ?? raw).flatMap((m) => m.content ?? []).filter((p) => p.tool_call?.name === name);
@@ -93,8 +94,8 @@ test('real event-driven ToolNode plus Run callback acknowledges near-budget admi
   const result = await boundary();
   assert.equal(result.generations, 1);
   assert.equal(result.executions, 1);
-  assert.match(result.reply.content, /Study accepted:/);
-  assert.match(result.reply.content, new RegExp(JSON.parse(saved.output).id));
+  assert.match(result.reply.content, /Serverless job:/);
+  assert.match(result.reply.content, new RegExp(JSON.parse(saved.output).operations[0].operation_id));
   assert.equal(result.reply.response_metadata.scientific_admission_acknowledgement, true);
   const notice = result.g.messages.at(-2);
   assert.equal(notice.getType(), 'human');
@@ -110,7 +111,7 @@ test('real event-driven ToolNode plus Run callback acknowledges near-budget admi
 });
 test('real ToolNode admission before budget notice still acknowledges once', async () => {
   const result = await boundary({ nearBudget: false });
-  assert.equal(result.generations, 1); assert.match(result.reply.content, /Study accepted:/);
+  assert.equal(result.generations, 1); assert.match(result.reply.content, /Serverless job:/);
 });
 for (const notice of ['steer', 'lookalike']) test(`real ToolNode ${notice} message is not skipped`, async () => {
   const result = await boundary({ notice });

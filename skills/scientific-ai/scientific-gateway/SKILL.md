@@ -130,8 +130,10 @@ input files; batch phases name source and parameter files. The durable
 supervisor advances only after verified results and resumes the immutable
 study after reconnects. A short queued/running observation is not completion.
 Known non-admitted concurrency rejection waits visibly; ambiguous admission or
-application failure stops for inspection. Keep the study ID and original
-idempotency keys. Do not use shell backgrounding/nohup or chmod on Object Storage.
+application failure stops for inspection. Keep the saved `output_directory`,
+native `operation_id` values and original idempotency keys. Observe the whole
+workflow with `read_scientific_workflow`; only `op-…` values identify Serverless
+jobs. Before admission no job ID exists. Do not use shell backgrounding/nohup or chmod on Object Storage.
 Native speech calls consume concurrency too; do not submit them all in parallel
 when the caller policy allows only one active operation. Do not change keys to evade a rejected
 or unknown admission. Optional `/v1/me` describes caller policy, not real-time

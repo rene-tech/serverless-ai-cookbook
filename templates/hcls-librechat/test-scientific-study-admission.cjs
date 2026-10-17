@@ -7,8 +7,9 @@ const installed = process.env.SCIENTIFIC_ADMISSION_INSTALLED === '1';
 const helperPath = installed ? '/opt/hcls-librechat/scientific-study-admission.cjs' : path.join(__dirname, 'scientific-study-admission.cjs');
 const acknowledge = require(helperPath);
 const name = 'run_scientific_workflow_mcp_environment-execution';
-const id = '11111111-1111-5111-8111-111111111111';
-const receipt = () => ({ id, job_id: id, state: 'queued', status: 'running', durable_study: true,
+const id = 'op-native-job-one';
+const receipt = () => ({ output_directory: '/workspace/test/run', state: 'queued', durable_workflow: true,
+  operations: [{ step_id: 'simulate', operation_id: id }],
   study_admission: 'accepted', new_study_admitted: true });
 function messages(value = receipt()) {
   return [{ getType: () => 'ai', tool_calls: [{ name, id: 'call-one', args: {} }] },
@@ -21,13 +22,13 @@ for (const state of ['queued', 'running', 'publishing']) test(`confirmed ${state
   const result = acknowledge(input);
   assert.match(result, new RegExp(id));
   assert.match(result, /\/demos\?tab=runs/);
-  assert.match(result, /not completion or scientific results/);
+  assert.match(result, /not a completed scientific result/);
   assert.doesNotMatch(result, /16|overlapping/);
   assert.equal(JSON.stringify(input), before);
 });
 for (const [label, change] of [
-  ['legacy', { durable_study: false }], ['unknown admission', { study_admission: 'unknown' }],
-  ['admission lock pending', { status: 'admission_pending' }],
+  ['legacy', { durable_workflow: false }], ['unknown admission', { study_admission: 'unknown' }],
+  ['admission lock pending', { state: 'admission_pending' }],
   ['failed', { state: 'failed', status: 'failed' }], ['terminal replay', { state: 'completed', status: 'completed' }],
   ['needs attention', { state: 'needs_attention' }], ['unresolved', { admission_unknown: true }],
   ['blocked queue', { queue_blocked: true }], ['cancellation', { cancellation_unknown: true }],
@@ -35,6 +36,18 @@ for (const [label, change] of [
   ['identity mismatch', { job_id: '22222222-2222-5222-8222-222222222222' }],
   ['bad identity', { id: 'not-a-study' }],
 ]) test(`${label} remains on normal path`, () => assert.equal(acknowledge(messages({ ...receipt(), ...change })), null));
+test('queued preparation never invents a job identity', () => {
+  const result = acknowledge(messages({ ...receipt(), operations: [] }));
+  assert.match(result, /No Serverless job has been admitted yet/);
+  assert.match(result, /workflow=%2Fworkspace%2Ftest%2Frun/);
+  assert.doesNotMatch(result, /Study accepted|study=|job_id/);
+});
+test('multi-job workflow exposes actual native jobs without a root alias', () => {
+  const result = acknowledge(messages({ ...receipt(), operations: [
+    { step_id: 'one', operation_id: 'op-first' }, { step_id: 'two', operation_id: 'op-second' }] }));
+  assert.match(result, /`op-first`, `op-second`/);
+  assert.equal(acknowledge(messages({ ...receipt(), operations: [{ operation_id: 'invented-uuid' }] })), null);
+});
 test('existing ongoing admission replay has the same lifecycle acknowledgement', () => {
   assert.equal(acknowledge(messages()), acknowledge(messages({ ...receipt(), reused_existing_study: true, new_study_admitted: false })));
 });
@@ -193,8 +206,8 @@ if (graphPath) {
     const input = [new AIMessage({ id: 'retained-assistant', content: '', tool_calls: [{ name, id: original.id, args: {}, type: 'tool_call' }] }),
       new ToolMessage({ id: 'retained-tool-result', name, tool_call_id: original.id, content: original.output, status: 'success' })];
     const h = harness(); const result = await h.invoke({ messages: input }, { metadata: {} });
-    assert.match(result.messages[0].content, new RegExp(value.id));
-    assert.match(result.messages[0].content, new RegExp(`Observed state: \\*\\*${value.state}\\*\\*`));
+    for (const operation of value.operations) assert.match(result.messages[0].content, new RegExp(operation.operation_id));
+    assert.match(result.messages[0].content, /same ID as Serverless Jobs/);
     assert.doesNotMatch(result.messages[0].content, /overlap|sample|PhenoAge|AltumAge|16 overlappende/i);
     assert.equal(input[1].content, original.output);
     assert.deepEqual(fs.readFileSync(process.env.SCIENTIFIC_ADMISSION_RETAINED_MESSAGES), raw);

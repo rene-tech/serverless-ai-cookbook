@@ -72,8 +72,10 @@ Native async responses nest the unchanged ID in `operation.id`; `QUEUED` with
 `result_available: false` is acceptance, not a prediction. Never resubmit to
 obtain a different ID or coerce `op-*` into a UUID. Workbench polling, result
 recovery and visualization accept the same native ID. Retrieve and verify
-artifacts outside model context. Local execution-process IDs, whole-study IDs
-and artifact IDs identify different objects; none replaces a platform job ID.
+artifacts outside model context. Whole workflows expose their actual native
+operations and are observed by `output_directory` with `read_scientific_workflow`.
+They never publish a second job ID. Local command execution and artifact
+identifiers are not platform job IDs.
 A missing lifecycle tool is a client/grant gap, not permission to submit again
 or switch credentials.
 

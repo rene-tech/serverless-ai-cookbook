@@ -97,7 +97,12 @@ function prepare(app, options) {
     router = compile(incoming.router, target.router);
     assert.equal(typeof router.exports, 'function', 'Candidate router is not callable');
     const wanted = new Set(routes(router.exports));
-    assert(routes(oldRouter).every(route => wanted.has(route)), 'Candidate drops a current route');
+    const retired = new Set(options.retiredRoutes || []);
+    assert([...retired].every(route => ['GET /studies/:id', 'POST /studies/:id/cancel'].includes(route)),
+      'Unapproved route retirement');
+    assert([...retired].every(route => routes(oldRouter).includes(route) && !wanted.has(route)),
+      'Retired route does not match the exact installed transition');
+    assert(routes(oldRouter).every(route => wanted.has(route) || retired.has(route)), 'Candidate drops a current route');
     assert(wanted.has('GET /workspace/preview'), 'Candidate lacks the bounded preview route');
     assert.equal(router.exports.stack[0]?.handle, oldRouter.stack[0]?.handle,
       'Authentication middleware changed');

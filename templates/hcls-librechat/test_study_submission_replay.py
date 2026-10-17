@@ -78,7 +78,8 @@ def test_actual_running_phase_and_replay_complete_only_once(mounted):
             assert entered.wait(5)
             replay = execution.run_scientific_workflow({
                 'study': plan(), 'output_directory': str(mounted / 'running')})
-            assert replay['id'] == first['id'] and replay['state'] == 'running'
+            assert replay['output_directory'] == first['output_directory'] and replay['state'] == 'running'
+            assert not {'id', 'job_id'} & replay.keys()
             assert replay['study_admission'] == 'accepted'
         finally:
             release.set()
@@ -155,7 +156,8 @@ def test_real_stdio_sdk_returns_saved_admission_during_worker_lock(mounted, tran
                     result = await session.call_tool('run_scientific_workflow', arguments)
                 assert not result.model_dump(by_alias=True)['isError']
                 record = json.loads(result.content[0].text)
-                assert record['id'] == first['id']
+                assert record['output_directory'] == first['output_directory']
+                assert not {'id', 'job_id'} & record.keys()
                 assert record['study_admission'] == 'accepted'
                 assert record['reused_existing_study'] is True
 

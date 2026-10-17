@@ -9,7 +9,7 @@ before(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), 'study-observer-diagnostic-'));
   script = path.join(root, 'observer.cjs');
   Object.assign(process.env, {SCIENTIFIC_WORKSPACE:root, SCIENTIFIC_MODELS_API_KEY:'dedicated-fixture-key',
-    SCIENTIFIC_CLIENT_PYTHON:process.execPath, SCIENTIFIC_STUDY_SCRIPT:script});
+    SCIENTIFIC_CLIENT_PYTHON:process.execPath, SCIENTIFIC_WORKFLOW_VIEW_SCRIPT:script});
   global.fetch = async () => new Response('{}');
   service = require('./service.cjs');
 });

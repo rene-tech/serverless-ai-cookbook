@@ -24,5 +24,5 @@ test('MCP wrapped result and failure remain visible after reconnect', () => {
   render(<ScientificExecutionOutput input='{"job_id":"saved-job"}' output={output} />);
   expect(screen.getByText('failed')).toBeInTheDocument();
   expect(screen.getByText('missing topology')).toBeInTheDocument();
-  expect(screen.getByText('Job saved-job')).toBeInTheDocument();
+  expect(screen.getByText('Local command execution saved-job (not a Serverless job)')).toBeInTheDocument();
 });

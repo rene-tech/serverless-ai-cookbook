@@ -46,10 +46,13 @@ def test_object_and_observed_json_text_have_identical_study_and_outputs(mounted)
     Draft202012Validator(SCHEMA).validate(args)
     first = execution.run_scientific_workflow(args)
     second = execution.run_scientific_workflow({**args, 'study': plan()})
-    assert first['id'] == second['id']
-    assert json.loads((study.directory(first['id']) / 'plan.json').read_bytes()) == plan()
-    asyncio.run(study.advance(first['id']))
-    final = asyncio.run(study.advance(first['id']))
+    assert first['output_directory'] == second['output_directory']
+    assert not {'id', 'job_id'} & first.keys()
+    from scientific_workflow_view import workflow_record
+    internal = workflow_record(first['output_directory'])
+    assert json.loads((study.directory(internal['id']) / 'plan.json').read_bytes()) == plan()
+    asyncio.run(study.advance(internal['id']))
+    final = asyncio.run(study.advance(internal['id']))
     assert final['state'] == 'completed'
     assert json.loads(Path(final['artifacts'][0]['path']).read_bytes()) == {'seed': 7, 'values': [1, 16]}
     assert len(study.list_studies()) == 1

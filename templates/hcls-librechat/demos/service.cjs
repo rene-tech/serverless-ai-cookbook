@@ -483,22 +483,25 @@ async function runs(owner, key, { cursor, limit = 50 } = {}) {
   }),
     next_cursor: history.next_cursor || null, history_available: true };
 }
-async function studies(key, action = 'list', id) {
+async function studies(key, action = 'list', outputDirectory) {
   privateKey(key);
   const configured = process.env.SCIENTIFIC_MODELS_API_KEY;
   if (!configured || !crypto.timingSafeEqual(Buffer.from(hash(key)), Buffer.from(hash(configured)))) {
     throw failure('Whole studies belong to this dedicated user instance and its configured platform key. Use that original key; another account does not share its queue.', 403);
   }
-  if (!['list', 'status', 'cancel'].includes(action) || (action !== 'list' && !RUN_ID.test(id || ''))) {
+  if (!['list', 'status', 'cancel'].includes(action) || (action !== 'list' &&
+      (typeof outputDirectory !== 'string' || !outputDirectory.startsWith('/workspace/') ||
+       outputDirectory.length > 1024 || outputDirectory.includes('\0') ||
+       outputDirectory.split('/').some(part => ['.', '..'].includes(part))))) {
     throw failure('Invalid whole-study operation.');
   }
-  // A saved local identifier does not substitute for the ordinary platform
+  // A saved workspace path does not substitute for the ordinary platform
   // key. workspaceInfo's mounted-folder shortcut is not a revocation check.
   await platform(key, 'GET', '/v1/storage');
   const command = process.env.SCIENTIFIC_CLIENT_PYTHON || '/opt/scientific-client/bin/python';
-  const script = process.env.SCIENTIFIC_STUDY_SCRIPT || '/opt/bionemo/scientific_study.py';
+  const script = process.env.SCIENTIFIC_WORKFLOW_VIEW_SCRIPT || '/opt/bionemo/scientific_workflow_view.py';
   return new Promise((resolve, reject) => {
-    const child = spawn(command, [script, `--${action}`, ...(action === 'list' ? [] : [id])],
+    const child = spawn(command, [script, `--${action}`, ...(action === 'list' ? [] : [outputDirectory])],
       { env: process.env, stdio: ['ignore', 'pipe', 'pipe'] });
     const chunks = []; let bytes = 0; let settled = false;
     const fail = (message, code) => { if (!settled) { settled = true; reject(Object.assign(failure(message, 503), { code })); } };

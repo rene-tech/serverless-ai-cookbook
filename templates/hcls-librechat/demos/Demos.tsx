@@ -23,7 +23,9 @@ type RunRow = { id: string; model_id?: string; protocol?: string; status?: strin
     activation_started_at?: string; ready_at?: string; started_at?: string; completed_at?: string;
     cold_start_seconds?: number; attempt?: number; max_attempts?: number; progress?: ScientificProgress } };
 type RunPage = { data: RunRow[]; next_cursor?: string; history_available?: boolean; history_notice?: string };
-type Study = { id: string; title: string; state: string; phase: string; current_step?: string;
+type Study = { output_directory: string; title: string; state: string; phase: string; current_step?: string;
+  operation_admission?: string;
+  operations: { step_id: string; operation_id: string; state?: string }[];
   completed_steps: string[]; step_count: number; queue_blocked?: boolean;
   created_at: number; finished_at?: number; failure?: { message: string };
   artifacts?: { name: string; role: string; path: string; size_bytes: number; sha256: string; download_url: string }[];
@@ -183,9 +185,13 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
         {studies.data?.engine && !studies.data.engine.alive && <p role="status" className="my-2 text-sm">{studies.data.engine.configured ? 'The study supervisor is currently unavailable. Saved work is retained; do not submit another copy.' : 'The operator must enable this dedicated user’s single study supervisor before whole studies can run.'}</p>}
         {(studies.data?.data || []).map((study) => {
           const display = studyDisplay(study.state);
-          return <article key={study.id} className="border-t border-border-light py-3">
-          <div className="flex flex-wrap items-start justify-between gap-2"><div><strong>{study.title}</strong><p className="text-sm" title={`Recorded state: ${study.state}`}>{display.status} · {study.phase}{study.current_step ? ` · ${study.current_step}` : ''} · {study.completed_steps.length}/{study.step_count} phases</p><code className="text-xs">{study.id}</code></div>
-            {(!['completed', 'failed', 'cancelled', 'needs_attention'].includes(study.state) || study.queue_blocked) && <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { await request.post(`${BASE}/studies/${study.id}/cancel`); })}>Cancel remaining study</Button>}
+          return <article key={study.output_directory} className="border-t border-border-light py-3">
+          <div className="flex flex-wrap items-start justify-between gap-2"><div><strong>{study.title}</strong><p className="text-sm" title={`Recorded state: ${study.state}`}>{display.status} · {study.phase}{study.current_step ? ` · ${study.current_step}` : ''} · {study.completed_steps.length}/{study.step_count} phases</p>
+            {study.operations.map(operation => <p key={`${operation.step_id}-${operation.operation_id}`} className="text-xs">{operation.step_id} · Serverless job <code>{operation.operation_id}</code></p>)}
+            {!study.operations.length && <p className="text-xs">{study.operation_admission === 'unknown'
+              ? 'Platform admission is unconfirmed; do not resubmit.' : 'No Serverless job has been admitted.'}</p>}
+          </div>
+            {(!['completed', 'failed', 'cancelled', 'needs_attention'].includes(study.state) || study.queue_blocked) && <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { await request.post(`${BASE}/studies/cancel`, { output_directory: study.output_directory }); })}>Cancel remaining study</Button>}
           </div>
           {display.description && <p role="status" className="mt-2 text-sm">{display.description}</p>}
           {study.queue_blocked && <p role="status" className="mt-2 text-sm">A previous admission needs inspection. Later studies are held to avoid duplicate or overlapping model work.</p>}
@@ -203,7 +209,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       {runs.data?.history_notice && <p role="status" className="my-3 rounded border border-border-medium p-3 text-sm">{runs.data.history_notice}</p>}
       <form className="mb-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); void act(async () => {
         const value = await request.post<RunRow>(`${BASE}/runs`, { operation_id: operationId }); setSelectedRun(value.id); setOperationId('');
-      }); }}><Input aria-label="Operation ID" placeholder="operation UUID" value={operationId} onChange={(event) => setOperationId(event.target.value)} /><Button type="submit" disabled={!enabled || !operationId || busy}>Add run</Button></form>
+      }); }}><Input aria-label="Operation ID" placeholder="op-… (Serverless job ID)" value={operationId} onChange={(event) => setOperationId(event.target.value)} /><Button type="submit" disabled={!enabled || !operationId || busy}>Add run</Button></form>
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>App / run</th><th>Status</th><th>Elapsed</th><th>Submitted</th><th>Actions</th></tr></thead><tbody>{(runs.data?.data || []).map((run) => {
         const display = runDisplay(run);
         return <tr key={run.id} className="border-t border-border-light"><td className="max-w-sm py-3 pr-3"><strong>{run.model_id || 'Unknown App'}</strong>{run.label && <p className="text-xs">{run.label}</p>}<code className="text-xs">{run.id}</code>{run.refresh_error && <p className="text-xs">Refresh: {run.refresh_error}</p>}</td>

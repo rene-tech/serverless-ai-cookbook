@@ -6,6 +6,9 @@ import path from 'node:path';
 const root = process.argv[2] || '/app/client';
 const filename = path.join(root, 'src/components/Chat/Messages/Content/MarkdownComponents.tsx');
 let source = await readFile(filename, 'utf8');
+// Upgrade the pinned parent's build-time renderer seam; no UUID-link handler
+// or alternate public protocol is retained in the generated application.
+source = source.replaceAll('scientificStudyId', 'scientificWorkflowPath');
 const importLine = "import WorkspaceReportPreview, { workspaceReportPath } from '~/components/WorkspaceReportPreview';";
 const anchor = '  if (!file_id || !filename) {';
 const inserted = `  if (workspaceReportPath(href)) {
@@ -21,8 +24,8 @@ if (!source.includes(importLine)) {
   throw new Error('Report-preview import exists without its guarded renderer seam');
 }
 
-const studyImport = "import ScientificStudyPreview, { scientificStudyId } from '~/components/ScientificStudyPreview';";
-const studyInserted = `  if (scientificStudyId(href)) {
+const studyImport = "import ScientificStudyPreview, { scientificWorkflowPath } from '~/components/ScientificStudyPreview';";
+const studyInserted = `  if (scientificWorkflowPath(href)) {
     return <ScientificStudyPreview href={href}>{children}</ScientificStudyPreview>;
   }
 

@@ -36,6 +36,13 @@ GROMACS: use `prepare_gromacs_study.py` from its skill for a new TPR run plus
 results; do not hand-write that study or inspect helper source. Never bypass
 warnings with `-maxwarn`. Segmented output names contain `.partNNNN`.
 
+Only native `op-…` values are platform job IDs, identical to Serverless Jobs.
+Whole-workflow receipts expose those actual operations, never a second job ID.
+Before model admission say no platform job has been admitted yet; do not call a
+saved local plan an accepted platform execution. Use the returned progress link
+or `read_scientific_workflow` with the saved `output_directory` to observe phases
+and final results. Multi-job workflows list each real operation separately.
+
 Never guess molecular counts, stereochemistry, force-field conventions or
 numerical results: compute and retain provenance. Ask unresolved scientific
 choices before execution. Diagnose failures, correct their cause and verify;

@@ -51,8 +51,8 @@ router.get('/runs/:id', wrap(async (req, res) => res.json(await service.track(re
 router.get('/runs/:id/result', wrap(async (req, res) => res.json(await service.operationResult(await key(req), req.params.id))));
 router.post('/runs/:id/cancel', wrap(async (req, res) => res.json(await service.platform(await key(req), 'POST', `/v1/operations/${req.params.id}:cancel`))));
 router.get('/studies', wrap(async (req, res) => res.json(await service.studies(await key(req)))));
-router.get('/studies/:id', wrap(async (req, res) => res.json(await service.studies(await key(req), 'status', req.params.id))));
-router.post('/studies/:id/cancel', wrap(async (req, res) => res.json(await service.studies(await key(req), 'cancel', req.params.id))));
+router.get('/studies/status', wrap(async (req, res) => res.json(await service.studies(await key(req), 'status', req.query.output_directory))));
+router.post('/studies/cancel', wrap(async (req, res) => res.json(await service.studies(await key(req), 'cancel', req.body.output_directory))));
 router.get('/workspace', wrap(async (req, res) => res.json(await service.workspaceList(await key(req), req.query.path || '', {
   offset: req.query.offset === undefined ? 0 : Number(req.query.offset),
   limit: req.query.limit === undefined ? 500 : Number(req.query.limit),

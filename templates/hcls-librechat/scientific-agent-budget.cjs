@@ -123,11 +123,12 @@ function stopText(stop, messages) {
     if (type(message) !== 'tool') continue;
     const receipt = parseContent(message.content);
     if (!receipt || typeof receipt !== 'object') continue;
-    for (const value of [receipt.operation_id, receipt.job_id, receipt.study_id, receipt.execution_id]) {
-      if (typeof value === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value)) ids.add(value);
+    for (const value of [receipt.operation_id, ...(Array.isArray(receipt.operations)
+      ? receipt.operations.map(operation => operation?.operation_id) : [])]) {
+      if (typeof value === 'string' && /^op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/.test(value)) ids.add(value);
     }
   }
-  const retained = ids.size ? '\n\nPreviously reported work IDs: ' + [...ids].slice(0, 12).map((id) => `\`${id}\``).join(', ') + '.' : '';
+  const retained = ids.size ? '\n\nPreviously reported Serverless jobs: ' + [...ids].slice(0, 12).map((id) => `\`${id}\``).join(', ') + '.' : '';
   return `Agent paused — this request is incomplete. ${reason}\n\n` +
     'This limit stops model reasoning only. It does not cancel or resubmit scientific jobs. ' +
     'Existing tool results and files are retained; any already-submitted work keeps its own lifecycle. ' +
