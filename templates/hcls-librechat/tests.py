@@ -103,6 +103,9 @@ def test_deployment_selects_tested_skills_image_and_preserves_explicit_override(
     release = (ROOT / 'scripts/release-image.sh').read_text()
     selected = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
                     if line.startswith('SCIENTIFIC_AI_RELEASE_IMAGE='))
+    digest = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
+                  if line.startswith('SCIENTIFIC_AI_RELEASE_DIGEST='))
+    selected = selected.rsplit(':', 1)[0] + '@' + digest
     assert args[args.index("--image") + 1] == (override or selected)
     assert "ALLOW_REGISTRATION=false" in args
     assert "computefilesystem-test-state:/data:rw" in args

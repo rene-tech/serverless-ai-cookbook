@@ -3,6 +3,7 @@ import argparse
 import asyncio
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,9 @@ from scientific_receipts import load, save
 from test_current_batch_contracts import setup_submission, OP
 from test_scientific_batch_client import client
 from test_scientific_workflow import workflow
+
+WORKER_PATH = Path(os.environ.get('SCIENTIFIC_WORKER_TEST_HELPER',
+                                 Path(__file__).with_name('scientific-study-worker.py')))
 
 
 def scenario(tmp_path, monkeypatch):
@@ -47,8 +51,7 @@ def scenario(tmp_path, monkeypatch):
     result = asyncio.run(study.advance(first['id'], model_runner=old_runner))
     assert result['state'] == 'needs_attention' and result['admission_unknown']
     monkeypatch.setattr(client, 'call', original)
-    spec = importlib.util.spec_from_file_location('recovery_worker',
-        Path(__file__).with_name('scientific-study-worker.py'))
+    spec = importlib.util.spec_from_file_location('recovery_worker', WORKER_PATH)
     worker = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(worker)
     return first, second, worker, calls, uploads

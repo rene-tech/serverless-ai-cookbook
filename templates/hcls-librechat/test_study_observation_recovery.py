@@ -7,7 +7,7 @@ from anyio import EndOfStream
 
 import scientific_study as study
 from scientific_receipts import load, save
-from test_study_admission_recovery import scenario, client, OP
+from test_study_admission_recovery import scenario, client, OP, WORKER_PATH
 
 
 def interrupted(tmp_path, monkeypatch):
@@ -129,7 +129,7 @@ def test_native_operation_uses_recover_only_and_preserves_selector(tmp_path, mon
         return {'state':'running','operation_id':OP}
     monkeypatch.setattr(workflow.native, 'run', read)
     monkeypatch.setattr(study, 'workflow_module', lambda:workflow)
-    spec=importlib.util.spec_from_file_location('native_recovery',Path(__file__).with_name('scientific-study-worker.py'))
+    spec=importlib.util.spec_from_file_location('native_recovery', WORKER_PATH)
     worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
     assert asyncio.run(worker.reconcile_observation(first['id']))['state']=='running'
     assert seen==['unchanged-study-input']

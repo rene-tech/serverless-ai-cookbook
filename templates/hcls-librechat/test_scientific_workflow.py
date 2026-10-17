@@ -1,10 +1,12 @@
 import asyncio
 import importlib.util
+import os
 from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).parent
-spec = importlib.util.spec_from_file_location('workflow', ROOT / 'scientific-workflow.py')
+spec = importlib.util.spec_from_file_location('workflow', os.environ.get(
+    'SCIENTIFIC_WORKFLOW_TEST_HELPER', ROOT / 'scientific-workflow.py'))
 workflow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(workflow)
 

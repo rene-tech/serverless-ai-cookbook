@@ -27,6 +27,9 @@ def main():
         'demos/mcp.cjs': '/opt/hcls-librechat/demos/mcp.cjs',
         'demos/service.cjs': '/opt/hcls-librechat/demos/service.cjs',
         'demos/router.cjs': '/app/api/server/routes/scientific-demos.js',
+        'scripts/scientific-batch-acceptance.py': '/opt/bionemo/invoke-scientific-batch.py',
+        'scientific-workflow.py': '/opt/bionemo/scientific-workflow.py',
+        'scientific-study-worker.py': '/opt/bionemo/scientific-study-worker.py',
     }
     script = 'import hashlib,json; print(json.dumps({p:hashlib.sha256(open(p,"rb").read()).hexdigest() for p in ' + repr(list(sources.values())) + '}))'
     actual = json.loads(subprocess.check_output([

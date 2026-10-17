@@ -6,8 +6,7 @@ USER root
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
     cp /tmp/client/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
  && cp /tmp/client/scientific-workflow.py /tmp/client/scientific-study-worker.py /opt/bionemo/ \
- && /opt/scientific-client/bin/python -m py_compile \
-    /opt/bionemo/invoke-scientific-batch.py /opt/bionemo/scientific-workflow.py /opt/bionemo/scientific-study-worker.py
+ && /opt/scientific-client/bin/python /tmp/client/scripts/verify-observer-recovery.py --source /tmp/client
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       ai.nebius.scientific.release="known-job-observer-recovery-20261017"

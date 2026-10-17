@@ -11,7 +11,7 @@ set -euo pipefail
 DEPLOY_SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=release-image.sh
 source "$DEPLOY_SCRIPT_DIR/release-image.sh"
-IMAGE="${IMAGE:-$SCIENTIFIC_AI_RELEASE_IMAGE}"
+IMAGE="${IMAGE:-${SCIENTIFIC_AI_RELEASE_IMAGE%:*}@${SCIENTIFIC_AI_RELEASE_DIGEST}}"
 
 # One user-owned supervisor, not a distributed lock on an S3 mount.
 case "${SCIENTIFIC_STUDY_OWNER_MODE:-}" in

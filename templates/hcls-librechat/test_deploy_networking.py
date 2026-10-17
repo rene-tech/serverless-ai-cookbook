@@ -109,7 +109,9 @@ def test_new_installation_uses_shared_release_without_image_override(tmp_path):
     release = SCRIPT.with_name('release-image.sh').read_text()
     selected = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
                     if line.startswith('SCIENTIFIC_AI_RELEASE_IMAGE='))
-    assert arguments[arguments.index('--image') + 1] == selected
+    digest = next(line.split('=', 1)[1].strip("'") for line in release.splitlines()
+                  if line.startswith('SCIENTIFIC_AI_RELEASE_DIGEST='))
+    assert arguments[arguments.index('--image') + 1] == selected.rsplit(':', 1)[0] + '@' + digest
     assert 'SCIENTIFIC_CHAT_MODEL=moonshotai/Kimi-K3' in arguments
     assert 'SCIENTIFIC_CHAT_REASONING_EFFORT=high' in arguments
 

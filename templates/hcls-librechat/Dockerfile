@@ -152,6 +152,8 @@ RUN python3 -m venv /opt/scientific-client \
     nibabel==5.4.2 scikit-image==0.26.0 matplotlib==3.11.2 Pillow==12.3.0 \
     anndata==0.12.3 scikit-learn==1.7.2 umap-learn==0.5.12 \
  && /opt/scientific-client/bin/python -c 'import anndata, matplotlib, nibabel, scipy, skimage, sklearn, umap; from PIL import Image'
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
+    /opt/scientific-client/bin/python /tmp/client/scripts/verify-observer-recovery.py --source /tmp/client
 COPY life-science/bionemo-librechat/viewer-mcp.py /opt/bionemo/viewer-mcp.py
 COPY life-science/bionemo-librechat/3dmol.js /opt/bionemo/3dmol.js
 RUN node /opt/hcls-librechat/patch-server.mjs

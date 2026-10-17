@@ -61,20 +61,13 @@ test('full image applies existing patch-server and verifies actual installed mod
   assert.match(full, /node --test \/opt\/hcls-librechat\/test-deferred-discovery-boundary\.cjs/);
 });
 
-test('additive image copies both patched modules into its FINAL stage and verifies there', async () => {
+test('additive image inherits the current qualified SDK instead of replaying historical patches', async () => {
   const dockerfile = await fs.readFile(path.join(__dirname, 'Dockerfile.default-release'), 'utf8');
-  assert.match(dockerfile, /ARG WORKBENCH_BASE=.*@sha256:16b34a377caf015553d4d51ef78721ce1eb142d6e5c9a57ccd7cffdf7b9cdc65/);
-  assert.match(dockerfile, /RUN node \/opt\/hcls-librechat\/patch-deferred-discovery\.mjs/);
+  assert.match(dockerfile, /ARG WORKBENCH_BASE=.*@sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386/);
+  assert.doesNotMatch(dockerfile, /node \/opt\/hcls-librechat\/patch-deferred-discovery\.mjs/);
   assert.doesNotMatch(dockerfile, /node \/opt\/hcls-librechat\/patch-server\.mjs/);
-  const final = dockerfile.slice(dockerfile.lastIndexOf('FROM ${WORKBENCH_BASE}'));
-  assert.match(final, /COPY --from=assembled \/opt\/hcls-librechat \/opt\/hcls-librechat/);
-  for (const [relative, format] of modules) {
-    const suffix = format === 'cjs' ? 'cjs' : 'mjs';
-    assert.ok(final.includes(`source=/app/${relative},target=/tmp/discovery-tools.${suffix},ro`));
-    assert.ok(final.includes(`cp /tmp/discovery-tools.${suffix} /app/${relative}`));
-  }
-  assert.ok(final.lastIndexOf('cp /tmp/discovery-tools.') < final.indexOf('SCIENTIFIC_DISCOVERY_INSTALLED=1'));
-  assert.match(final, /node --test \/opt\/hcls-librechat\/test-deferred-discovery-boundary\.cjs/);
+  assert.equal(dockerfile.split('\n').filter(line => line.startsWith('FROM ')).length, 1);
+  assert.match(dockerfile, /verify-observer-recovery\.py --source \/tmp\/client/);
 });
 
 test('build verification cannot silently skip the exact installed SDK', async () => {

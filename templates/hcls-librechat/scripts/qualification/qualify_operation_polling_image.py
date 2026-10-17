@@ -17,7 +17,8 @@ import xml.etree.ElementTree as ET
 TESTS = ('test_operation_polling.py', 'test_scientific_batch_client.py',
          'test_result_recovery.py', 'test_terminal_diagnostics.py',
          'test_artifact_streaming.py', 'test_artifact_input_streaming.py',
-         'test_receipt_storage.py', 'test_receipt_publication.py')
+         'test_receipt_storage.py', 'test_receipt_publication.py',
+         'test_study_admission_recovery.py', 'test_study_observation_recovery.py')
 
 
 def sha256(path):
@@ -41,6 +42,8 @@ def main():
                '-e', 'PYTHONDONTWRITEBYTECODE=1', '-e', 'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1',
                '-e', 'PYTHONPATH=/tmp/test-libs:/opt/bionemo:/worktree/templates/hcls-librechat',
                '-e', 'SCIENTIFIC_BATCH_TEST_HELPER=/opt/bionemo/invoke-scientific-batch.py',
+               '-e', 'SCIENTIFIC_WORKFLOW_TEST_HELPER=/opt/bionemo/scientific-workflow.py',
+               '-e', 'SCIENTIFIC_WORKER_TEST_HELPER=/opt/bionemo/scientific-study-worker.py',
                '--entrypoint', '/opt/scientific-client/bin/python']
     for name in ('pytest', '_pytest', 'py', 'pluggy', 'iniconfig', 'pygments', 'packaging'):
         spec = importlib.util.find_spec(name)
@@ -60,8 +63,12 @@ def main():
     source = root / 'templates/hcls-librechat/scripts/scientific-batch-acceptance.py'
     if installed['helper_sha256'] != sha256(source):
         raise RuntimeError('Installed helper differs from the source under test')
+    installed['observer_gate'] = json.loads(subprocess.check_output(command + [args.image,
+        '/worktree/templates/hcls-librechat/scripts/verify-observer-recovery.py',
+        '--source', '/worktree/templates/hcls-librechat']))
     with (args.output / 'pytest.log').open('x') as log:
         process = subprocess.run(command + [args.image, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
+            '--import-mode=importlib',
             '--basetemp=/tmp/polling-tests', '--junitxml=/qualification/pytest.xml',
             *['/worktree/templates/hcls-librechat/' + test for test in TESTS]], stdout=log, stderr=subprocess.STDOUT)
     suites = ET.parse(args.output / 'pytest.xml').getroot() if (args.output / 'pytest.xml').exists() else []

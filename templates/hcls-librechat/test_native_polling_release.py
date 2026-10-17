@@ -163,6 +163,6 @@ def test_receipt_preserves_real_scope_and_unknown_provider_usage():
 
 def test_default_chat_model_and_explicit_runtime_override_are_unchanged():
     deploy = (ROOT/'scripts/deploy.sh').read_text()
-    assert 'IMAGE="${IMAGE:-$SCIENTIFIC_AI_RELEASE_IMAGE}"' in deploy
+    assert 'IMAGE="${IMAGE:-${SCIENTIFIC_AI_RELEASE_IMAGE%:*}@${SCIENTIFIC_AI_RELEASE_DIGEST}}"' in deploy
     assert 'SCIENTIFIC_CHAT_MODEL:-moonshotai/Kimi-K3' in deploy
     assert 'SCIENTIFIC_CHAT_MAX_OUTPUT_TOKENS:-16384' in deploy
