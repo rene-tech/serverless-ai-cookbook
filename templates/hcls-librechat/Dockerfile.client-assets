@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1.7
+# Preserve the qualified scientific runtime and UI; fix no-restart asset delivery.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:36de5582315302a8f203cbf6ea1bdd28fecb65667063f30117378da5912236d8
+FROM ${WORKBENCH_BASE}
+USER root
+COPY templates/hcls-librechat/scientific-client-assets.cjs templates/hcls-librechat/patch-client-assets.mjs /opt/hcls-librechat/
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client-assets,ro \
+    SCIENTIFIC_EXPRESS_MODULE=/app/node_modules/express node --test /tmp/client-assets/test-scientific-client-assets.cjs \
+ && node /opt/hcls-librechat/patch-client-assets.mjs \
+ && node --check /app/api/server/index.js
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="client-assets-20261017"

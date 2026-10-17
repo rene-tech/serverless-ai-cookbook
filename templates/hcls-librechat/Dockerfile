@@ -95,6 +95,8 @@ COPY templates/hcls-librechat/demos/service.cjs \
      templates/hcls-librechat/demos/patch.mjs \
      templates/hcls-librechat/demos/workshop-example.json /opt/hcls-librechat/demos/
 COPY templates/hcls-librechat/demos/router.cjs /app/api/server/routes/scientific-demos.js
+COPY templates/hcls-librechat/scientific-client-assets.cjs templates/hcls-librechat/patch-client-assets.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-client-assets.mjs
 COPY templates/hcls-librechat/uploads/verify-installed.mjs /opt/hcls-librechat/verify-workspace-installed.mjs
 RUN node /opt/hcls-librechat/verify-workspace-installed.mjs
 COPY templates/hcls-librechat/tavily-mcp.mjs /opt/bionemo/tavily-mcp.mjs
