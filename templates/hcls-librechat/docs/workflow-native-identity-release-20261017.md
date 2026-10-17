@@ -15,8 +15,8 @@ internals remain private, preserving running work and historical evidence.
 ## Exact release
 
 See the [machine-readable receipt](evidence/workflow-native-identity-release-20261017.json).
-Image `workflow-identity-20261017-r4` contains runtime source
-`319f7e517df82a6905442df990e61b515547f47e` and canonical skills `2026.10.17.5`.
+Image `workflow-identity-20261017-r5` contains runtime source
+`101a65ae4d0dbf6ddc6ffe20ce5fc6588c55bbc0` and canonical skills `2026.10.17.5`.
 `Dockerfile.workflow-identity` builds the qualified delta on the pinned
 synchronous-precheck image. The full `Dockerfile` includes the same public
 projection. The README launch button and deployment scripts select the same
@@ -40,13 +40,21 @@ immutable manifest; older release recipes are not deployment defaults.
 
 ## Qualification and retained clients
 
-Two independent final-release System QA chats submit unchanged 0.1 ns GROMACS
+Two independent System QA chats submit unchanged 0.1 ns GROMACS
 workloads from a public 1UBQ fixture, reusing its hash-matching completed
 precheck. Acceptance checks admission, automatic execution/analysis, measured
 ns/day, durable completion, eight verified artifacts per run, inline report/3D
 rendering and the identical operation IDs in the real Jobs console. The fixture
 warning is retained; these are interface/workflow tests, not convergence or
 sustainable-capacity measurements.
+
+The r4 submission/execution code is unchanged in r5. Final visual inspection
+found a blank first paint when a virtualized chat initializes an offscreen WebGL
+frame. The r5 presentation-only fix sends a resize notification as the existing
+frame loads or becomes visible. It preserves the camera, original HTML bytes,
+sandbox and network restrictions. Both completed chats were loaded freshly on
+r5 and their structures visually verified without clicking Reset or submitting
+more compute. A present canvas alone is not sufficient visual evidence.
 
 An earlier candidate's second chat exposed a remaining command-line UUID and
 missing observer registration; it is retained as a **failed** candidate test.
@@ -67,7 +75,7 @@ state/storage bindings; it must not recreate an old base image and assume its
 runtime overlay survived. Existing browser tabs need one normal reload.
 
 Offline qualification: 159 Python workflow tests, 71 installed-image Node tests,
-10 React tests, six deployment-link tests, a production UI build, branding checks
+20 React tests, six deployment-link tests, a production UI build, branding checks
 and canonical skill-bundle verification. The actual deployed five clients pass
 public health/login, exact assets and loaded-agent/skill checks.
 

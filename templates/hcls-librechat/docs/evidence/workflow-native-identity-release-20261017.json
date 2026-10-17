@@ -1,7 +1,7 @@
 {
-  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workflow-identity-20261017-r4",
-  "manifest": "sha256:ec6173111c7db811d1814bc9ba03d056644aff841f13414f31f06e5df5a12de1",
-  "source": "319f7e517df82a6905442df990e61b515547f47e",
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workflow-identity-20261017-r5",
+  "manifest": "sha256:f672767e083a15a0d3373115b84071e334a159d66f6fa74d18b5cb95a8a7a05c",
+  "source": "101a65ae4d0dbf6ddc6ffe20ce5fc6588c55bbc0",
   "base_manifest": "sha256:76b04c61341afab7d763df4d972692d124ad8c8d2adc685a8223012aecd7a70b",
   "skills_version": "2026.10.17.5",
   "canonical_skills": 37,
@@ -21,12 +21,14 @@
     "python_workflow_tests_passed": 159,
     "installed_node_tests_passed": 71,
     "installed_node_tests_skipped": 0,
-    "react_tests_passed": 10,
+    "react_tests_passed": 20,
     "deployment_link_tests_passed": 6,
     "production_build_passed": true,
     "branding_verified": true,
     "skill_bundle_verified": true
   },
+  "execution_qualification": "Two fresh r4 chat submissions; execution code unchanged in r5",
+  "presentation_qualification": "Fresh r5 loads of both completed chats; first paint without reset; original artifacts unchanged",
   "final_live_cohorts": [
     {"cohort": 3, "native_operation_id": "op-c1ce88a08ba80189", "completed_phases": 2, "executed_steps": 50000, "durable_steps": 50000, "duration_ns": 0.1, "hash_verified_artifacts": 8, "chat_inline_report_and_3d": true, "same_id_visible_in_serverless_jobs": true},
     {"cohort": 4, "native_operation_id": "op-1aa28c0363f5ed79", "completed_phases": 2, "executed_steps": 50000, "durable_steps": 50000, "duration_ns": 0.1, "hash_verified_artifacts": 8, "chat_inline_report_and_3d": true, "same_id_visible_in_serverless_jobs": true}

@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Aec6173111c7db811d1814bc9ba03d056644aff841f13414f31f06e5df5a12de1&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Af672767e083a15a0d3373115b84071e334a159d66f6fa74d18b5cb95a8a7a05c&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,8 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workflow-identity-20261017-r4`,
-digest `sha256:ec6173111c7db811d1814bc9ba03d056644aff841f13414f31f06e5df5a12de1`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:workflow-identity-20261017-r5`,
+digest `sha256:f672767e083a15a0d3373115b84071e334a159d66f6fa74d18b5cb95a8a7a05c`.
 The [workflow identity correction](docs/workflow-native-identity-release-20261017.md)
 removes the remaining public study UUIDs: chat and progress panels show only
 actual native Serverless job IDs. Saved workflows are observed by their owned
@@ -92,7 +92,7 @@ Its 37 canonical customer skills (85 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. The selected image contains skills
-`2026.10.17.5`; runtime source is `319f7e517df82a6905442df990e61b515547f47e`.
+`2026.10.17.5`; runtime source is `101a65ae4d0dbf6ddc6ffe20ce5fc6588c55bbc0`.
 See its exact-image receipt for installed components, retained login/history,
 and actual browser/file/agent checks. This is client lifecycle/interface evidence,
 not qualification of every scientific workflow, autonomous skill selection,
