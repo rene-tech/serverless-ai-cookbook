@@ -136,6 +136,12 @@ that those unrelated membrane findings were fixed.
 
 ## Deployment and rollback
 
+**17 October update:** the old SPA-entry bridge mechanism below is superseded by
+[current asset delivery](client-assets-20261017.md). The API now references the
+current immutable bundle directly on an ordinary reload; do not patch a
+cacheable hashed entry again. The following paragraphs retain the original r8
+rollout evidence.
+
 Patch only the exact affected files, seeded instructions and deployment-skill
 registry in the intended instance. Preserve customer-edited instructions.
 Reload the demo-service exports in existing API/MCP processes; do not restart

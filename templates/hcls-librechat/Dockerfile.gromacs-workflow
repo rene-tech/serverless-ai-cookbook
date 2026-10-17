@@ -4,6 +4,8 @@
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:ac7e91debb7b4d666068bbb61567295bcbaac6292f998f79e9a0bdcac7513b4a
 FROM ${WORKBENCH_BASE}
 USER root
+COPY templates/hcls-librechat/scientific-client-assets.cjs templates/hcls-librechat/patch-client-assets.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-client-assets.mjs
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/gromacs-chat,ro \
     cp /tmp/gromacs-chat/ScientificStudyPreview.tsx /tmp/gromacs-chat/ScientificStudyPreview.test.tsx /app/client/src/components/ \
  && cp /tmp/gromacs-chat/patch-report-preview.mjs /opt/hcls-librechat/ \

@@ -16,6 +16,8 @@ RUN micromamba create --yes --no-rc --root-prefix /tmp/openff-build --prefix /op
 
 FROM ${WORKBENCH_BASE} AS assembled
 USER root
+COPY templates/hcls-librechat/scientific-client-assets.cjs templates/hcls-librechat/patch-client-assets.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-client-assets.mjs
 # Apply only the discovery fix; replaying patch-server would reset sibling
 # patches/configuration or fail on already-patched parent source seams.
 COPY templates/hcls-librechat/scientific-study-admission.cjs templates/hcls-librechat/scientific-tool-search-patch.cjs templates/hcls-librechat/patch-deferred-discovery.mjs templates/hcls-librechat/test-deferred-discovery-boundary.cjs /opt/hcls-librechat/
@@ -71,6 +73,7 @@ COPY --from=assembled /app/skill /app/skill
 COPY --from=assembled /app/agent-instructions.md /app/seed-hcls-workbench.js /app/seed-merge.cjs /app/
 COPY --from=assembled /app/packages/api/dist/index.cjs /app/packages/api/dist/index.cjs
 COPY --from=assembled /app/api/server/controllers/agents/client.js /app/api/server/controllers/agents/client.js
+COPY --from=assembled /app/api/server/index.js /app/api/server/index.js
 RUN --mount=from=assembled,source=/app/client,target=/tmp/workspace-client,ro \
     --mount=from=assembled,source=/app/api/server/routes/scientific-demos.js,target=/tmp/scientific-demos.js,ro \
     --mount=from=assembled,source=/app/node_modules/@librechat/agents/dist/cjs/messages/tools.cjs,target=/tmp/discovery-tools.cjs,ro \
