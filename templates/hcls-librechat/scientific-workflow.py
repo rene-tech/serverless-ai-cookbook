@@ -62,9 +62,7 @@ def native_preflight_diagnostic(saved):
 
 def transport_disconnect(error):
     """Only retry read-only observation after a recognizable transport failure."""
-    if isinstance(error, BaseExceptionGroup):
-        return bool(error.exceptions) and all(transport_disconnect(item) for item in error.exceptions)
-    return isinstance(error, (httpx2.TransportError, ConnectionError, TimeoutError))
+    return batch.operation_read_failure(error)['retryable']
 
 
 def prepare(plan):
@@ -277,7 +275,8 @@ async def run(plan, output, wait_seconds=1800, poll_seconds=10, run_step=None, c
                 state = 'admission_unknown' if known.get('state') in {'submitting', 'admission_unknown'} else 'failed'
                 receipt['step_states'][step_id] = {key: known[key] for key in
                     ('state', 'operation_id', 'last_rejection') if key in known}
-                receipt.update(state=state, failure={'type': type(error).__name__, 'message': str(error)[:500]})
+                receipt.update(state=state, failure={'type': type(error).__name__, 'message': str(error)[:500],
+                    'observation': batch.operation_read_failure(error)})
                 save(receipt_path, receipt)
                 raise
             receipt['state'] = state

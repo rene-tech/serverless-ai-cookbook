@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1.7
+# Current client transport/queue only; scientific analyses remain byte-identical.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:17d77ad5676d98f719f42f26c1b57188bdd647643e087ff5715e06dfdbf1d00d
+FROM ${WORKBENCH_BASE}
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
+    cp /tmp/client/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
+ && cp /tmp/client/scientific-workflow.py /tmp/client/scientific-study-worker.py /opt/bionemo/ \
+ && /opt/scientific-client/bin/python -m py_compile \
+    /opt/bionemo/invoke-scientific-batch.py /opt/bionemo/scientific-workflow.py /opt/bionemo/scientific-study-worker.py
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="known-job-observer-recovery-20261017"

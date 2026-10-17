@@ -71,17 +71,104 @@ async def reconcile(identifier):
         return studies.view(record)
 
 
+def observation_step(record):
+    """A known remote operation can be inspected without another admission."""
+    if (record['state'] != 'needs_attention' or record.get('admission_unknown')
+            or record.get('cancellation_unknown')
+            or record.get('observation_recovery', {}).get('retryable') is False
+            or (studies.directory(record['id']) / 'cancel-request.json').exists()):
+        return None
+    plan = load(studies.directory(record['id']) / 'plan.json') or {}
+    step = next((item for item in plan.get('steps', []) if item['id'] == record.get('current_step')), None)
+    if not step or step['kind'] not in studies.MODEL_KINDS:
+        return None
+    child = load(Path(record['output_directory']) / 'steps' / step['id'] / 'operation' / 'receipt.json') or {}
+    terminal = studies.workflow_module().TERMINAL_FAILURES | studies.workflow_module().batch.TERMINAL
+    return step if child.get('operation_id') and child.get('state') not in terminal else None
+
+
+async def reconcile_observation(identifier):
+    """Reconnect saved work, retaining failures and never replaying inference.
+
+    Read-only outages back off independently of other studies. A scientific,
+    identity or artifact error remains needs_attention; it is not retried.
+    """
+    root = studies.directory(identifier)
+    with receipt_lock(root):
+        record = load(root / 'receipt.json')
+        step = observation_step(record)
+        if step is None:
+            return None
+        workflow = studies.workflow_module()
+        output = Path(record['output_directory']) / 'steps' / step['id']
+        try:
+            studies.verify_inputs(record)
+            studies.verify_cancellation_identity(record, load(root / 'plan.json'))
+            arguments = studies.resolve(step, record)
+            child_before = load(output / 'operation' / 'receipt.json')
+            with receipt_lock(output / 'operation'):
+                if step['kind'] == 'native':
+                    arguments = dict(model=step['model'], input=studies.path_in_workspace(arguments['input']),
+                        output_dir=output / 'operation', idempotency_key=step['idempotency_key'],
+                        wait_seconds=0, recover_only=True)
+                    if step.get('tool_name'):
+                        arguments['tool'] = step['tool_name']
+                    child = await workflow.run_native_step(argparse.Namespace(**arguments))
+                else:
+                    arguments = {'compression': None, 'service_class': 'customer-batch',
+                        **{key: value for key, value in arguments.items() if key not in {'id', 'kind'}}}
+                    arguments.update(output=output / 'operation', wait_seconds=0, poll_seconds=10, observe_only=True)
+                    for field in ('source', 'parameters', 'source_artifact'):
+                        if field in arguments:
+                            arguments[field] = studies.path_in_workspace(arguments[field])
+                    child = await workflow.batch.run(argparse.Namespace(**arguments))
+                    if child.get('observation_failure_count', 0) > child_before.get('observation_failure_count', 0):
+                        raise workflow.batch.ToolReadError(child['observation_errors'][-1])
+            if child['operation_id'] != child_before['operation_id']:
+                raise ValueError('Observation changed operation identity.')
+            transport = load(output / 'workflow' / 'receipt.json')
+            if transport:
+                if transport.get('failure'):
+                    transport.setdefault('recovered_failures', []).append(transport.pop('failure'))
+                transport.update(state='running', current_step=step['id'])
+                transport['step_states'][step['id']] = {key: child[key] for key in ('state', 'operation_id')}
+                save(output / 'workflow' / 'receipt.json', transport)
+            record['steps'][step['id']] = {key: child[key] for key in ('state', 'operation_id')}
+            record.update(state='running', phase='observation_recovered', queue_blocked=False)
+            record.pop('finished_at', None)
+            record.pop('observation_recovery', None)
+            if record.get('failure'):
+                record.setdefault('recovered_failures', []).append(record.pop('failure'))
+        except Exception as error:
+            failure = workflow.batch.operation_read_failure(error)
+            attempts = record.get('observation_recovery', {}).get('attempts', 0) + 1
+            record['observation_recovery'] = {**failure, 'attempts': attempts,
+                'next_at': time.time() + min(2 ** min(attempts, 6), 60)}
+            # The remote identity is known. A failed observer must not freeze
+            # unrelated requests; native admission still enforces concurrency.
+            record['queue_blocked'] = False
+        record['updated_at'] = time.time()
+        save(root / 'receipt.json', record)
+        return studies.view(record)
+
+
 def next_study(items):
-    """Never overlap an unresolved/ambiguous admission with a later study."""
+    """Fair observation slices; only ambiguous admission/cancellation blocks."""
+    eligible = []
     for item in sorted(items, key=lambda item: item['created_at']):
-        if item.get('queue_blocked') and (item.get('admission_unknown') or item.get('cancellation_unknown') or not (studies.directory(item['id']) / 'cancel-request.json').exists()):
+        cancelled = (studies.directory(item['id']) / 'cancel-request.json').exists()
+        observe = observation_step(item)
+        if item.get('queue_blocked') and not observe and not item.get('observation_recovery') and (
+                item.get('admission_unknown') or item.get('cancellation_unknown') or not cancelled):
             if recovery_step(item):
                 return item['id'], None
             return None, item['id']
         if item['state'] not in studies.FINAL or (
-                item.get('queue_blocked') and (studies.directory(item['id']) / 'cancel-request.json').exists()):
-            return item['id'], None
-    return None, None
+                item.get('queue_blocked') and cancelled) or observe:
+            if item.get('observation_recovery', {}).get('next_at', 0) <= time.time():
+                eligible.append(item)
+    selected = min(eligible, key=lambda item: (item.get('updated_at', item['created_at']), item['created_at']), default=None)
+    return (selected['id'] if selected else None), None
 
 
 async def cycle():
@@ -96,6 +183,8 @@ async def cycle():
         record = load(studies.directory(identifier) / 'receipt.json')
         if recovery_step(record):
             return await reconcile(identifier)
+        if observation_step(record):
+            return await reconcile_observation(identifier)
         return await studies.advance(identifier)
     return None
 

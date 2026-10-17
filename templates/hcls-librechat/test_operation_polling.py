@@ -5,6 +5,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from anyio import BrokenResourceError, ClosedResourceError, EndOfStream
 from mcp.shared.exceptions import MCPError
 from mcp_types import INTERNAL_ERROR, INVALID_PARAMS
 
@@ -239,6 +240,27 @@ def test_mixed_exception_group_cannot_hide_permanent_validation_failure():
     assert client.operation_read_failure(ExceptionGroup('transient', [transient]))['retryable']
     assert not client.operation_read_failure(ExceptionGroup('mixed', [transient, permanent]))['retryable']
     assert not client.operation_read_failure(ValueError('local failure'), {'http_status': 503})['retryable']
+
+
+@pytest.mark.parametrize('fault', [EndOfStream(), BrokenResourceError(), ClosedResourceError(),
+                                  ConnectionError(), TimeoutError()])
+def test_wrapped_stream_closure_is_read_only_and_resumable(tmp_path, monkeypatch, fault):
+    args, original, _, calls, sessions, _ = resumed_run(tmp_path, monkeypatch, [fault])
+    receipt = asyncio.run(client.run(args))
+    assert receipt['state'] == 'verified' and len(sessions) == 2
+    assert receipt['operation_id'] == original['operation_id']
+    assert calls == ['get_operation', 'get_operation', 'get_operation_result', 'artifact-read']
+    assert receipt['observation_errors'][0]['retryable']
+
+
+def test_observe_only_without_existing_operation_cannot_admit(tmp_path, monkeypatch):
+    args, original, _, calls, sessions, _ = resumed_run(tmp_path, monkeypatch, [])
+    original.pop('operation_id')
+    client.save(args.output / 'receipt.json', original)
+    args.observe_only = True
+    with pytest.raises(RuntimeError, match='requires an existing operation'):
+        asyncio.run(client.run(args))
+    assert not calls and not sessions
 
 
 def test_generic_http_error_is_not_a_retryable_auth_error():

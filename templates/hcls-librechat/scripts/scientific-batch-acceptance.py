@@ -31,6 +31,7 @@ from urllib.parse import quote, urlparse
 from uuid import uuid4
 
 import httpx2
+from anyio import BrokenResourceError, ClosedResourceError, EndOfStream
 from jsonschema import Draft202012Validator
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
@@ -67,6 +68,8 @@ OPERATION_READ_ATTEMPTS = 5
 OPERATION_READ_TIMEOUT = 60
 ADMISSION_REPLAY_ATTEMPTS = 3
 TRANSIENT_READ_HTTP = {408, 429, 500, 502, 503, 504}
+READ_TRANSPORT_ERRORS = (httpx2.TransportError, ConnectionError, TimeoutError,
+                         BrokenResourceError, ClosedResourceError, EndOfStream)
 
 
 class FileSource:
@@ -290,7 +293,7 @@ def operation_read_failure(error, http_failure=None):
         failures = [operation_read_failure(item, http_failure) for item in error.exceptions]
         return next((item for item in failures if not item['retryable']), failures[0])
     info = {'error_type': type(error).__name__, 'retryable': False, **(http_failure or {})}
-    if not isinstance(error, (MCPError, ToolReadError, ExplicitRejection, httpx2.TransportError)):
+    if not isinstance(error, (MCPError, ToolReadError, ExplicitRejection, *READ_TRANSPORT_ERRORS)):
         return info
     structured = getattr(error, 'error', {})
     if isinstance(error, MCPError):
@@ -325,7 +328,7 @@ def operation_read_failure(error, http_failure=None):
     elif isinstance(error, MCPError):
         info['retryable'] = error.code in {INTERNAL_ERROR, CONNECTION_CLOSED, REQUEST_TIMEOUT} or (
             error.code == INVALID_REQUEST and error.message == 'Session terminated')
-    elif isinstance(error, httpx2.TransportError):
+    elif isinstance(error, READ_TRANSPORT_ERRORS):
         info['retryable'] = True
     return info
 
@@ -409,10 +412,13 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                             return receipt
         except Exception as error:
             # Local validation, collection, receipt I/O and terminal scientific
-            # errors cannot enter the retry path. Cancellation is never caught.
-            if phase is None:
-                raise
+            # errors cannot enter the retry path. SDK session teardown can also
+            # fail after a successful read; it is still only transport cleanup.
+            # Cancellation is never caught.
             info = operation_read_failure(error, observation.failure)
+            if phase is None and not info['retryable']:
+                raise
+            phase = phase or 'session_cleanup'
             failures += 1
             remaining = deadline - time.monotonic()
             retry = info['retryable'] and failures < OPERATION_READ_ATTEMPTS and remaining > 0
@@ -916,6 +922,8 @@ async def _run(args) -> dict:
         receipt = {"identity": identity, "state": "prepared", "manifest_id": "scientist-cohort-" + str(uuid4())}
     if receipt["identity"] != identity:
         raise ValueError("Output directory belongs to a different request.")
+    if getattr(args, 'observe_only', False) and not receipt.get('operation_id'):
+        raise RuntimeError('Read-only observation requires an existing operation; nothing was submitted.')
     if receipt.get("state") == "verified":
         return receipt
     receipt = recover_saved_admission(args, receipt)
