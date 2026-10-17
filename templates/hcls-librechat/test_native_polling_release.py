@@ -17,14 +17,24 @@ def evidence():
 def test_pointer_and_console_link_select_exact_published_bytes():
     # Historical receipts remain immutable; compare the current default only
     # with its own published release evidence, not the old precheck-only image.
-    receipt = json.loads((ROOT/'docs/evidence/client-assets-20261017.json').read_text())
+    receipt = json.loads((ROOT/'docs/evidence/current-contract-release-20261017.json').read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
     assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
     assert receipt['all_scientific_workflows_qualified'] is False
-    assert receipt['asset_delivery_tests'] == {'passed': 7, 'failed': 0, 'skipped': 0}
+    assert receipt['manifest'] == 'sha256:ac5a4f7dbd458842fd38d87009db06cc6b365d5547a4f061d81752259c4cb9af'
+    assert receipt['source'] == '717e5fd87a3b1f58761c4664d7d0c68a511f1169'
+    assert receipt['contract'] == {
+        'native_operation_ids': True,
+        'upload_identity': 'upload_id',
+        'paired_preview_api_and_ui_required': True,
+        'request_shape': 'exact-discovered-current-tool-schema',
+        'progress_schema': 'scientific-ai/progress/v1',
+    }
+    bundle = json.loads((ROOT.parents[1]/'skills/scientific-ai/manifest.json').read_text())
+    assert values['SCIENTIFIC_AI_SKILLS_VERSION'] == bundle['version']
     readme = (ROOT/'README.md').read_text()
     link = html.unescape(re.search(r'<a href="(https://console.nebius.com/serverless/endpoint/create\?[^"]+)"',readme)[1])
     selected = parse_qs(urlsplit(link).query)['image']
@@ -53,6 +63,42 @@ def test_historical_precheck_evidence_preserves_its_original_scope():
     assert receipt['rollout']['provider_base_image_changed'] is False
     assert receipt['private_checker_source_included'] is False
     assert receipt['all_scientific_workflows_qualified'] is False
+
+
+def test_current_acceptance_keeps_bounded_execution_distinct_from_capacity():
+    receipt = json.loads((ROOT/'docs/evidence/current-contract-release-20261017.json').read_text())
+    assert receipt['qualification_status'] == 'qualified-bounded-current-contract'
+    assert receipt['sustainable_capacity_measured'] is False
+    assert receipt['cross_gpu_recovery_tested'] is False
+    assert receipt['all_scientific_workflows_qualified'] is False
+    assert receipt['retained_fleet']['verified_clients'] == 5
+    assert receipt['public_login_pages']['verified_clients'] == 4
+    assert receipt['public_login_pages']['authenticated_customer_actions'] is False
+    for path in ('rest', 'mcp'):
+        run = receipt['live_acceptance'][path]
+        assert run['completed'] and run['gpu_released']
+        assert run['durable_ns'] == 0.1 and run['checkpoint_step'] == 50000
+        assert run['validated_artifacts'] == 9
+        assert run['same_native_id_and_result_across_rest_and_mcp']
+    browser = receipt['live_acceptance']['browser']
+    assert browser['completed_study_phases'] == browser['total_study_phases'] == 2
+    assert browser['natural_language_request']
+    assert browser['optional_precheck_offered_and_consented']
+    assert browser['inline_precheck_visually_verified']
+    assert browser['precheck_html_and_json_downloads_nonempty']
+    assert browser['precheck_original_downloads_byte_exact']
+    assert browser['inline_3d_final_structure_visually_verified']
+    assert browser['customer_ui_exposes_gpu_type_or_count'] is False
+    assert browser['trajectory_animation_qualified'] is False
+    assert receipt['live_acceptance']['obsolete_wrapper_rejection'] == {
+        'rest_status': 422, 'mcp_jsonrpc_code': -32602, 'new_jobs_admitted': 0,
+    }
+    assert set(receipt['evidence_sha256']) == {
+        'rest_mcp_summary', 'four_retained_login_pages', 'qa_browser_acceptance',
+        'obsolete_wrapper_rejections',
+    }
+    assert all(re.fullmatch('[0-9a-f]{64}', value)
+               for value in receipt['evidence_sha256'].values())
 
 
 def test_receipt_preserves_real_scope_and_unknown_provider_usage():

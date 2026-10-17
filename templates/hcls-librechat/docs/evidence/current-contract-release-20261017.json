@@ -1,0 +1,101 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:current-contract-20261017-717e5fd87a3b",
+  "manifest": "sha256:ac5a4f7dbd458842fd38d87009db06cc6b365d5547a4f061d81752259c4cb9af",
+  "source": "717e5fd87a3b1f58761c4664d7d0c68a511f1169",
+  "base_manifest": "sha256:eda632a87822dd9f87a43fb0de6cc3f6e617fcbeb72d13403f4049ad423ab838",
+  "skills_version": "2026.10.17.2",
+  "qualification_status": "qualified-bounded-current-contract",
+  "offline_release_tests": {
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "default-pointer, console link, deployment networking and GROMACS image packaging"
+  },
+  "contract": {
+    "native_operation_ids": true,
+    "upload_identity": "upload_id",
+    "paired_preview_api_and_ui_required": true,
+    "request_shape": "exact-discovered-current-tool-schema",
+    "progress_schema": "scientific-ai/progress/v1"
+  },
+  "retained_fleet": {
+    "verified_clients": 5,
+    "api_and_supervisor_processes_preserved": true,
+    "managed_seed_customizations_and_access_preserved": true,
+    "provider_image_changed": false
+  },
+  "public_login_pages": {
+    "verified_clients": 4,
+    "exact_entry_stylesheet_and_brand_asset_hashes": true,
+    "nebius_header_and_nebius_nvidia_footer": true,
+    "page_javascript_errors": 0,
+    "authenticated_customer_actions": false,
+    "scientific_submissions": 0
+  },
+  "live_acceptance": {
+    "fixture": "Public 1UBQ GROMACS TPR, 0.1 ns; internal QA identity only",
+    "rest": {
+      "completed": true,
+      "durable_ns": 0.1,
+      "checkpoint_step": 50000,
+      "observed_ns_per_day": 1051.746,
+      "admission_to_native_completion_seconds": 139,
+      "admission_to_container_start_seconds": 77,
+      "live_rate_observed": true,
+      "validated_artifacts": 9,
+      "gpu_released": true,
+      "same_native_id_and_result_across_rest_and_mcp": true
+    },
+    "mcp": {
+      "completed": true,
+      "durable_ns": 0.1,
+      "checkpoint_step": 50000,
+      "observed_ns_per_day": 1054.591,
+      "admission_to_native_completion_seconds": 124,
+      "admission_to_container_start_seconds": 63,
+      "live_rate_observed": true,
+      "validated_artifacts": 9,
+      "gpu_released": true,
+      "same_native_id_and_result_across_rest_and_mcp": true
+    },
+    "browser": {
+      "completed": true,
+      "natural_language_request": true,
+      "optional_precheck_offered_and_consented": true,
+      "precheck_verdict": "warn",
+      "precheck_blocking_findings": 0,
+      "completed_study_phases": 2,
+      "total_study_phases": 2,
+      "durable_ns": 0.1,
+      "observed_ns_per_day": 764.143,
+      "inline_precheck_visually_verified": true,
+      "precheck_html_and_json_downloads_nonempty": true,
+      "precheck_original_downloads_byte_exact": true,
+      "inline_md_timing_report": true,
+      "inline_3d_final_structure_visually_verified": true,
+      "customer_ui_exposes_gpu_type_or_count": false,
+      "trajectory_animation_qualified": false
+    },
+    "obsolete_wrapper_rejection": {
+      "rest_status": 422,
+      "mcp_jsonrpc_code": -32602,
+      "new_jobs_admitted": 0
+    }
+  },
+  "evidence_sha256": {
+    "rest_mcp_summary": "9d5610e39f3d43acf2a66f68d97868081dfd03b11f80fd4c9b41b016099dbd8c",
+    "four_retained_login_pages": "98787010196ee3a79b0a2b8c459f6638bdde850ff3523e8f08aa93fa8da40411",
+    "qa_browser_acceptance": "a37c47f2c50472827d9c0e7022d2f71a2adb75bfaf2684807d5ad3b73fc84f48",
+    "obsolete_wrapper_rejections": "9ac74b7e608ead2c2076c7cce62fb5f862ca90e4da2374254e95f92091346c64"
+  },
+  "limitations": [
+    "These are bounded current-contract execution checks, not capacity benchmarks or all-model qualification.",
+    "No customer credentials or customer scientific workloads were used for acceptance.",
+    "TPR-only precheck does not qualify source topology, FASTA, MDP or CPU probes.",
+    "Native segment executed, durable and requested step counts remain unknown when the runtime does not record them; aggregate live progress is not copied into each segment.",
+    "Cross-GPU recovery, long-running throughput and arbitrary autonomous scientific workflows were not requalified."
+  ],
+  "sustainable_capacity_measured": false,
+  "cross_gpu_recovery_tested": false,
+  "all_scientific_workflows_qualified": false
+}
