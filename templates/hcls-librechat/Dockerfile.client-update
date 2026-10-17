@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1.7
+# Presentation-only update over the qualified admission-recovery runtime.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:7bec331506c04eabb00eb64d943bb63f9474edb75a5bdf3f913bb69c105ebce0
+FROM ${WORKBENCH_BASE}
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
+    cp /tmp/client/ScientificClientUpdate.tsx /tmp/client/ScientificClientUpdate.test.tsx /app/client/src/components/ \
+ && cp /tmp/client/scientific-client-assets.cjs /opt/hcls-librechat/ \
+ && node /tmp/client/patch-client-update.mjs \
+ && node /tmp/client/patch-client-update.mjs \
+ && SCIENTIFIC_EXPRESS_MODULE=/app/node_modules/express node --test /tmp/client/test-scientific-client-assets.cjs \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit \
+    src/components/ScientificClientUpdate.test.tsx src/components/WorkspaceReportPreview.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="client-update-20261017"

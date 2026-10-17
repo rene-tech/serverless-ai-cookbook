@@ -35,6 +35,9 @@ RUN cp /tmp/workspace-uploads/*.tsx /tmp/workspace-uploads/*.js /app/client/src/
 COPY templates/hcls-librechat/WorkspaceReportPreview.tsx templates/hcls-librechat/WorkspaceMarkdownLinks.ts templates/hcls-librechat/ScientificStudyPreview.tsx /app/client/src/components/
 COPY templates/hcls-librechat/patch-report-preview.mjs /tmp/patch-report-preview.mjs
 RUN node /tmp/patch-report-preview.mjs
+COPY templates/hcls-librechat/ScientificClientUpdate.tsx /app/client/src/components/
+COPY templates/hcls-librechat/patch-client-update.mjs /tmp/patch-client-update.mjs
+RUN node /tmp/patch-client-update.mjs
 WORKDIR /app/client
 RUN node /tmp/branding/patch-branding.mjs /app/client \
  && node /tmp/branding/brand-client.mjs /app/client /tmp/branding/assets --source \

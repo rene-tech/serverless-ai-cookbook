@@ -25,6 +25,8 @@ RUN node /opt/hcls-librechat/patch-deferred-discovery.mjs
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workspace-release \
     cp /tmp/workspace-release/uploads/*.tsx /tmp/workspace-release/uploads/*.js /app/client/src/components/ \
  && cp /tmp/workspace-release/speech/workshop-client.js /app/client/src/components/ \
+ && cp /tmp/workspace-release/ScientificClientUpdate.tsx /app/client/src/components/ \
+ && node /tmp/workspace-release/patch-client-update.mjs \
  && node /tmp/workspace-release/uploads/patch.mjs \
  && cp /tmp/workspace-release/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
  && cp /tmp/workspace-release/demos/mcp.cjs /opt/hcls-librechat/demos/mcp.cjs \

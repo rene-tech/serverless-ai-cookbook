@@ -59,6 +59,8 @@ test('ordinary reload sees a later complete release without process restart or s
   const second = request(handler);
   assert.match(second.body, /index\.two\.js/);
   assert.notEqual(first.headers['X-Scientific-Client-Revision'], second.headers['X-Scientific-Client-Revision']);
+  assert.ok(second.body.includes(`name="scientific-client-revision" content="${second.headers['X-Scientific-Client-Revision']}"`));
+  assert.equal((request(handler, second.body).body.match(/name="scientific-client-revision"/g) || []).length, 1);
   assert.equal(second.headers['Cache-Control'], 'no-cache, no-store, must-revalidate');
   assert.match(request(handler, old, 'HEAD').body, /index\.two\.js/);
 });

@@ -62,6 +62,8 @@ function freshClientAssets(dist) {
         // Keep the last complete shell if an operator is midway through copying a release.
         try { readCurrent(); } catch { /* No partial asset set is served. */ }
         body = refreshAssetTags(body, current);
+        body = body.replace(/<meta\s+name="scientific-client-revision"[^>]*>\s*/giu, '')
+          .replace('</head>', `<meta name="scientific-client-revision" content="${revision}"></head>`);
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('X-Scientific-Client-Revision', revision);
       }
