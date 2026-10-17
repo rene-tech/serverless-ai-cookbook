@@ -8,6 +8,8 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
     --mount=type=bind,source=skills/scientific-ai,target=/tmp/skills,ro \
     cp /tmp/client/scientific_workflow_view.py /tmp/client/execution-mcp.py /tmp/client/scientific-workflow.py /opt/bionemo/ \
  && cp /tmp/client/scientific-study-admission.cjs /tmp/client/scientific-agent-budget.cjs /opt/hcls-librechat/ \
+ && cp /tmp/client/scientific-tool-options.cjs /opt/hcls-librechat/ \
+ && cp /tmp/client/seed-workbench.js /app/seed-hcls-workbench.js \
  && cp /tmp/client/demos/service.cjs /opt/hcls-librechat/demos/service.cjs \
  && cp /tmp/client/demos/router.cjs /app/api/server/routes/scientific-demos.js \
  && cp /tmp/client/agent-instructions.md /app/agent-instructions.md \

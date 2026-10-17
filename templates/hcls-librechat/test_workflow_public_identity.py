@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import subprocess
 
 import pytest
 
@@ -120,19 +121,21 @@ def test_local_only_workflow_finishes_without_claiming_a_platform_job(mounted):
     assert internal['id'] not in json.dumps(result)
 
 
-def test_cli_admission_is_successful_and_uses_the_same_public_projection(mounted, monkeypatch, capsys):
-    spec = importlib.util.spec_from_file_location('workflow_cli_identity', HERE / 'scientific-workflow.py')
-    cli = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(cli)
+def test_cli_admission_is_successful_and_uses_the_same_public_projection(mounted):
     source = mounted / 'plan.json'
     source.write_text(json.dumps(plan()))
     output = str(mounted / 'cli-run')
-    monkeypatch.setattr(sys, 'argv', ['scientific-workflow.py', '--plan', str(source), '--output', output])
-    with pytest.raises(SystemExit) as finished:
-        cli.main()
-    assert finished.value.code == 0
-    result = json.loads(capsys.readouterr().out)
+    finished = subprocess.run([sys.executable, str(HERE / 'scientific-workflow.py'),
+        '--plan', str(source), '--output', output], capture_output=True, text=True, check=True)
+    result = json.loads(finished.stdout)
     assert result['study_admission'] == 'accepted' and result['state'] == 'queued'
     assert not {'id', 'job_id', 'study_id', 'operation_id'} & result.keys()
     assert view.workflow_record(output)['id'] not in json.dumps(result)
     assert result['progress_url'].startswith('/demos?tab=runs&workflow=')
+
+
+def test_workflow_observer_is_seeded_for_every_scientific_agent():
+    seed = (HERE / 'seed-workbench.js').read_text()
+    execution_tools = seed.split('const executionTools = ', 1)[1].split(';', 1)[0]
+    assert "'read_scientific_workflow_mcp_environment-execution'" in execution_tools
+    assert '...executionTools' in seed

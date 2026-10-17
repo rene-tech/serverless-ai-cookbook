@@ -24,6 +24,7 @@ test('common workbench, execution, research and viewer tools stay immediately av
     { name: 'workbench_compare_structures_mcp_scientific-demos' },
     { name: 'workbench_get_operation_result_mcp_scientific-demos' },
     { name: 'execute_command_mcp_environment-execution' },
+    { name: 'read_scientific_workflow_mcp_environment-execution' },
     { name: 'visualize_structure_mcp_structure-viewer' },
     { name: 'visualize_workspace_media_mcp_structure-viewer' },
     { name: 'tavily_search_mcp_tavily' },
