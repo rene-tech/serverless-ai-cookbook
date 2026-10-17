@@ -69,18 +69,18 @@ def test_flat_operation_receipt_is_recovered_without_resubmitting(tmp_path, monk
 
 def test_explicit_non_admission_is_safe_to_retry():
     error = {'isError': True, 'content': [{'type': 'text', 'text': json.dumps({'error': {
-        'type': 'admission_limit_reached', 'code': 'admission_limit_reached',
-        'message': 'retry shortly', 'retryable': True, 'durable_admission': False,
+        'code': 'ADMISSION_LIMIT_REACHED',
+        'message': 'retry shortly', 'retryable': True, 'admission': 'not-submitted',
         'request_id': 'request-1', 'idempotency_key': 'acceptance-key',
         'retry_after_seconds': 2,
     }})}]}
     assert client.explicit_rejection(error) == {
-        'type': 'admission_limit_reached', 'code': 'admission_limit_reached',
+        'code': 'ADMISSION_LIMIT_REACHED',
         'message': 'retry shortly', 'request_id': 'request-1',
         'idempotency_key': 'acceptance-key', 'retryable': True,
-        'retry_after_seconds': 2, 'durable_admission': False,
+        'retry_after_seconds': 2, 'admission': 'not-submitted',
     }
-    error['content'][0]['text'] = json.dumps({'error': {'durable_admission': True}})
+    error['content'][0]['text'] = json.dumps({'error': {'admission': 'unknown'}})
     assert client.explicit_rejection(error) is None
 
 

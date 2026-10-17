@@ -58,8 +58,8 @@ def test_explicit_concurrency_rejection_waits_but_does_not_admit_next_step(tmp_p
     async def step(args):
         calls.append(args.model)
         if len(calls) == 1:
-            raise workflow.batch.ExplicitRejection({'code': 'concurrency_exceeded',
-                'durable_admission': False, 'retry_after_seconds': 15})
+            raise workflow.batch.ExplicitRejection({'code': 'ADMISSION_LIMIT_REACHED',
+                'admission': 'not-submitted', 'retryable': True, 'retry_after_seconds': 15})
         return {'state': 'verified', 'operation_id': 'same-' + args.model}
     delays = []
     async def sleep(delay):
@@ -94,7 +94,7 @@ def test_changed_plan_refuses_resume(tmp_path):
 def test_single_wrapped_explicit_rejection_is_waiting_not_unknown(tmp_path):
     async def step(args):
         raise ExceptionGroup('transport cleanup', [workflow.batch.ExplicitRejection({
-            'code': 'concurrency_exceeded', 'durable_admission': False})])
+            'code': 'ADMISSION_LIMIT_REACHED', 'admission': 'not-submitted', 'retryable': True})])
     result = asyncio.run(workflow.run(plan(tmp_path), tmp_path / 'flow', 1, run_step=step,
                                      clock=iter((0, 0, 2)).__next__))
     assert result['state'] == 'waiting_admission'
@@ -148,7 +148,7 @@ def test_mixed_batch_native_plan_uses_existing_clients_in_order(tmp_path):
     assert calls == [('batch', 'a'), ('native', 'speech-a'), ('batch', 'b')]
 
 
-@pytest.mark.parametrize('code', ['concurrency_exceeded', 'admission_limit_reached'])
+@pytest.mark.parametrize('code', ['ADMISSION_LIMIT_REACHED', 'ADMISSION_PAUSED', 'MODEL_MAINTENANCE'])
 def test_native_explicit_nonadmission_waits_with_exact_key(tmp_path, code):
     calls, delays = [], []
     async def native(args):
@@ -156,7 +156,7 @@ def test_native_explicit_nonadmission_waits_with_exact_key(tmp_path, code):
         if len(calls) == 1:
             workflow.save(args.output_dir / 'receipt.json', {'state': 'rejected',
                 'last_rejection': {'code': code,
-                    'durable_admission': False, 'retry_after_seconds': 17}})
+                    'admission': 'not-submitted', 'retryable': True, 'retry_after_seconds': 17}})
             raise RuntimeError('MCP isError')
         return {'state': 'succeeded'}
     async def sleep(delay):
@@ -188,7 +188,7 @@ def test_stale_concurrency_error_cannot_retry_unknown_native_admission(tmp_path)
     async def native(args):
         calls.append(args.model)
         workflow.save(args.output_dir / 'receipt.json', {'state': 'admission_unknown',
-            'last_rejection': {'code': 'concurrency_exceeded', 'durable_admission': False}})
+            'last_rejection': {'code': 'ADMISSION_LIMIT_REACHED', 'admission': 'not-submitted', 'retryable': True}})
         raise ConnectionError('current response lost')
     with pytest.raises(ConnectionError):
         asyncio.run(workflow.run(native_plan(tmp_path), tmp_path / 'flow', native_run_step=native))
@@ -199,7 +199,7 @@ def test_stale_concurrency_error_cannot_retry_unknown_native_admission(tmp_path)
 def test_native_application_rejection_does_not_wait_or_retry(tmp_path):
     async def native(args):
         workflow.save(args.output_dir / 'receipt.json', {'state': 'rejected',
-            'last_rejection': {'code': 'invalid_input', 'durable_admission': False}})
+            'last_rejection': {'code': 'INVALID_INPUT', 'admission': 'not-submitted', 'retryable': False}})
         raise RuntimeError('invalid input')
     with pytest.raises(RuntimeError, match='invalid input'):
         asyncio.run(workflow.run(native_plan(tmp_path), tmp_path / 'flow', native_run_step=native))

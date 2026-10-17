@@ -45,22 +45,24 @@ async function rpc(t, requests, options = {}) {
   assert.equal(code, 0, stderr);
   assert.ok(calls.every(x => x.method === 'GET' && ['/v1/models', '/v1/scientific-models'].includes(x.path)));
   assert.ok(calls.every(x => x.authorization === 'Bearer fixture-scoped-key'));
+  if (options.expectedCalls !== undefined) assert.equal(calls.length, options.expectedCalls);
   return stdout.trim().split('\n').map(JSON.parse);
 }
 const invoke = (name, args = {}) => ({ method: 'tools/call', params: { name, arguments: args } });
 const value = result => JSON.parse(result.result.content[0].text);
 
-test('full listing cannot be filtered by old chat/tool-cache arguments', async t => {
+test('full listing accepts only the current empty-object contract; invalid fields never reach the API', async t => {
   const requests = [{ method: 'tools/list' }, ...[
     {}, { query: 'all' }, { query: 'protein' },
     { query: 'molecular and protein candidate design and ranking' },
     { query: 'DNA genomics sequence' }, { query: 'DiffDock docking ligand' },
+    { all: true }, [], null, false, 'protein',
   ].map(args => invoke('workbench_list_apps', args))];
-  const results = await rpc(t, requests);
+  const results = await rpc(t, requests, { expectedCalls: 2 });
   const tools = results.shift().result.tools;
   assert.deepEqual(tools.find(x => x.name === 'workbench_list_apps').inputSchema.properties, {});
   assert.deepEqual(tools.find(x => x.name === 'workbench_search_apps').inputSchema.required, ['query']);
-  for (const result of results) {
+  for (const result of results.slice(0, 1)) {
     assert.equal(result.result.isError, false);
     const catalog = value(result);
     assert.deepEqual(catalog.data.map(x => x.model_id).sort(), ids);
@@ -71,6 +73,10 @@ test('full listing cannot be filtered by old chat/tool-cache arguments', async t
     assert.deepEqual(catalog.data.find(x => x.model_id === 'scvi-scanvi').contract_kinds, ['native', 'scientific-batch']);
     assert.equal(catalog.groups.flatMap(x => x.apps).length, 17);
     assert.equal(catalog.data.find(x => x.model_id === 'mdprecheck').use_case, 'Molecular dynamics');
+  }
+  for (const result of results.slice(1)) {
+    assert.equal(result.result.isError, true);
+    assert.match(value(result).error, /Call workbench_list_apps with \{\}/);
   }
 });
 

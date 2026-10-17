@@ -25,6 +25,18 @@ from uuid import uuid4
 FILE_CHUNK_BYTES = 1024 * 1024
 
 
+def admission_refused(error):
+    """A current gateway receipt explicitly proves no operation was admitted."""
+    return (isinstance(error, dict) and error.get('admission') == 'not-submitted'
+            and 'operation_id' not in error)
+
+
+def admission_retryable(error):
+    """Only bounded same-request waiting; never retry ambiguous model execution."""
+    return (admission_refused(error) and error.get('retryable') is True
+            and error.get('code') in {'ADMISSION_LIMIT_REACHED', 'ADMISSION_PAUSED', 'MODEL_MAINTENANCE'})
+
+
 def file_measurement(path: Path) -> tuple[int, str]:
     """Hash a closed scientific file without loading it all into memory."""
     size, checksum = 0, hashlib.sha256()

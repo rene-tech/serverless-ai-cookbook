@@ -57,9 +57,11 @@ async function dispatch(name, args) {
   if (!owner) throw service.failure('LibreChat user identity is missing.');
   const request = (method, url, body, id) => service.platform(key, method, `/v1/workshop/${url}`, body, id);
   switch (name) {
-    // Older chats can retain the previous optional-query schema. Never let that
-    // stale argument turn a complete listing back into a partial permissions list.
-    case 'workbench_list_apps': return service.listApps(key);
+    case 'workbench_list_apps':
+      if (!args || typeof args !== 'object' || Array.isArray(args) || Object.keys(args).length) {
+        throw service.failure('Call workbench_list_apps with {}. Use workbench_search_apps for an explicit query.');
+      }
+      return service.listApps(key);
     case 'workbench_search_apps':
       if (typeof args.query !== 'string' || !args.query.trim()) throw service.failure('Supply a short search query, or call workbench_list_apps with {} for all Apps.');
       return service.listApps(key, args.query);
@@ -127,7 +129,7 @@ async function main() {
       else if (request.method === 'tools/list') result = { tools };
       else if (request.method === 'tools/call') {
         try {
-          const value = await dispatch(request.params.name, request.params.arguments || {});
+          const value = await dispatch(request.params.name, request.params.arguments === undefined ? {} : request.params.arguments);
           result = { content: [{ type: 'text', text: JSON.stringify(value) }], isError: false };
         } catch (error) {
           result = { isError: true, content: [{ type: 'text', text: JSON.stringify(service.publicError(error)) }] };

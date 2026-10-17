@@ -40,6 +40,8 @@ from mcp_types import CONNECTION_CLOSED, INTERNAL_ERROR, INVALID_REQUEST, REQUES
 if Path(__file__).parent.name == 'scripts':
     sys.path.insert(0, str(Path(__file__).parent.parent))
 from scientific_receipts import (
+    admission_refused,
+    admission_retryable,
     file_measurement as artifact_file_measurement,  # noqa: F401 - retained helper import API
     load as load_receipt,
     publish_file as publish_artifact,
@@ -109,7 +111,7 @@ class TransientArtifactDownloadError(RuntimeError):
 class ExplicitRejection(RuntimeError):
     def __init__(self, error: dict):
         allowed = ("type", "code", "message", "request_id", "idempotency_key",
-                   "retryable", "retry_after_seconds", "durable_admission")
+                   "retryable", "retry_after_seconds", "admission")
         self.error = {key: error[key] for key in allowed if key in error}
         super().__init__(self.error.get("message", "Gateway explicitly rejected the request."))
 
@@ -214,7 +216,7 @@ def check(response):
             error = response.json().get("error", {})
         except (ValueError, AttributeError):
             error = {}
-        if isinstance(error, dict) and error.get("durable_admission") is False:
+        if admission_refused(error):
             raise ExplicitRejection(error)
         raise RuntimeError(f"Platform returned HTTP {response.status_code}; inspect the saved evidence.")
     return response
@@ -222,25 +224,24 @@ def check(response):
 
 def unpack(response):
     data = response.model_dump(mode="json", by_alias=True)
-    if data.get("isError"):
-        text = next((item.get("text", "") for item in data.get("content", []) if item.get("type") == "text"), "")
-        try:
-            error = json.loads(text).get("error", {})
-        except (TypeError, ValueError, AttributeError):
-            error = {}
-        if not isinstance(error, dict):
-            error = {}
-        if error.get("durable_admission") is False:
-            raise ExplicitRejection(error)
-        if error:
-            raise ToolReadError(error)
-        raise RuntimeError("MCP tool failed: " + text[:500])
     if data.get("structuredContent") is not None:
-        return data["structuredContent"]
-    texts = [item["text"] for item in data.get("content", []) if item.get("type") == "text"]
-    if len(texts) != 1:
-        raise RuntimeError("Expected one JSON MCP result.")
-    return json.loads(texts[0])
+        value = data["structuredContent"]
+    else:
+        texts = [item["text"] for item in data.get("content", []) if item.get("type") == "text"]
+        if len(texts) != 1:
+            raise RuntimeError("Expected one JSON MCP result.")
+        try:
+            value = json.loads(texts[0])
+        except ValueError:
+            raise RuntimeError("MCP returned an unreadable result; admission may be unknown.") from None
+    error = value.get('error') if isinstance(value, dict) else None
+    if admission_refused(error):
+        raise ExplicitRejection(error)
+    if isinstance(error, dict) and error:
+        raise ToolReadError(error)
+    if data.get("isError"):
+        raise RuntimeError("MCP tool failed; inspect the saved response.")
+    return value
 
 
 async def call(client, name: str, arguments: dict):

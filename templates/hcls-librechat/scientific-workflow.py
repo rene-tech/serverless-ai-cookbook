@@ -17,7 +17,7 @@ import re
 import time
 
 import httpx2
-from scientific_receipts import load, receipt_lock, save
+from scientific_receipts import admission_retryable, load, receipt_lock, save
 
 HERE = Path(__file__).parent
 BATCH = HERE / 'invoke-scientific-batch.py'
@@ -35,7 +35,6 @@ OPTIONAL = {'compression', 'service_class', 'source_artifact'}
 NATIVE_REQUIRED = {'model', 'input', 'output', 'idempotency_key'}
 NATIVE_OPTIONAL = {'tool_name'}
 TERMINAL_FAILURES = {'failed', 'cancelled', 'expired', 'preempted'}
-CONCURRENCY_CODES = {'concurrency_exceeded', 'admission_limit_reached'}
 MAX_READ_RECONNECTS = 3
 
 
@@ -152,8 +151,7 @@ async def run_native_step(arguments, execute):
         # Inspect only the receipt for this exact failed attempt. A historical
         # rejection must not turn a later ambiguous admission into a retry.
         if (saved.get('state') == 'rejected' and not saved.get('operation_id')
-                and rejection.get('code') in CONCURRENCY_CODES
-                and rejection.get('durable_admission') is False):
+                and admission_retryable(rejection)):
             raise batch.ExplicitRejection(rejection) from None
         raise
     if result['state'] in TERMINAL_FAILURES:
@@ -226,7 +224,7 @@ async def run(plan, output, wait_seconds=1800, poll_seconds=10, run_step=None, c
                 receipt['step_states'][step_id] = {key: result[key] for key in
                     ('state', 'operation_id', 'verified_artifacts', 'result_path', 'native_state') if key in result}
             except batch.ExplicitRejection as error:
-                if error.error.get('code') not in CONCURRENCY_CODES or error.error.get('durable_admission') is not False:
+                if not admission_retryable(error.error):
                     receipt.update(state='failed', failure={'type': type(error).__name__, **error.error})
                     save(receipt_path, receipt)
                     raise
@@ -239,7 +237,7 @@ async def run(plan, output, wait_seconds=1800, poll_seconds=10, run_step=None, c
                 leaf = error
                 while isinstance(leaf, BaseExceptionGroup) and len(leaf.exceptions) == 1:
                     leaf = leaf.exceptions[0]
-                if isinstance(leaf, batch.ExplicitRejection) and leaf.error.get('code') in CONCURRENCY_CODES and leaf.error.get('durable_admission') is False:
+                if isinstance(leaf, batch.ExplicitRejection) and admission_retryable(leaf.error):
                     state = 'waiting_admission'
                     receipt['step_states'][step_id] = {'state': state, 'error': leaf.error}
                     receipt['state'] = state

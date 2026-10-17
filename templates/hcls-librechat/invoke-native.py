@@ -19,7 +19,7 @@ import httpx2
 from jsonschema import Draft202012Validator, ValidationError
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
-from scientific_receipts import load as load_receipt, receipt_lock, save, staged_output, verify_file
+from scientific_receipts import admission_refused, load as load_receipt, receipt_lock, save, staged_output, verify_file
 
 
 def unpack(response):
@@ -37,19 +37,20 @@ def unpack(response):
 def explicit_rejection(response):
     """Return a bounded error only when the gateway proves no admission occurred."""
     data = response if isinstance(response, dict) else response.model_dump(mode='json', by_alias=True)
-    if not data.get('isError'):
-        return None
-    texts = [c.get('text', '') for c in data.get('content', []) if c.get('type') == 'text']
-    if len(texts) != 1:
-        return None
-    try:
-        error = json.loads(texts[0]).get('error', {})
-    except (TypeError, ValueError, AttributeError):
-        return None
-    if error.get('durable_admission') is not False:
+    value = data.get('structuredContent')
+    if value is None:
+        texts = [c.get('text', '') for c in data.get('content', []) if c.get('type') == 'text']
+        if len(texts) != 1:
+            return None
+        try:
+            value = json.loads(texts[0])
+        except (TypeError, ValueError):
+            return None
+    error = value.get('error') if isinstance(value, dict) else None
+    if not admission_refused(error):
         return None
     allowed = ('type', 'code', 'message', 'request_id', 'idempotency_key',
-               'retryable', 'retry_after_seconds', 'durable_admission')
+               'retryable', 'retry_after_seconds', 'admission')
     return {key: error[key] for key in allowed if key in error}
 
 
