@@ -178,6 +178,7 @@ function catalogContractError() {
 function appContract(item) {
   if (item.execution_mode === 'scientific-batch') return 'scientific-batch';
   if (item.protocol === 'native') return item.operations.includes('chat') ? 'chat' : 'native';
+  if (item.protocol === 'openai-chat') return item.operations.includes('chat') ? 'chat' : 'openai-chat';
   throw catalogContractError();
 }
 

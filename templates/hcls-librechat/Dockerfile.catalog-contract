@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Correct current catalog parsing while preserving the qualified client/runtime.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:eaf15340996e3507a40ae0dd377351c6ea35b609ff6e90c36fe52fe009818618
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:6ee584d9b02c6b60cc4c2f7cf6d961185a2afb470d2e4ad878d9990d9c9a4580
 FROM ${WORKBENCH_BASE}
 USER root
 RUN --mount=type=bind,source=templates/hcls-librechat/demos,target=/tmp/catalog-contract,ro \

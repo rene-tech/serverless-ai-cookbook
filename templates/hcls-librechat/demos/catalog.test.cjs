@@ -148,3 +148,22 @@ test('new authorized Apps and native chat remain discoverable without fixture-sp
   assert.equal(value(result).data[0].tool_name, 'run_new_science');
   assert.equal(value(result).data[0].use_case, 'Other');
 });
+
+test('OpenAI-compatible chat and image Apps coexist with native and batch Apps', async t => {
+  const data = [...current,
+    { id: 'conversation-app', model_id: 'conversation-app', protocol: 'openai-chat',
+      operations: ['chat'], tool_name: 'conversation_app_chat_openai_chat' },
+    { id: 'image-reasoning-app', model_id: 'image-reasoning-app', protocol: 'openai-chat',
+      operations: ['analyze-image'], tool_name: 'analyze_image_openai_chat' },
+  ];
+  const [result] = await rpc(t, [invoke('workbench_list_apps')], { data, expectedCalls: 1 });
+  assert.equal(result.result.isError, false);
+  const catalog = value(result);
+  assert.equal(catalog.count, data.length);
+  assert.deepEqual(catalog.data.map(x => x.model_id).sort(), data.map(x => x.model_id).sort());
+  assert.equal(catalog.data.find(x => x.model_id === 'conversation-app').contract_kind, 'chat');
+  const vision = catalog.data.find(x => x.model_id === 'image-reasoning-app');
+  assert.equal(vision.contract_kind, 'openai-chat');
+  assert.equal(vision.use_case, 'Biomedical imaging & segmentation');
+  assert.equal(vision.tool_name, 'analyze_image_openai_chat');
+});
