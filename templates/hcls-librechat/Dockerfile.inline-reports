@@ -3,6 +3,7 @@
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:f125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6
 FROM ${WORKBENCH_BASE}
 USER root
+COPY skills/scientific-ai/manifest.json /app/skill/manifest.json
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
     --mount=type=bind,source=skills/scientific-ai/md-precheck,target=/tmp/precheck,ro \
     cp /tmp/client/WorkspaceInlineCode.tsx /tmp/client/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
@@ -16,4 +17,5 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.skills.version="2026.10.19.1" \
       ai.nebius.scientific.release="inline-reports-20261019"
