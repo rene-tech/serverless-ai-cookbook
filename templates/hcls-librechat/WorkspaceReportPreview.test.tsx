@@ -14,6 +14,27 @@ const blob = (text: string) => ({ size: text.length, text: async () => text });
 
 beforeEach(() => { read.mockReset(); });
 
+test.each(['9ns', '11ns', '12ns'])('rootless %s report links render on arrival and in saved messages', async (run) => {
+  const file = `demos/gromacs-1000ns/${run}/precheck/report.html`;
+  const relativeHref = `demos?tab=workspace&path=${encodeURIComponent(file.slice(0, -12))}&file=${encodeURIComponent(file)}`;
+  const tree = { type: 'element', tagName: 'a', properties: { href: relativeHref }, children: [] };
+  workspaceMarkdownLinks()(tree);
+  expect(tree.properties.href).toBe('/' + relativeHref);
+  expect(workspaceReportPath(relativeHref)).toBe(file);
+  read.mockImplementation(async (url: string) => ({ data: blob(url.includes('report.json') ? JSON.stringify(summary) : html) }));
+  // A message arrives in an already mounted conversation, without a navigation.
+  const view = render(<div>Waiting for the report</div>);
+  view.rerender(<WorkspaceReportPreview href={tree.properties.href}>Interactive precheck report</WorkspaceReportPreview>);
+  const frame = await screen.findByTitle('Scientific report');
+  expect(frame.getAttribute('srcdoc')).toContain('Recorded check');
+  expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
+  await screen.findByText('MD precheck: WARN');
+  view.unmount();
+  // Loading the unchanged saved message must use the same renderer too.
+  render(<WorkspaceReportPreview href={relativeHref}>Interactive precheck report</WorkspaceReportPreview>);
+  expect((await screen.findByTitle('Scientific report')).getAttribute('srcdoc')).toContain('Recorded check');
+});
+
 test('scrolling a saved report into view repaints it without reloading data or relaxing isolation', async () => {
   const original = global.IntersectionObserver;
   let visibility: IntersectionObserverCallback;

@@ -17,8 +17,11 @@ export function workspaceCodeHref(children: unknown): string | undefined {
     const folder = file.slice(0, Math.max(0, file.lastIndexOf('/')));
     return `/demos?tab=workspace&path=${encodeURIComponent(folder)}&file=${encodeURIComponent(file)}`;
   }
-  if (!value.startsWith('/demos?') || /[\s\\]/u.test(value)) return undefined;
-  const url = new URL(value, 'https://workspace.invalid');
+  // Generated Markdown can omit the leading slash. This is still our workspace
+  // route, not a path relative to /c/<conversation>. Normalize before rendering.
+  const route = value.startsWith('demos?') ? '/' + value : value;
+  if (!route.startsWith('/demos?') || /[\s\\]/u.test(route)) return undefined;
+  const url = new URL(route, 'https://workspace.invalid');
   if (url.pathname !== '/demos' || url.hash || url.searchParams.get('tab') !== 'workspace') return undefined;
   const permitted = ['tab', 'path', 'file'];
   if ([...url.searchParams.keys()].some((key) => !permitted.includes(key)) ||

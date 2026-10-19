@@ -30,6 +30,16 @@ test('documented absolute mount/basename and Unicode links use existing normaliz
   assert.equal(workspaceCodeHref([text.slice(0, 10), text.slice(10)]), text);
 });
 
+test('rootless workspace Markdown links normalize only the exact owned route', () => {
+  const route = 'demos?tab=workspace&path=qa%2Fprecheck&file=qa%2Fprecheck%2Freport.html';
+  assert.equal(workspaceCodeHref(route), '/' + route);
+  for (const value of ['//evil.test/' + route, 'https://evil.test/' + route,
+    'other/' + route, '../' + route, route + '&redirect=https://evil.test',
+    'demos?tab=workspace&path=qa&file=..%2Freport.html']) {
+    assert.equal(workspaceCodeHref(value), undefined, value);
+  }
+});
+
 test('ordinary code, external URLs and malformed workspace paths remain plain code', () => {
   for (const text of ['https://', 'https://example.org/demos?tab=workspace&path=x&file=y',
     '//example.org/demos?tab=workspace&path=x&file=y', 'javascript:alert(1)',

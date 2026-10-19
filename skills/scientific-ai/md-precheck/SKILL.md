@@ -82,8 +82,15 @@ are accepted. Its `--idempotency-key` names the upload only, not inference retri
 Observe the same execution with `read_execution`. Its `delivery.json` supplies
 the exact operation, scientific verdict and verified report links. Report only
 that delivery; **never substitute older reports** while waiting for admission.
-Copy the returned HTML `workspace_url` as a Markdown link immediately so it
-renders inline; no extra viewer tool or hand-written link is needed. After an
+**Inline report delivery is required, not an optional download.** Copy the
+returned HTML `workspace_url` unchanged into a normal Markdown link in the
+response: `[MD precheck report](/demos?tab=workspace&path=...&file=...)`.
+Keep its leading `/`; do not reconstruct the URL, put it in a code block,
+or offer only “download/open the HTML”. This link activates the embedded report
+in the conversation. HTML/JSON downloads are secondary, not a substitute.
+If the user sees only a link, treat that as a viewer defect: reuse the verified
+report, do not rerun the check or claim the report has been displayed.
+No extra viewer tool or hand-written HTML is needed. After an
 authorized repair/recheck, use the GROMACS skill's `prepare_gromacs_study.py`
 composer for the ordinary new-run-plus-results workflow, not a hand-written
 study or guessed batch CLI flags.
