@@ -4,6 +4,4 @@
 !templates/hcls-librechat/**
 !skills
 !skills/scientific-ai
-!skills/scientific-ai/manifest.json
-!skills/scientific-ai/md-precheck
-!skills/scientific-ai/md-precheck/SKILL.md
+!skills/scientific-ai/**

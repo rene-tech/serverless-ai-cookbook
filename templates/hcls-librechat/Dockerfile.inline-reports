@@ -3,11 +3,12 @@
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:f125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6
 FROM ${WORKBENCH_BASE}
 USER root
-COPY skills/scientific-ai/manifest.json /app/skill/manifest.json
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
-    --mount=type=bind,source=skills/scientific-ai/md-precheck,target=/tmp/precheck,ro \
-    cp /tmp/client/WorkspaceInlineCode.tsx /tmp/client/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
- && cp /tmp/precheck/SKILL.md /app/skill/md-precheck/SKILL.md \
+    --mount=type=bind,source=skills/scientific-ai,target=/tmp/skills,ro \
+    python3 /tmp/skills/bundle.py verify \
+ && cp /tmp/client/WorkspaceInlineCode.tsx /tmp/client/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/skills/md-precheck/SKILL.md /app/skill/md-precheck/SKILL.md \
+ && cp /tmp/skills/manifest.json /tmp/skills/files.sha256.json /app/skill/ \
  && cd /app/client \
  && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit \
     src/components/WorkspaceReportPreview.test.tsx src/components/ScientificClientUpdate.test.tsx \
