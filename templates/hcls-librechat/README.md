@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Af125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,12 +65,18 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:future-jobs-20261017-r1`,
-digest `sha256:f125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6`.
-The [future-image build gate](docs/future-image-recovery-20261017.md) verifies
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:inline-reports-20261019-r3`,
+digest `sha256:013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b`.
+The [inline-report correction](docs/inline-reports-20261019.md) renders both
+root-relative and rootless workspace report links inside the conversation.
+The md-precheck skill requires inline delivery; downloads remain optional.
+The retained clients received the same UI/skill bytes without restarting their
+processes. Already open tabs need one reload to load the new UI; reports then
+render as replies arrive, without a per-report reload.
+The inherited [future-image build gate](docs/future-image-recovery-20261017.md) verifies
 the installed observer/queue code. CLI and console defaults both select immutable
 image bytes; no post-start hotpatch is required on a new deployment. Existing
-endpoints are not updated or replaced by this release.
+endpoints are not automatically updated or replaced when the default changes.
 The [observer recovery correction](docs/observer-recovery-20261017.md) reconnects
 existing operations after status-read failures without resubmitting science.
 Saved studies receive fair observation turns; a running remote job no longer
@@ -109,7 +115,8 @@ Its 37 canonical customer skills (85 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. The selected image contains skills
-`2026.10.17.5`; runtime source is `101a65ae4d0dbf6ddc6ffe20ce5fc6588c55bbc0`.
+`2026.10.19.1`; the presentation/skill overlay source is
+`28580611769040c822dfa115559c55353b7e0422`.
 See its exact-image receipt for installed components, retained login/history,
 and actual browser/file/agent checks. This is client lifecycle/interface evidence,
 not qualification of every scientific workflow, autonomous skill selection,

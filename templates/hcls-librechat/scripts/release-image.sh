@@ -1,7 +1,7 @@
 # Immutable shared image metadata. Workflow qualification and known limitations
 # are recorded separately; an image selection is not an all-workflow readiness claim.
-# Evidence: ../docs/future-image-recovery-20261017.md; no live endpoint rollout.
+# Evidence: ../docs/inline-reports-20261019.md; UI/skill-only retained-client patch.
 # The tag is readable release metadata; deployment defaults use the exact digest.
-SCIENTIFIC_AI_RELEASE_IMAGE='cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:future-jobs-20261017-r1'
-SCIENTIFIC_AI_RELEASE_DIGEST='sha256:f125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6'
-SCIENTIFIC_AI_SKILLS_VERSION='2026.10.17.5'
+SCIENTIFIC_AI_RELEASE_IMAGE='cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:inline-reports-20261019-r3'
+SCIENTIFIC_AI_RELEASE_DIGEST='sha256:013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b'
+SCIENTIFIC_AI_SKILLS_VERSION='2026.10.19.1'

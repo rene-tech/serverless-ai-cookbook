@@ -1,0 +1,32 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:inline-reports-20261019-r3",
+  "manifest": "sha256:013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b",
+  "source": "28580611769040c822dfa115559c55353b7e0422",
+  "base_manifest": "sha256:f125725950ae56927b630e4289bda2370491f52993e4a7c977bca8207e01cbd6",
+  "skills_version": "2026.10.19.1",
+  "browser": {
+    "natural_language_existing_report_delivery": true,
+    "rootless_live_response_without_reload": true,
+    "saved_qa_message_reopened": true,
+    "saved_customer_reports_inline": 3,
+    "report_pixels_inspected": true,
+    "report_download_required": false,
+    "new_scientific_operations": 0,
+    "iframe_sandbox": "allow-scripts"
+  },
+  "fleet": {
+    "clients_patched": 5,
+    "loaded_skill_verified": true,
+    "processes_unchanged": true,
+    "scientific_executor_unchanged": true,
+    "provider_base_image_changed": false,
+    "static_files_identical_to_default_image": 367
+  },
+  "tests": {
+    "react": 18,
+    "workspace_link_and_highlighting": 10,
+    "installed_mdprecheck_runner": 9
+  },
+  "all_scientific_workflows_qualified": false,
+  "provider_recreation_tested": false
+}
