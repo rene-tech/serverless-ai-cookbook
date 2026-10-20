@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Current client transport/queue only; scientific analyses remain byte-identical.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:17d77ad5676d98f719f42f26c1b57188bdd647643e087ff5715e06dfdbf1d00d
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b
 FROM ${WORKBENCH_BASE}
 USER root
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
@@ -9,4 +9,4 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
  && /opt/scientific-client/bin/python /tmp/client/scripts/verify-observer-recovery.py --source /tmp/client
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
-      ai.nebius.scientific.release="known-job-observer-recovery-20261017"
+      ai.nebius.scientific.release="client-observation-recovery-20261020"

@@ -168,16 +168,17 @@ def test_derived_encoding_provenance_saved_before_parameters_upload_or_admission
 
 @pytest.mark.parametrize('leaves', [[ValueError('unrelated')], [ConnectionError('transport')],
     [batch.SourcePreflightError('metadata'), ConnectionError('transport')]])
-def test_mixed_and_unrelated_groups_are_not_unwrapped_or_retried(monkeypatch, leaves):
+def test_mixed_and_unrelated_groups_are_not_unwrapped_or_retried(tmp_path, monkeypatch, leaves):
     original = ExceptionGroup('unchanged group', leaves)
     calls = []
     async def fail(args):
         calls.append(args)
         raise original
     monkeypatch.setattr(batch, '_run', fail)
+    args = argparse.Namespace(output=tmp_path)
     with pytest.raises(ExceptionGroup) as caught:
-        asyncio.run(batch.run(None))
-    assert caught.value is original and calls == [None]
+        asyncio.run(batch.run(args))
+    assert caught.value is original and calls == [args]
 
 
 def test_workflow_preserves_compression_omission_instead_of_inventing_none(tmp_path):

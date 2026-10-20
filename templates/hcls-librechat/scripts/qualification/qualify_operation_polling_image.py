@@ -14,7 +14,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 
-TESTS = ('test_operation_polling.py', 'test_scientific_batch_client.py',
+TESTS = ('test_operation_polling.py', 'test_client_observation_cli.py', 'test_scientific_batch_client.py',
          'test_result_recovery.py', 'test_terminal_diagnostics.py',
          'test_artifact_streaming.py', 'test_artifact_input_streaming.py',
          'test_receipt_storage.py', 'test_receipt_publication.py',

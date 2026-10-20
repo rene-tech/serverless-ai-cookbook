@@ -240,6 +240,27 @@ def test_mixed_exception_group_cannot_hide_permanent_validation_failure():
     assert client.operation_read_failure(ExceptionGroup('transient', [transient]))['retryable']
     assert not client.operation_read_failure(ExceptionGroup('mixed', [transient, permanent]))['retryable']
     assert not client.operation_read_failure(ValueError('local failure'), {'http_status': 503})['retryable']
+    mixed = ExceptionGroup('mixed', [permanent, ValueError('programming failure')])
+    assert client.operation_read_failure(mixed)['error_type'] == 'ValueError'
+
+
+def test_session_close_disconnect_cannot_invalidate_verified_artifacts(tmp_path, monkeypatch):
+    args, _, _, calls, _, _ = resumed_run(tmp_path, monkeypatch, [])
+    original_client = client.Client
+    class FailingClose:
+        def __init__(self, *args, **kwargs):
+            self.connection = original_client(*args, **kwargs)
+        async def __aenter__(self):
+            return await self.connection.__aenter__()
+        async def __aexit__(self, *args):
+            await self.connection.__aexit__(*args)
+            raise ExceptionGroup('session close', [ConnectionError('disconnected after verification')])
+    monkeypatch.setattr(client, 'Client', FailingClose)
+    result = asyncio.run(client.run(args))
+    assert result['state'] == 'verified'
+    assert result['session_cleanup_error']['retryable']
+    assert not result.get('observation')
+    assert calls == ['get_operation', 'get_operation_result', 'artifact-read']
 
 
 @pytest.mark.parametrize('fault', [EndOfStream(), BrokenResourceError(), ClosedResourceError(),
@@ -269,6 +290,25 @@ def test_generic_http_error_is_not_a_retryable_auth_error():
     assert not client.operation_read_failure(generic, {'http_status': 403})['retryable']
     assert not client.operation_read_failure(generic, {'http_status': 404})['retryable']
     assert client.operation_read_failure(generic, {'http_status': 503})['retryable']
+
+
+def test_current_scientific_status_error_requires_valid_identity_and_successful_tool_read():
+    document = {'operation_id': OPERATION, 'model_id': 'fixture', 'status': 'FAILED',
+                'operation': {'operation_id': OPERATION, 'status': 'failed', 'result_available': False},
+                'error': {'code': 'INVALID_INPUT', 'message': 'Synthetic input is invalid.',
+                          'retryable': False}}
+    def response(value, is_error=False):
+        return SimpleNamespace(model_dump=lambda **kwargs: {'isError': is_error, 'structuredContent': value})
+    assert client.unpack(response(document), operation_id=OPERATION) == document
+    with pytest.raises(client.ToolReadError):
+        client.unpack(response(document, True), operation_id=OPERATION)
+    with pytest.raises(client.ToolReadError):
+        client.unpack(response(document), operation_id='op-another')
+    with pytest.raises(ValueError, match='inconsistent current status'):
+        client.unpack(response({**document, 'status': 'SUCCEEDED'}), operation_id=OPERATION)
+    pending = {'operation_id': OPERATION, 'model_id': 'fixture', 'status': 'ADMISSION_PENDING',
+               'state': 'admission-unknown', 'operation': None}
+    assert client.unpack(response(pending), operation_id=OPERATION) == pending
 
 
 @pytest.mark.parametrize('status', [400, 401, 403, 404, 422])

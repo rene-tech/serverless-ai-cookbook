@@ -225,6 +225,13 @@ async def run(plan, output, wait_seconds=1800, poll_seconds=10, run_step=None, c
                 state = result['state']
                 receipt['step_states'][step_id] = {key: result[key] for key in
                     ('state', 'operation_id', 'verified_artifacts', 'result_path', 'native_state') if key in result}
+                if not native_step and result.get('observation', {}).get('outcome') == 'observation_unavailable':
+                    state = 'observation_interrupted'
+                    receipt['step_states'][step_id].update(
+                        state=state, last_observed_state=result['state'])
+                    receipt.setdefault('observation_errors', []).append({
+                        'step': step_id, 'operation_id': result['operation_id'],
+                        'observation': result['observation']})
             except batch.ExplicitRejection as error:
                 if not admission_retryable(error.error):
                     receipt.update(state='failed', failure={'type': type(error).__name__, **error.error})

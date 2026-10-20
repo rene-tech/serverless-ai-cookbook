@@ -6,6 +6,7 @@ import re
 import shlex
 import subprocess
 import sys
+import pytest
 
 
 ROOT = Path(__file__).resolve().parent
@@ -48,6 +49,7 @@ def test_complete_installed_skill_example_selects_only_recovery(monkeypatch, tmp
 
     async def recover(args):
         calls.append(vars(args))
+        return {'state': 'verified'}
 
     async def forbidden_submit(args):
         raise AssertionError('Recovery example must not select submission.')
@@ -56,6 +58,8 @@ def test_complete_installed_skill_example_selects_only_recovery(monkeypatch, tmp
     monkeypatch.setattr(helper, 'recover_completed', recover)
     monkeypatch.setattr(helper, 'run', forbidden_submit)
     monkeypatch.setattr(helper, 'receipt_lock', lambda _: nullcontext())
-    helper.main()
+    with pytest.raises(SystemExit) as exit:
+        helper.main()
+    assert exit.value.code == 0
     assert calls == [{'recover_operation_id': operation, 'output': tmp_path / 'recovered'}]
     assert not (tmp_path / 'recovered').exists()

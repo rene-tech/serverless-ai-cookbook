@@ -11,6 +11,11 @@ the existing operation to have succeeded and uses the configured credentials.
 No model, source, parameters or idempotency key is needed for recovery.
 For recovery-only help, add --help to that recovery command.
 
+To observe an already accepted job from its original receipt, without inputs:
+  python scientific-batch-acceptance.py --observe-output /path/to/original/output
+This is read-only, including after a temporary connection failure. Exit 75
+means observation is incomplete, not that the scientific operation failed.
+
 The output directory is the resume boundary. Re-running it observes the saved
 operation or reconciles a lost admission with the exact saved request/key.
 It never creates a replacement request or changes scientific parameters.
@@ -18,12 +23,14 @@ It never creates a replacement request or changes scientific parameters.
 
 import argparse
 import asyncio
+from email.utils import parsedate_to_datetime
 import hashlib
 import json
 import math
 import os
 from pathlib import Path
 import re
+import shlex
 import sys
 import tempfile
 import time
@@ -130,6 +137,32 @@ class ToolReadError(RuntimeError):
         super().__init__(str(error.get("message", "MCP tool failed."))[:500])
 
 
+class OperationObservationError(RuntimeError):
+    """An expected read failure, distinct from a failed scientific operation."""
+
+    def __init__(self, outcome):
+        self.outcome = outcome
+        self.error = outcome['error']
+        super().__init__(outcome['message'])
+
+
+class ScientificOperationFailed(RuntimeError):
+    """An authoritative unsuccessful operation, never an observation outage."""
+
+    def __init__(self, receipt, output, *, action_required=False):
+        self.outcome = {'outcome': 'scientific_action_required' if action_required else 'scientific_failed',
+                        'operation_id': receipt['operation_id'],
+                        'state': receipt['state'], 'failure_code': receipt.get('failure_code'),
+                        'diagnostics_directory': str(output),
+                        'message': 'Scientific operation ' + ('requires attention' if action_required
+                            else 'ended in ' + receipt['state'])
+                            + '; inspect the retained status and diagnostics.'}
+        if receipt.get('scientific_error'):
+            self.outcome['error'] = receipt['scientific_error']
+            self.outcome['message'] = receipt['scientific_error'].get('message', self.outcome['message'])
+        super().__init__(self.outcome['message'])
+
+
 class ParameterPreflightError(ValueError):
     """A local parameter-file rejection, before this invocation uploads/admission."""
 
@@ -227,7 +260,7 @@ def check(response):
     return response
 
 
-def unpack(response):
+def unpack(response, *, operation_id=None):
     data = response.model_dump(mode="json", by_alias=True)
     if data.get("structuredContent") is not None:
         value = data["structuredContent"]
@@ -240,17 +273,30 @@ def unpack(response):
         except ValueError:
             raise RuntimeError("MCP returned an unreadable result; admission may be unknown.") from None
     error = value.get('error') if isinstance(value, dict) else None
+    # Current operation status/results can carry scientific diagnostics while
+    # the read itself succeeded. Keep those distinct from a failed tool read.
+    scientific_error = bool(isinstance(error, dict) and error and not data.get('isError')
+        and operation_id and isinstance(value, dict)
+        and value.get('operation_id') == operation_id
+        and (value.get('operation', {}).get('status') in TERMINAL
+             or value.get('status') in TERMINAL
+             or value.get('graph', {}).get('action_required') is True
+             or value.get('action_required') is True))
+    if scientific_error and 'operation' in value:
+        batch_operation(value, operation_id=operation_id)
     if admission_refused(error):
         raise ExplicitRejection(error)
-    if isinstance(error, dict) and error:
+    if isinstance(error, dict) and error and not scientific_error:
         raise ToolReadError(error)
-    if data.get("isError"):
+    if data.get("isError") and not scientific_error:
         raise RuntimeError("MCP tool failed; inspect the saved response.")
     return value
 
 
 async def call(client, name: str, arguments: dict):
-    return unpack(await client.call_tool(name, arguments))
+    return unpack(await client.call_tool(name, arguments),
+                  operation_id=arguments.get('operation_id')
+                  if name in {'get_operation', 'get_operation_result'} else None)
 
 
 class OperationReadHTTP:
@@ -279,22 +325,36 @@ class OperationReadHTTP:
                 and params.get('arguments', {}).get('operation_id') == self.operation_id):
             return
         self.failure = {'http_status': response.status_code}
+        delay = retry_after_seconds(response.headers.get('retry-after'))
+        if delay:
+            self.failure['retry_after_seconds'] = delay
+
+
+def retry_after_seconds(value):
+    """Honor both HTTP delta-seconds and dates; the existing deadline bounds waits."""
+    try:
+        delay = float(value)
+    except (ValueError, TypeError):
         try:
-            delay = float(response.headers.get('retry-after', '0'))
-            if math.isfinite(delay) and delay > 0:
-                self.failure['retry_after_seconds'] = min(delay, 30)
-        except ValueError:
-            pass
+            delay = parsedate_to_datetime(value).timestamp() - time.time()
+        except (ValueError, TypeError, OverflowError, AttributeError):
+            return 0
+    return delay if math.isfinite(delay) and delay > 0 else 0
 
 
 def operation_read_failure(error, http_failure=None):
     """Fail closed unless every exception leaf is an identified transient read."""
     if isinstance(error, BaseExceptionGroup):
         failures = [operation_read_failure(item, http_failure) for item in error.exceptions]
-        return next((item for item in failures if not item['retryable']), failures[0])
+        unknown = next((item for item in failures if not item.get('expected')), None)
+        permanent = next((item for item in failures if not item['retryable']), None)
+        return unknown or permanent or max(failures, key=lambda item: item.get('retry_after_seconds', 0))
+    if isinstance(error, OperationObservationError):
+        return error.error
     info = {'error_type': type(error).__name__, 'retryable': False, **(http_failure or {})}
     if not isinstance(error, (MCPError, ToolReadError, ExplicitRejection, *READ_TRANSPORT_ERRORS)):
         return info
+    info['expected'] = True
     structured = getattr(error, 'error', {})
     if isinstance(error, MCPError):
         info['rpc_code'] = error.code
@@ -307,6 +367,9 @@ def operation_read_failure(error, http_failure=None):
         for field in ('code', 'request_id'):
             if isinstance(structured.get(field), str):
                 info[field] = structured[field][:160]
+        delay = retry_after_seconds(structured.get('retry_after_seconds'))
+        if delay:
+            info['retry_after_seconds'] = max(delay, info.get('retry_after_seconds', 0))
         # Explicit server rejection always wins over a generic transport error.
         if structured.get('retryable') is False or structured.get('code') in {
                 'not_found', 'unauthorized', 'unauthenticated', 'forbidden',
@@ -322,15 +385,30 @@ def operation_read_failure(error, http_failure=None):
         return info
     if isinstance(error, (ToolReadError, ExplicitRejection)):
         info['retryable'] = structured.get('retryable') is True
-        delay = structured.get('retry_after_seconds')
-        if isinstance(delay, (int, float)) and math.isfinite(delay) and delay > 0:
-            info['retry_after_seconds'] = min(delay, 30)
     elif isinstance(error, MCPError):
         info['retryable'] = error.code in {INTERNAL_ERROR, CONNECTION_CLOSED, REQUEST_TIMEOUT} or (
             error.code == INVALID_REQUEST and error.message == 'Session terminated')
     elif isinstance(error, READ_TRANSPORT_ERRORS):
         info['retryable'] = True
     return info
+
+
+def observation_outcome(args, receipt, info):
+    """Report observation uncertainty without changing the last scientific state."""
+    category = ('authorization_failed' if info.get('http_status') in {401, 403}
+                or info.get('code') in {'unauthorized', 'unauthenticated', 'forbidden'} else
+                'operation_not_found' if info.get('http_status') == 404
+                or info.get('code') == 'not_found' else
+                'observation_unavailable' if info['retryable'] else 'observation_rejected')
+    return {'outcome': category, 'operation_id': receipt['operation_id'], 'state': 'unknown',
+            'last_observed_state': receipt['state'], 'error': info,
+            'receipt_directory': str(args.output),
+            'recovery_command': shlex.join([sys.executable, str(Path(__file__).resolve()),
+                                           '--observe-output', str(args.output.resolve())]),
+            'message': ('The current operation state could not be read. This is not a scientific '
+                        'failure; the accepted operation was not resubmitted or changed. '
+                        + ('Retry the recovery command after service recovery.' if info['retryable']
+                           else 'Resolve the reported access or request error before retrying.'))}
 
 
 async def observe_operation(args, http, endpoint, headers, receipt, receipt_path, *, recovery=False):
@@ -366,6 +444,13 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                         operation = batch_operation(status, operation_id=operation_id,
                                                     model_id=receipt['identity'].get('model_id'))
                         receipt['state'] = operation['status']
+                        receipt.pop('observation', None)
+                        if isinstance(status.get('error'), dict):
+                            receipt['scientific_error'] = {
+                                key: status['error'][key] for key in
+                                ('code', 'message', 'next_action', 'phase', 'stage_id',
+                                 'retryable', 'resumable', 'diagnostics_available')
+                                if key in status['error']}
                         save(receipt_path, receipt)
                         if receipt['state'] != announced_state:
                             # User-visible progress from authoritative state, not
@@ -374,15 +459,16 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                                               'state': receipt['state'],
                                               'observation': 'state_changed'}), flush=True)
                             announced_state = receipt['state']
-                        if recovery and (operation['status'] != 'succeeded'
-                                or not operation.get('result_available')):
-                            raise RuntimeError('Existing operation is not a published successful result: '
-                                               + operation['status'] + '. No model work was submitted.')
                         if operation['status'] in TERMINAL:
                             await retain_terminal_diagnostics(connection, status, args.output, receipt, http=http)
-                            raise RuntimeError('Scientific batch ended in ' + operation['status']
-                                               + '; operation ' + operation_id
-                                               + '. Retained status/diagnostics: ' + str(args.output))
+                            raise ScientificOperationFailed(receipt, args.output)
+                        if status.get('graph', {}).get('action_required') is True:
+                            raise ScientificOperationFailed(receipt, args.output, action_required=True)
+                        if recovery and (operation['status'] != 'succeeded'
+                                or not operation.get('result_available')):
+                            print(json.dumps({'outcome': 'result_not_ready', 'operation_id': operation_id,
+                                              'state': receipt['state'], 'resume': str(args.output)}), flush=True)
+                            return receipt
                         if operation.get('result_available'):
                             phase = 'get_operation_result'
                             result = await call(connection, phase, {'operation_id': operation_id})
@@ -395,7 +481,8 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
                             summary = ({'operation_id': operation_id, 'state': 'verified',
                                         'receipt_file': str(receipt_path), 'artifacts': receipt['verified_artifacts'],
                                         'inference_submitted': False} if recovery else
-                                       {'model': args.model, 'operation_id': operation_id, 'state': 'verified',
+                                       {'model': receipt['identity'].get('model_id'),
+                                        'operation_id': operation_id, 'state': 'verified',
                                         'artifacts': len(receipt['verified_artifacts'])})
                             if receipt.get('native_outputs'):
                                 summary['native_outputs'] = receipt['native_outputs']
@@ -416,13 +503,18 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
             # fail after a successful read; it is still only transport cleanup.
             # Cancellation is never caught.
             info = operation_read_failure(error, observation.failure)
+            if receipt['state'] == 'verified' and phase is None and info['retryable']:
+                # A failed session close cannot invalidate already verified bytes.
+                receipt['session_cleanup_error'] = info
+                save(receipt_path, receipt)
+                return receipt
             if phase is None and not info['retryable']:
                 raise
             phase = phase or 'session_cleanup'
             failures += 1
             remaining = deadline - time.monotonic()
             retry = info['retryable'] and failures < OPERATION_READ_ATTEMPTS and remaining > 0
-            delay = min(remaining, max(2 ** (failures - 1), info.get('retry_after_seconds', 0)), 30) if retry else 0
+            delay = max(min(2 ** (failures - 1), 30), info.get('retry_after_seconds', 0)) if retry else 0
             if retry and delay >= remaining:
                 retry, delay = False, 0  # No new session after this invocation's wait deadline.
             event = {**info, 'operation_id': operation_id, 'tool': phase,
@@ -435,13 +527,15 @@ async def observe_operation(args, http, endpoint, headers, receipt, receipt_path
             receipt['observation_errors'] = (receipt.get('observation_errors', []) + [event])[-20:]
             save(receipt_path, receipt)
             if not info['retryable']:
-                raise
+                if not info.get('expected'):
+                    raise  # Programming/validation errors are not observation outages.
+                receipt['observation'] = observation_outcome(args, receipt, info)
+                save(receipt_path, receipt)
+                raise OperationObservationError(receipt['observation']) from None
             if not retry:
-                if recovery:
-                    raise RuntimeError('Read-only result recovery exhausted its observation budget; '
-                                       'resume this same directory and operation. No model work was submitted.') from error
-                print(json.dumps({'operation_id': operation_id, 'state': receipt['state'],
-                                  'observation': 'incomplete', 'resume': str(args.output)}), flush=True)
+                receipt['observation'] = observation_outcome(args, receipt, info)
+                save(receipt_path, receipt)
+                print(json.dumps(receipt['observation']), flush=True)
                 return receipt
             print(json.dumps({'operation_id': operation_id, 'observation': 'retrying',
                               'attempt': failures + 1, 'delay_seconds': delay}), file=sys.stderr, flush=True)
@@ -692,7 +786,8 @@ async def retain_terminal_diagnostics(client, status: dict, output: Path, receip
     if operation.get('status') not in TERMINAL:
         raise ValueError('Terminal diagnostics require an unsuccessful terminal operation.')
     receipt['state'] = operation['status']
-    receipt['failure_code'] = operation.get('error_code')
+    receipt['failure_code'] = (receipt.get('scientific_error', {}).get('code')
+                               or operation.get('error_code'))
     if operation.get('result_available'):
         try:
             result = await call(client, 'get_operation_result', {'operation_id': receipt['operation_id']})
@@ -741,6 +836,26 @@ async def recover_completed(args) -> dict:
     async with httpx2.AsyncClient(base_url=origin, headers=headers, timeout=180,
                                   trust_env=False, follow_redirects=False) as http:
         return await observe_operation(args, http, endpoint, headers, receipt, path, recovery=True)
+
+
+async def observe_saved(args) -> dict:
+    """Read a bound receipt only; inputs and admission code are never opened."""
+    paths = [path for name in ('receipt.json', 'recovery-receipt.json')
+             if (path := args.output / name).is_file()]
+    if len(paths) != 1:
+        raise ValueError('Observation requires exactly one existing operation receipt in this directory.')
+    path, receipt = paths[0], load_receipt(paths[0])
+    if not receipt or not receipt.get('operation_id'):
+        raise ValueError('No accepted operation is saved here; observation cannot submit one.')
+    endpoint, key = os.environ['SCIENTIFIC_MODELS_MCP_URL'], os.environ['SCIENTIFIC_MODELS_API_KEY']
+    identity = receipt.get('identity', {})
+    if identity.get('endpoint') != endpoint or identity.get('caller_fingerprint') != digest(key.encode()):
+        raise ValueError('Receipt belongs to a different endpoint or caller; no operation was read.')
+    headers = {'authorization': 'Bearer ' + key}
+    origin = endpoint.removesuffix('/mcp').removesuffix('/mcp/')
+    async with httpx2.AsyncClient(base_url=origin, headers=headers, timeout=180,
+                                  trust_env=False, follow_redirects=False) as http:
+        return await observe_operation(args, http, endpoint, headers, receipt, path)
 
 
 def bind_uploaded_source(parameters: dict, artifact: dict) -> dict:
@@ -1029,9 +1144,17 @@ async def _run(args) -> dict:
         return await observe_operation(args, http, endpoint, headers, receipt, receipt_path)
 
 
-def main() -> None:
+def command_line() -> dict:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    if '--observe-output' in sys.argv:
+        parser.add_argument('--observe-output', dest='output', required=True, type=Path,
+                            help='Original receipt directory. Only observe/download this accepted operation.')
+        parser.add_argument('--wait-seconds', type=float, default=180)
+        parser.add_argument('--poll-seconds', type=float, default=10)
+        args = parser.parse_args()
+        with receipt_lock(args.output):
+            return asyncio.run(observe_saved(args))
     if '--recover-operation-id' in sys.argv:
         parser.add_argument('--recover-operation-id', required=True,
                             help='Original succeeded operation ID; retrieve its verified outputs without new admission.')
@@ -1040,8 +1163,7 @@ def main() -> None:
         args = parser.parse_args()
         # The lock is held in the existing local receipt-lock area, not S3/FUSE.
         with receipt_lock(args.output):
-            asyncio.run(recover_completed(args))
-        return
+            return asyncio.run(recover_completed(args))
     parser.add_argument("--model", required=True)
     parser.add_argument("--tool", required=True)
     parser.add_argument("--operation", required=True)
@@ -1062,12 +1184,34 @@ def main() -> None:
     parser.add_argument("--wait-seconds", type=float, default=1800)
     parser.add_argument("--poll-seconds", type=float, default=10)
     args = parser.parse_args()
+    with receipt_lock(args.output):
+        return asyncio.run(run(args))
+
+
+def main() -> None:
     try:
-        with receipt_lock(args.output):
-            result = asyncio.run(run(args))
-    except ToolAvailabilityError as error:
-        print(json.dumps({'status': 'failed', 'code': 'tool_not_in_authorized_catalog', 'message': str(error)}))
-        raise SystemExit(1) from None
+        result = command_line()
+    except Exception as error:
+        leaf = error
+        while isinstance(leaf, BaseExceptionGroup) and len(leaf.exceptions) == 1:
+            leaf = leaf.exceptions[0]
+        if isinstance(leaf, OperationObservationError):
+            print(json.dumps(leaf.outcome), flush=True)
+            code = {'authorization_failed': 77, 'operation_not_found': 66}.get(leaf.outcome['outcome'], 65)
+        elif isinstance(leaf, ScientificOperationFailed):
+            print(json.dumps(leaf.outcome), flush=True)
+            code = 1
+        elif isinstance(leaf, ToolAvailabilityError):
+            print(json.dumps({'status': 'failed', 'code': 'tool_not_in_authorized_catalog',
+                              'message': str(leaf)}), flush=True)
+            code = 1
+        elif isinstance(leaf, (ParameterPreflightError, SourcePreflightError)):
+            print(json.dumps({'outcome': 'request_rejected', 'code': type(leaf).__name__,
+                              'message': str(leaf)}), flush=True)
+            code = 65
+        else:
+            raise  # Unexpected code errors remain diagnosable, with their traceback.
+        raise SystemExit(code) from None
     # An observation timeout is a resumable incomplete operation, not shell
     # success. This also prevents `first && second` from overlapping admissions.
     raise SystemExit(0 if result['state'] == 'verified' else 75)

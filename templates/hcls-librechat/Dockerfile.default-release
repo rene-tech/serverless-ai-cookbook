@@ -2,7 +2,7 @@
 # Additive transport release over the qualified current workbench. Keep its
 # UI, skills, scientific runtimes and state supervisor; do not replay historical
 # SDK patches or reconstruct the client from an obsolete October 1 ancestor.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b
 FROM ${WORKBENCH_BASE}
 USER root
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
@@ -12,4 +12,4 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
-      ai.nebius.scientific.release="future-job-observer-recovery-20261017"
+      ai.nebius.scientific.release="client-observation-recovery-20261020"

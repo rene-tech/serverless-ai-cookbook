@@ -98,8 +98,10 @@ def test_persistent_transfer_outage_is_bounded_and_resumes_without_inference(tmp
     async def sleep(seconds):
         delays.append(seconds)
     monkeypatch.setattr(asyncio, 'sleep', sleep)
-    with pytest.raises(RuntimeError, match='exhausted its observation budget'):
-        asyncio.run(client.recover_completed(args))
+    interrupted = asyncio.run(client.recover_completed(args))
+    assert interrupted['observation']['outcome'] == 'observation_unavailable'
+    assert interrupted['observation']['state'] == 'unknown'
+    assert interrupted['observation']['last_observed_state'] == 'succeeded'
     assert requests.count('/v1/artifacts/bundle/content') == client.OPERATION_READ_ATTEMPTS
     assert len(delays) == client.OPERATION_READ_ATTEMPTS - 1
     marker.unlink()
@@ -113,8 +115,11 @@ def test_persistent_transfer_outage_is_bounded_and_resumes_without_inference(tmp
 def test_pending_or_failed_operation_never_downloads_or_resubmits(tmp_path, monkeypatch, state):
     args, result, requests, tools = setup_client(tmp_path, monkeypatch)
     result['terminal_status'] = state
-    with pytest.raises(RuntimeError, match='No model work was submitted'):
-        asyncio.run(client.recover_completed(args))
+    if state in client.TERMINAL:
+        with pytest.raises(client.ScientificOperationFailed):
+            asyncio.run(client.recover_completed(args))
+    else:
+        assert asyncio.run(client.recover_completed(args))['state'] == state
     assert tools == ['get_operation'] and requests == []
 
 
@@ -138,7 +143,9 @@ def test_recovery_cli_does_not_require_original_inputs_or_inference_parameters(t
         return {'state': 'verified'}
     monkeypatch.setattr(client, 'recover_completed', recovered)
     monkeypatch.setattr(sys, 'argv', ['batch', '--recover-operation-id', OPERATION, '--output', str(tmp_path / 'recovery')])
-    client.main()
+    with pytest.raises(SystemExit) as exit:
+        client.main()
+    assert exit.value.code == 0
 
 
 def test_typed_wrapper_reuses_job_and_preserves_directory_identity(tmp_path, monkeypatch):

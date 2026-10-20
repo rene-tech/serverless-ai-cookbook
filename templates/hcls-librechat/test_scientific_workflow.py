@@ -40,6 +40,21 @@ def test_observation_is_not_completion_and_resume_does_not_advance(tmp_path):
     assert calls == ['a', 'a', 'b']
 
 
+def test_batch_observation_failure_is_not_reported_as_current_running_state(tmp_path):
+    calls = []
+    async def step(args):
+        calls.append(args.model)
+        return {'state': 'running', 'operation_id': 'op-original',
+                'observation': {'outcome': 'observation_unavailable', 'state': 'unknown',
+                                'last_observed_state': 'running'}}
+    result = asyncio.run(workflow.run(plan(tmp_path), tmp_path / 'flow', 1, run_step=step,
+                                     clock=iter((0, 0, 2)).__next__))
+    assert calls == ['a'] and result['state'] == 'observation_interrupted'
+    assert result['step_states']['a']['last_observed_state'] == 'running'
+    assert result['step_states']['a']['operation_id'] == 'op-original'
+    assert len(result['observation_errors']) == 1 and not result['completed_steps']
+
+
 def test_preflight_reports_all_missing_and_invalid_files_before_admission(tmp_path):
     (tmp_path / 'bad.json').write_text('not JSON')
     prepared = {'steps': [

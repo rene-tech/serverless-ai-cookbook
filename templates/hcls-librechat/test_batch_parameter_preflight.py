@@ -62,27 +62,27 @@ def test_uploaded_bundle_uses_only_validation_reference_and_does_not_edit_input(
 
 
 @pytest.mark.parametrize('nested', [False, True])
-def test_exact_validation_error_survives_async_context_teardown(monkeypatch, nested):
+def test_exact_validation_error_survives_async_context_teardown(tmp_path, monkeypatch, nested):
     leaf = batch.ParameterPreflightError('specific local invalid parameter file')
     async def fail(args):
         inner = ExceptionGroup('inner', [leaf]) if nested else leaf
         raise ExceptionGroup('MCP cleanup', [inner])
     monkeypatch.setattr(batch, '_run', fail)
     with pytest.raises(batch.ParameterPreflightError) as exc:
-        asyncio.run(batch.run(None))
+        asyncio.run(batch.run(argparse.Namespace(output=tmp_path)))
     assert exc.value is leaf and isinstance(exc.value.__cause__, ExceptionGroup)
 
 
 @pytest.mark.parametrize('leaves', [[RuntimeError('native workload failed')],
     [batch.ParameterPreflightError('invalid'), OSError('transport also failed')],
     [ValueError('unrelated validation')]])
-def test_other_or_mixed_failures_are_not_relabelled(monkeypatch, leaves):
+def test_other_or_mixed_failures_are_not_relabelled(tmp_path, monkeypatch, leaves):
     group = ExceptionGroup('original', leaves)
     async def fail(args):
         raise group
     monkeypatch.setattr(batch, '_run', fail)
     with pytest.raises(ExceptionGroup) as exc:
-        asyncio.run(batch.run(None))
+        asyncio.run(batch.run(argparse.Namespace(output=tmp_path)))
     assert exc.value is group
 
 
