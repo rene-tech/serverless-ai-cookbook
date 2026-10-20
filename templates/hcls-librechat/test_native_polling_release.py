@@ -17,7 +17,8 @@ def evidence():
 def test_pointer_and_console_link_select_exact_published_bytes():
     # Historical receipts remain immutable; compare the current default only
     # with its own published release evidence, not the old precheck-only image.
-    receipt = json.loads((ROOT/'docs/evidence/inline-reports-20261019.json').read_text())
+    receipt = json.loads((ROOT/'docs/evidence/client-observation-recovery-20261020.json').read_text())
+    inline = json.loads((ROOT/'docs/evidence'/receipt['base_receipt']).read_text())
     previous = json.loads((ROOT/'docs/evidence/future-image-recovery-20261017.json').read_text())
     runtime = json.loads((ROOT/'docs/evidence'/previous['runtime_receipt']).read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
@@ -26,13 +27,14 @@ def test_pointer_and_console_link_select_exact_published_bytes():
                       'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
                       'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
     assert receipt['all_scientific_workflows_qualified'] is False
-    assert receipt['base_manifest'] == previous['manifest']
+    assert receipt['base_manifest'] == inline['manifest']
+    assert inline['base_manifest'] == previous['manifest']
     assert previous['base_manifest'] == runtime['manifest']
-    assert receipt['browser']['rootless_live_response_without_reload']
-    assert receipt['browser']['saved_customer_reports_inline'] == 3
-    assert receipt['fleet']['clients_patched'] == 5
-    assert receipt['fleet']['loaded_skill_verified']
-    assert receipt['fleet']['processes_unchanged']
+    assert inline['browser']['rootless_live_response_without_reload']
+    assert inline['browser']['saved_customer_reports_inline'] == 3
+    assert inline['fleet']['clients_patched'] == 5
+    assert inline['fleet']['loaded_skill_verified']
+    assert inline['fleet']['processes_unchanged']
     assert runtime['contract'] == {
         'native_operation_ids': True,
         'upload_identity': 'upload_id',
@@ -50,6 +52,31 @@ def test_pointer_and_console_link_select_exact_published_bytes():
     selected = parse_qs(urlsplit(link).query)['image']
     assert selected == [receipt['image'].rsplit(':',1)[0]+'@'+receipt['manifest']]
     assert len(values['SCIENTIFIC_AI_RELEASE_IMAGE']) < 128
+
+
+def test_client_recovery_release_preserves_jobs_and_running_workbenches():
+    receipt = json.loads((ROOT/'docs/evidence/client-observation-recovery-20261020.json').read_text())
+    installed = receipt['installed_tests']
+    assert installed['consecutive_clean_cohorts'] == 2
+    assert installed['tests_per_cohort'] == 166
+    assert installed['skips_per_cohort'] == 0
+    assert installed['source_gate_verified']
+    assert installed['scientific_executor_and_ui_unchanged']
+    live = receipt['live_acceptance']
+    assert live['paths'] == ['installed-image-cli', 'public-immutable-download-cli']
+    assert live['injected_result_read_failures_per_path'] == 5
+    assert live['same_receipt_recovered']
+    assert live['verified_artifacts_per_path'] == 47
+    assert live['scientific_failure_reason_preserved']
+    assert live['exit_codes_per_path'] == [75, 0, 1]
+    assert live['scientific_submissions'] == live['remote_mutations'] == 0
+    assert receipt['changes_to_running_endpoints'] == 0
+    assert not receipt['provider_recreation_tested']
+    assert not receipt['sustainable_capacity_measured']
+    assert not receipt['all_scientific_workflows_qualified']
+    guide = (ROOT/'docs/client-observation-recovery-20261020.md').read_text()
+    assert f"serverless-ai-cookbook/{receipt['source']}/" in guide
+    assert 'serverless-ai-cookbook/main/' not in guide
 
 
 def test_image_only_release_does_not_claim_live_endpoint_replacement():

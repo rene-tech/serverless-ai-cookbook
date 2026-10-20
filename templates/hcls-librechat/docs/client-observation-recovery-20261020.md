@@ -13,11 +13,11 @@ Keep the Python environment and credentials you already use:
 ```sh
 mkdir -p scientific-client-update
 curl --fail --location \
-  https://raw.githubusercontent.com/rene-tech/serverless-ai-cookbook/main/templates/hcls-librechat/scripts/scientific-batch-acceptance.py \
+  https://raw.githubusercontent.com/rene-tech/serverless-ai-cookbook/6cd4e8fe0488d085779adc1b52ddab2c60cc5cd8/templates/hcls-librechat/scripts/scientific-batch-acceptance.py \
   -o scientific-client-update/scientific-batch-acceptance.py
 for module in scientific_receipts.py native_md_artifacts.py; do
   curl --fail --location \
-    "https://raw.githubusercontent.com/rene-tech/serverless-ai-cookbook/main/templates/hcls-librechat/$module" \
+    "https://raw.githubusercontent.com/rene-tech/serverless-ai-cookbook/6cd4e8fe0488d085779adc1b52ddab2c60cc5cd8/templates/hcls-librechat/$module" \
     -o "scientific-client-update/$module"
 done
 python scientific-client-update/scientific-batch-acceptance.py \
@@ -55,3 +55,17 @@ The standalone script and future image are released separately from running
 workbenches. Updating the default image does not restart or patch existing
 clients or change accepted jobs. This recovery qualification is not a claim
 that all models, sustained capacity or cluster failover are production-ready.
+
+## Release and evidence
+
+Source: `6cd4e8fe0488d085779adc1b52ddab2c60cc5cd8`.
+Future default image: `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:observation-recovery-20261020-r1`,
+manifest `sha256:de999b74fa47b0e1b5c9bb6b80ac90b4e1028d6f143069f52bcb63faa5310729`.
+The [release receipt](evidence/client-observation-recovery-20261020.json)
+records two clean installed-image cohorts (166 tests each). Both the actual
+installed helper and the independently downloaded, public client recovered an
+existing internal job after five locally injected read failures, verified all
+47 result artifacts, and preserved a failed synthetic job's specific error.
+No inputs were uploaded, no jobs submitted or restarted, and no current
+workbench was changed. All 50 base-image layers, including the inline report
+renderer, remain unchanged; this image adds only the observer-helper layer.

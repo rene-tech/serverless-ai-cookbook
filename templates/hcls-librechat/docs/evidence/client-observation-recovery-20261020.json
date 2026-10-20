@@ -1,0 +1,49 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:observation-recovery-20261020-r1",
+  "manifest": "sha256:de999b74fa47b0e1b5c9bb6b80ac90b4e1028d6f143069f52bcb63faa5310729",
+  "config": "sha256:d999b6548971dedc3715bfe9a8c580102a1b5b370098a5dec4db65b338e3683f",
+  "source": "6cd4e8fe0488d085779adc1b52ddab2c60cc5cd8",
+  "base_manifest": "sha256:013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b",
+  "base_receipt": "inline-reports-20261019.json",
+  "skills_version": "2026.10.19.1",
+  "installed_tests": {
+    "consecutive_clean_cohorts": 2,
+    "tests_per_cohort": 166,
+    "skips_per_cohort": 0,
+    "network": "none",
+    "source_gate_verified": true,
+    "inherited_base_layers": 50,
+    "additional_layers": 1,
+    "scientific_executor_and_ui_unchanged": true,
+    "receipts_sha256": [
+      "03494a134fc3613aad2e8c73566ac19625c949e8d4028dcd7305192a572bcc12",
+      "0e9827eaab772311852c72079cffdf8f90ce14f8dd2bf4c948935424c6087581"
+    ]
+  },
+  "source_tests": {
+    "expanded_suite_passed": 320,
+    "expanded_suite_skipped": 3,
+    "current_contract_suite_in_app_environment_passed": 59,
+    "current_contract_suite_in_app_environment_skipped": 0,
+    "remaining_skip": "Optional retained fixture was not supplied; no customer files used.",
+    "new_regressions_failing_unfixed_baseline": 9,
+    "counts_overlap": true
+  },
+  "live_acceptance": {
+    "paths": ["installed-image-cli", "public-immutable-download-cli"],
+    "injected_result_read_failures_per_path": 5,
+    "same_receipt_recovered": true,
+    "verified_artifacts_per_path": 47,
+    "scientific_failure_reason_preserved": true,
+    "exit_codes_per_path": [75, 0, 1],
+    "helper_sha256": "d6e9f534167ff07f41ce610221747d1ae5cd73e5cfa5c94497dfa5b2c54ff566",
+    "summary_sha256_per_path": "763a34e74f4525d433ab413fed21f6883cbb9b0c6bccc7713086c2023c2d62b5",
+    "scope": "Existing owned internal QA operations; locally injected read failures only.",
+    "scientific_submissions": 0,
+    "remote_mutations": 0
+  },
+  "changes_to_running_endpoints": 0,
+  "provider_recreation_tested": false,
+  "sustainable_capacity_measured": false,
+  "all_scientific_workflows_qualified": false
+}

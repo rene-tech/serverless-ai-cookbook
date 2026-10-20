@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Ade999b74fa47b0e1b5c9bb6b80ac90b4e1028d6f143069f52bcb63faa5310729&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,13 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:inline-reports-20261019-r3`,
-digest `sha256:013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:observation-recovery-20261020-r1`,
+digest `sha256:de999b74fa47b0e1b5c9bb6b80ac90b4e1028d6f143069f52bcb63faa5310729`.
+The [client observation recovery](docs/client-observation-recovery-20261020.md)
+provides bounded read retries, clear interrupted-observation outcomes and an exact
+command to collect an already accepted job's results without submitting it again.
+Its installed image and public standalone client both passed live, read-only
+recovery. This update changes the future default only, not retained endpoints.
 The [inline-report correction](docs/inline-reports-20261019.md) renders both
 root-relative and rootless workspace report links inside the conversation.
 The md-precheck skill requires inline delivery; downloads remain optional.
