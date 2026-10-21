@@ -4,7 +4,7 @@
   "tool_name": "submit_rfd4_proteina",
   "operation": "generate",
   "parameter_schema_id": "scientific-ai/rfd4-proteina-generation/v1",
-  "contract_source_sha256": "7c0cdfe8a24b18831f45c9ee059a4965f72ee3631cb27216a7d50cd7d7632a56",
+  "contract_source_sha256": "0ce655548cbe45a1133180de67343d8d07907f68b4fdf3ca258dafc0b94f1f03",
   "input": {
     "name": "annotated-cif",
     "semantic_type": "rfd4-proteina-annotated-cif/v1",
@@ -26,6 +26,17 @@
         "default": "thinking_medium",
         "description": "Upstream frontloaded presets; never auto-substituted by task identity."
       },
+      "recycle_schedule": {
+        "type": ["array", "null"],
+        "minItems": 1,
+        "items": {
+          "type": "array", "minItems": 2, "maxItems": 2,
+          "prefixItems": [{"type": "integer", "minimum": 1}, {"type": "integer", "minimum": 0}],
+          "items": false
+        },
+        "default": null,
+        "description": "Explicit upstream [step_count, recycle_depth] bands replace the chosen preset; step counts must sum to nsteps. Null retains the preset, which requires nsteps=60. Never rescaled automatically."
+      },
       "compile": {
         "type": "boolean", "default": true,
         "description": "Use upstream compile-length buckets. False requests eager execution."
@@ -35,6 +46,10 @@
       },
       "save_trajectory_every": {"type": "integer", "minimum": 0, "default": 0},
       "save_chain_of_interest": {"type": "boolean", "default": false}
-    }
+    },
+    "allOf": [{
+      "if": {"properties": {"recycle_schedule": {"type": "null"}}},
+      "then": {"properties": {"nsteps": {"const": 60}}}
+    }]
   }
 }

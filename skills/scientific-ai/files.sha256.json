@@ -70,10 +70,11 @@
   "proteinmpnn/SKILL.md": "1533fbb40ea983a0f8ee7938378fe82382be240993bfc4b027a9c693be9a5e65",
   "proteinmpnn/examples/request.json": "be0d042b9b5c642b07711f802256cf2fc2a3a9bf2f781b02dbcc0e5fe6d6cecf",
   "rfd4-proteina/LICENSE": "0927a01536709c20efa64834482fd4d50c9bb954353dbcf35c95a98675545470",
-  "rfd4-proteina/SKILL.md": "6e3a9a2885c5156df8295ace5edc8b6bc5dbb14548bda2d04c17e004af7aca79",
-  "rfd4-proteina/examples/parameters.json": "e8a6cdc84ca01191c06152debfe09c448ddc592710d56107a9439c4dd873051c",
+  "rfd4-proteina/SKILL.md": "e593d5c531dc7ed8f65daf668e0338035cbea8638212f55a883b51e9e094a23f",
+  "rfd4-proteina/examples/custom-schedule.json": "08196a683e8fa640faffa786f38d2f92d45ff3c6e13ec417d7ecd53bda3fbf46",
+  "rfd4-proteina/examples/parameters.json": "f20ab1b3458ca2cd35f4f17940ce47804e23b0a5fb22eb386d24a3c0282126f0",
   "rfd4-proteina/references/client-example.md": "a14a0ca4d5f8b82afcbbc57cff18ac28730b4c031b4b4d3b9c6f66d61e999cde",
-  "rfd4-proteina/references/hosted-contract.json": "7455df1f0b9c191581ce088cd4ceebc01f865a41657b2a1f92e3f34d2f7d6674",
+  "rfd4-proteina/references/hosted-contract.json": "aa638f18bc5d716ecdd7892178b7e88f73570f0a06dbe3d7484491c933a2cdfe",
   "rfd4-proteina/references/inputs.md": "bb76501b63b05c7b295dfbb39404dd9ac6a434c7f838b9f54f8ac117516ad695",
   "rfdiffusion/SKILL.md": "4af820080bbf8daa62189180c44e6126355749d0211e8063cf563dcb22ec489b",
   "sam2-segmentation/SKILL.md": "024e37754610cd21400c0cabd84ef81522bec31a162f936d8716320242551b34",
@@ -93,5 +94,5 @@
   "tests/native-md-contracts.json": "4ae84127b24a3b0c570c8bae7a638baa15e7c941727f8a269dfd38ea5456d533",
   "tests/sync-native-md-contracts.py": "e0e2ad23d7fcb074384bf3b7dcc48fbf9ef4e769e1efbc1d89d0fac8d3a8f195",
   "tests/test_bundle.py": "1528cdd011d52f237cce6fbc1ee7166f8317cdb7ed95246851020f56dbf80ce0",
-  "tests/test_rfd4.py": "f70d2d5254e6a239c331063795d58207f3a20c35808c177b4857cf1f09552230"
+  "tests/test_rfd4.py": "32e3fb38e564ee91068a98781636e0f8e50f10068b41ed943480d9ea5cce8dd8"
 }

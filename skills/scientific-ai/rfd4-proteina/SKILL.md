@@ -50,8 +50,13 @@ Round-trip serialization alone does not prove that a condition is supported.
    statistically meaningful design campaign or a guaranteed successful binder.
 3. Keep requested scientific settings. `num_replicates` counts generated designs;
    `batch_size` controls processing batches, not how many accepted designs exist.
-   `nsteps` and `recycle_strategy` affect the scientific budget. The `thinking_*`
-   strategies are upstream front-loaded presets, not automatic task-aware choices.
+   `nsteps` and recycling affect the scientific budget. The `thinking_*` presets
+   are upstream front-loaded schedules requiring `nsteps: 60`. For a different
+   budget, explicitly supply `recycle_schedule` as `[step_count, recycle_depth]`
+   bands whose step counts sum to `nsteps`; this replaces the chosen preset
+   unchanged. A null/omitted schedule retains that preset. Never rescale it
+   automatically. See the [deliberate custom-budget example](examples/custom-schedule.json);
+   fewer steps or recycling is not an equivalent-quality claim or default.
    `partial_trajectory_fraction_steps` requests a fraction of the diffusion
    trajectory for an existing structure; it is not a distance in Angstroms.
    Do not reduce steps, disable compilation, change the seed or remove conditions

@@ -4,6 +4,7 @@
   "seed": 42,
   "nsteps": 60,
   "recycle_strategy": "thinking_medium",
+  "recycle_schedule": null,
   "compile": true,
   "partial_trajectory_fraction_steps": null,
   "save_trajectory_every": 0,

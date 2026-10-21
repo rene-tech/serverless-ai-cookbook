@@ -1,0 +1,4 @@
+{
+  "nsteps": 30,
+  "recycle_schedule": [[10, 4], [20, 1]]
+}

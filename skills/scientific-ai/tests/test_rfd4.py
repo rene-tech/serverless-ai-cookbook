@@ -36,6 +36,10 @@ def test_rfd4_example_preserves_every_declared_default():
     {"metrics_tags": ["unconditional_refolding"]},
     {"inputs": "/operator/private.yaml"}, {"ckpt_path": "/other/model"},
     {"generation.args.nsteps": 4},
+    {"nsteps": 30}, {"recycle_schedule": []},
+    {"recycle_schedule": [[0, 1]]}, {"recycle_schedule": [[60, -1]]},
+    {"recycle_schedule": [[60, 1.5]]}, {"recycle_schedule": [[60]]},
+    {"recycle_schedule": [[60, 1, 2]]},
 ])
 def test_rfd4_does_not_turn_upstream_flags_into_hosted_parameters(change):
     assert list(VALIDATOR.iter_errors({**EXAMPLE, **change}))
@@ -44,8 +48,18 @@ def test_rfd4_does_not_turn_upstream_flags_into_hosted_parameters(change):
 @pytest.mark.parametrize("change", [
     {"num_replicates": 4, "batch_size": 2},
     {"partial_trajectory_fraction_steps": 0.5},
-    {"recycle_strategy": "thinking_high", "nsteps": 90},
+    {"recycle_strategy": "thinking_high"},
+    {"nsteps": 90, "recycle_schedule": [[30, 4], [60, 1]]},
     {"compile": False, "save_trajectory_every": 10, "save_chain_of_interest": True},
 ])
 def test_rfd4_explicit_supported_options_are_not_restricted_to_the_example(change):
     VALIDATOR.validate({**EXAMPLE, **change})
+
+
+def test_rfd4_custom_budget_example_is_explicit_and_internally_consistent():
+    custom = json.loads((SKILL / "examples/custom-schedule.json").read_text())
+    VALIDATOR.validate(custom)
+    assert sum(width for width, _ in custom["recycle_schedule"]) == custom["nsteps"]
+    assert custom["nsteps"] != EXAMPLE["nsteps"]
+    # Omitting the schedule is the same as null: the upstream preset stays60.
+    assert list(VALIDATOR.iter_errors({"nsteps": custom["nsteps"]}))
