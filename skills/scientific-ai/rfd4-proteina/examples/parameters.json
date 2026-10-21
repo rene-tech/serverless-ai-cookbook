@@ -1,0 +1,11 @@
+{
+  "num_replicates": 1,
+  "batch_size": 1,
+  "seed": 42,
+  "nsteps": 60,
+  "recycle_strategy": "thinking_medium",
+  "compile": true,
+  "partial_trajectory_fraction_steps": null,
+  "save_trajectory_every": 0,
+  "save_chain_of_interest": false
+}

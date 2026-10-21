@@ -33,8 +33,8 @@ def text(name):
 
 def test_manifest_and_skill_format():
     data = bundle.validate()
-    assert len(data['skills']) == 37
-    assert len({model for models in data['skills'].values() for model in models}) == 43
+    assert len(data['skills']) == 38
+    assert len({model for models in data['skills'].values() for model in models}) == 44
     for name in data['skills']:
         assert 'license:' in text(name).split('---')[1]
         assert not re.search(r'`bionemo_[a-z_]+`|`protein_viewer`', text(name))
@@ -166,9 +166,11 @@ def test_install_repeat_conflict_and_integrity(tmp_path):
     (source / 'files.sha256.json').write_text(json.dumps(bundle.inventory(source)))
     destination = tmp_path / 'installed'
     result = bundle.install(destination, source)
-    assert result['skills'] == 37
+    assert result['skills'] == 38
     assert bundle.install(destination, source) == result
     assert (destination / 'clinical-documentation/scripts/study_report.py').is_file()
+    assert (destination / 'rfd4-proteina/LICENSE').is_file()
+    assert (destination / 'rfd4-proteina/examples/parameters.json').is_file()
     (destination / 'speech-workflows/SKILL.md').write_text('local customization')
     with pytest.raises(ValueError, match='Existing skill differs'):
         bundle.install(destination, source)

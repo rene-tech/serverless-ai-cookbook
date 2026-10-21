@@ -1,0 +1,40 @@
+{
+  "status": "candidate; confirm the caller's live schema before submission",
+  "model_id": "rfd4-proteina",
+  "tool_name": "submit_rfd4_proteina",
+  "operation": "generate",
+  "parameter_schema_id": "scientific-ai/rfd4-proteina-generation/v1",
+  "contract_source_sha256": "7c0cdfe8a24b18831f45c9ee059a4965f72ee3631cb27216a7d50cd7d7632a56",
+  "input": {
+    "name": "annotated-cif",
+    "semantic_type": "rfd4-proteina-annotated-cif/v1",
+    "media_type": "chemical/x-cif",
+    "compression": "none"
+  },
+  "parameters": {
+    "type": "object",
+    "additionalProperties": false,
+    "description": "RFD4-Proteina public Oct19 matched flow/autoencoder generation. Input is one uploaded annotated CIF; conditioning stays in its annotations. Generation only: no refolding oracle, reward-guided search, or quality guarantee.",
+    "properties": {
+      "num_replicates": {"type": "integer", "minimum": 1, "default": 1},
+      "batch_size": {"type": "integer", "minimum": 1, "default": 1},
+      "nsteps": {"type": "integer", "minimum": 1, "default": 60},
+      "seed": {"type": "integer", "minimum": 0, "maximum": 4294967295, "default": 42},
+      "recycle_strategy": {
+        "type": "string",
+        "enum": ["thinking_low", "thinking_medium", "thinking_high"],
+        "default": "thinking_medium",
+        "description": "Upstream frontloaded presets; never auto-substituted by task identity."
+      },
+      "compile": {
+        "type": "boolean", "default": true,
+        "description": "Use upstream compile-length buckets. False requests eager execution."
+      },
+      "partial_trajectory_fraction_steps": {
+        "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 1, "default": null
+      },
+      "save_trajectory_every": {"type": "integer", "minimum": 0, "default": 0},
+      "save_chain_of_interest": {"type": "boolean", "default": false}
+    }
+  }
+}

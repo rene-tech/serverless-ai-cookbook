@@ -45,6 +45,12 @@ The `openff` skill covers optional **CPU** ligand parameterization, force-field
 compatibility and measured export checks. It is not another catalog App and does
 not install its required environment. See its explicit dependency contract.
 
+The additive `rfd4-proteina` skill covers hosted annotated-CIF generation with
+the public matched flow/autoencoder release, artifact verification and inline
+structure viewing. It is distinct from `rfdiffusion` and `proteina-complexa`;
+oracle/search workflows and remote YAML inputs are not advertised. Its presence
+in the bundle does not establish deployment or caller access.
+
 Start with `scientific-gateway`; load only skills relevant to your task. For
 non-LibreChat clients, see its [portable client contract](scientific-gateway/references/portable-client.md).
 Client-specific tools are conditional, not promised by downloading Markdown.

@@ -73,7 +73,7 @@ const molecularDesignTools = [
   ...scientificCatalogTools,
   ...['infer_diffdock_native', 'genmol_generate_native', 'molmim_run_native',
     'infer_proteinmpnn_native', 'submit_bindcraft', 'submit_boltzgen', 'submit_mosaic',
-    'submit_proteina_complexa', 'submit_protenix_v2', 'submit_rfdiffusion'].map(mcpTool),
+    'submit_proteina_complexa', 'submit_protenix_v2', 'submit_rfdiffusion', 'submit_rfd4_proteina'].map(mcpTool),
 ];
 
 const biomedicalImagingTools = [

@@ -106,6 +106,12 @@ Promise.resolve(vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), con
             self.assertEqual(primary['model_parameters']['reasoning_effort'], 'high')
             self.assertEqual(primary['model_parameters']['maxContextTokens'], 131072)
             self.assertTrue(primary['skills_enabled'])
+            self.assertIn('all_mcp_scientific-ai-apps', primary['tools'])
+            design = next(a for a in agents if a['id'] == 'agent_molecular_design')
+            self.assertTrue({name + '_mcp_scientific-ai-apps' for name in (
+                'submit_rfd4_proteina', 'submit_rfdiffusion', 'submit_proteina_complexa',
+                'submit_bindcraft', 'submit_boltzgen', 'submit_mosaic', 'infer_proteinmpnn_native',
+            )} <= set(design['tools']))
             self.assertGreater(len(agents), 1)
             tutorial = next(a for a in agents if a['id'] == 'agent_protein_structure')
             self.assertNotIn('LEGACY_MANUAL_MUST_NOT_BE_IN_PRIMARY', tutorial['instructions'])

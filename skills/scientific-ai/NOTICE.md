@@ -38,3 +38,12 @@ does not grant rights to model weights, private datasets or academic software.
 Unless a file declares otherwise, new bundle tooling is Apache-2.0. Existing
 clinical helper files retain their source notices. The private Nebius/skills
 source used in some operator images is intentionally excluded from publication.
+
+The `rfd4-proteina` hosted skill adapts generation, annotated-CIF and output
+guidance from [RosettaCommons/RFD4-Proteina](https://github.com/RosettaCommons/RFD4-Proteina/tree/ed63183a7f2703a6dc2e4add3314c265b7e4ffcb/skills),
+revision `ed63183a7f2703a6dc2e4add3314c265b7e4ffcb`, reviewed 2026-10-21.
+Copyright (c) 2026, Institute for Protein Design, University of Washington.
+Its [BSD-3-Clause notice](rfd4-proteina/LICENSE) accompanies the adapted skill.
+Local GPU/scheduler setup and optional search/oracle workflows were replaced
+with the distinct hosted generation contract; no upstream endorsement or new
+rights to model weights are implied.

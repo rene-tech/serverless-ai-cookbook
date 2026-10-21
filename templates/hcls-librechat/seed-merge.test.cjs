@@ -16,3 +16,12 @@ test('unchanged fields update, customer instructions do not', () => {
     { model: 'approved', instructions: 'new-base', tools: ['tool', 'new-tool'] }),
     { model: 'approved', tools: ['tool', 'new-tool'] });
 });
+
+test('a new model tool never overwrites customized tools or ACL fields', () => {
+  const previous = { tools: ['submit_rfdiffusion'], instructions: 'managed' };
+  const next = { ...previous, tools: [...previous.tools, 'submit_rfd4_proteina'] };
+  const custom = { tools: ['customer-tool'], instructions: 'custom', acl: ['private-owner'] };
+  assert.deepEqual(mergeSeed(custom, previous, next), {});
+  assert.deepEqual(custom, { tools: ['customer-tool'], instructions: 'custom', acl: ['private-owner'] });
+  assert.deepEqual(mergeSeed({ ...previous, acl: ['private-owner'] }, previous, next), next);
+});
