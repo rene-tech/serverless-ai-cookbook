@@ -6,6 +6,47 @@ import { fileURLToPath } from 'node:url';
 export const workspaceTitle = 'Nebius Scientific AI Workspace';
 const defaultAssets = join(dirname(fileURLToPath(import.meta.url)), 'assets');
 const theme = `<style id="nebius-scientific-theme">
+  /* LibreChat sets dark surfaces but leaves unstyled text inheriting browser
+     black. Cover the shell, composer and portals without overriding explicit
+     component colors (status, syntax highlighting, or white report surfaces). */
+  body { color: rgb(var(--text-primary)); }
+  /* Each .prose starts its own light palette, including nested tool results.
+     Bind both halves to the active theme: prose-invert can then be present or
+     absent, and custom/high-contrast palettes keep their semantic colors. */
+  html .prose {
+    --tw-prose-body: rgb(var(--text-primary));
+    --tw-prose-headings: rgb(var(--text-primary));
+    --tw-prose-lead: rgb(var(--text-secondary));
+    --tw-prose-links: rgb(var(--link));
+    --tw-prose-bold: rgb(var(--text-primary));
+    --tw-prose-counters: rgb(var(--text-secondary));
+    --tw-prose-bullets: rgb(var(--text-secondary));
+    --tw-prose-hr: rgb(var(--border-medium));
+    --tw-prose-quotes: rgb(var(--text-primary));
+    --tw-prose-quote-borders: rgb(var(--border-medium));
+    --tw-prose-captions: rgb(var(--text-secondary));
+    --tw-prose-code: rgb(var(--text-primary));
+    --tw-prose-pre-code: rgb(var(--text-primary));
+    --tw-prose-pre-bg: rgb(var(--surface-code));
+    --tw-prose-th-borders: rgb(var(--border-medium));
+    --tw-prose-td-borders: rgb(var(--border-medium));
+    --tw-prose-invert-body: rgb(var(--text-primary));
+    --tw-prose-invert-headings: rgb(var(--text-primary));
+    --tw-prose-invert-lead: rgb(var(--text-secondary));
+    --tw-prose-invert-links: rgb(var(--link));
+    --tw-prose-invert-bold: rgb(var(--text-primary));
+    --tw-prose-invert-counters: rgb(var(--text-secondary));
+    --tw-prose-invert-bullets: rgb(var(--text-secondary));
+    --tw-prose-invert-hr: rgb(var(--border-medium));
+    --tw-prose-invert-quotes: rgb(var(--text-primary));
+    --tw-prose-invert-quote-borders: rgb(var(--border-medium));
+    --tw-prose-invert-captions: rgb(var(--text-secondary));
+    --tw-prose-invert-code: rgb(var(--text-primary));
+    --tw-prose-invert-pre-code: rgb(var(--text-primary));
+    --tw-prose-invert-pre-bg: rgb(var(--surface-code));
+    --tw-prose-invert-th-borders: rgb(var(--border-medium));
+    --tw-prose-invert-td-borders: rgb(var(--border-medium));
+  }
   /* The brand accent is confined to the shell; workflow surfaces use LibreChat theme roles. */
   #root { border-top: 3px solid #E0FF4F; }
   .nebius-wordmark { width: 92px; height: auto; flex-shrink: 0; }
@@ -37,6 +78,9 @@ export async function verifyBranding(clientDir, assetsDir = defaultAssets, sourc
   const index = await readFile(join(clientDir, 'index.html'), 'utf8');
   assert.ok(index.includes(`<title>${workspaceTitle}</title>`), 'Workspace title regressed');
   assert.equal(index.split('id="nebius-scientific-theme"').length - 1, 1, 'Brand theme missing/duplicated');
+  // The marker alone also accepts an empty/stale style block after a rebuild.
+  const normalize = (value) => value.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, '');
+  assert.ok(normalize(index).includes(normalize(theme)), 'Scientific theme rules regressed');
   const assetTarget = join(clientDir, source ? 'public/assets' : 'assets');
   const logo = await readFile(join(assetsDir, 'nebius-logo.svg'));
   for (const name of ['logo.svg', 'nebius-logo.svg']) {
