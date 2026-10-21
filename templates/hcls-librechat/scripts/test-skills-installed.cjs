@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 const { initializeDeploymentSkills, createDeploymentSkillMethods } = require('/app/packages/api/dist/index.cjs');
 
 async function main() {
@@ -39,6 +40,21 @@ async function main() {
   for (const [name, expected] of Object.entries(root)) {
     const actual = crypto.createHash('sha256').update(fs.readFileSync(`/app/skill/${name}`)).digest('hex');
     assert.equal(actual, expected, name);
+  }
+  // Test the documented commands against this image's actual helper, not a
+  // newer checkout. --help exits before any upload, admission or observation.
+  const example = fs.readFileSync('/app/skill/rfd4-proteina/references/client-example.md', 'utf8');
+  const commands = [...example.matchAll(/```bash\n([\s\S]*?)\n```/g)].map(match => match[1]);
+  assert.equal(commands.length, 2);
+  for (const command of commands) {
+    const args = command.includes('--recover-operation-id')
+      ? ['--recover-operation-id', 'op-example', '--help'] : ['--help'];
+    const help = execFileSync('/opt/scientific-client/bin/python',
+      ['/opt/bionemo/invoke-scientific-batch.py', ...args], { encoding: 'utf8', timeout: 30000 });
+    const supported = new Set(help.match(/--[a-z][a-z-]+/g));
+    for (const option of command.match(/--[a-z][a-z-]+/g)) {
+      assert.ok(supported.has(option), `Packaged helper does not support documented ${option}`);
+    }
   }
   console.log(JSON.stringify({ status: 'passed', version: manifest.version,
     loader: 'LibreChat initializeDeploymentSkills + getSkillByName/getSkillFileByPath',

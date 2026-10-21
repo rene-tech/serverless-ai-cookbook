@@ -17,18 +17,24 @@ it does not replace the caller's live schema or prove deployment.
   --parameters /workspace/my-studies/rfd4/parameters.json \
   --output /workspace/my-studies/rfd4/result \
   --display-name 'RFD4 generation' --idempotency-key YOUR_STABLE_REQUEST_KEY \
-  --service-class customer-batch --wait-seconds 180 --poll-seconds 10
+  --service-class customer-batch --wait-seconds 1 --poll-seconds 10
 ```
 
 Paths and the idempotency key above are illustrative, not files or credentials
 that already exist. Credentials come from the configured client environment,
-never the command arguments or chat. Reuse the same output directory to observe
-an accepted request; do not choose a new key to poll it. A bounded wait may exit
-pending. With the currently packaged observer, continue read-only:
+never the command arguments or chat. The short wait may exit pending (code 75);
+keep its receipt and returned native `op-...` ID. Observe that same ID using
+the hosted `get_operation` tool with `{"operation_id": "RETURNED_NATIVE_OP_ID"}`.
+Do not rerun submission or choose a new key to poll. Preserve a failed/cancelled
+operation and its explanation rather than submitting it again.
+
+Only after that operation succeeds, retrieve its verified files into a **fresh**
+directory with the packaged read-only recovery command:
 
 ```bash
 /opt/scientific-client/bin/python /opt/bionemo/invoke-scientific-batch.py \
-  --observe-output /workspace/my-studies/rfd4/result --wait-seconds 180
+  --recover-operation-id RETURNED_NATIVE_OP_ID \
+  --output /workspace/my-studies/rfd4/result-recovered
 ```
 
 This invokes the same hosted App; it does not install or execute RFD4 on the
