@@ -9,6 +9,9 @@ not part of the reusable client. Users can also bring OpenAI or Anthropic creden
 research skills, Tavily, structure viewing, execution, durable run tracking and
 workspace discovery stay attached when the chat LLM changes.
 
+See [Scientific AI system architecture](../../docs/scientific-ai-architecture.md)
+for the runtime components, request flow, persistence, and source map.
+
 ## Getting started as a user
 
 Open **Getting started & example prompts** on the chat home page, or

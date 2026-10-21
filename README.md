@@ -14,6 +14,9 @@ is also usable by other MCP clients. Install that canonical path or its versione
 release asset; historical vendor/template skill trees are not additional active
 skill packs. See the [skills release receipt](docs/scientific-ai-skills-release-20260920.md).
 
+See [Scientific AI system architecture](docs/scientific-ai-architecture.md) for
+the client, gateway, execution flow, storage, skills, and release boundaries.
+
 ## Quickstart (30 seconds)
 
 Spin up a GPU job and verify your setup:

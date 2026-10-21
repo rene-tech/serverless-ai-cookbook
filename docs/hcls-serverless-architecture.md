@@ -2,6 +2,10 @@
 
 Status: dynamic NVIDIA runtime baseline, 2026-09-08
 
+For the current LibreChat customer client, see
+[Scientific AI system architecture](scientific-ai-architecture.md). The baseline
+below describes the earlier standalone HCLS APIs and workbench.
+
 ## Product topology
 
 The product is five independently deployable compute APIs plus one reusable
