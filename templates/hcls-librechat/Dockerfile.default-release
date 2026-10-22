@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Additive deliverable validation over the current BioEmu2/viewer release.
 # Preserve its clients, runtimes, supervisor, provider and complete skill set.
+# Build with --build-context scientific-skills=./skills/scientific-ai.
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:eec90d1801d76ad040453bff68d4482d2aa7d79c1928b5fa123b0976df1dd155
 FROM ${WORKBENCH_BASE}
 USER root
@@ -9,6 +10,10 @@ COPY --from=scientific-skills scientific-batch/SKILL.md /app/skill/scientific-ba
 COPY --from=scientific-skills files.sha256.json /app/skill/files.sha256.json
 RUN python3 /app/skill/bundle.py verify \
  && python3 -m py_compile /opt/bionemo/scientific_study.py
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
+    cp /tmp/client/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
+ && cp /tmp/client/scientific-workflow.py /tmp/client/scientific-study-worker.py /opt/bionemo/ \
+ && /opt/scientific-client/bin/python /tmp/client/scripts/verify-observer-recovery.py --source /tmp/client
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
