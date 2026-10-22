@@ -510,7 +510,7 @@ TOOLS = [
      'annotations': {'readOnlyHint': False, 'destructiveHint': False, 'openWorldHint': True},
      'inputSchema': {'type': 'object', 'additionalProperties': False,
         'required': ['case_directory', 'model', 'output_directory'], 'properties': {
-            'case_directory': TEXT, 'model': {'type': 'string', 'enum': ['gromacs', 'namd', 'amber', 'lammps']},
+            'case_directory': TEXT, 'model': {'type': 'string', 'enum': ['gromacs', 'namd', 'amber', 'lammps', 'openmm']},
             'output_directory': TEXT}}},
     {'name': 'prepare_openff_ligand',
      'description': 'Prepare one standalone ligand on CPU using the installed OpenFF Sage 2.2.1 and AmberTools AM1-BCC helper. Supply exact SMILES, explicit force field and a fresh output directory. Preserves charge/stereo; undefined stereo returns a question without preparing anything. Repeated identical calls return the same job, never recompute. Observe that job with read_execution. Not solvated, not a protein/membrane system and not MD validation. For other methods report the unsupported choice rather than substituting.',

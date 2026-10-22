@@ -54,6 +54,33 @@ def test_exact_verified_final_coordinates_render_without_simulation(tmp_path, re
     assert preview.render_preview(folder, output, tmp_path) == files
 
 
+def test_openmm_mmcif_preview_uses_verified_bytes_without_conversion(tmp_path, renderer):
+    folder = tmp_path / 'run'
+    native, manifest = recorded_run(folder, engine='openmm')
+    name = 'openmm-output/production/segment-000001/structure.cif'
+    path = folder / 'native/result-00' / name
+    path.parent.mkdir(parents=True)
+    text = 'data_example\nloop_\n_atom_site.id\n_atom_site.Cartn_x\n1 0.0\n'
+    path.write_text(text)
+    meta = {'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'size_bytes': path.stat().st_size}
+    native['files'].append({**meta, 'path': name})
+    native['completed_steps'] = ['production']
+    native['commands'] = [{'step_id': 'production', 'kind': 'production', 'segment': 1, 'exit_code': 0,
+                           'validation': {'structure_file': 'structure.cif'}}]
+    manifest['results'][0]['files'].append({**meta, 'path': str(path), 'native_path': name})
+    bind_result(folder, native, manifest)
+    output = tmp_path / 'preview'
+    files = preview.render_preview(folder, output, tmp_path)
+    assert not renderer
+    assert 'final-structure-1.cif' in files
+    assert (output / 'final-structure-1.cif').read_text() == text
+    result = json.loads((output / 'md-structure-preview.json').read_text())
+    assert result['frames'][0]['source_sha256'] == meta['sha256']
+    path.write_text('changed')
+    with pytest.raises(ValueError, match='differ|changed'):
+        preview.render_preview(folder, tmp_path / 'other', tmp_path)
+
+
 def test_changed_coordinate_or_existing_preview_is_not_silently_replaced(tmp_path, renderer):
     folder, output = tmp_path / 'run', tmp_path / 'preview'
     source, _, _ = fixture(folder)

@@ -68,44 +68,57 @@ def render_preview(folder, output, workspace):
     if not 1 <= len(documents) <= 4:
         raise ValueError('Inline final-coordinate preview supports one to four native jobs.')
     for document in documents:
-        if document['engine'] != 'gromacs':
-            raise ValueError('Final-coordinate preview currently supports GROMACS; other engines retain their timing reports.')
+        engine = document['engine']
+        if engine not in {'gromacs', 'openmm'}:
+            raise ValueError('Final-coordinate preview supports GROMACS and OpenMM; other engines retain their timing reports.')
         result = document['result']
-        commands = [c for c in result.get('commands', []) if 'mdrun' in c.get('command', [])
+        commands = [c for c in result.get('commands', []) if
+                    (c.get('kind') in {'equilibrate', 'production'} if engine == 'openmm' else 'mdrun' in c.get('command', []))
                     and c.get('step_id') in result.get('completed_steps', []) and c.get('exit_code') == 0]
         if not commands:
-            raise ValueError('No completed GROMACS dynamics command for a final-coordinate preview.')
+            raise ValueError('No completed dynamics command for a final-coordinate preview.')
         last = commands[-1]
-        command = last['command']
-        default = argument(command, '-deffnm', 'confout') + '.gro'
-        name = str(PurePosixPath(last.get('directory', '.')) / argument(command, '-c', default))
+        if engine == 'openmm':
+            if last.get('validation', {}).get('structure_file') != 'structure.cif':
+                raise ValueError('OpenMM has no declared final mmCIF coordinate artifact.')
+            name = str(PurePosixPath('openmm-output', last['step_id'], f"segment-{last['segment']:06d}", 'structure.cif'))
+        else:
+            command = last['command']
+            default = argument(command, '-deffnm', 'confout') + '.gro'
+            name = str(PurePosixPath(last.get('directory', '.')) / argument(command, '-c', default))
         path, record = document['files'].get(name, (None, None))
         if path is None:
             raise ValueError('Final coordinate is absent from the verified native manifest: ' + name)
         verify(path, record)
-        with tempfile.TemporaryDirectory(prefix='scientific-md-preview-') as directory:
-            pdb = Path(directory) / 'final.pdb'
-            subprocess.run(['gmx', 'editconf', '-f', str(path), '-o', str(pdb)],
-                           capture_output=True, check=True, timeout=60)
-            text = pdb.read_text()
+        if engine == 'openmm':
+            text, fmt, method = path.read_text(), 'cif', 'Verified OpenMM mmCIF; visualization only'
+            if not text.lstrip().startswith('data_') or '_atom_site.' not in text:
+                raise ValueError('Declared OpenMM final structure is not mmCIF.')
+        else:
+            with tempfile.TemporaryDirectory(prefix='scientific-md-preview-') as directory:
+                pdb = Path(directory) / 'final.pdb'
+                subprocess.run(['gmx', 'editconf', '-f', str(path), '-o', str(pdb)],
+                               capture_output=True, check=True, timeout=60)
+                text = pdb.read_text()
+            fmt, method = 'pdb', 'GROMACS editconf; visualization only'
         selection = 'all atoms'
         budget = 3 * 1024**2 // len(documents)
-        if len(text.encode()) > budget:
+        if len(text.encode()) > budget and fmt == 'pdb':
             from Bio.PDB.Polypeptide import is_aa
             text = '\n'.join(line for line in text.splitlines()
                 if line.startswith(('ATOM  ', 'HETATM')) and is_aa(line[17:20], standard=False)) + '\nEND\n'
             selection = 'protein atoms only; complete coordinates remain in the native outputs'
-        if not any(line.startswith(('ATOM  ', 'HETATM')) for line in text.splitlines()) or len(text.encode()) > budget:
+        if (fmt == 'pdb' and not any(line.startswith(('ATOM  ', 'HETATM')) for line in text.splitlines())) or len(text.encode()) > budget:
             raise ValueError('No bounded final-coordinate preview; retain full native coordinates for local visualization.')
-        filename = f'final-structure-{len(entries) + 1}.pdb'
+        filename = f'final-structure-{len(entries) + 1}.{fmt}'
         rendered[filename] = text
-        entries.append({'text': text, 'format': 'pdb', 'label': f"{result['job_id']} · final frame · {selection}"})
+        entries.append({'text': text, 'format': fmt, 'label': f"{result['job_id']} · final frame · {selection}"})
         provenance.append({'job_id': result['job_id'], 'source_path': name, 'source_sha256': record['sha256'],
                            'preview_file': filename, 'preview_sha256': hashlib.sha256(text.encode()).hexdigest(),
-                           'selection': selection, 'method': 'GROMACS editconf; visualization only'})
+                           'selection': selection, 'method': method})
     first = entries[0]
-    rendered['md-structure-preview.html'] = viewer.viewer_html(first['text'], 'pdb',
-        'GROMACS final coordinates · not a trajectory animation', entries)
+    rendered['md-structure-preview.html'] = viewer.viewer_html(first['text'], first['format'],
+        'MD final coordinates · not a trajectory animation', entries)
     if len(rendered['md-structure-preview.html'].encode()) > 8 * 1024**2:
         raise ValueError('Preview exceeds the inline viewer limit; native coordinates are preserved.')
     rendered['md-structure-preview.json'] = json.dumps({'schema': 'scientific-md-preview/v1',

@@ -190,7 +190,7 @@ function appUseCase(item) {
   // Native workflow engines do not all include "molecular dynamics" in their
   // display name (notably AMBER26 and distributed GROMACS). Classify their
   // stable App IDs before text search, without granting or inventing Apps.
-  if (has('run-workflow') && ['amber', 'gromacs', 'gromacs-mpi', 'lammps', 'namd'].includes(id)) return 'Molecular dynamics';
+  if (has('run-workflow') && ['amber', 'gromacs', 'gromacs-mpi', 'lammps', 'namd', 'openmm'].includes(id)) return 'Molecular dynamics';
   if (has('predict-structure', 'predict-protein-structure', 'predict-complex-structure', 'search-msa')
       || (has('predict') && /(?:fold|boltz)/.test(id))) return 'Protein structures & complexes';
   if (has('design-protein', 'design-binder', 'design-binders', 'design-backbone', 'scaffold-motif')) return 'Protein design & engineering';

@@ -27,7 +27,7 @@ def fixture(tmp_path, engine='gromacs'):
     return [r, a, b], result
 
 
-@pytest.mark.parametrize('engine', ['gromacs', 'namd', 'amber', 'lammps'])
+@pytest.mark.parametrize('engine', ['gromacs', 'namd', 'amber', 'lammps', 'openmm'])
 def test_shuffled_native_files_and_equal_byte_aliases(tmp_path, engine):
     artifacts, result = fixture(tmp_path, engine)
     copied = materialize_native_outputs(tmp_path, artifacts)['native_outputs']

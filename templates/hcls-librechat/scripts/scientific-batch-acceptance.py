@@ -751,7 +751,7 @@ async def collect_manifest(http, reference: dict, output: Path, *, diagnostics=F
     if diagnostics:
         allowed = {'native-failed-diagnostics/v1'} | {
             f'{engine}-failed-{kind}/v1'
-            for engine in ('gromacs', 'namd', 'amber', 'lammps')
+            for engine in ('gromacs', 'namd', 'amber', 'lammps', 'openmm')
             for kind in ('result', 'log')
         }
         if (document.get('schema') != 'fs2-serve.nebius.ai/scientific-artifact-manifest/v1'

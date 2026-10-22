@@ -123,10 +123,19 @@ def test_requested_steps_are_bound_to_the_exact_tpr_and_native_override():
     assert report.requested_steps('gromacs', {'command': command['command'] + ['-nsteps', '1000']}, other) == 1000
 
 
+def test_openmm_uses_explicit_segment_steps_and_excludes_minimization():
+    assert report.requested_steps('openmm', {'requested_steps': 7500}, []) == 7500
+    assert report.requested_steps('openmm', {}, []) is None
+    assert report.is_simulation('openmm', {'kind': 'production'})
+    assert report.is_simulation('openmm', {'kind': 'equilibrate'})
+    assert not report.is_simulation('openmm', {'kind': 'minimize'})
+
+
 @pytest.mark.parametrize('engine,args,extra', [
     ('namd', ['namd3', '+p8', 'simulation.namd'], {}),
     ('amber', ['pmemd.cuda', '-i', 'mdin'], {'kind': 'pmemd'}),
     ('lammps', ['lmp', '-in', 'simulation.in'], {}),
+    ('openmm', ['python', '-m', 'fs2_openmm.engine', 'segment-request.json'], {'kind': 'production'}),
 ])
 def test_other_md_command_shapes_do_not_invent_unrecorded_rates(tmp_path, engine, args, extra):
     folder = tmp_path / 'recovered'

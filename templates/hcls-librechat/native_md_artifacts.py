@@ -11,7 +11,7 @@ from urllib.parse import urlencode
 from scientific_receipts import staged_output, save, verify_file
 
 RESULT_TYPES = {f'{engine}-workflow-result/v1': engine
-                for engine in ('gromacs', 'namd', 'amber', 'lammps')}
+                for engine in ('gromacs', 'namd', 'amber', 'lammps', 'openmm')}
 
 
 def workspace_url(path: Path, *, directory=False):

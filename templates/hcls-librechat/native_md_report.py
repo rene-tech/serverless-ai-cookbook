@@ -29,6 +29,9 @@ def option(arguments, name):
 
 def requested_steps(engine, command, previous):
     """Only explicit native step counts; do not infer TPR settings from filenames."""
+    if engine == 'openmm':
+        value = command.get('requested_steps')
+        return value if type(value) is int and value >= 0 else None
     if engine != 'gromacs':
         return None
     arguments = command['command']
@@ -54,6 +57,8 @@ def is_simulation(engine, command):
     arguments = command.get('command', command.get('argv', []))
     if not isinstance(arguments, list) or not all(isinstance(value, str) for value in arguments):
         raise ValueError('Native command arguments must be recorded as a string list.')
+    if engine == 'openmm':
+        return command.get('kind') in ('equilibrate', 'production')
     if engine == 'gromacs':
         return 'mdrun' in arguments
     if engine == 'amber':
