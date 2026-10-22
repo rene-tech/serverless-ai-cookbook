@@ -4,6 +4,8 @@
 !templates/hcls-librechat/scientific-workflow.py
 !templates/hcls-librechat/scientific-study-worker.py
 !templates/hcls-librechat/scientific_study.py
+!templates/hcls-librechat/structure-analysis.py
+!templates/hcls-librechat/scientific_protein_preparation.py
 !templates/hcls-librechat/scripts/
 !templates/hcls-librechat/scripts/scientific-batch-acceptance.py
 !templates/hcls-librechat/scripts/verify-observer-recovery.py

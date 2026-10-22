@@ -6,6 +6,7 @@ ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:6b367c
 FROM ${WORKBENCH_BASE}
 USER root
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py
+COPY templates/hcls-librechat/structure-analysis.py templates/hcls-librechat/scientific_protein_preparation.py /opt/bionemo/
 RUN --mount=type=bind,from=scientific-skills,target=/tmp/scientific-skills,ro python3 - <<'PY'
 import hashlib, json, py_compile, shutil, subprocess
 from pathlib import Path

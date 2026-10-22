@@ -239,7 +239,8 @@ def bound_confidence(value, prediction_bytes, *, source_path=None):
             raise ValueError('Confidence correspondence envelope coordinates differ from the selected prediction.')
     matches, declared = [], 0
     for index, entry in enumerate(entries):
-        if entry.get('semantic_type') != 'structure-confidence-json/v1':
+        semantic = entry.get('semantic_type')
+        if semantic not in {'structure-confidence-json/v1', 'alphafold3-summary-confidence/v1'}:
             continue
         declared += 1
         artifact = entry['artifact']
@@ -258,6 +259,34 @@ def bound_confidence(value, prediction_bytes, *, source_path=None):
         if hashlib.sha256(raw).hexdigest() != artifact.get('sha256') or len(raw) != artifact.get('size_bytes'):
             raise ValueError('Confidence artifact SHA256/size does not match the same manifest.')
         document = json.loads(raw)
+        if semantic == 'alphafold3-summary-confidence/v1':
+            # AF3 publishes one canonical top-ranked coordinate/summary pair.
+            # Its native summary has no per-sample coordinate hash. Bind only
+            # the unambiguous pair in this exact immutable manifest; do not
+            # manufacture a native seed/sample association or use filenames.
+            all_coordinates = [e for e in entries if e.get('semantic_type') in {
+                'protein-structure-pdb/v1', 'protein-structure-mmcif/v1'}]
+            summaries = [e for e in entries if e.get('semantic_type') == semantic]
+            if len(all_coordinates) != 1 or len(summaries) != 1:
+                raise ValueError('AF3 native summary requires one unambiguous canonical coordinate/summary pair.')
+            if not isinstance(document, dict) or not {'ptm', 'iptm', 'ranking_score'} <= document.keys():
+                raise ValueError('AF3 native summary lacks its required confidence fields.')
+            for name in ('ptm', 'iptm', 'ranking_score'):
+                number = document[name]
+                if number is None and name == 'iptm':
+                    continue  # Monomer ipTM is unavailable, not zero.
+                if type(number) not in (int, float) or not np.isfinite(number) or (
+                        name != 'ranking_score' and not 0 <= number <= 1):
+                    raise ValueError('AF3 native summary confidence must retain finite native values.')
+            fields = confidence_fields(document, f'confidence_artifacts[{index}].native_summary')
+            matches.append((fields, {
+                'status': 'same_immutable_manifest_canonical_structure_and_summary',
+                'manifest_id': manifest.get('manifest_id'), 'manifest_entry_index': index,
+                'confidence_artifact_sha256': artifact['sha256'], 'confidence_artifact_size_bytes': len(raw),
+                'structure_sha256': checksum, 'structure_size_bytes': len(prediction_bytes),
+                'unavailable_native_fields': [name for name in ('iptm',) if document[name] is None],
+                'scope': 'Canonical coordinate and native AF3 summary are uniquely paired by the same immutable manifest, not a per-sample hash inside the summary. No seed/sample, determinism or biological-validity claim; native numeric scales are unchanged.'}))
+            continue
         if document.get('schema') != 'fs2.nebius.ai/structure-confidence/v1':
             raise ValueError('Confidence artifact lacks the supported structure-bound schema.')
         for row_index, row in enumerate(document.get('results', [])):
@@ -535,7 +564,9 @@ def report_markdown(metrics):
     if binding:
         lines += [f"Confidence association: `{binding['status']}`."]
         if 'seed' in binding:
-            lines += [f"Retained seed `{binding['seed']}`, sample `{binding['sample_index']}`; runtime `{escape(binding['runtime_id'])}`, model revision `{escape(binding['model_revision'])}`.", binding['scope']]
+            lines += [f"Retained seed `{binding['seed']}`, sample `{binding['sample_index']}`; runtime `{escape(binding['runtime_id'])}`, model revision `{escape(binding['model_revision'])}`."]
+        if binding.get('scope'):
+            lines.append(binding['scope'])
     lines += ['', '## Provenance', '']
     for key in ('reference_sha256', 'prediction_sha256', 'result_sha256', 'residue_map_sha256', 'request_sha256', 'confidence_result_sha256'):
         lines.append(f"- {key}: `{metrics.get('provenance', {}).get(key) or 'not supplied'}`")
