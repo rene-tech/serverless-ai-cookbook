@@ -171,6 +171,20 @@ test('structure mapping is passed unchanged to the existing helper', () => fixtu
     chain_map: ['A:A', 'B:C'], residue_mapping_file: 'mapping.json' }, storage);
   assert.equal(result.provenance.inputs.residue_mapping_file.sha256, hash('{}'));
 }));
+test('structure confidence and original request stay separate verified inputs', () => fixture(async ({ storage }) => {
+  const original = storage.execute;
+  storage.execute = async (...values) => {
+    const argv = values[1];
+    assert.ok(argv[argv.indexOf('--confidence-result') + 1].endsWith('/mapping.json'));
+    assert.ok(argv[argv.indexOf('--request-file') + 1].endsWith('/result.json'));
+    await original(...values);
+  };
+  const result = await compare('structure', 'fixture-key', { reference_file: 'reference.sdf', prediction_file: 'reference.sdf',
+    chain_map: ['A:A'], confidence_result_file: 'mapping.json', request_file: 'result.json' }, storage);
+  assert.equal(result.provenance.inputs.confidence_result_file.sha256, hash('{}'));
+  assert.equal(result.provenance.inputs.request_file.sha256, hash('{}'));
+  assert.equal(result.inference_submitted, false);
+}));
 test('ambiguous sources, missing coordinate-frame confirmation or chain mapping fail before execution', () => fixture(async ({ storage }) => {
   await assert.rejects(compare('docking', 'fixture-key', { ...args, prediction_file: 'other.sdf' }, storage), /exactly one/);
   await assert.rejects(compare('docking', 'fixture-key', { ...args, same_coordinate_frame: false }, storage), /coordinate frame/);

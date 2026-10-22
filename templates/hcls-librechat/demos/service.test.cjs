@@ -138,6 +138,9 @@ test('stdio MCP exposes typed tools and rejects absent identity without inferenc
   assert.match(structure.inputSchema.properties.chain_map.items.description, /REF:PRED/);
   assert.equal(new RegExp(structure.inputSchema.properties.chain_map.items.pattern).test('E:A'), true);
   assert.equal(new RegExp(structure.inputSchema.properties.chain_map.items.pattern).test('A:B:C'), false);
+  assert.equal(structure.inputSchema.properties.confidence_result_file.type, 'string');
+  assert.equal(structure.inputSchema.properties.request_file.type, 'string');
+  assert.match(structure.inputSchema.properties.prediction_file.description, /output-manifest.json/);
   assert.equal(messages[2].result.isError, true);
 });
 test('mounted workspace stays inside its root and round-trips files', async () => {

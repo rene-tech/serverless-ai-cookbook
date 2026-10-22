@@ -1,4 +1,19 @@
-# Scientific AI skills 2026.10.07.6 — combined source integration
+# Scientific AI skills 2026.10.22.3 — coordinate and confidence contracts
+
+The scientific-batch instructions distinguish a JSON artifact manifest from
+actual coordinates and name the verified `prediction.structure` output.
+The workbench rejects JSON metadata promised as a PDB/mmCIF deliverable before
+admission. Its structure helper now associates AF3's unique canonical summary
+and structure in the same immutable manifest, preserving null monomer ipTM and
+separating native confidence from experimental agreement. Typed comparison
+tools expose the existing confidence and original-request inputs explicitly.
+
+The AF3 review records live system-tenant REST/MCP and actual QA LibreChat
+evidence, original failures and exact client activation. See the maintained
+workbench release receipt for the image/default and rollout boundaries; this
+portable bundle does not install the runtime or qualify all models.
+
+# Historical Scientific AI skills 2026.10.07.6 — combined source integration
 
 This source bundle preserves the independent GROMACS candidate work and the
 single-cell/catalog changes. It is not an image qualification. The shared

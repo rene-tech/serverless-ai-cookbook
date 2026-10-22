@@ -54,6 +54,11 @@ For comparisons, verify that the inputs really describe the same samples:
 retain sample identifiers and align records by those identifiers, not row order
 or equal table sizes. Report measured values and provenance; an output file or
 a completed model operation alone does not establish the requested comparison.
+For `workbench_compare_structures`, use workspace-relative `prediction_file`
+for coordinates or a downloaded manifest, plus `confidence_result_file` for
+its same-operation manifest and `request_file` for the original model input.
+`result_file` is for inline coordinate-bearing JSON, not an artifact-pointer
+platform envelope. Keep confidence and experimental agreement separate.
 
 RFdiffusion `design-backbone` is unconditional: its published `text/plain`
 source is a human-readable provenance note describing the design, not a PDB,
