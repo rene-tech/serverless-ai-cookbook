@@ -55,6 +55,12 @@ settings and must not be an undisclosed workaround.
 
 ## Submit, observe and deliver
 
+Execute dependent phases in separate tool rounds: prepare files → submit →
+observe completion → download → verify/extract → render. Never batch those
+phases into parallel tool calls: later phases need actual earlier outputs.
+Independent model requests may run concurrently after their inputs are ready.
+Never predict operation IDs, execution IDs, timestamps, file hashes or UI IDs.
+
 Use `scientific-gateway` for trusted file upload. The scientific manifest entry
 is named `workload`, semantic type `bioemu2-workload-tar/v1`, media type
 `application/x-tar`, compression `none`. Pass the finalized manifest,
@@ -78,6 +84,11 @@ Paths are examples, not existing files. Observe the returned native `op-...` ID
 with `get_operation` and `get_operation_result`. Queued admission or a lost
 status response is not completion and not a reason to resubmit. Keep useful
 errors and failed stages visible. Recovery/download observes the same ID.
+Use `scientific-ai-apps` for these native operation tools; a workbench inventory
+can lag a fresh submission. Use bounded non-waiting status reads if a client
+observation tool times out. A timeout/404/failed tool is not evidence of success.
+If observation is unavailable, report the accepted operation and the uncertainty;
+do not continue to download or render files that have not been verified to exist.
 
 Download and hash-verify the `result` JSON and `results` tar. Extract only safe
 regular files into a fresh owned directory, and check every `files[]` hash.
@@ -91,6 +102,15 @@ Render verified structures inline using the installed structure viewer's
 trajectory rendering for time-ordered rollouts; don't present independent
 equilibrium samples as a time evolution. Download links are secondary access,
 not a substitute for a requested inline view.
+Only copy a UI marker returned by a **successful** viewer call. If the viewer
+returns an error or no UI resource, show that error; never invent a marker or
+claim that a structure was displayed. A tool marked `completed` can still have
+an error in its output; inspect the actual result and process exit status.
+
+Contact conditioning is soft, not a guaranteed geometric restraint. Measure
+requested distances before claiming satisfaction; native physicality passing
+does not prove a requested contact. Use chain-local one-based residue indices
+from the actual input sequence, not assumptions about a PDB residue label.
 
 Report measured frames/s and runtime, with queue/startup separate. A model lag
 in ns is not classical-MD simulated time or interchangeable GROMACS ns/day.
