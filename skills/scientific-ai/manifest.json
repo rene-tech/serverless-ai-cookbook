@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.10.22.4",
+  "version": "2026.10.22.5",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -8,7 +8,8 @@
     "NVIDIA/skills": "fd9f1466ff8a39178e488981e8b5118709392949",
     "NVIDIA-BioNeMo/bionemo-agent-toolkit": "0e67a612e4045f007e38fa77adc8f3ebfc5616b6",
     "RosettaCommons/RFD4-Proteina": "ed63183a7f2703a6dc2e4add3314c265b7e4ffcb",
-    "microsoft/bioemu2": "f99e0d899a2548ee6d9d54b6854b2bc35b6652d5"
+    "microsoft/bioemu2": "f99e0d899a2548ee6d9d54b6854b2bc35b6652d5",
+    "openmm/openmm": "b399af4725573963b46d6c1083fdcf7a37615857"
   },
   "skills": {
     "aging-models": ["altumage", "phenoage"],
@@ -32,6 +33,7 @@
     "microscopy-segmentation": ["cellpose-cpsam-v2"],
     "mindeval-workflows": [],
     "molmim": ["molmim"],
+    "openmm": ["openmm"],
     "msa-search": ["msa-search-pdb70"],
     "msa-structure-prediction-pipeline": ["msa-search-pdb70", "boltz2", "openfold3"],
     "namd": ["namd"],

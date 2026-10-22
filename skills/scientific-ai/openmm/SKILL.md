@@ -76,4 +76,9 @@ state CSV, structures, logs and manifests. Report integration ns/day separately
 from startup, queue, checkpoint publication and total elapsed time. Evaluate
 equilibration, ensemble statistics and convergence independently.
 
+DCD contains only exact report-cadence frames. `trajectory-frames.jsonl` is the
+authoritative per-frame step/time index; do not assume a resumed segment starts
+at zero. Final State and mmCIF are always saved, but a segment shorter than its
+report interval can have no trajectory frames.
+
 For version/license details, read [official sources](references/sources.md).
