@@ -19,7 +19,7 @@ import tempfile
 import time
 from urllib.parse import urlencode
 
-VERSION = "2026.10.22.1"
+VERSION = "2026.10.22.2"
 NUCLEASES = {"SpCas9": ("NGG", 20, "3prime"), "AsCas12a": ("TTTV", 23, "5prime")}
 
 
@@ -166,10 +166,10 @@ def guides(spec, scratch):
         notes.append("No qualified on-target score for this modality/nuclease; no cleavage score is substituted for CRISPRa/i activity.")
     tables = {}
     if spec.get("reference_fasta") and rows:
-        tables["candidate-sites"] = site_search(rows, spec["reference_fasta"], nuclease,
+        tables["reference-alignments"] = site_search(rows, spec["reference_fasta"], nuclease,
              spec.get("max_mismatches", 3), scratch, spec.get("cpus", 1))
         notes.append("Reference search includes the intended target; only supplied reference, canonical PAMs, <=3 mismatches, no bulges or unprovided variants. Hit count is not a risk score.")
-        notes.append("guides counts distinct nominated guides; candidate-sites counts reference alignments. One guide can have several sites, so subtracting these table counts does NOT count filtered/rejected guides.")
+        notes.append("guides counts distinct nominated guides; reference-alignments counts reference matches. One guide can have several alignments, so subtracting these table counts does NOT count filtered/rejected guides.")
     else:
         notes.append("Reference-wide off-target search NOT PERFORMED; absence of a search is not zero off-target risk.")
     tables["guides"] = sorted(rows, key=lambda r: (r["ruleset3"] is None, -(r["ruleset3"] or 0), r["guide_id"]))
@@ -207,7 +207,7 @@ def primers(spec, scratch):
              "left_tm": result[f"PRIMER_LEFT_{i}_TM"], "right_tm": result[f"PRIMER_RIGHT_{i}_TM"],
              "product_size": result[f"PRIMER_PAIR_{i}_PRODUCT_SIZE"]}
             for i in range(result["PRIMER_PAIR_NUM_RETURNED"])]
-    return {"primers": rows, "primer3-diagnostics": [{"field": k, "value": v} for k,v in result.items()
+    return {"primer-pairs": rows, "primer3-diagnostics": [{"field": k, "value": v} for k,v in result.items()
              if k.endswith("EXPLAIN") or k.endswith("WARNING")]}, [
         "Primer3 thermodynamic design only; no genome-wide primer specificity check or wet-lab validation."]
 
@@ -342,14 +342,18 @@ def run(spec_path, destination):
                 software["pegg"] = json.loads((destination/"precision-runtime.json").read_text())
             if workflow == "guides" and spec.get("reference_fasta") and tables["guides"]:
                 software["bowtie"] = subprocess.check_output(["bowtie","--version"],text=True).splitlines()[0]
-            if not any(tables.values()):
+            primary = {"guides":"guides", "base":"designs", "prime":"designs",
+                       "primers":"primer-pairs", "select":"selected-guides", "amplicon-qc":"read-qc"}[workflow]
+            has_results = bool(tables[primary])
+            if not has_results:
                 notes.append("No candidates satisfy these inputs/settings; this is not a successful design recommendation.")
-            result = {"workflow":workflow, "status":"complete" if any(tables.values()) else "no_candidates", "inputs":inputs, "request":spec,
+            result = {"schema":"scientific-ai/crispr-report/v1", "workflow":workflow,
+                "status":"complete" if has_results else "no_candidates", "inputs":inputs, "request":spec,
                 "software":software, "elapsed_seconds":round(time.monotonic()-started,3),
                 "tables":{k:len(v) for k,v in tables.items()}, "limitations":notes}
             write_report(destination, result, tables)
             result["artifacts"] = [{"file":p.name, "sha256":digest(p)} for p in sorted(destination.iterdir()) if p.is_file()]
-            (destination / "result.json").write_text(json.dumps(result, indent=2, allow_nan=False)+"\n")
+            (destination / "report.json").write_text(json.dumps(result, indent=2, allow_nan=False)+"\n")
             if destination.is_relative_to("/workspace"):
                 relative = destination.relative_to("/workspace").as_posix()
                 result["inline_markdown"] = "[CRISPR report](/demos?"+urlencode({"tab":"workspace","path":relative,"file":"report.html"})+")"

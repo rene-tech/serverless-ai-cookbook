@@ -106,13 +106,15 @@ assistance, not clinical advice or a claim of laboratory automation.
 
 ## Deliver the result inline
 
-Read `result.json` and the actual CSVs. Report the number of computed candidates,
+Read `report.json` and the actual CSVs. Report the number of computed candidates,
 what was measured/predicted/not assessed, and the next useful decision. Keep the
 chat concise; detailed evidence belongs in files.
-`guides` counts nominated guides; `candidate-sites` counts reference alignments,
+`guides` counts nominated guides; `reference-alignments` counts reference matches,
 including multiple sites for one guide. Never infer rejected guides by subtracting
 these counts. Multiple guides targeting a gene are not biological replicates;
 do not claim replication unless the supplied experimental design establishes it.
+`primer-pairs` counts pairs, not individual primers. `report.html` and its
+`report.json` sidecar are the paired files used by the existing inline viewer.
 
 **Copy the runner's returned `inline_markdown` unchanged into the assistant
 response.** It is a `/demos?tab=workspace&path=...&file=report.html` link that

@@ -28,12 +28,12 @@ substitutes for experimental validation.
 
 ## Independent evaluation
 
-The numerical suite passes 72 tests, including 60 independently enumerated
+The numerical suite includes 73 tests, including 60 independently enumerated
 both-strand/PAM cases, published RS3 values, Bowtie versus a brute-force reference
 search, six actual computation paths, reference-allele and PEGG sequence checks,
-50 table-filter cases, artifact hashes, input errors and HTML escaping. Two
-consecutive unchanged-image cohorts passed, with no skips. The existing ClawBio
-screen-triage executable also completed its synthetic example.
+50 table-filter cases, artifact hashes, empty designs, input errors and HTML escaping. The existing ClawBio
+screen-triage executable also completed its synthetic example. Exact final-image
+and browser cohort counts are recorded in the release receipt.
 
 The agent experiment uses 50 independently authored table-query requests, three
 repetitions, and the same `Qwen/Qwen3-235B-A22B-Instruct-2507`, temperature 0.2,

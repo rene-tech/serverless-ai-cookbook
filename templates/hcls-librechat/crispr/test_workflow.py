@@ -76,7 +76,7 @@ def test_bowtie_complete_site_output_against_bruteforce(data,tmp_path):
             mismatches=sum(a!=b for a,b in zip(row["spacer"],site["spacer"]))
             if mismatches<=3:
                 expected.add((row["guide_id"],site["record"],site["start0"],site["strand"],mismatches))
-    actual={(r["guide_id"],r["record"],r["start0"],r["strand"],r["mismatches"]) for r in tables["candidate-sites"]}
+    actual={(r["guide_id"],r["record"],r["start0"],r["strand"],r["mismatches"]) for r in tables["reference-alignments"]}
     assert actual==expected
     assert any(r[1]=="synthetic-near-match" for r in actual)
 
@@ -92,7 +92,8 @@ def test_real_end_to_end(data,tmp_path,case):
     result=workflow.run(data/(case+".json"),output)
     assert result["status"]=="complete"
     assert sum(result["tables"].values())>0
-    saved=json.loads((output/"result.json").read_text())
+    saved=json.loads((output/"report.json").read_text())
+    assert saved["schema"]=="scientific-ai/crispr-report/v1"
     assert saved["inputs"]["request"]["sha256"]==workflow.digest(data/(case+".json"))
     for item in saved["artifacts"]:assert workflow.digest(output/item["file"])==item["sha256"]
     assert "<table>" in (output/"report.html").read_text()
@@ -126,6 +127,17 @@ def test_fifty_independent_table_queries(data,tmp_path):
         tables,_=workflow.select(dict(table=str(data/"guides.csv"),equals={"gene":gene},between={"position":[lo,hi]},
              order_by=[dict(column="score",ascending=False)],top=top),tmp_path)
         assert [r["id"] for r in tables["selected-guides"]]==[r["id"] for r in expected]
+
+
+def test_empty_primer_design_is_not_mistaken_for_success_from_diagnostics(tmp_path):
+    (tmp_path/"low-complexity.fa").write_text(">synthetic\n"+"A"*800+"\n")
+    request=tmp_path/"request.json"
+    request.write_text(json.dumps(dict(workflow="primers",species="synthetic",assembly="demo",
+                                     fasta="low-complexity.fa",target=[200,30])))
+    result=workflow.run(request,tmp_path/"out")
+    assert result["status"]=="no_candidates"
+    assert result["tables"]["primer-pairs"]==0
+    assert result["tables"]["primer3-diagnostics"]>0
 
 
 def test_errors_are_specific_and_no_fake_success(data,tmp_path):
