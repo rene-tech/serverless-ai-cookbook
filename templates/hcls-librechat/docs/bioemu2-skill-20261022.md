@@ -10,10 +10,12 @@ bundle manifest. Microsoft Research attribution is separate from NVIDIA.
 ## Image and retained clients
 
 The shared default selects image
-`sha256:06d7359721514aad2d20b3921306e85294b11a66d647af4204a833b7ed97ae03`,
-built from skill source `7b6fe1f66e541266bb96d73b8f4e55474893c869`
-on prior RFD4 release `576d1448`. The existing 86 skills, prior runtime layers,
-renderer, upload/recovery helpers and process configuration are unchanged.
+`sha256:eec90d1801d76ad040453bff68d4482d2aa7d79c1928b5fa123b0976df1dd155`,
+combining skill source `7b6fe1f66e541266bb96d73b8f4e55474893c869`
+and viewer fix `584095a3cdbb5209fb243e5dd9f6b19aed4f0914`.
+The skill layer `06d73597` extends prior RFD4 release `576d1448`; the final
+overlay changes only the structure bridge and its bytecode. The existing 86
+skills, other runtime layers, upload/recovery helpers and configuration remain.
 The actual API loader sees 87 skills; the managed molecular-design agent seed
 adds only `submit_bioemu2`.
 
@@ -44,3 +46,26 @@ Report measured frames/s, separating queue/startup from model execution.
 The private App onboarding report records exact GPU workflows and limits.
 Single-GPU tests do not qualify distributed context parallelism, GPU process
 snapshots, biological accuracy or sustained shared-service capacity.
+
+## Real QA chat and discovered rendering fix
+
+The main agent submitted one equilibrium request, used same-ID read-only result
+recovery, verified both artifacts and every internal file hash, and requested an
+inline structure. Operation `op-4b4ff0ddbb8e5ca3` returned two finite 76-atom
+frames, both passing native protein physicality checks. The worker command took
+26.98 seconds (model load 5.24 s; embedding/sampling 9.88 s); acceptance to
+completion was about 235 seconds including queue, startup and delivery. These
+are QA-scale measurements, not a sustained-capacity claim.
+
+Browser inspection caught an actual empty viewer despite the agent's success
+claim. CIF rows beginning `ATOM` were classified as fixed-column PDB before
+checking the explicit CIF headers. The shared detector now checks CIF first;
+the regression covers both local-file and operation-result inputs. Forty viewer
+tests passed. Regenerating the same verified file's UI resource rendered all 76
+atoms inline, without another model call or modifying coordinates. The old
+saved erroneous UI resource is retained as incident evidence; new renders use
+the corrected detector.
+
+Retained-client maintenance patches only the detector after checking its exact
+old text. It reconnects only an idle `structure-viewer` MCP connection, preserving
+other MCP objects and the API/study processes. Backups and receipts are retained.
