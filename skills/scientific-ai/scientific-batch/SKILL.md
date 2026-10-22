@@ -39,6 +39,11 @@ publication names.
    `output-NN.artifact` siblings. Roles, MIME, compression and hashes are in the
    manifest. Use these exact filenames in `{step,file}` dependencies. Native
    phases publish `result.json`. Do not interpret an artifact index as a seed.
+   A manifest is JSON metadata, not a coordinate file: never label it `.cif`
+   or `.pdb`. For a structure comparison, select `output-manifest.json` with
+   explicit `structure_index`; deliver the structure phase's verified
+   `prediction.structure` output as the coordinates and retain the manifest
+   separately as provenance. Names do not convert scientific file formats.
 
 Inline `study` accepts a v2 object or complete strict JSON text encoding that
 same object. Prefer a composer-generated `plan_file` for a long plan. Fix a

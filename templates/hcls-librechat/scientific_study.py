@@ -348,6 +348,11 @@ def validate(plan):
         if isinstance(item['source'], dict):
             source_step = next(step for step in plan['steps'] if step['id'] == item['source']['step'])
             source_name = Path(item['source']['file']).as_posix()
+            if Path(source_name).suffix.lower() == '.json' and Path(item['name']).suffix.lower() in {'.cif', '.mmcif', '.pdb'}:
+                raise ValueError(f'Deliverable {item["name"]!r} points to JSON metadata, not molecular coordinates. '
+                    'A name does not convert the source bytes. Preserve the JSON with its correct format; '
+                    'for selected predicted coordinates use a structure phase and its prediction.structure output. '
+                    'No study has been admitted.')
             known_directories = PHASE_OUTPUT_DIRECTORIES.get(source_step.get('method'), [])
             if source_name == '.' or source_name in known_directories or item['source']['file'].endswith('/'):
                 raise ValueError(f'Deliverable {item["name"]!r} refers to output directory {item["source"]["file"]!r}, not a file. Declare concrete published files (for example records/000.json), not whole helper directories.')
