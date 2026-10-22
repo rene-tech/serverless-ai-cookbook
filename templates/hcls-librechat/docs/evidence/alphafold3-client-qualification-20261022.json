@@ -1,0 +1,46 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:af3-qualification-20261022-a7d62b1",
+  "manifest": "sha256:3a3357728e0e613c5099a5fe40021dfb5f686c525a184489d46c01db11c32e9b",
+  "source": "a7d62b1a8c0071b80b652ff28336b2981e81e006",
+  "skills_version": "2026.10.22.3",
+  "base_manifest": "sha256:6b367cc6bb490caced752009191fdc6eeb7176aaf9c16b9b48c4c0ee82491059",
+  "published_verified": true,
+  "all_scientific_workflows_qualified": false,
+  "installed": {
+    "registry_readback_verified": true,
+    "base_layers_preserved": 56,
+    "runtime_configuration_preserved": true,
+    "canonical_bundle_files_verified": 100,
+    "additional_clawbio_skills_preserved": true,
+    "source_hashes": {
+      "opt/bionemo/scientific_study.py": "64c21d73f098805441ec84837127e1d285b16ebda9c4b5b49113607f9358565d",
+      "opt/bionemo/scientific_protein_preparation.py": "f107324104e7f03cf6ad85d0e8c4cd4386758ab9fd52128aaa759f0ea4c86483",
+      "opt/bionemo/structure-analysis.py": "18ebe3ff21c46d7f5a9458c1b7a057f56f5349c23c68b8ac50b54222207c21ee",
+      "opt/hcls-librechat/demos/analysis.cjs": "423464e9acf6193370d97a61c7f1f06d61c95046bc2609468187213ab0069a3f",
+      "opt/hcls-librechat/demos/mcp.cjs": "274dfcfe314b8a6735c0fb00bafc0931d1633814283fa367eaff57a52809fd0b",
+      "app/skill/RELEASE.md": "4d98d7199f2cad1afa9ff481ecd2ae75bd315ae80c0886599a8461b34a3eeed8",
+      "app/skill/bioemu2/SKILL.md": "30873bad405ca3dde3acc9dfa8778b51d8304a402b4e3b99e8c78977bc416327",
+      "app/skill/files.sha256.json": "bccbc2ed508c2eae96ee3f28659124677ecff2eaa6233f400497bf8c4fd0b222",
+      "app/skill/manifest.json": "a792d4410f36038506314489d468fc88fb20fc743144088cff7f8c552cf86753",
+      "app/skill/scientific-batch/SKILL.md": "2a107a4e3fd3febcc736abad6b8198e6a49465efd696a75fc532b4245443cb6d"
+    }
+  },
+  "real_client": {
+    "system_qa_only": true,
+    "new_scientific_inferences": 1,
+    "corrected_delivery_new_inferences": 0,
+    "fresh_typed_comparison_calls": 1,
+    "fresh_comparison_inference_submitted": false,
+    "original_stream_inline_without_reload": true,
+    "saved_reopen_inline_without_reset": true,
+    "history_configuration_and_processes_preserved": true,
+    "other_customer_instances_changed": 0
+  },
+  "limitations": [
+    "original first-turn final narrative/view required follow-up",
+    "original observation exception cause unresolved",
+    "long diagnostic chat compaction provider HTTP 500 unresolved",
+    "no sustained shared capacity or whole-model readiness claim"
+  ],
+  "evidence_document": "../alphafold3-client-qualification-20261022.md"
+}

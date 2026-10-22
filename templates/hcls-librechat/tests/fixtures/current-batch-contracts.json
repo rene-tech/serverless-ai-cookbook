@@ -492,6 +492,12 @@
             }
           }
         },
+        "output_prefix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Directory in your assigned bucket for automatic result.json, artifacts and manifest.json delivery. Defaults to runs/<model-id>; the operation ID is appended. Never sent to the model."
+        },
         "idempotency_key": {
           "type": [
             "string",
