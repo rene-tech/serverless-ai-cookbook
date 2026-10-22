@@ -2,7 +2,7 @@
 # Additive deliverable validation over the current BioEmu2/viewer release.
 # Preserve its clients, runtimes, supervisor, provider and complete skill set.
 # Build with --build-context scientific-skills=./skills/scientific-ai.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:eec90d1801d76ad040453bff68d4482d2aa7d79c1928b5fa123b0976df1dd155
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:6b367cc6bb490caced752009191fdc6eeb7176aaf9c16b9b48c4c0ee82491059
 FROM ${WORKBENCH_BASE}
 USER root
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py
