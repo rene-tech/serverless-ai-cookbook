@@ -51,6 +51,9 @@ protocol is an execution example, not a converged experiment.
 
 For a complete chat request, include submission, verified artifact recovery,
 analysis and final report in a durable `scientific-workflow/v2` study. Use
+the [workbench recipe](references/workbench.md) for exact recovery and inline
+preview instructions; do not search source code or load every model schema.
+Use
 `scientific-batch` for the current batch phase fields. The native file manifest
 is `native-files.json`; the installed `native_md_preview.py` accepts it for a
 timing report and final-coordinate preview without running another simulation.

@@ -1,6 +1,6 @@
 # Native molecular-dynamics transport
 
-This shared reference applies to GROMACS, LAMMPS, NAMD and AMBER. A skill being
+This shared reference applies to GROMACS, LAMMPS, NAMD, AMBER and OpenMM. A skill being
 installed is not evidence that its App is released or granted to this user.
 Discover the exact App and schema first. AMBER is not interchangeable with these
 engines; do not silently translate its inputs to another simulator.
