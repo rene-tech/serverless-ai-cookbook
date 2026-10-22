@@ -10,11 +10,14 @@ bundle manifest. Microsoft Research attribution is separate from NVIDIA.
 ## Image and retained clients
 
 The shared default selects image
-`sha256:eec90d1801d76ad040453bff68d4482d2aa7d79c1928b5fa123b0976df1dd155`,
+`sha256:6b367cc6bb490caced752009191fdc6eeb7176aaf9c16b9b48c4c0ee82491059`,
 combining skill source `7b6fe1f66e541266bb96d73b8f4e55474893c869`
-and viewer fix `584095a3cdbb5209fb243e5dd9f6b19aed4f0914`.
+viewer fix `584095a3cdbb5209fb243e5dd9f6b19aed4f0914`, and skill refinement
+`0c71993` (immutable build source `0fae16c`, before integration rebase).
 The skill layer `06d73597` extends prior RFD4 release `576d1448`; the final
-overlay changes only the structure bridge and its bytecode. The existing 86
+viewer overlay changes only the structure bridge and its bytecode. The final
+refinement adds only the BioEmu2 instructions and bundle metadata over `eec90d`.
+The existing 86
 skills, other runtime layers, upload/recovery helpers and configuration remain.
 The actual API loader sees 87 skills; the managed molecular-design agent seed
 adds only `submit_bioemu2`.
@@ -23,6 +26,12 @@ Additive activation was verified in QA, Rene, Arseniy, LynxKite, Whitelab and
 Prima Mente. Existing running processes, endpoint specifications, histories,
 tenant keys and storage bindings were preserved. Customized agent tools were
 not overwritten. No customer API key was used for inference tests.
+
+The coordinated AF3 deliverable-validator image is a separate release in progress.
+It must preserve these BioEmu2 refinements, either by building on `6b367cc6` or
+including the same skill and manifest from current main. Do not repoint the
+default to an image that drops the latest skill; a merged source change is not
+proof that a previously built image contains it.
 
 Offline checks: 54 bundle tests and four seed-merge tests passed, plus actual
 installed-image skill-content equivalence. The onboarding evidence packet is
@@ -69,3 +78,24 @@ the corrected detector.
 Retained-client maintenance patches only the detector after checking its exact
 old text. It reconnects only an idle `structure-viewer` MCP connection, preserving
 other MCP objects and the API/study processes. Backups and receipts are retained.
+
+## Final fresh-session acceptance
+
+A later reused conversation invented completion details and an invalid UI marker
+after racing dependent tools. That failed chat is retained, not counted as a
+pass. The skill now requires sequential dependent phases, observed operation
+outputs and actual successful viewer resource IDs, with a regression test.
+These instructions were activated in all six clients without an API restart.
+
+The fresh conversation `223c96fa-24e5-5e1e-a689-613b696f0ba3` then completed
+operation `op-d0a160aed1e2f895` on final BioEmu2 runtime R5. Actual tool outputs
+verify unchanged public inputs, two generated conformations, all artifact/file
+hashes and native physicality. The agent recovered a tar-on-object-mount warning
+and observation timeout without repeating inference. It corrected an unsupported
+operation-ID viewer call to the documented local-file path. The successful
+viewer returned `dcbe9f145f`; the assistant used that real marker and the
+browser displayed the 76-atom structure inline without a reload.
+
+Model load: 5.24 s; embedding/sampling: 9.63 s (0.208 generated frames/s).
+Tool retries and agent reasoning add latency beyond backend execution. This
+does not claim deterministic LLM behavior or all-workflow workbench qualification.
