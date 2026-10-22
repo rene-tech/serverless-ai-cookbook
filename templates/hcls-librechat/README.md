@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A3a3357728e0e613c5099a5fe40021dfb5f686c525a184489d46c01db11c32e9b&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Acb248daeabff7b8ae1495cce3f86e40e1bf6c14feaec534f2767dc0f83d56507&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace

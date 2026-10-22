@@ -63,7 +63,10 @@ test('full image applies existing patch-server and verifies actual installed mod
 
 test('additive image inherits the current qualified SDK instead of replaying historical patches', async () => {
   const dockerfile = await fs.readFile(path.join(__dirname, 'Dockerfile.default-release'), 'utf8');
-  assert.match(dockerfile, /ARG WORKBENCH_BASE=.*@sha256:8b7a4b6655276bb730b350d53a6b44e827506287ffe45d544381c4d43f6e1386/);
+  const release = await fs.readFile(path.join(__dirname, 'scripts/release-image.sh'), 'utf8');
+  const digest = release.match(/^SCIENTIFIC_AI_RELEASE_DIGEST='(sha256:[a-f0-9]{64})'$/m)?.[1];
+  assert.ok(digest, 'The current default must name an immutable image');
+  assert.ok(dockerfile.split('\n').some(line => line.startsWith('ARG WORKBENCH_BASE=') && line.endsWith(`@${digest}`)));
   assert.doesNotMatch(dockerfile, /node \/opt\/hcls-librechat\/patch-deferred-discovery\.mjs/);
   assert.doesNotMatch(dockerfile, /node \/opt\/hcls-librechat\/patch-server\.mjs/);
   assert.equal(dockerfile.split('\n').filter(line => line.startsWith('FROM ')).length, 1);

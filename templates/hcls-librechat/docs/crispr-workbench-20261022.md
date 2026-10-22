@@ -47,8 +47,16 @@ skill. Expected answers are retained only in the scorer, not the model prompt.
 | Median response time | 1.82 s | 1.73 s |
 | Total tokens | 43,434 | 272,034 |
 
-This is a tie, not a meaningful latency advantage. Passing the full skill adds
-tokens; the real client loads the skill/reference only when relevant. These are
+That instruction revision tied; it did not demonstrate a meaningful latency
+advantage. A subsequent repetition with clarified guide-count instructions
+scored **150/150 baseline versus 145/150 with the skill**: five skill-arm responses
+invented `where` or `filters` wrappers which the runner correctly rejected.
+Median times were 1.38/1.29 seconds and tokens 43,434/280,774. This prompt-only
+experiment supplies the skill body but no reference-file reader; the real
+workbench reads `references/requests.md` and executes validated requests. The
+last output-format-only revision was not rerun through this benchmark. Neither
+revision supports a superiority claim; loading more instructions can make a
+simple task worse. These are
 repeated simple cases, not independent biological experiments or a population
 capacity estimate. Reproduce with `crispr/benchmark_agent.py`; the API credential
 comes from the environment and is never recorded.
