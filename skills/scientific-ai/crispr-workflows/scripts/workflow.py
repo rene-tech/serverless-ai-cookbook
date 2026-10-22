@@ -169,6 +169,7 @@ def guides(spec, scratch):
         tables["candidate-sites"] = site_search(rows, spec["reference_fasta"], nuclease,
              spec.get("max_mismatches", 3), scratch, spec.get("cpus", 1))
         notes.append("Reference search includes the intended target; only supplied reference, canonical PAMs, <=3 mismatches, no bulges or unprovided variants. Hit count is not a risk score.")
+        notes.append("guides counts distinct nominated guides; candidate-sites counts reference alignments. One guide can have several sites, so subtracting these table counts does NOT count filtered/rejected guides.")
     else:
         notes.append("Reference-wide off-target search NOT PERFORMED; absence of a search is not zero off-target risk.")
     tables["guides"] = sorted(rows, key=lambda r: (r["ruleset3"] is None, -(r["ruleset3"] or 0), r["guide_id"]))

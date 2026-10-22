@@ -109,6 +109,10 @@ assistance, not clinical advice or a claim of laboratory automation.
 Read `result.json` and the actual CSVs. Report the number of computed candidates,
 what was measured/predicted/not assessed, and the next useful decision. Keep the
 chat concise; detailed evidence belongs in files.
+`guides` counts nominated guides; `candidate-sites` counts reference alignments,
+including multiple sites for one guide. Never infer rejected guides by subtracting
+these counts. Multiple guides targeting a gene are not biological replicates;
+do not claim replication unless the supplied experimental design establishes it.
 
 **Copy the runner's returned `inline_markdown` unchanged into the assistant
 response.** It is a `/demos?tab=workspace&path=...&file=report.html` link that
