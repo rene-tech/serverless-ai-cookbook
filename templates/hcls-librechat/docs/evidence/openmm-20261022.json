@@ -1,0 +1,53 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:openmm-20261022-bed41b4",
+  "manifest": "sha256:b345d4de7785478608492ce33a2cbda4bfa09ef2322b406a91642641fc2cc990",
+  "source": "bed41b4bc56fffe7ecf1d97efbed43ff24bac0aa",
+  "skills_version": "2026.10.22.7",
+  "base_manifest": "sha256:cb248daeabff7b8ae1495cce3f86e40e1bf6c14feaec534f2767dc0f83d56507",
+  "published_verified": true,
+  "all_scientific_workflows_qualified": false,
+  "installed": {
+    "base_layers_preserved": 68,
+    "total_layers": 78,
+    "runtime_configuration_preserved": true,
+    "canonical_bundle_files_verified": 110,
+    "loaded_skills": 89,
+    "changed_files_verified": 14,
+    "crispr_skill_sha256_preserved": "61968ba1c5e2860d3d3604500cd2dfcc0d7185423a6b89ca16097142066e4398",
+    "bioemu2_skill_sha256_preserved": "30873bad405ca3dde3acc9dfa8778b51d8304a402b4e3b99e8c78977bc416327"
+  },
+  "scientific_app": {
+    "version": "8.6.1",
+    "public_interfaces": ["REST", "MCP"],
+    "validated_cases": 9,
+    "h100_to_l40s_portable_state_resume": true,
+    "rng_continuity_across_devices_claimed": false,
+    "gpu_process_snapshot_qualified": false,
+    "sustainable_capacity_measured": false,
+    "live_cross_principal_isolation_qualified": false
+  },
+  "real_client": {
+    "scientific_submission_succeeded": true,
+    "initial_reporting_failure_retained": true,
+    "final_report_cohorts": 2,
+    "verified_deliverables_per_cohort": 6,
+    "inline_timing_and_structure_verified": true,
+    "saved_conversation_reopen_verified": true,
+    "browser_download_checksums_verified": true,
+    "science_replayed_for_reporting": false,
+    "fresh_starter_shortcut_live_tested": false,
+    "provider_recreation_tested": false
+  },
+  "retained_clients": {
+    "count_updated": 6,
+    "rollout_complete": true,
+    "changed_file_hashes_verified": true,
+    "loaded_skill_bodies_verified": true,
+    "idle_worker_refresh_under_queue_lock": true,
+    "original_mcp_scopes_preserved": true,
+    "api_ui_observer_history_preserved": true,
+    "customer_grants_and_credentials_unchanged": true,
+    "provider_images_replaced": false
+  },
+  "evidence_document": "../openmm-20261022.md"
+}

@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Acb248daeabff7b8ae1495cce3f86e40e1bf6c14feaec534f2767dc0f83d56507&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Ab345d4de7785478608492ce33a2cbda4bfa09ef2322b406a91642641fc2cc990&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,12 +65,16 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:rfd4-skills-20261021-b3f57a3`,
-digest `sha256:576d1448eb846f1e5f825f314cc82423f9cf7178eae107616f903b87e4e3db73`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:openmm-20261022-bed41b4`,
+digest `sha256:b345d4de7785478608492ce33a2cbda4bfa09ef2322b406a91642641fc2cc990`.
+The [OpenMM guide](docs/openmm-20261022.md) covers classical MD, reproducible
+examples, checkpoint recovery and verified inline reports. This additive release
+preserves the [CRISPR workflows](docs/crispr-workbench-20261022.md), BioEmu2,
+other existing skills and provider configuration; it does not execute arbitrary
+OpenMM Python or claim GPU process snapshot support.
 The additive [RFD4-Proteina skill release](docs/rfd4-skill-20261021.md) provides
 annotated-CIF preparation, typed submission, same-operation result recovery and
-inline structure viewing. The inherited UI, helpers and runtime dependencies
-are unchanged. Model access still follows the supplied platform key; this image
+inline structure viewing. Model access still follows the supplied platform key; this image
 does not grant access or host model weights locally.
 The [client observation recovery](docs/client-observation-recovery-20261020.md)
 provides bounded read retries, clear interrupted-observation outcomes and an exact

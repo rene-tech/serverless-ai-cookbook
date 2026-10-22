@@ -2,7 +2,7 @@
 # Additive deliverable validation over the current CRISPR/AF3/BioEmu2 release.
 # Preserve its clients, runtimes, supervisor, provider and complete skill set.
 # Build with --build-context scientific-skills=./skills/scientific-ai.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:cb248daeabff7b8ae1495cce3f86e40e1bf6c14feaec534f2767dc0f83d56507
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:b345d4de7785478608492ce33a2cbda4bfa09ef2322b406a91642641fc2cc990
 FROM ${WORKBENCH_BASE}
 USER root
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py
