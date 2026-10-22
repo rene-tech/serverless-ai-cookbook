@@ -1,6 +1,6 @@
 ---
 name: crispr-workflows
-description: Plan and run reproducible CRISPR research in the Scientific AI workbench: nuclease guide candidates, CRISPRa/i target-region selection, base and prime editing, reference-site search, validation primers, amplicon QC and screen interpretation. Use for CRISPR, CRISPR-GPT-like assistance, guide RNAs, sgRNAs or pegRNAs; distinguish computed designs from experimental results.
+description: "Plan and run reproducible CRISPR research in the Scientific AI workbench: nuclease guide candidates, CRISPRa/i target-region selection, base and prime editing, reference-site search, validation primers, amplicon QC and screen interpretation. Use for CRISPR, CRISPR-GPT-like assistance, guide RNAs, sgRNAs or pegRNAs; distinguish computed designs from experimental results."
 license: CC-BY-4.0
 ---
 
