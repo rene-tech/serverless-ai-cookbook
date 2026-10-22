@@ -12,6 +12,22 @@ ASSETS = ROOT.parents[1] / 'life-science/bionemo-librechat'
 OPERATION = 'op-1111111111111111'
 PDB = 'ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1.00 10.00           C\nEND\n'
 SDF = 'water\n  fixture\n\n  1  0  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\nM  END\n$$$$\n'
+CIF = '''data_test
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+ATOM      1 N N GLY A 1 1.000 2.000 3.000
+ATOM      2 C CA GLY A 1 2.000 3.000 4.000
+#
+'''
 
 
 @pytest.fixture
@@ -99,6 +115,22 @@ def test_workspace_structure_paths_cannot_escape_root(bridge, tmp_path):
     outside.write_text(PDB)
     with pytest.raises(ValueError, match='remain under'):
         bridge.call_viewer({'workspace_files': [{'path': str(outside), 'label': 'outside'}]})
+
+
+def test_mmcif_atom_rows_are_not_misclassified_as_pdb(bridge):
+    # MDTraj/BioEmu2 output has PDB-looking row prefixes but explicit CIF columns.
+    path = bridge.WORKSPACE / 'topology.cif'
+    path.write_text(CIF)
+    assert bridge.structure_format(CIF) == 'cif'
+    for entries in (
+        bridge.workspace_structures([{'path': str(path), 'label': 'test'}]),
+        bridge.collect_structures({'structure': CIF}),
+    ):
+        assert len(entries) == 1 and entries[0]['format'] == 'pdb'
+        lines = entries[0]['text'].splitlines()
+        assert len([line for line in lines if line.startswith('ATOM')]) == 2
+        assert lines[0][30:54] == '   1.000   2.000   3.000'
+        assert 'data_test' not in entries[0]['text']
 
 
 def test_explicit_plddt_result_enables_real_confidence_coloring(bridge, monkeypatch):

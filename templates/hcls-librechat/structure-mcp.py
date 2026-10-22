@@ -89,10 +89,12 @@ def get_result(operation_id):
 
 
 def structure_format(text):
-    if re.search(r'^(ATOM  |HETATM).{24,}', text, re.M):
-        return 'pdb'
+    # mmCIF coordinate rows can also begin with ATOM/HETATM. Its explicit
+    # column headers take precedence over PDB's fixed-column record prefix.
     if '_atom_site.Cartn_x' in text or '_atom_site.cartn_x' in text:
         return 'cif'
+    if re.search(r'^(ATOM  |HETATM).{24,}', text, re.M):
+        return 'pdb'
     if re.search(r'V[23]000\s*$', text, re.M) and 'M  END' in text:
         return 'sdf'
     return None
