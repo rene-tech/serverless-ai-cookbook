@@ -6,20 +6,20 @@ ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:6b367c
 FROM ${WORKBENCH_BASE}
 USER root
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py
-COPY --from=scientific-skills scientific-batch/SKILL.md /app/skill/scientific-batch/SKILL.md
-RUN python3 - <<'PY'
-import hashlib, json, py_compile
+RUN --mount=type=bind,from=scientific-skills,target=/tmp/scientific-skills,ro python3 - <<'PY'
+import hashlib, json, py_compile, shutil, subprocess
 from pathlib import Path
+source = Path('/tmp/scientific-skills')
+subprocess.run(['python3', str(source / 'bundle.py'), 'verify'], check=True)
 root = Path('/app/skill')
-path = root / 'files.sha256.json'
-inventory = json.loads(path.read_bytes())
-# Preserve the base release's entire managed inventory and extra ClawBio skills.
-# Only the intentionally changed scientific-batch instruction body is replaced.
-assert inventory['scientific-batch/SKILL.md'] == '06baf39ece004b26daaa6139539255d2b0ab155d5969571a0315667b091aeb47'
-inventory['scientific-batch/SKILL.md'] = hashlib.sha256((root / 'scientific-batch/SKILL.md').read_bytes()).hexdigest()
+inventory = json.loads((source / 'files.sha256.json').read_bytes())
+# Install the exact current portable bundle; preserve additional ClawBio skills.
 for name, expected in inventory.items():
+    target = root / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source / name, target)
     assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected, name
-path.write_text(json.dumps(inventory, indent=2) + '\n')
+shutil.copy2(source / 'files.sha256.json', root / 'files.sha256.json')
 py_compile.compile('/opt/bionemo/scientific_study.py', doraise=True)
 print(json.dumps({'managed_files_verified': len(inventory), 'other_skills_preserved': True}))
 PY
