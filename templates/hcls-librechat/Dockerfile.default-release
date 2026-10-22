@@ -38,4 +38,5 @@ ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
       ai.nebius.scientific.release="openmm-workbench-20261022" \
-      ai.nebius.scientific.skills.version="2026.10.22.5"
+      ai.nebius.scientific.skills.version="2026.10.22.6" \
+      ai.nebius.scientific.skills.revision="${HCLS_IMAGE_REVISION}"

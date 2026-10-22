@@ -54,6 +54,9 @@ analysis and final report in a durable `scientific-workflow/v2` study. Use
 `scientific-batch` for the current batch phase fields. The native file manifest
 is `native-files.json`; the installed `native_md_preview.py` accepts it for a
 timing report and final-coordinate preview without running another simulation.
+Leave the preview's optional `expected_repeats` unset unless checking a known
+count. It counts distinct dynamics step IDs, not minimization phases or
+checkpoint segments: one equilibration plus one production step counts as two.
 Preserve the original operation, study directory and idempotency key.
 
 ## Recovery and results
