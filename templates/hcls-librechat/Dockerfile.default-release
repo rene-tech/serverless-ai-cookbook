@@ -7,9 +7,22 @@ FROM ${WORKBENCH_BASE}
 USER root
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py
 COPY --from=scientific-skills scientific-batch/SKILL.md /app/skill/scientific-batch/SKILL.md
-COPY --from=scientific-skills files.sha256.json /app/skill/files.sha256.json
-RUN python3 /app/skill/bundle.py verify \
- && python3 -m py_compile /opt/bionemo/scientific_study.py
+RUN python3 - <<'PY'
+import hashlib, json, py_compile
+from pathlib import Path
+root = Path('/app/skill')
+path = root / 'files.sha256.json'
+inventory = json.loads(path.read_bytes())
+# Preserve the base release's entire managed inventory and extra ClawBio skills.
+# Only the intentionally changed scientific-batch instruction body is replaced.
+assert inventory['scientific-batch/SKILL.md'] == '06baf39ece004b26daaa6139539255d2b0ab155d5969571a0315667b091aeb47'
+inventory['scientific-batch/SKILL.md'] = hashlib.sha256((root / 'scientific-batch/SKILL.md').read_bytes()).hexdigest()
+for name, expected in inventory.items():
+    assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected, name
+path.write_text(json.dumps(inventory, indent=2) + '\n')
+py_compile.compile('/opt/bionemo/scientific_study.py', doraise=True)
+print(json.dumps({'managed_files_verified': len(inventory), 'other_skills_preserved': True}))
+PY
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
     cp /tmp/client/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
  && cp /tmp/client/scientific-workflow.py /tmp/client/scientific-study-worker.py /opt/bionemo/ \
