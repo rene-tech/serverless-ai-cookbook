@@ -9,9 +9,9 @@ import shutil
 
 import pytest
 
-SKILL = Path(__file__).resolve().parents[3] / "skills/scientific-ai/crispr-workflows/scripts"
-if not SKILL.exists():
-    SKILL = Path("/app/skill/crispr-workflows/scripts")
+SKILL = next((p/"skills/scientific-ai/crispr-workflows/scripts" for p in Path(__file__).resolve().parents
+              if (p/"skills/scientific-ai/crispr-workflows/scripts").is_dir()),
+             Path("/app/skill/crispr-workflows/scripts"))
 
 
 def load(name):

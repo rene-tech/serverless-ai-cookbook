@@ -3,7 +3,7 @@
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:3a3357728e0e613c5099a5fe40021dfb5f686c525a184489d46c01db11c32e9b
 FROM ${WORKBENCH_BASE}
 COPY --from=ghcr.io/astral-sh/uv@sha256:240fb85ab0f263ef12f492d8476aa3a2e4e1e333f7d67fbdd923d00a506a516a /uv /tmp/crispr-uv
-COPY templates/hcls-librechat/crispr/requirements-core.lock templates/hcls-librechat/crispr/requirements-pegg.lock /opt/crispr-runtime/
+COPY templates/hcls-librechat/crispr/requirements-core.lock templates/hcls-librechat/crispr/requirements-pegg.lock templates/hcls-librechat/crispr/NOTICE.md /opt/crispr-runtime/
 RUN apt-get update && apt-get install -y --no-install-recommends bowtie=1.3.1-1+b1 libgomp1 \
  && UV_PYTHON_INSTALL_DIR=/opt/crispr-python /tmp/crispr-uv python install 3.10.20 \
  && UV_PYTHON_INSTALL_DIR=/opt/crispr-python /tmp/crispr-uv venv --python 3.10.20 /opt/crispr-core \
