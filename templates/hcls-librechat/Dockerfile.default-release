@@ -5,8 +5,8 @@ ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:eec90d
 FROM ${WORKBENCH_BASE}
 USER root
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py
-COPY skills/scientific-ai/scientific-batch/SKILL.md /app/skill/scientific-batch/SKILL.md
-COPY skills/scientific-ai/files.sha256.json /app/skill/files.sha256.json
+COPY --from=scientific-skills scientific-batch/SKILL.md /app/skill/scientific-batch/SKILL.md
+COPY --from=scientific-skills files.sha256.json /app/skill/files.sha256.json
 RUN python3 /app/skill/bundle.py verify \
  && python3 -m py_compile /opt/bionemo/scientific_study.py
 ARG HCLS_IMAGE_REVISION=unknown
