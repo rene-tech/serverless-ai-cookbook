@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.10.22.3",
+  "version": "2026.10.22.4",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -19,6 +19,7 @@
     "clawbio-catalog": [],
     "clinical-asr-evaluation": ["nemotron-speech-en-0-6b", "nemotron-speech-multilingual-0-6b", "parakeet-realtime-eou-120m-v1"],
     "clinical-documentation": [],
+    "crispr-workflows": [],
     "diffdock": ["diffdock"],
     "drug-discovery-pipeline": ["genmol", "diffdock"],
     "evo2": ["evo2-40b"],
