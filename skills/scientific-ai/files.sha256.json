@@ -10,6 +10,9 @@
   "amber/references/sources.md": "c21383a4b17c162c82ce545e3f16f0c03949ab18c1d41ac0a67f21bdaf76215b",
   "binder-design-campaigns/SKILL.md": "8b9031308ac183be706ab807dab4ee0299e8568d448678debaee32a04ff42206",
   "binder-design-campaigns/references/model-contracts.md": "7a1cf28ec9eab7b098991d84e2bb53ea4483ed9a6747bb4b494a5f6c519cc414",
+  "bioemu2/SKILL.md": "fe93811530abc717952c721a1591354a49b655f82b5c3383533f7b310429f9a8",
+  "bioemu2/examples/parameters.json": "eddd6f26529c8f650058e62fc283b83de018b4df534be27a66767993b721d13a",
+  "bioemu2/examples/system.yaml": "934aadfe47646ce8eace13f30d8a1bf31a5360af034e4571b40e89a57067e3ee",
   "boltz2/SKILL.md": "a0e102cc376a729938b81bae123921718967b03a410fd68de8faf7d6de0a4ef8",
   "bundle.py": "e9fae023fe7c1d1da9e8b9f7aa740a870b9f933a44c240aaccb48d58bf6d6c60",
   "clawbio-catalog/SKILL.md": "408e0d9f30561726da33fa7db754f467615802f456e462999146f99aaed35c65",
@@ -49,7 +52,7 @@
   "lammps/SKILL.md": "11789c6fff20352c22b765f13c8176188023607dd5672873205e7aaeba51d6f6",
   "lammps/examples/native-workflow.json": "5114f2804949c96ccfa2240034899c188473cf70e0d0c8e83f5eae5df96be8f0",
   "lammps/references/native-workflows.md": "634745f17c7bea95fec83a202f262d8a4a779ef361762df3989e697246382234",
-  "manifest.json": "0cddf11fd5ee2df623b1a475035813e96cf8787b4e1c87a58ac4592e4826fcd3",
+  "manifest.json": "6702c495e94a6bd061924c0141f574a087e4b6f500a637eb46c7ff2e5913c679",
   "md-precheck/SKILL.md": "63c0a283647656ac657e006da2b4a83ede443e6da6da017625314c078c9de173",
   "md-precheck/references/api.md": "181306c9f7efdb6f050494c2f48b8c1a0f586273e553db201de3404365e30eb9",
   "md-precheck/scripts/run-precheck.py": "22c42b2af58f0cd5ca7aa728895eb36cd4d3d97662431fbf3cd6ab79fe6883d7",
@@ -93,6 +96,6 @@
   "tests/contracts.json": "b5e6d71b53477b11bb7d63d427d0eaf98fbbd2c1c72b7fc45ff4949ea04e81ba",
   "tests/native-md-contracts.json": "4ae84127b24a3b0c570c8bae7a638baa15e7c941727f8a269dfd38ea5456d533",
   "tests/sync-native-md-contracts.py": "e0e2ad23d7fcb074384bf3b7dcc48fbf9ef4e769e1efbc1d89d0fac8d3a8f195",
-  "tests/test_bundle.py": "1528cdd011d52f237cce6fbc1ee7166f8317cdb7ed95246851020f56dbf80ce0",
+  "tests/test_bundle.py": "22e3e971a02896ff05c3b6895925ffa905c889293cb35f0d5a17eda90e8318d4",
   "tests/test_rfd4.py": "32e3fb38e564ee91068a98781636e0f8e50f10068b41ed943480d9ea5cce8dd8"
 }
