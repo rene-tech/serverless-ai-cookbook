@@ -199,8 +199,9 @@ useful throughput from durably completed simulated duration and elapsed time.
 ## Output budget and failure diagnostics
 
 `max_output_bytes` bounds total files in the workflow's workspace, not only a
-single final download. The implementation default is 4 GiB and request maximum
-is 48 GiB; live schema, assigned scratch and bucket quota remain authoritative.
+single final download. Read its default and maximum from the current GROMACS
+MPI schema; the maximum is not the default. Do not inherit another App's
+budget semantics. Assigned scratch and bucket quota remain separate constraints.
 Budget for staged TPR/input files, checkpoint generations, segment/final `.gro`
 files, XTC/TRR/EDR parts, joined copies and analysis outputs. A ~12.5-million-atom
 benchmark generated ~862 MB per final `.gro`; repeated files exhausted its 4 GiB

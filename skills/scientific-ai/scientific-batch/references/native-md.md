@@ -71,11 +71,24 @@ stochastic state may not be bitwise serializable. Persistent CUDA/CRIU process
 snapshots are a separate capability: require exact-runtime evidence before
 claiming they work or estimating their cold-start benefit.
 
-The default workspace budget is 4 GiB and wall budget six hours. Read current
-schema limits before requesting more. These requests do not enlarge bucket
-quotas; individual files over 5 GiB are not currently qualified. Select output
-cadence with the scientist so trajectories fit the scientific question and
-storage allowance. Never silently reduce trajectory output to pass a test.
+Budgets are model-specific. Before a new submission, read `max_output_bytes`
+and `max_wall_seconds` in that App's current schema. A `default` applies when
+the field is omitted; a `maximum` is an allowed bound, not the default or a
+promise of sufficient resources. Do not copy another engine's defaults, an
+old example's limits or a short benchmark's explicit budget into the request.
+
+For current OpenMM, omitting `max_output_bytes` (or passing schema-supported
+`null`) adds no workflow byte cap beyond authorized storage capacity. An explicit
+integer caps all retained workflow bytes, including inputs, preparation and
+archived outputs. Other Apps can have different defaults and maxima: discover
+them rather than assuming OpenMM's behavior applies everywhere. These are
+submission budgets, not a universal download limit for existing results.
+
+Request budgets do not enlarge bucket quotas or execution scratch. Keep the
+scientist's output cadence; estimate storage from real inputs and requested
+frames, and explain any measured capacity problem without silently reducing
+output. Recover completed results through their existing operation ID; do not
+resubmit science or change its budgets merely to download or report on it.
 
 ## Evidence to return
 
