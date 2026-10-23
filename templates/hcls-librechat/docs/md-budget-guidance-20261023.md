@@ -1,4 +1,4 @@
-# MD budget guidance: source-only correction
+# MD budget guidance
 
 The shared native-MD reference incorrectly described a universal 4 GiB workspace
 default and six-hour wall budget. Current Apps have different schema defaults
@@ -13,12 +13,14 @@ preserves scientific output cadence and prohibits resubmission merely to fetch
 existing results. Other skills and helper code are unchanged.
 
 Validation: bundle hashes verified and all 26 existing bundle/contract tests
-passed. This is an offline documentation correction, not a live client or image
-release. The default image and retained clients still contain their existing
-bundle. No running chat, process, MCP connection or client file was changed.
-After the active recovery window is explicitly closed, package the correction
-into the next reviewed image/client update and verify the actual loaded
-reference text, preserving user customizations and connection scope.
+passed. The initially source-only correction is now packaged in the
+[sparse-coordinate viewer release](sparse-preview-20261023.md), whose exact
+default image contains bundle `2026.10.23.3`. Six maintained clients received
+these two reference files with the viewer correction, after idle and exact-file
+checks. Their running registries expose the verified reference contents; domain
+bodies, customizations, connection scope and processes were preserved. These
+are scoped overlays, not full-bundle replacements. Existing studies and their
+scientific request budgets were not changed.
 
 Repeated recovery-tool searches and time before the first recovery invocation
 are separate observations. This documentation change does not establish their

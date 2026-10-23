@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A962fff454d231c3ea40b31f494cc9e78fabe590ca8e10786c38a01f58df38363&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Abe5adc6c39b5ef7909d382d7122e56c79336edf11b1a94342df05f4765ea08f6&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,13 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:bounded-preview-20261023-3894580`,
-digest `sha256:962fff454d231c3ea40b31f494cc9e78fabe590ca8e10786c38a01f58df38363`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:sparse-preview-20261023-20da61c`,
+digest `sha256:be5adc6c39b5ef7909d382d7122e56c79336edf11b1a94342df05f4765ea08f6`.
+The [sparse-coordinate viewer fix](docs/sparse-preview-20261023.md) displays
+isolated atoms as labelled spheres, including in Sticks mode, without adding
+connections. New reports use the corrected viewer; existing saved HTML and
+already cached direct-MCP viewers are not rewritten by an in-place overlay.
+This release also includes the current [MD budget guidance](docs/md-budget-guidance-20261023.md).
 The [large-coordinate preview fix](docs/bounded-preview-20261023.md) derives
 labelled bounded mmCIF views while preserving complete native coordinates.
 Verified reports still render when an optional preview is unavailable.

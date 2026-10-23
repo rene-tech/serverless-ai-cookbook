@@ -1,0 +1,143 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:sparse-preview-20261023-20da61c",
+  "manifest": "sha256:be5adc6c39b5ef7909d382d7122e56c79336edf11b1a94342df05f4765ea08f6",
+  "source": "20da61c7705cfdb5037fd4fff17d64d745a6b363",
+  "skills_version": "2026.10.23.3",
+  "base_manifest": "sha256:962fff454d231c3ea40b31f494cc9e78fabe590ca8e10786c38a01f58df38363",
+  "base_receipt": "bounded-preview-20261023.json",
+  "published_verified": true,
+  "customer_ready": false,
+  "all_scientific_workflows_qualified": false,
+  "scope": "Visible isolated atoms in new bounded native MD reports, paired with MD budget reference guidance",
+  "installed": {
+    "base_layers_preserved": 100,
+    "total_layers": 112,
+    "runtime_configuration_preserved": true,
+    "bundle_files_verified": 110,
+    "runtime_files_compared": 19,
+    "unchanged_runtime_files": 18,
+    "exact_intentional_file_differences": [
+      "skill/files.sha256.json",
+      "skill/manifest.json",
+      "skill/scientific-batch/references/native-md.md",
+      "skill/gromacs/references/mpi.md",
+      "opt/bionemo/viewer-mcp.py"
+    ]
+  },
+  "tests": {
+    "focused_passed": 126,
+    "release_pointer_and_deploy_link_passed": 17,
+    "exact_image_report_network": "none",
+    "exact_image_reports_equal_source_and_live": true,
+    "sparse_and_bonded_browser_representation_regressions": true,
+    "coordinates_and_bonds_unchanged": true,
+    "scientific_submissions": 0
+  },
+  "real_client": {
+    "identity": "existing system/qa",
+    "actual_skills_loaded": [
+      "scientific-gateway",
+      "openmm",
+      "scientific-batch"
+    ],
+    "actual_workbench_reference_read": true,
+    "completed_analysis_phases": 2,
+    "analysis_kind": "python-script",
+    "verified_deliverables": 12,
+    "original_stream_inline_without_reload": true,
+    "saved_reopen_inline_without_reset": true,
+    "isolated_atoms_visible_in_explicit_sticks": true,
+    "exact_receipt_operation_ids_in_titles": true,
+    "scientific_submissions": 0,
+    "recovery_downloads": 0,
+    "cases": [
+      {
+        "native_atoms": 2997924,
+        "preview_atoms": 5700,
+        "default_representation": "atoms",
+        "initial_and_reopened_pixels_verified": true,
+        "html_sha256": "7b45a0ec6239b7180ede6931d76ae2847803093912158e6e91fc228e507f6f07",
+        "html_matches_exact_image": true,
+        "metrics": {
+          "segment_physical_time_ps": 20.0,
+          "temperature_k": 300.2319047847223,
+          "temperature_step": 10000,
+          "integration_seconds": 205.89636321901344,
+          "setup_seconds": 197.35343142203055,
+          "executed_steps": 10000,
+          "integration_ns_per_day": 8.39257174329939,
+          "command_wall_seconds": 576.8975299770245,
+          "queue_seconds": null,
+          "worker_startup_seconds": null,
+          "total_operation_elapsed_seconds": null
+        }
+      },
+      {
+        "native_atoms": 61153,
+        "preview_atoms": 3555,
+        "default_representation": "cartoon",
+        "initial_and_reopened_pixels_verified": true,
+        "html_sha256": "fa37085ed7d1c7957b13fab313c461f55a5a90b383b98fab37654c267731dd37",
+        "html_matches_exact_image": true,
+        "metrics": {
+          "segment_physical_time_ps": 100.0,
+          "temperature_k": 301.55622176990636,
+          "temperature_step": 50000,
+          "integration_seconds": 24.187737336964346,
+          "setup_seconds": 3.961908694007434,
+          "executed_steps": 50000,
+          "integration_ns_per_day": 357.20579728621914,
+          "command_wall_seconds": 32.37574789894279,
+          "queue_seconds": null,
+          "worker_startup_seconds": null,
+          "total_operation_elapsed_seconds": null
+        }
+      }
+    ],
+    "preserved_originals": {
+      "paths_and_sizes_preserved": 69,
+      "small_files_sha256_preserved": 47,
+      "large_files_not_rehashed": 22,
+      "plan_receipt_sha256_preserved": 4,
+      "messages_preserved": 4
+    },
+    "planning_observation": "Approximately nine minutes before CPU study admission; cause and planning latency bounds unqualified",
+    "scrolling_observation": "Control locator stability wait timed out; ordinary scrolling rendered the unchanged control without Reset or reload"
+  },
+  "retained_clients": {
+    "updated": 6,
+    "preserved_busy_or_mismatched": 0,
+    "files_per_client": 3,
+    "protected_files_per_client": 19,
+    "loaded_reference_hashes_verified": 12,
+    "untouched_registry_objects_per_client": 87,
+    "api_supervisor_worker_processes_preserved": true,
+    "fresh_idle_checks_passed": true,
+    "temporary_loopback_inspectors_closed": true,
+    "existing_custom_guidance_preserved": true,
+    "full_default_bundle_byte_identity_claimed": false,
+    "provider_images_replaced": false,
+    "customer_workflows_retested": false,
+    "customer_inference_performed": false,
+    "connection_scope_unchanged": true
+  },
+  "limitations": [
+    "Already saved HTML embeds old JavaScript and was preserved; separately generated new reports were qualified.",
+    "Existing direct-MCP viewer processes cache their module; no refresh or corrected behavior is claimed for those processes. New MD python-script reports import the installed viewer from disk.",
+    "Existing-worker native-md-timing execution was not requalified.",
+    "New scientific execution, arbitrary-size rendering, convergence, capacity, isolation and full scientist-client readiness remain unqualified.",
+    "This retained-local-data presentation qualification does not requalify six-gigabyte client result recovery."
+  ],
+  "evidence_sha256": {
+    "focused-tests-final.log": "169a6a2d38179419daeb9d0713a31c63ed6a2d8d2141505613d3a90b4ef30fb3",
+    "image-verification.json": "a1a95d919456596b476e617c4612147f2ed4a8a43993c00eaaf6c00c64182dab",
+    "image-rendered.log": "80392bd0a98063f72936a1ab6d84b42a537c0ac6b726aefd8664f144d1d563a0",
+    "isolated-browser-verification.json": "e5c11f4d4e422f4799089433744497c78ea4b1ec17e2b0290625380450a2b525",
+    "qa-verification.json": "64421f15569cacb1beebd8c920a3471f56d936dc61e7056a9b02db15a3f11058",
+    "fresh-tool-audit.private.json": "467a7f7d4f6b690e10faf18724013cebd1e79a760b49da8d5ad98f00b51217eb",
+    "fresh-inline-proof.json": "8339822104d51187a37ab578b82ab46e6e2e593f52cdbf72f8f60b22ec15aac6",
+    "reopened-inline-proof.json": "7889bf53895271971c6f31664822769706e301995287b20ab69abac6143315e2",
+    "fleet-verification.json": "a45e51b144d15005d3a4f2b7ae1a6e03431b5a8b2dc7df602f51706a56cf9a11"
+  },
+  "evidence_document": "../sparse-preview-20261023.md"
+}
