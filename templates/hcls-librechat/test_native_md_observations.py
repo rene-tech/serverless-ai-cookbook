@@ -294,10 +294,44 @@ Step Temp
 10 301
 Loop time of 2 on 1 procs for 10 steps with 777 atoms
 '''
-    folder = recovery(tmp_path, 'lammps', lammps_command(dt=None, rate=None), {'wrapper.log': text})
+    folder = recovery(tmp_path, 'lammps', lammps_command(), {'wrapper.log': text})
     value = report.collect(folder, tmp_path)
     observed = value['observations'][0]
     assert value['timing_rows'][0]['executed_steps'] == 35
     assert observed['native_run_seconds'] == 3
     assert observed['temperature_k'] == 301 and observed['temperature_step'] == 10
     assert observed['segment_physical_time_ps'] is None
+
+
+@pytest.mark.parametrize('explicit_times', [True, False])
+def test_lammps_variable_timestep_uses_complete_loop_time_intervals_or_unknown(tmp_path, explicit_times):
+    text = ''
+    for start, dt, begin, end in [(0, 1, 0, 100), (100, 2, 100, 300)]:
+        samples = (f'Step Time Temp\n{start} {begin} 299\n{start + 100} {end} 300\n'
+                   if explicit_times else f'Step Temp\n{start} 299\n{start + 100} 300\n')
+        text += (f'Setting up Verlet run ...\nUnit style : real\nCurrent step : {start}\n'
+                 f'Time step : {dt}\n' + samples +
+                 'Loop time of 1 on 1 procs for 100 steps with 777 atoms\n')
+    command = lammps_command(dt=.002)
+    command['observed_dynamics'].update(initial_step=0, observed_step=200)
+    folder = recovery(tmp_path, 'lammps', command, {'wrapper.log': text})
+    value = report.collect(folder, tmp_path)
+    observed = value['observations'][0]
+    assert value['timing_rows'][0]['executed_steps'] == 200
+    if explicit_times:
+        assert observed['simulation_time_ps'] == pytest.approx(.3)
+        assert observed['segment_physical_time_ps'] == pytest.approx(.3)
+    else:
+        assert observed['segment_physical_time_ps'] is None
+
+
+@pytest.mark.parametrize('adaptive', [False, True])
+def test_lammps_timestep_fallback_requires_constant_native_loop_timesteps(tmp_path, adaptive):
+    text = 'fix adaptive all dt/reset 1 NULL 4 0.1\n' if adaptive else ''
+    for start in [0, 100]:
+        text += (f'Setting up Verlet run ...\nUnit style : real\nCurrent step : {start}\n'
+                 'Time step : 4\nStep Temp\n' + f'{start} 300\n' +
+                 'Loop time of 1 on 1 procs for 100 steps with 777 atoms\n')
+    folder = recovery(tmp_path, 'lammps', lammps_command(), {'wrapper.log': text})
+    observed = report.collect(folder, tmp_path)['observations'][0]
+    assert observed['segment_physical_time_ps'] == (None if adaptive else .8)

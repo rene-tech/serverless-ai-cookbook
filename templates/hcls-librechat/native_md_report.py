@@ -165,6 +165,9 @@ def lammps_observations(path):
     """Read the native table/multi thermo sample and completed dynamics loops."""
     values, columns, sample, style = {}, None, None, None
     dynamic, seconds, counts = False, [], []
+    intervals, timesteps = [], []
+    first_time = last_time = start = dt = None
+    clock_ambiguous = adaptive = False
 
     time_units = {'real': .001, 'metal': 1, 'si': 1e12, 'cgs': 1e12,
                   'electron': .001, 'micro': 1e6, 'nano': 1e3}
@@ -176,13 +179,19 @@ def lammps_observations(path):
 
     with path.open(errors='replace') as lines:
         for line in lines:
+            adaptive |= bool(re.search(r'\bdt/reset\b', line))
             if line.startswith('Setting up '):
                 dynamic = bool(re.match(r'^Setting up (?:Verlet|rRESPA) run', line))
-                columns, sample = None, None
+                columns = sample = style = first_time = last_time = start = dt = None
+                clock_ambiguous = False
             if match := re.match(r'\s*Unit style\s*:\s*(\w+)\s*$', line):
                 style = match[1]
             if not dynamic:
                 continue
+            if match := re.match(r'\s*Current step\s*:\s*(\d+)\s*$', line):
+                start = int(match[1])
+            if match := re.match(rf'\s*Time step\s*:\s*({NUMBER})\s*$', line):
+                dt = native_number(match[1])
             fields = line.split()
             if 'Step' in fields and ('Temp' in fields or 'Time' in fields):
                 columns = fields
@@ -193,6 +202,9 @@ def lammps_observations(path):
                     time = row[columns.index('Time')] * time_units[style] if 'Time' in columns and style in time_units else None
                     if time is not None:
                         values['simulation_time_ps'] = time
+                        clock_ambiguous |= last_time is not None and (step < last_time[0] or time < last_time[1])
+                        first_time = first_time or (step, time)
+                        last_time = step, time
                     if 'Temp' in columns:
                         temperature(row[columns.index('Temp')], int(step), time)
             if match := re.match(r'^-+\s+Step\s+(\d+)\s+-+\s+CPU\s*=', line):
@@ -204,7 +216,13 @@ def lammps_observations(path):
                 value = measured(native_number(match[1]))
                 if value is not None:
                     seconds.append(value)
-                counts.append(int(match[2]))
+                count = int(match[2])
+                counts.append(count)
+                intervals.append(last_time[1] - first_time[1] if first_time and last_time
+                    and not clock_ambiguous and last_time[0] - first_time[0] == count
+                    and (start is None or first_time[0] == start) else None)
+                timesteps.append(dt * time_units[style] if positive(dt) and style in time_units
+                                 and not clock_ambiguous else None)
                 values['atom_count'] = int(match[3])
                 dynamic = False
     if seconds:
@@ -213,6 +231,10 @@ def lammps_observations(path):
     if counts:
         values.update(executed_steps=sum(counts),
                       step_count_scope='Sum of completed native dynamics Loop step counts; no requested target or durability is inferred.')
+        if all(value is not None for value in intervals):
+            values['segment_physical_time_ps'] = sum(intervals)
+        elif not adaptive and None not in timesteps and len(set(timesteps)) == 1:
+            values['segment_physical_time_ps'] = sum(counts) * timesteps[0]
     return values
 
 
@@ -314,7 +336,7 @@ def native_observations(engine, command, files):
                           step_count_scope='Native observed dynamics interval; no requested target or durability is inferred.')
         # A timestep number alone does not establish the LAMMPS simulation
         # clock: reset_timestep and variable timesteps can offset it.
-        notes.append('LAMMPS simulation-clock values are read from explicit Time fields, not inferred from timestep numbers.')
+        notes.append('LAMMPS simulation-clock values use explicit Time fields. Segment duration uses complete per-loop Time intervals or a constant native timestep recorded for every completed loop; the final timestep alone is insufficient.')
     values['measurement_sources'], values['notes'] = sources, notes
     return values
 
@@ -329,7 +351,7 @@ def observations(engine, command, files):
     values['atom_count'] = measured(scientific.get('particles'))
     executed = measured(command.get('executed_steps'))
     values['segment_physical_time_ps'] = (executed * values['timestep_ps']
-        if executed is not None and values['timestep_ps'] is not None else None)
+        if engine != 'lammps' and executed is not None and values['timestep_ps'] is not None else None)
     values.update(temperature_k=None, temperature_step=None, temperature_time_ps=None,
                   temperature_file=None, temperature_sha256=None)
     # OpenMM's documented StateDataReporter CSV is an observation at its own
@@ -362,7 +384,7 @@ def observations(engine, command, files):
         executed = measured(command.get('executed_steps'))
         if executed is None:
             executed = measured(values.get('executed_steps'))
-        if values.get('segment_physical_time_ps') is None and executed is not None and positive(values['timestep_ps']):
+        if engine != 'lammps' and values.get('segment_physical_time_ps') is None and executed is not None and positive(values['timestep_ps']):
             values['segment_physical_time_ps'] = executed * values['timestep_ps']
     return values
 
