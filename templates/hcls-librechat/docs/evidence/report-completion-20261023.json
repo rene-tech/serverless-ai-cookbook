@@ -79,14 +79,15 @@
     "provider_images_replaced": false,
     "customer_workflows_retested": false,
     "customer_inference_performed": false,
-    "live_executor_schema_and_cached_recipe_unchanged": true,
-    "live_qualification_analysis_kind": "python-script"
+    "live_qualification_analysis_kind": "python-script",
+    "live_executor_schema_unchanged_and_worker_not_reloaded": true,
+    "existing_worker_native_md_timing_path_requalified": false
   },
   "limitations": [
     "Provider recreation not tested.",
     "New scientific execution, convergence, isolation, capacity and scaling not qualified.",
     "Existing static admission acknowledgement remains after dynamic completion.",
-    "Live overlays preserve the worker cached native timing recipe; the fresh python-script helper path was qualified. The default image includes updated discovery."
+    "Existing worker native-md-timing execution path was not requalified; no stale-worker defect was reproduced. Fresh python-script helpers were qualified, and the default image includes updated discovery."
   ],
   "evidence_sha256": {
     "image-local-verification.json": "2da441e2c93656bf7c5217a828123aa2a71ee1f3b8d06a93e275f036a48a06d8",

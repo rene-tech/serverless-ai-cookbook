@@ -72,9 +72,11 @@ objects were preserved, and the temporary loopback inspector was closed.
 Existing study plans and receipts retained their hashes. Customer scientific
 workflows were not retested, and no customer inference was performed.
 
-Live overlays preserve the long-lived worker's cached native timing recipe.
-The updated workbench recipe and actual QA used fresh `python-script` helper
-execution; the new default image includes the updated report discovery schema.
+Live overlays do not reload the long-lived worker or replace its executor or
+schema. That worker's `native-md-timing` execution path was not requalified;
+no stale-worker defect was reproduced. The updated workbench recipe and actual
+QA used fresh `python-script` helpers. The new default image includes the updated
+report discovery schema.
 
 This qualifies the retained-result reporting path at the recorded scope. It
 does not qualify new scientific execution, convergence, capacity, cross-user
