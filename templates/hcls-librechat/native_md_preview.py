@@ -19,13 +19,13 @@ if not (Path(__file__).parent / 'scientific_verified_results.py').is_file():
 from scientific_verified_results import verified_md_inputs, verify, within
 
 
-def render_report(folder, output, workspace, repeats):
+def render_report(folder, output, workspace, repeats, structure_html=None):
     """Render in private phase scratch; only the study publisher issues links.
 
     Reuse the native verifier, measurements and report format. Its standalone
     write_report() is workspace-only and cannot publish scratch paths.
     """
-    from native_md_report import collect, FIELDS, markdown
+    from native_md_report import collect, FIELDS, markdown, html_report
     report = collect(folder, workspace, repeats)
     if not report['complete']:
         raise ValueError('Native timing evidence is incomplete: ' + '; '.join(report['gaps']))
@@ -36,7 +36,8 @@ def render_report(folder, output, workspace, repeats):
         writer.writerow({**row, 'command': shlex.join(row['command'])})
     rendered = {'native-timing-report.json': json.dumps(report, indent=2) + '\n',
                 'native-timings.csv': csv_buffer.getvalue(),
-                'native-timing-report.md': markdown(report, workspace)}
+                'native-timing-report.md': markdown(report, workspace),
+                'native-md-report.html': html_report(report, workspace, structure_html)}
     output.mkdir(parents=True, exist_ok=True)
     for name, value in rendered.items():
         target = output / name
@@ -158,10 +159,14 @@ def main():
     manifest = within(Path(bindings['inputs']['native_manifest']), workspace)
     if manifest.name != 'native-files.json':
         raise ValueError('Expected exact native-files.json, not a platform result envelope.')
-    files = render_report(manifest.parent, args.output_dir, workspace, repeats)
+    files, structure_html = [], None
     if options.get('structure_preview', True):
-        files += render_preview(manifest.parent, args.output_dir, workspace)
-    print(json.dumps({'files': files, 'inference_submitted': False}))
+        files = render_preview(manifest.parent, args.output_dir, workspace)
+        structure_html = (args.output_dir / 'md-structure-preview.html').read_text()
+    files += render_report(manifest.parent, args.output_dir, workspace, repeats, structure_html)
+    report = json.loads((args.output_dir / 'native-timing-report.json').read_text())
+    print(json.dumps({'files': files, 'operation_id': report['operation_id'],
+                     'report_file': 'native-md-report.html', 'inference_submitted': False}))
 
 
 if __name__ == '__main__':

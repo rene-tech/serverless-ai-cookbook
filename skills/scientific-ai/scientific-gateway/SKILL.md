@@ -49,7 +49,9 @@ specific incompatibility and ask the user to choose a supported workflow.
   A corrected or deliberately new request gets a new key.
 - Set serving `wait_seconds` to `0` unless a short bounded wait materially helps.
   Submission returns a durable operation/status record, not the final prediction.
-- Save and report the exact returned operation ID; do not convert it to a UUID.
+- Save and report the exact returned operation ID. Copy it from the tool result or verified receipt
+  into variables, titles, links and reports; never retype or reconstruct it.
+  Do not convert it to a UUID.
   Choose the lifecycle tools by that ID and the live submission-tool description,
   not by whether the App is called "serving" or "scientific":
   - Every job uses the native Serverless `op-...` ID across API, MCP, workbench
@@ -141,6 +143,14 @@ reserved capacity.
 
 ## Errors and user-facing results
 
+- Before final delivery, compare the user's requested outputs and sections with
+  the actual saved artifacts. Finish each item or name the missing evidence and
+  its effect; successful tool/study completion alone does not complete the request.
+  A structure preview or timing table is not a full scientific report. For a
+  requested HTML report, write and inspect the actual HTML with every requested
+  section, then deliver its real workspace link inline. Keep units, provenance,
+  timing boundaries and unavailable measurements explicit. Use an analysis-only
+  follow-up for missing presentation; preserve accepted work and original files.
 - MCP `-32602` with `data.type: model_input_validation` means no work was
   admitted. Use each issue's JSON-pointer `field`, `rule`, and any
   `missing_fields`, `allowed_fields`, or `expected` details to fix the input.

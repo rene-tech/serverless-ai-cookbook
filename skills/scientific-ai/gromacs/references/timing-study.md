@@ -9,7 +9,9 @@ resumed segments or three statistically independent replicas. The preview step
 uses the installed deterministic renderer, not an LLM-written analysis. Copy
 `/opt/bionemo/native_md_preview.py` to `/workspace/md/preview-native-md.py` before
 admission; the executor freezes its bytes. The script creates both the native
-timing report and optional final-structure preview, using the installed helpers.
+timing report, `native-md-report.html` summary and optional embedded final-structure
+preview, using the installed helpers. The separate coordinate preview is not a
+full report; inspect requested sections and disclose missing evidence.
 It works with older running study workers too: do not depend on a new
 `native-md-timing` method being present in their schema.
 This example has one job with three
@@ -44,12 +46,13 @@ declare `final-structure-2.pdb` etc.; the viewer supports up to four jobs.
         "script": "/workspace/md/preview-native-md.py",
         "inputs": [{"name": "native_manifest", "file": {"step": "simulate", "file": "native-files.json"}}],
         "parameters": {"expected_repeats": 3, "structure_preview": true},
-        "outputs": ["native-timing-report.json", "native-timings.csv", "native-timing-report.md", "md-structure-preview.html", "md-structure-preview.json", "final-structure-1.pdb"]
+        "outputs": ["native-md-report.html", "native-timing-report.json", "native-timings.csv", "native-timing-report.md", "md-structure-preview.html", "md-structure-preview.json", "final-structure-1.pdb"]
       }
     }
   ],
   "deliverables": [
-    {"name": "Interactive final structure", "role": "report", "source": {"step": "results", "file": "md-structure-preview.html"}},
+    {"name": "Native MD HTML report", "role": "report", "source": {"step": "results", "file": "native-md-report.html"}},
+    {"name": "Interactive final structure", "role": "support", "source": {"step": "results", "file": "md-structure-preview.html"}},
     {"name": "Final structure coordinates", "role": "support", "source": {"step": "results", "file": "final-structure-1.pdb"}},
     {"name": "Preview provenance", "role": "provenance", "source": {"step": "results", "file": "md-structure-preview.json"}},
     {"name": "Native timing report", "role": "report", "source": {"step": "results", "file": "native-timing-report.md"}},

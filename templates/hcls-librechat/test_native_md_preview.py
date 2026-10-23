@@ -27,7 +27,7 @@ def fixture(folder):
 def renderer(tmp_path, monkeypatch):
     assets = tmp_path / 'assets'
     assets.mkdir()
-    (assets / 'viewer-mcp.py').write_text('def viewer_html(text, fmt, title, entries):\n return "<html>" + title + text + "</html>"\n')
+    (assets / 'viewer-mcp.py').write_text('def viewer_html(text, fmt, title, entries):\n return "<html><head><title>Preview</title></head><body>" + title + text + "</body></html>"\n')
     monkeypatch.setenv('BIONEMO_ASSET_ROOT', str(assets))
     calls = []
     def convert(command, **kwargs):
@@ -133,8 +133,13 @@ def test_saved_phase_cli_uses_the_same_verified_manifest(tmp_path, renderer, mon
     result = json.loads(capsys.readouterr().out)
     assert not result['inference_submitted']
     assert {'native-timing-report.json', 'native-timing-report.md', 'native-timings.csv',
-            'md-structure-preview.html'} <= set(result['files'])
+            'native-md-report.html', 'md-structure-preview.html'} <= set(result['files'])
     assert json.loads((tmp_path / 'preview/native-timing-report.json').read_text())['complete']
+    document = (tmp_path / 'preview/native-md-report.html').read_text()
+    assert 'Observed scientific results' in document and 'Timing boundaries' in document
+    assert PDB in document and result['operation_id'] in document
+    assert document.count('<body>') == 1 and document.count('</body>') == 1
+    assert result['report_file'] == 'native-md-report.html'
 
 
 def test_phase_scratch_is_not_a_workspace_publication(tmp_path, renderer, monkeypatch, capsys):

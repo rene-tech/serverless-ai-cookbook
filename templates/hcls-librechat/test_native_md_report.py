@@ -1,4 +1,6 @@
 import csv
+import hashlib
+import html
 import json
 from pathlib import Path
 import subprocess
@@ -149,3 +151,72 @@ def test_other_md_command_shapes_do_not_invent_unrecorded_rates(tmp_path, engine
     value = report.collect(folder, tmp_path, 3)
     assert not value['complete'] and len(value['timing_rows']) == 3
     assert all(row['performance_ns_per_day'] is None for row in value['timing_rows'])
+
+
+def observed_openmm(folder):
+    native, manifest = recorded_run(folder, 'openmm')
+    native['commands'] = [{**native['commands'][1], 'kind': 'production',
+        'executed_steps': 25, 'durably_completed_steps': 25,
+        'checkpoint_step': 126, 'requested_steps': 25,
+        'validation': {'scientific': {'particles': 123}, 'initial_step': 101,
+                       'final_step': 126, 'timestep_ps': .004, 'simulation_time_ps': 123,
+                       'integration_seconds': 1.25, 'setup_seconds': .5}}]
+    native['completed_steps'] = ['repeat-1']
+    name = 'openmm-output/repeat-1/segment-000001/state.csv'
+    path = folder / 'native/result-00' / name
+    path.parent.mkdir(parents=True)
+    path.write_text('#"Step","Time (ps)","Temperature (K)"\n120,122.976,298.5\n124,122.992,299.75\n')
+    meta = {'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'size_bytes': path.stat().st_size}
+    native['files'].append({**meta, 'path': name})
+    manifest['results'][0]['files'].append({**meta, 'path': str(path), 'native_path': name})
+    bind_result(folder, native, manifest)
+    return native, manifest, path
+
+
+def test_scientific_html_uses_observed_fields_and_separates_cumulative_time(tmp_path):
+    folder, output = tmp_path / 'renamed-recovery', tmp_path / 'report'
+    observed_openmm(folder)
+    before = {str(p): p.read_bytes() for p in folder.rglob('*') if p.is_file()}
+    value = report.write_report(folder, output, tmp_path)
+    data = json.loads((output / 'native-timing-report.json').read_text())
+    observed = data['observations'][0]
+    assert observed['atom_count'] == 123
+    assert observed['segment_physical_time_ps'] == .1
+    assert observed['simulation_time_ps'] == 123
+    assert observed['temperature_k'] == 299.75 and observed['temperature_step'] == 124
+    document = (output / 'native-md-report.html').read_text()
+    for expected in ['Integration time (s)</dt><dd>1.25', 'Engine setup time (s)</dt><dd>0.5',
+                     'Native command wall time (s)</dt><dd>3.125', 'Last reported temperature (K)</dt><dd>299.75',
+                     'Temperature observation step</dt><dd>124', 'Final step</dt><dd>126',
+                     'Total operation elapsed time: unknown', 'Queue time: unknown',
+                     '<title>Native MD report — ' + value['operation_id']]:
+        assert expected in document
+    assert before == {str(p): p.read_bytes() for p in folder.rglob('*') if p.is_file()}
+
+
+def test_missing_science_stays_unknown_and_html_escapes_verified_identity(tmp_path):
+    folder = tmp_path / 'run'
+    native, manifest = recorded_run(folder)
+    identity = 'op-example<script>alert(1)</script>'
+    native['operation_id'] = identity
+    receipt_file = folder / 'recovery-receipt.json'
+    receipt = json.loads(receipt_file.read_text())
+    receipt['operation_id'] = identity
+    save(receipt_file, receipt)
+    bind_result(folder, native, manifest)
+    data = report.collect(folder, tmp_path)
+    assert data['observations'][0]['atom_count'] is None
+    assert data['observations'][0]['temperature_k'] is None
+    document = report.html_report(data, tmp_path)
+    assert html.escape(identity) in document and '<script>alert(1)</script>' not in document
+    assert 'Last reported temperature (K)</dt><dd>unknown' in document
+    assert 'Completed segment steps (recorded executed steps)</dt><dd>unknown' in document
+
+
+def test_changed_temperature_evidence_is_rejected_without_publishing(tmp_path):
+    folder, output = tmp_path / 'run', tmp_path / 'report'
+    _, _, source = observed_openmm(folder)
+    source.write_text(source.read_text().replace('299.75', '399.75'))
+    with pytest.raises(ValueError, match='differ'):
+        report.write_report(folder, output, tmp_path)
+    assert not output.exists()

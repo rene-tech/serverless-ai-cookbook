@@ -30,11 +30,17 @@ publication names.
    manifest. No manual handles, copied base64, invented hashes or parallel
    reservation calls are needed. Workspace supports authenticated file upload.
 3. Include preparation, dependent model inputs, analysis and final report in
-   the immutable study. Longer plans/scripts can be written in bounded logical
+   the immutable study. Before admission, map every requested deliverable and
+   report section to an analysis output; a helper's example is only its supported
+   scope. Include additional analysis or explicitly identify missing evidence.
+   Copy operation identities from trusted results/receipts rather than typing
+   them into study titles. Longer plans/scripts can be written in bounded logical
    pieces and submitted by path. The supervisor serializes calls and completes
    declared phases after disconnect; no mechanical continuation is required.
    Keep original idempotency keys and settings. A pending study is not completed
-   analysis. Direct model tools remain available for supported standalone calls.
+   analysis. At completion inspect the requested content, not just filenames;
+   deliver the requested report inline and disclose any unfinished item.
+   Direct model tools remain available for supported standalone calls.
 4. Successful batch phases publish `output-manifest.json`, `result.json` and
    `output-NN.artifact` siblings. Roles, MIME, compression and hashes are in the
    manifest. Use these exact filenames in `{step,file}` dependencies. Native
