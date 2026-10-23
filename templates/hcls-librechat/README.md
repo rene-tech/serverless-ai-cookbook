@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Ab345d4de7785478608492ce33a2cbda4bfa09ef2322b406a91642641fc2cc990&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Ad73a00bd00f4af578110680c4a4f3083f5f6ec3f753f0147c2f952b8b789f633&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,12 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:openmm-20261022-bed41b4`,
-digest `sha256:b345d4de7785478608492ce33a2cbda4bfa09ef2322b406a91642641fc2cc990`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:report-completion-20261023-c517ae6`,
+digest `sha256:d73a00bd00f4af578110680c4a4f3083f5f6ec3f753f0147c2f952b8b789f633`.
+The [report-completion update](docs/report-completion-20261023.md) adds a full
+inline native-MD summary with measured physical time, temperature and timing
+boundaries where available, plus explicit unknowns and the final structure view.
+Shared skills reconcile requested sections against delivered content.
 The [OpenMM guide](docs/openmm-20261022.md) covers classical MD, reproducible
 examples, checkpoint recovery and verified inline reports. This additive release
 preserves the [CRISPR workflows](docs/crispr-workbench-20261022.md), BioEmu2,
