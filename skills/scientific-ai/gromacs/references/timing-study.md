@@ -14,9 +14,12 @@ preview, using the installed helpers. The separate coordinate preview is not a
 full report; inspect requested sections and disclose missing evidence.
 It works with older running study workers too: do not depend on a new
 `native-md-timing` method being present in their schema.
-This example has one job with three
-simulation steps, so it publishes one final-coordinate PDB. For multiple jobs
-declare `final-structure-2.pdb` etc.; the viewer supports up to four jobs.
+This example has one job with three simulation steps and one final-coordinate
+view. At most four jobs have inline views. Do not require optional coordinate
+files as study outputs: the preview HTML embeds available coordinates and the
+complete originals remain in native artifacts. When visualization cannot be
+produced, both preview documents explain why and the verified report still
+renders. Large previews use explicitly labelled bounded subsets.
 
 ```json
 {
@@ -46,14 +49,13 @@ declare `final-structure-2.pdb` etc.; the viewer supports up to four jobs.
         "script": "/workspace/md/preview-native-md.py",
         "inputs": [{"name": "native_manifest", "file": {"step": "simulate", "file": "native-files.json"}}],
         "parameters": {"expected_repeats": 3, "structure_preview": true},
-        "outputs": ["native-md-report.html", "native-timing-report.json", "native-timings.csv", "native-timing-report.md", "md-structure-preview.html", "md-structure-preview.json", "final-structure-1.pdb"]
+        "outputs": ["native-md-report.html", "native-timing-report.json", "native-timings.csv", "native-timing-report.md", "md-structure-preview.html", "md-structure-preview.json"]
       }
     }
   ],
   "deliverables": [
     {"name": "Native MD HTML report", "role": "report", "source": {"step": "results", "file": "native-md-report.html"}},
     {"name": "Interactive final structure", "role": "support", "source": {"step": "results", "file": "md-structure-preview.html"}},
-    {"name": "Final structure coordinates", "role": "support", "source": {"step": "results", "file": "final-structure-1.pdb"}},
     {"name": "Preview provenance", "role": "provenance", "source": {"step": "results", "file": "md-structure-preview.json"}},
     {"name": "Native timing report", "role": "report", "source": {"step": "results", "file": "native-timing-report.md"}},
     {"name": "Native timing rows", "role": "metrics", "source": {"step": "results", "file": "native-timings.csv"}},
@@ -73,8 +75,10 @@ Study admission is not completion. The durable worker finishes native execution,
 downloads/hash-checks the original result and logs, then publishes the report in
 the live chat card and Runs → Whole studies even if the chat disconnects.
 The final-coordinate preview is interactive 3D, not a trajectory animation or
-proof of equilibration. Larger structures are explicitly protein-only in the
-preview; full original coordinates and trajectories remain in the native files.
+proof of equilibration. Subset descriptions distinguish polymer atoms, heavy
+atoms, backbone positions or sampled positions; full original coordinates and
+trajectories remain in native files. Preview unavailability is explicit and
+does not erase measured timing or other report sections.
 Read the saved study's terminal
 state and verified downloads before claiming the benchmark is finished. The
 native timing JSON must have `complete: true`, the actual requested repeat count

@@ -5,14 +5,18 @@ Change its model/tool/entry/semantic type to `openmm`,
 `submit_openmm_workflow`, `openmm-inputs`, `openmm-input-bundle/v1`, and retain
 the scientist's real source archive and parameters. Do not copy its three-repeat
 example: omit `expected_repeats` unless intentionally checking dynamics-step IDs.
-OpenMM's final coordinate output is **`final-structure-1.cif`**, not `.pdb`;
-declare that filename in analysis outputs and deliverables. The installed
+OpenMM's derived coordinate preview uses mmCIF, not PDB. The installed
 `/opt/bionemo/native_md_preview.py` produces `native-md-report.html` with
 observed scientific fields, explicit unknowns and the interactive final-frame
 view. The separate `md-structure-preview.html` is only a coordinate preview,
 not a substitute for the requested report. Check any additional requested
 analysis against the helper's scope and add it or explicitly report missing evidence.
 Copy that script into the workspace before the study freezes it.
+Large structures use an explicitly labelled bounded subset; complete native
+coordinates are preserved. If optional visualization is unavailable, the HTML
+report still contains verified metrics and a visible explanation. Do not require
+optional `final-structure-N.cif` files as study outputs: the preview HTML embeds
+available coordinates, and the full originals remain in the native artifacts.
 
 If an operation already succeeded, **do not add a batch/model phase** just
 because its report failed. Recover its verified outputs into a new folder:
@@ -38,14 +42,16 @@ Use a new **analysis-only** `scientific-workflow/v2` study, with the existing
   "script": "/workspace/openmm/preview-native-md.py",
   "inputs": [{"name": "native_manifest", "file": "/workspace/openmm/recovered/native-files.json"}],
   "parameters": {"structure_preview": true},
-  "outputs": ["native-md-report.html", "native-timing-report.json", "native-timings.csv", "native-timing-report.md", "md-structure-preview.html", "md-structure-preview.json", "final-structure-1.cif"]
+  "outputs": ["native-md-report.html", "native-timing-report.json", "native-timings.csv", "native-timing-report.md", "md-structure-preview.html", "md-structure-preview.json"]
 }
 ```
 
 Declare `native-md-report.html` as the primary `report` deliverable, the separate
-preview as optional `support`, Markdown as a supporting `report`, CIF as `support`,
-CSV as `metrics`, and JSON as `provenance`. This is one native job; for multiple
-jobs declare their actual `final-structure-N.cif` outputs (maximum four views).
+preview as `support`, Markdown as a supporting `report`, CSV as `metrics`, and
+JSON as `provenance`. With `structure_preview: true`, the two preview documents
+always describe either available views or their unavailability; no missing
+optional coordinate file should fail the report. At most four jobs have inline
+views; timing reports remain available for all jobs.
 The durable study publishes and verifies those files without another simulation.
 Deliver the completed study's actual workspace report links inline, using
 `deliver_scientific_results` when answering from existing files. A raw CIF dump
