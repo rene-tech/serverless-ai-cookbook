@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Ad73a00bd00f4af578110680c4a4f3083f5f6ec3f753f0147c2f952b8b789f633&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A962fff454d231c3ea40b31f494cc9e78fabe590ca8e10786c38a01f58df38363&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,11 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:report-completion-20261023-c517ae6`,
-digest `sha256:d73a00bd00f4af578110680c4a4f3083f5f6ec3f753f0147c2f952b8b789f633`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:bounded-preview-20261023-3894580`,
+digest `sha256:962fff454d231c3ea40b31f494cc9e78fabe590ca8e10786c38a01f58df38363`.
+The [large-coordinate preview fix](docs/bounded-preview-20261023.md) derives
+labelled bounded mmCIF views while preserving complete native coordinates.
+Verified reports still render when an optional preview is unavailable.
 The [report-completion update](docs/report-completion-20261023.md) adds a full
 inline native-MD summary with measured physical time, temperature and timing
 boundaries where available, plus explicit unknowns and the final structure view.
