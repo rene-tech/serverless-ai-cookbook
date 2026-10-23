@@ -1,10 +1,11 @@
 # syntax=docker/dockerfile:1.7
-# Additive bounded native-coordinate previews over the report-completion release.
+# Additive sparse-coordinate visibility and current MD budget guidance.
 # Preserve its clients, runtimes, supervisor, provider and complete skill set.
 # Build with --build-context scientific-skills=./skills/scientific-ai.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:d73a00bd00f4af578110680c4a4f3083f5f6ec3f753f0147c2f952b8b789f633
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:962fff454d231c3ea40b31f494cc9e78fabe590ca8e10786c38a01f58df38363
 FROM ${WORKBENCH_BASE}
 USER root
+COPY life-science/bionemo-librechat/viewer-mcp.py /opt/bionemo/viewer-mcp.py
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py
 COPY templates/hcls-librechat/scientific_study_schema.py /opt/bionemo/scientific_study_schema.py
 COPY templates/hcls-librechat/structure-analysis.py templates/hcls-librechat/scientific_protein_preparation.py /opt/bionemo/
@@ -39,6 +40,6 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
-      ai.nebius.scientific.release="bounded-preview-20261023" \
-      ai.nebius.scientific.skills.version="2026.10.23.2" \
+      ai.nebius.scientific.release="sparse-preview-20261023" \
+      ai.nebius.scientific.skills.version="2026.10.23.3" \
       ai.nebius.scientific.skills.revision="${HCLS_IMAGE_REVISION}"
