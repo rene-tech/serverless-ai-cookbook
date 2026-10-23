@@ -354,6 +354,17 @@ or immediately available GPUs.
 
 ## Verify
 
+For client styling changes, run the [theme regression suite](theme-tests/README.md).
+It checks rendered text contrast in light, dark and high-contrast modes against
+the pinned LibreChat CSS and verifies that a Vite build retains the fix:
+
+```bash
+cd templates/hcls-librechat/theme-tests
+npm ci
+npx playwright install --with-deps chromium
+npm test
+```
+
 The public customer skill source is now `skills/scientific-ai`; it includes the
 clinical helpers. No private GitHub access or vendoring is required to build.
 Earlier v61 images included ten private upstream infrastructure skills; those

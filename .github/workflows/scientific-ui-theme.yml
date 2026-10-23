@@ -1,0 +1,35 @@
+name: Scientific UI theme
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'templates/hcls-librechat/**'
+      - 'life-science/bionemo-librechat/Dockerfile.base'
+      - '.github/workflows/scientific-ui-theme.yml'
+  pull_request:
+    paths:
+      - 'templates/hcls-librechat/**'
+      - 'life-science/bionemo-librechat/Dockerfile.base'
+      - '.github/workflows/scientific-ui-theme.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contrast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: templates/hcls-librechat/theme-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: templates/hcls-librechat/theme-tests/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
