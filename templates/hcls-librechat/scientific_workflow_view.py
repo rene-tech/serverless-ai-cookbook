@@ -28,13 +28,19 @@ def public_workflow(value):
     """
     result = {key: copy.deepcopy(value[key]) for key in (
         'title', 'state', 'phase', 'current_step', 'completed_steps',
-        'created_at', 'updated_at', 'finished_at', 'failure', 'cancellation_failure',
+        'created_at', 'updated_at', 'finished_at', 'failure', 'cancellation_failure', 'registration_failure',
         'admission_unknown', 'cancellation_unknown', 'queue_blocked', 'artifacts',
-        'completion_summaries', 'model_progress', 'output_directory', 'step_count',
+        'completion_summaries', 'model_progress', 'output_directory', 'step_count', 'registered_phases',
         'study_admission', 'reused_existing_study', 'new_study_admitted',
         'cancellation_requested') if key in value}
-    result['durable_workflow'] = True
+    phases = value.get('registered_phases', [])
+    result['durable_workflow'] = (value.get('durable_study') is True and
+        value.get('study_admission') == 'accepted' and bool(phases) and len(phases) == value.get('step_count'))
     result.setdefault('state', 'admission_pending')
+    result['continuation_state'] = ('unconfirmed' if not result['durable_workflow'] else
+        'completed' if result['state'] == 'completed' else
+        'stopped' if result['state'] in {'failed', 'cancelled'} or value.get('cancellation_requested') else
+        'blocked' if result['state'] == 'needs_attention' or value.get('queue_blocked') else 'registered')
     result['operations'] = []
     unconfirmed_identity = False
     for step_id, step in value.get('steps', {}).items():
@@ -58,11 +64,22 @@ def public_workflow(value):
         value.get('study_admission') == 'unknown' else
         'admitted' if result['operations'] else 'not_admitted')
     result['progress_url'] = '/demos?' + urlencode({'tab': 'runs', 'workflow': value['output_directory']})
-    result['guidance'] = (
+    continuation = {
+        'registered': 'The supervisor owns only the registered_phases in this accepted whole workflow. '
+            'Compare that list with every requested model, analysis and final report before promising continuation. ',
+        'unconfirmed': 'Whole-workflow admission and future phase ownership are unconfirmed. '
+            'A handwritten status file or one accepted model job does not register later phases. '
+            'Do not promise continuation or claim nothing was submitted. ',
+        'blocked': 'The registered workflow needs attention; do not promise unblocked continuation. '
+            'Preserve accepted operation IDs and reconcile the saved failure/admission evidence. ',
+        'stopped': 'This workflow is stopped; it will not execute pending phases automatically. ',
+        'completed': 'All registered phases completed; check requested deliverables and verified summaries. ',
+    }[result['continuation_state']]
+    result['guidance'] = continuation + (
         'Only operation_id values identify Serverless jobs. Before a model phase is admitted, '
-        'no platform job ID exists. The workflow supervisor continues preparation, model work '
-        'and analysis independently of chat. Observe this saved output_directory with '
+        'no platform job ID exists; unknown admission stays unknown. Observe this saved output_directory with '
         'read_scientific_workflow or the live progress link; never resubmit to poll. '
+        'Quote verified completion_summaries text and complete artifact URLs; do not reconstruct numbers or IDs. '
         'Report measured model_progress units/rates, freshness and durable progress, '
         'not hardware or inferred speed.')
     result['next_observation'] = {'tool_name': 'read_scientific_workflow',
@@ -73,7 +90,12 @@ def public_workflow(value):
 def workflow_record(output_directory):
     """Resolve an owned workspace binding, not a public alias for a native job."""
     output = path_in_workspace(output_directory)
-    binding = json.loads((output / 'study-binding.json').read_bytes())
+    try:
+        binding = json.loads((output / 'study-binding.json').read_bytes())
+    except FileNotFoundError as error:
+        raise ValueError('No saved whole-workflow binding is observable here. A handwritten STUDY.json '
+            'does not schedule work. Preserve any accepted operation IDs; a missing binding does not '
+            'prove that an earlier submission was rejected. Reconcile its receipt before submitting.') from error
     if binding.get('owner') != owner_identity():
         raise ValueError('Workflow belongs to a different dedicated owner.')
     record = get(binding['study_id'])

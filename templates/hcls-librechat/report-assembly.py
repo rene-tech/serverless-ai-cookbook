@@ -12,6 +12,7 @@ import html
 import io
 import json
 import math
+import os
 from pathlib import Path
 import re
 
@@ -235,6 +236,15 @@ def assemble(title, sections, *, source_data=None):
             parts.append(rendered)
             record.update(rendering='Schema-specific deterministic measurements; unavailable values are explicit',
                           measurements=measurements)
+        elif section['format'] == 'native-md':
+            from native_md_report import verified_summary
+            from scientific_verified_results import link, within
+            workspace = Path(os.environ.get('SCIENTIFIC_WORKSPACE', os.environ.get('WORKSPACE', '/workspace'))).resolve()
+            summary = verified_summary(data, workspace)
+            parts.append(summary['text'])
+            parts.append(f'\n[Typed observations]({link(within(source, workspace), workspace)})\n')
+            record.update(rendering='Typed observations rechecked against verified native sources',
+                          operation_id=summary['operation_id'])
         else:
             raise ValueError('Unsupported report section format.')
         parts.append('\n\n')
@@ -276,6 +286,12 @@ def publish_bundle(manifest_file, output_dir):
     files = {'report.md': report,
              'provenance.json': (json.dumps(provenance, indent=2, allow_nan=False) + '\n').encode(),
              'assembly-plan.json': manifest_bytes, 'helper.py': helper}
+    if all(section['format'] == 'native-md' for section in sections):
+        # Only this fully source-verified aggregate is projected as factual
+        # chat text. Generic Markdown may contain unverified manual claims.
+        files['customer-summary.json'] = (json.dumps({
+            'schema': 'scientific-study-summary/v1', 'kind': 'native-md',
+            'text': report.decode('utf-8'), 'inference_submitted': False}, indent=2) + '\n').encode()
     for index, (section, data) in enumerate(zip(resolved, inputs)):
         extension = {'markdown': 'md', 'csv': 'csv'}.get(section['format'], 'json')
         files[f'sources/{index:03d}.{extension}'] = data

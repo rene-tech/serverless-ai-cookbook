@@ -565,6 +565,57 @@ def markdown(report, workspace):
     return '\n'.join(lines) + '\n'
 
 
+def customer_summary(report, workspace):
+    """Project typed observations; never substitute a first sample or mean."""
+    lines = [f"Operation: `{cell(report['operation_id'])}`.", '',
+        'Verified native observations; missing measurements are unknown. '
+        'Last reported temperature is a sample, not an ensemble mean or necessarily the endpoint.', '']
+    for row, observed in zip(report['timing_rows'], report['observations']):
+        lines += ['### ' + ' / '.join(cell(row[key]) for key in ('engine', 'step_id', 'segment')), '',
+                  '| Observation | Value |', '| --- | --- |']
+        values = [
+            ('Native atom/particle count', observed['atom_count']),
+            ('Observed executed segment steps', row['executed_steps']),
+            ('Last observed step', observed['final_step']),
+            ('Segment physical time (ps)', observed['segment_physical_time_ps']),
+            ('Observed simulation clock (ps; cumulative)', observed['simulation_time_ps']),
+            ('Last reported temperature (K)', observed['temperature_k']),
+            ('Temperature observation step', observed['temperature_step']),
+            ('Temperature observation time (ps)', observed['temperature_time_ps']),
+            ('Native rate (ns/day)', row['performance_ns_per_day']),
+            ('Integration time (s)', observed['integration_seconds']),
+            ('Native reported run time (s)', observed.get('native_run_seconds')),
+            ('Native command wall time (s; includes setup and I/O)', row['wall_seconds'])]
+        lines += [f'| {label} | {cell(value) if value is not None else "unknown"} |' for label, value in values]
+        if observed['temperature_file']:
+            lines += ['', f"[Temperature evidence]({link(Path(observed['temperature_file']), workspace)}); "
+                      f"SHA-256 `{observed['temperature_sha256']}`."]
+        lines += ['', *[str(observed[key]) for key in ('step_count_scope', 'native_run_timing_scope')
+                       if observed.get(key)], '']
+    lines += [f"[Verified publication receipt]({link(Path(report['receipt_file']), workspace)})", '',
+              'No mean or total operation elapsed time is derived here. Segment clocks and command times '
+              'must not be summed into a run mean or end-to-end time. No new model work was submitted.']
+    return {'schema': 'scientific-study-summary/v1', 'kind': 'native-md',
+            'operation_id': report['operation_id'], 'text': '\n'.join(lines) + '\n',
+            'inference_submitted': False}
+
+
+def verified_summary(data, workspace):
+    """Recheck typed facts against the same receipt and small source files.
+
+    Trajectory hashes remain those of the original verified recovery; no large
+    artifact download or repeated full-trajectory hashing is performed here.
+    """
+    report = json.loads(data)
+    if not isinstance(report, dict) or report.get('schema') != 'scientific-ai/native-md-timing-report/v1':
+        raise ValueError('Expected a native-md-timing typed report, not a handwritten summary.')
+    receipt = within(Path(report['receipt_file']), workspace)
+    measured = collect(receipt.parent, workspace, report.get('expected_repeats'))
+    if report != measured or not measured['complete']:
+        raise ValueError('Typed MD report differs from verified native observations or is incomplete.')
+    return customer_summary(measured, workspace)
+
+
 def write_report(folder, output, workspace, expected_repeats=None, *, publication_directory=None):
     if expected_repeats is not None and expected_repeats < 1:
         raise ValueError('Expected repeats must be positive when supplied.')
@@ -578,6 +629,10 @@ def write_report(folder, output, workspace, expected_repeats=None, *, publicatio
                 'native-timings.csv': csv_buffer.getvalue(),
                 'native-timing-report.md': markdown(report, workspace),
                 'native-md-report.html': html_report(report, workspace)}
+    if report['complete']:
+        summary = customer_summary(report, workspace)
+        summary['text'] += '\n[Native MD report](' + link((publication_directory or output) / 'native-md-report.html', workspace) + ')\n'
+        rendered['customer-summary.json'] = json.dumps(summary, indent=2) + '\n'
     # Reports are deterministic and safely reusable. Never overwrite an earlier
     # report from different source bytes/expectations or touch native receipts.
     for name, value in rendered.items():

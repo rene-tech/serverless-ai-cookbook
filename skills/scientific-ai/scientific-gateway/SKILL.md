@@ -131,6 +131,11 @@ plan. Include requested analysis and deliverables. Native phases name actual
 input files; batch phases name source and parameter files. The durable
 supervisor advances only after verified results and resumes the immutable
 study after reconnects. A short queued/running observation is not completion.
+Promise continuation only after the whole-workflow receipt confirms accepted
+admission, `durable_workflow=true`, `continuation_state=registered`, and
+`registered_phases` covering every requested model, analysis and final report.
+A handwritten status file or individual operation does not register future
+phases. Observe/recover accepted IDs; do not repeat them to create a whole study.
 Known non-admitted concurrency rejection waits visibly; ambiguous admission or
 application failure stops for inspection. Keep the saved `output_directory`,
 native `operation_id` values and original idempotency keys. Observe the whole

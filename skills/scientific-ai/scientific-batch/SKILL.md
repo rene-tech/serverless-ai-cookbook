@@ -41,6 +41,14 @@ publication names.
    analysis. At completion inspect the requested content, not just filenames;
    deliver the requested report inline and disclose any unfinished item.
    Direct model tools remain available for supported standalone calls.
+   Before promising continuation, require the tool receipt's
+   `study_admission=accepted`, `durable_workflow=true`,
+   `continuation_state=registered`, and `registered_phases` covering every
+   requested model, analysis and final assembly. A handwritten `STUDY.json`
+   is a note, not a scheduler. If earlier operations already exist, recover
+   those exact IDs and register only remaining work/analysis; never resubmit
+   accepted science. Preserve rejected and ambiguous admissions separately;
+   reconcile unknown outcomes before submitting anything new.
 4. Successful batch phases publish `output-manifest.json`, `result.json` and
    `output-NN.artifact` siblings. Roles, MIME, compression and hashes are in the
    manifest. Use these exact filenames in `{step,file}` dependencies. Native
@@ -82,6 +90,17 @@ hash-bound residue map, while still validating both structure hashes and every
 position. Multi-chain biological choices remain explicit.
 
 ## Result conventions
+
+For native MD, use `native-md-timing` on the verified `native-files.json`.
+Assemble multi-run reports with existing `report` sections of format `native-md`
+and file `{step:"analysis-phase",file:"native-timing-report.json"}` (or an
+existing verified report path). This rechecks observations against native source
+hashes and publishes `customer-summary.json`. Quote verified
+`completion_summaries` and complete returned artifact URLs. Do not hand-copy
+measurements or operation IDs into a summary index. Last sampled temperature,
+its step/time and a mean are distinct; a mean requires its actual sample window.
+Missing measurements remain unknown. Exact filenames/URLs are never abbreviated
+with ellipses. Deliver the requested HTML inline as well as the aggregate.
 
 Structures arrive as mmCIF/PDB artifacts with confidence documents; designs
 arrive as sequences/structures per the model schema. Binder-design scores from

@@ -107,6 +107,10 @@ def test_busy_first_submission_is_unknown_not_false_rejection(mounted, monkeypat
     assert result['new_study_admitted'] is False
     assert result['next_observation']['tool_name'] == 'read_execution'
     assert 'Do not resubmit' in result['guidance']
+    from scientific_workflow_view import public_workflow
+    public = public_workflow(result)
+    assert public['continuation_state'] == 'unconfirmed' and not public['durable_workflow']
+    assert public['operation_admission'] == 'unknown'
     assert not (folder / 'receipt.json').exists() and not output.exists()
 
 

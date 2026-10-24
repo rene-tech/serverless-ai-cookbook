@@ -13,13 +13,15 @@ RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
     --mount=type=bind,source=plugins/cbioportal-research,target=/tmp/cbioportal,ro python3 - <<'PYINSTALL'
 import pathlib, py_compile, shutil
 source = pathlib.Path('/tmp/client')
-for name in ('scientific_study.py', 'scientific_study_schema.py', 'structure-analysis.py',
+for name in ('scientific_study.py', 'scientific_study_schema.py', 'scientific_workflow_view.py',
+             'report-assembly.py', 'structure-analysis.py',
              'scientific_protein_preparation.py', 'native_md_artifacts.py', 'native_md_preview.py',
              'native_md_report.py', 'scientific_starter.py', 'execution-mcp.py', 'scientific_verified_results.py'):
     target = pathlib.Path('/opt/bionemo') / name
     shutil.copy2(source / name, target)
     py_compile.compile(str(target), doraise=True)
 for name, target in {
+    'agent-instructions.md': '/app/agent-instructions.md',
     'seed-workbench.js': '/app/seed-hcls-workbench.js',
     'scientific-tool-options.cjs': '/opt/hcls-librechat/scientific-tool-options.cjs',
     'render-config.mjs': '/opt/hcls-librechat/render-config.mjs',
@@ -70,5 +72,5 @@ ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
       ai.nebius.scientific.release="client-fixes-20261024" \
-      ai.nebius.scientific.skills.version="2026.10.24.4" \
+      ai.nebius.scientific.skills.version="2026.10.24.7" \
       ai.nebius.scientific.skills.revision="${HCLS_IMAGE_REVISION}"
