@@ -35,6 +35,8 @@
 !templates/hcls-librechat/profiles/
 !templates/hcls-librechat/profiles/cancer-immunology.md
 !templates/hcls-librechat/patch-report-preview.mjs
+!templates/hcls-librechat/WorkspaceMarkdownLinks.ts
+!templates/hcls-librechat/WorkspaceReportPreview.test.tsx
 !templates/hcls-librechat/ScientificArtifactMarkdown.ts
 !templates/hcls-librechat/ScientificArtifactMarkdown.test.ts
 !plugins/

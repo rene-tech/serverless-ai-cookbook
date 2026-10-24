@@ -152,6 +152,37 @@ test('only authenticated owned workspace report/media links get an automatic pre
   expect(precheckSummary({ status: 'pass', verdict: 'not a supported report' })).toBeNull();
 });
 
+test('table reports retain links and gain one standalone preview per path', () => {
+  const link = (value: string) => ({ type: 'element', tagName: 'a', properties: { href: value },
+    children: [{ type: 'text', value: 'Saved report' }] });
+  const first = link(href), repeated = link(href), other = link('https://example.org/paper');
+  const tree = { type: 'root', children: [{ type: 'element', tagName: 'table', properties: {},
+    children: [{ type: 'element', tagName: 'tbody', properties: {}, children: [
+      { type: 'element', tagName: 'tr', properties: {}, children: [
+        { type: 'element', tagName: 'td', properties: {}, children: [first, repeated, other] },
+      ] },
+    ] }] }] };
+  workspaceMarkdownLinks()(tree);
+  expect(tree.children).toHaveLength(2);
+  expect(first.properties).toEqual({ href, 'data-scientific-report-link': 'true' });
+  expect(other.properties).toEqual({ href: 'https://example.org/paper' });
+  expect(tree.children[1]).toEqual({ type: 'element', tagName: 'p', properties: {}, children: [
+    { type: 'element', tagName: 'a', properties: { href }, children: [{ type: 'text', value: 'Saved report' }] },
+  ] });
+  const once = JSON.stringify(tree);
+  workspaceMarkdownLinks()(tree);
+  expect(JSON.stringify(tree)).toBe(once);
+});
+
+test('ordinary paragraph and list reports stay in their existing position', () => {
+  const tree = { type: 'root', children: [{ type: 'element', tagName: 'li', properties: {}, children: [
+    { type: 'element', tagName: 'a', properties: { href }, children: [{ type: 'text', value: 'Report' }] },
+  ] }] };
+  const before = JSON.stringify(tree);
+  workspaceMarkdownLinks()(tree);
+  expect(JSON.stringify(tree)).toBe(before);
+});
+
 test('native MD results show measured rates and unknown steps without runtime details', async () => {
   const data = { schema: 'scientific-ai/native-md-timing-report/v1', complete: true, timing_rows: [
     { engine: 'gromacs', step_id: 'production', performance_ns_per_day: 218.5, requested_steps: 5000000,

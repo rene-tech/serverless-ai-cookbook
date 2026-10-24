@@ -11,11 +11,21 @@ let source = await readFile(filename, 'utf8');
 source = source.replaceAll('scientificStudyId', 'scientificWorkflowPath');
 const importLine = "import WorkspaceReportPreview, { workspaceReportPath } from '~/components/WorkspaceReportPreview';";
 const anchor = '  if (!file_id || !filename) {';
-const inserted = `  if (workspaceReportPath(href)) {
+const legacyInserted = `  if (workspaceReportPath(href)) {
     return <WorkspaceReportPreview href={href}>{children}</WorkspaceReportPreview>;
   }
 
 `;
+const inserted = legacyInserted.replace('if (workspaceReportPath(href))', "if (!reportLinkOnly && workspaceReportPath(href))");
+const oldSignature = 'function MarkdownAnchor({ href, children }: TAnchorProps)';
+const newSignature = "function MarkdownAnchor({ href, children, 'data-scientific-report-link': reportLinkOnly }: TAnchorProps)";
+if (source.includes(oldSignature)) {
+  source = source.replace(oldSignature, newSignature)
+    .replace('type TAnchorProps = {', "type TAnchorProps = {\n  'data-scientific-report-link'?: string;");
+} else if (!source.includes(newSignature)) {
+  throw new Error('Unsupported MarkdownAnchor link-only seam');
+}
+if (source.includes(legacyInserted)) source = source.replace(legacyInserted, inserted);
 if (!source.includes(importLine)) {
   if (source.split(anchor).length !== 2) throw new Error('Unsupported MarkdownAnchor report-preview seam');
   source = importLine + '\n' + source.replace(anchor, inserted + anchor);
@@ -38,6 +48,8 @@ if (!source.includes(studyImport)) {
   throw new Error('Study preview import exists without its renderer seam');
 }
 await writeFile(filename, source);
+await writeFile(path.join(root, 'src/components/WorkspaceMarkdownLinks.ts'),
+  await readFile(new URL('./WorkspaceMarkdownLinks.ts', import.meta.url)));
 
 // Rehype runs before react-markdown strips unsupported schemes. An anchor-only
 // fix is too late: sandbox:/workspace links have already become href="".
