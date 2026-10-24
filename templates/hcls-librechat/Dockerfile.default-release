@@ -73,11 +73,12 @@ await writeFile(path, patchDeploymentSkillFreshness(await readFile(path, 'utf8')
 JSSKILL
 node /tmp/client/scripts/test-skill-body-freshness.cjs
 node /tmp/client/patch-report-preview.mjs /app/client \
+ && node /tmp/client/patch-workspace-tool-reports.mjs /app/client \
  && cp /tmp/client/ScientificArtifactMarkdown.test.ts /app/client/src/components/ \
- && cp /tmp/client/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
+ && cp /tmp/client/WorkspaceReportPreview.test.tsx /tmp/client/WorkspaceToolReports.test.tsx /app/client/src/components/ \
  && cd /app/client \
  && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit \
-    src/components/ScientificArtifactMarkdown.test.ts src/components/WorkspaceReportPreview.test.tsx \
+    src/components/ScientificArtifactMarkdown.test.ts src/components/WorkspaceReportPreview.test.tsx src/components/WorkspaceToolReports.test.tsx \
  && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
  && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify
 RELEASE

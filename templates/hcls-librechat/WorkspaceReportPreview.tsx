@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { request } from 'librechat-data-provider';
 import { workspaceCodeHref } from './WorkspaceInlineCode';
 import type { ReactNode } from 'react';
 
 const PREVIEW_LIMIT = 8 * 1024 * 1024;
+/** Message-scoped tool previews own their paths; Markdown keeps its original links. */
+export const WorkspaceToolReportPaths = createContext<ReadonlySet<string>>(new Set());
 const MEDIA_TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
   gif: 'image/gif', webp: 'image/webp', mp4: 'video/mp4', webm: 'video/webm' };
 function previewKind(path: string) {
@@ -83,9 +85,13 @@ export function nativeMdSummary(value: unknown): NativeMdSummary | null {
       seconds: number(row.wall_seconds) })) };
 }
 
-export default function WorkspaceReportPreview({ href, children }: { href: string; children: ReactNode }) {
+export default function WorkspaceReportPreview({ href, children, fromTool = false }: {
+  href: string; children: ReactNode; fromTool?: boolean;
+}) {
   const frame = useRef<HTMLIFrameElement>(null);
   const reportPath = workspaceReportPath(href);
+  const toolPaths = useContext(WorkspaceToolReportPaths);
+  const previewEnabled = fromTool || !reportPath || !toolPaths.has(reportPath);
   const [expanded, setExpanded] = useState(true);
   const [html, setHtml] = useState<string | null>(null);
   const [summary, setSummary] = useState<PrecheckSummary | null>(null);
@@ -118,7 +124,7 @@ export default function WorkspaceReportPreview({ href, children }: { href: strin
     return () => { observer?.disconnect(); target.removeEventListener('load', repaint); };
   }, [html, expanded]);
   useEffect(() => {
-    if (!reportPath || !expanded) return;
+    if (!reportPath || !expanded || !previewEnabled) return;
     let cancelled = false;
     let objectUrl: string | undefined;
     setHtml(null); setSummary(null); setMdSummary(null); setMediaUrl(null); setError('');
@@ -158,8 +164,8 @@ export default function WorkspaceReportPreview({ href, children }: { href: strin
       }
     })();
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [reportPath, expanded, optionalJsonPath, kind]);
-  if (!reportPath) return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+  }, [reportPath, expanded, optionalJsonPath, kind, previewEnabled]);
+  if (!reportPath || !previewEnabled) return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
   return <span className="my-3 block rounded-xl border border-border-medium p-3" role="group" aria-label="Scientific report preview">
     <span className="block font-semibold">{children || 'Scientific report'}</span>
     {summary && <span className="my-2 block" role="status">

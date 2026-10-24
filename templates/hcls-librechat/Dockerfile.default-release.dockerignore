@@ -38,6 +38,9 @@
 !templates/hcls-librechat/WorkspaceMarkdownLinks.ts
 !templates/hcls-librechat/WorkspaceReportPreview.test.tsx
 !templates/hcls-librechat/WorkspaceReportPreview.tsx
+!templates/hcls-librechat/WorkspaceToolReports.tsx
+!templates/hcls-librechat/WorkspaceToolReports.test.tsx
+!templates/hcls-librechat/patch-workspace-tool-reports.mjs
 !templates/hcls-librechat/ScientificArtifactMarkdown.ts
 !templates/hcls-librechat/ScientificArtifactMarkdown.test.ts
 !plugins/
