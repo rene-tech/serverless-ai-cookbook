@@ -7,6 +7,12 @@ Ordinary paragraph and list previews retain their positions. Report bytes,
 download links, sandbox permissions and authenticated delivery remain unchanged.
 This applies when messages stream and when unchanged saved messages reopen.
 
+A conventional `report.json` companion is optional. Missing, unavailable or
+unrecognized metadata does not turn successfully loaded HTML into a failed
+preview. Recognized MD precheck metadata still supplies its summary and JSON
+download; a JSON download is advertised only after that artifact was loaded and
+recognized. Failure to load the requested HTML itself remains visible.
+
 The retained regression covers link preservation, repeated report paths,
 idempotent rendering and ordinary list placement. A local browser check uses
 the actual patched Markdown anchor, Markdown parser and report component with

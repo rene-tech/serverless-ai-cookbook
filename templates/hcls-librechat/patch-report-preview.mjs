@@ -50,6 +50,8 @@ if (!source.includes(studyImport)) {
 await writeFile(filename, source);
 await writeFile(path.join(root, 'src/components/WorkspaceMarkdownLinks.ts'),
   await readFile(new URL('./WorkspaceMarkdownLinks.ts', import.meta.url)));
+await writeFile(path.join(root, 'src/components/WorkspaceReportPreview.tsx'),
+  await readFile(new URL('./WorkspaceReportPreview.tsx', import.meta.url)));
 
 // Rehype runs before react-markdown strips unsupported schemes. An anchor-only
 // fix is too late: sandbox:/workspace links have already become href="".

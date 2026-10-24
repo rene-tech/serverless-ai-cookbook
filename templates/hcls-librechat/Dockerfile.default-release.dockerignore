@@ -37,6 +37,7 @@
 !templates/hcls-librechat/patch-report-preview.mjs
 !templates/hcls-librechat/WorkspaceMarkdownLinks.ts
 !templates/hcls-librechat/WorkspaceReportPreview.test.tsx
+!templates/hcls-librechat/WorkspaceReportPreview.tsx
 !templates/hcls-librechat/ScientificArtifactMarkdown.ts
 !templates/hcls-librechat/ScientificArtifactMarkdown.test.ts
 !plugins/

@@ -93,7 +93,7 @@ export default function WorkspaceReportPreview({ href, children }: { href: strin
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
   const kind = reportPath ? previewKind(reportPath) : null;
-  const jsonPath = reportPath?.endsWith('/report.html') || reportPath === 'report.html'
+  const optionalJsonPath = reportPath?.endsWith('/report.html') || reportPath === 'report.html'
     ? reportPath.replace(/\.html$/u, '.json') : undefined;
   const fileUrl = (path: string) => `/api/scientific-demos/workspace/file?path=${encodeURIComponent(path)}`;
   const download = async (path: string) => {
@@ -139,19 +139,26 @@ export default function WorkspaceReportPreview({ href, children }: { href: strin
             if (!cancelled) setMdSummary(parsed);
           }
         }
-        if (jsonPath) {
-          const metadata = await readWorkspacePreview(jsonPath);
-          const parsed = precheckSummary(JSON.parse(await metadata.text()));
-          if (!cancelled) setSummary(parsed);
-        }
       } catch (problem) {
         if (!cancelled) setError(problem instanceof Error && problem.message === 'preview_limit'
           ? 'This report is too large for the inline preview. Download the complete original below.'
-          : 'The complete report or summary could not be loaded. Use the original workspace file below.');
+          : 'The saved result could not be loaded. Use the original workspace file below.');
+        return;
+      }
+      if (optionalJsonPath && !cancelled) {
+        try {
+          const metadata = await readWorkspacePreview(optionalJsonPath);
+          const parsed = precheckSummary(JSON.parse(await metadata.text()));
+          if (!cancelled) setSummary(parsed);
+        } catch {
+          // A conventional companion name is only a hint. Missing or invalid
+          // optional metadata must not mark a successfully loaded HTML as failed.
+          if (!cancelled) setSummary(null);
+        }
       }
     })();
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [reportPath, expanded, jsonPath, kind]);
+  }, [reportPath, expanded, optionalJsonPath, kind]);
   if (!reportPath) return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
   return <span className="my-3 block rounded-xl border border-border-medium p-3" role="group" aria-label="Scientific report preview">
     <span className="block font-semibold">{children || 'Scientific report'}</span>
@@ -162,7 +169,7 @@ export default function WorkspaceReportPreview({ href, children }: { href: strin
     <span className="my-2 flex flex-wrap gap-3 text-sm">
       <button type="button" className="underline" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? 'Collapse report' : 'View report here'}</button>
       <button type="button" className="underline" onClick={() => void download(reportPath)}>{kind === 'html' ? 'Download HTML' : 'Download original'}</button>
-      {jsonPath && <button type="button" className="underline" onClick={() => void download(jsonPath)}>Download JSON</button>}
+      {summary && optionalJsonPath && <button type="button" className="underline" onClick={() => void download(optionalJsonPath)}>Download JSON</button>}
       <a href={href} target="_blank" rel="noopener noreferrer" className="underline">Workspace file</a>
     </span>
     {error && <span role="status" className="my-2 block text-sm">{error}</span>}

@@ -115,7 +115,34 @@ test('a missing report is an explicit preview failure, never a fabricated pass o
   await screen.findByText(/could not be loaded/);
   expect(screen.queryByTitle('Scientific report')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Download HTML' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Download JSON' })).not.toBeInTheDocument();
   expect(read).toHaveBeenCalledTimes(1);
+});
+
+test.each([404, 403, 500])('optional companion HTTP %s does not fail valid HTML, including reopened messages', async (status) => {
+  read.mockImplementation(async (url: string) => {
+    if (url.includes('report.json')) throw { response: { status } };
+    return { data: blob(html) };
+  });
+  for (let reopened = 0; reopened < 2; reopened++) {
+    const rendered = render(<WorkspaceReportPreview href={href}>Combined retained report</WorkspaceReportPreview>);
+    const frame = await screen.findByTitle('Scientific report');
+    await waitFor(() => expect(read).toHaveBeenCalledTimes((reopened + 1) * 2));
+    expect(frame.getAttribute('srcdoc')).toContain('Recorded check');
+    expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Download JSON' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download HTML' })).toBeInTheDocument();
+    rendered.unmount();
+  }
+});
+
+test.each(['not JSON', JSON.stringify({ schema: 'unrelated/v1' })])('unrecognized optional metadata never advertises a companion download', async (metadata) => {
+  read.mockImplementation(async (url: string) => ({ data: blob(url.includes('report.json') ? metadata : html) }));
+  render(<WorkspaceReportPreview href={href}>Combined retained report</WorkspaceReportPreview>);
+  await screen.findByTitle('Scientific report');
+  await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+  expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Download JSON' })).not.toBeInTheDocument();
 });
 
 test('failed preview never retries through another route', async () => {
