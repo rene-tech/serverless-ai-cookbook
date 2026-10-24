@@ -142,6 +142,20 @@ def test_dynamic_output_contracts_remain_deferred_not_forbidden(step):
     study.known_output_reference({'step': 'dynamic', 'file': 'contract-dependent.ext'}, {'dynamic': step})
 
 
+def test_native_report_html_is_a_discoverable_conditional_deliverable():
+    descriptor = describe_workflow(['report'])['phases']['report']
+    assert 'report.html' not in descriptor['always_on_success']
+    assert 'When every section uses native-md, report.html' in ' '.join(descriptor['conditional'])
+    step = {'method': 'report', 'arguments': {'sections': [
+        {'title': 'Retained', 'format': 'native-md', 'file': '/workspace/retained-timing.json'}]}}
+    assert known_output_files(step) == set(PHASE_OUTPUTS['report'][0]) | {
+        'report.html', 'customer-summary.json', 'sources/000.json'}
+    study.known_output_reference({'step': 'aggregate', 'file': 'report.html'}, {'aggregate': step})
+    study.known_output_reference({'step': 'aggregate', 'file': 'sources/000.json'}, {'aggregate': step})
+    with pytest.raises(ValueError, match='cannot publish'):
+        study.known_output_reference({'step': 'aggregate', 'file': 'report.htm'}, {'aggregate': step})
+
+
 @pytest.mark.parametrize('filename', ['data.json', '.json', 'data values.json', 'line\nbreak.json',
     'limitations.md', 'nested/data.json', '/data.json', 'data.json\n', 'data.json\r', '', 'data.JSON'])
 def test_write_json_schema_matches_existing_basename_validator(filename):

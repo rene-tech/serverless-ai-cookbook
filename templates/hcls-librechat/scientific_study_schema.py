@@ -188,7 +188,7 @@ PHASE_OUTPUTS = {
     'aging': (['metrics.json', 'rows.csv', 'report.md'], []),
     'genmol': (['metrics.json', 'rows.csv', 'report.md', 'completion-manifest.json'], []),
     'protein-design-analysis': (['measurements.json', 'inventory.csv', 'report.md'], []),
-    'report': (['report.md', 'provenance.json', 'assembly-plan.json', 'helper.py', 'completion-manifest.json'], ['sources/NNN.ext retains every exact supplied section. When every section uses native-md, customer-summary.json is automatically published and projected in verified completion_summaries. It preserves exact operation IDs, last sampled temperatures with step/time, timing scopes and complete source links; it does not invent means.']),
+    'report': (['report.md', 'provenance.json', 'assembly-plan.json', 'helper.py', 'completion-manifest.json'], ['sources/NNN.ext retains every exact supplied section. When every section uses native-md, report.html is the combined standalone HTML deliverable; select it with {step:report_step_id,file:report.html}. Existing verified native-timing-report.json paths can be assembled directly without rerunning analyses. customer-summary.json is also automatically published and projected in verified completion_summaries. These preserve exact operation IDs, last sampled temperatures with step/time, timing scopes, unknowns and complete source links; they do not invent means.']),
     'mindeval': (['report.md', 'methods.md', 'runs.csv', 'scores.csv', 'measurements.json', 'provenance.json', 'records.json', 'completion-manifest.json', 'customer-summary.json'],
                  ['records/NNN.json and transcripts/NNN.txt retain every full supplied record and transcript. customer-summary.json is automatically published; stored overall_score stays bound to exact profile, clinician and run ID, unavailable stays unavailable. Completed Runs/read_execution expose its verified text; quote that instead of recomputing scores.']),
     'clinical-study': (['report.md', 'measurement.json', 'completion-manifest.json'], ['Per-case measurements and preserved input files follow the helper completion-manifest.']),
@@ -239,6 +239,10 @@ def known_output_files(step):
     if method in PHASE_OUTPUT_ALTERNATIVES:
         return set(PHASE_OUTPUTS[method][0] + PHASE_OUTPUT_ALTERNATIVES[method])
     args = step.get('arguments', {})
+    if method == 'report' and args.get('sections') and all(
+            item.get('format') == 'native-md' for item in args['sections']):
+        return (set(PHASE_OUTPUTS[method][0]) | {'report.html', 'customer-summary.json'}
+                | {f'sources/{index:03d}.json' for index in range(len(args['sections']))})
     if method == 'write-json':
         return {args['filename']}
     if method == 'python-script':

@@ -95,7 +95,11 @@ For native MD, use `native-md-timing` on the verified `native-files.json`.
 Assemble multi-run reports with existing `report` sections of format `native-md`
 and file `{step:"analysis-phase",file:"native-timing-report.json"}` (or an
 existing verified report path). This rechecks observations against native source
-hashes and publishes `customer-summary.json`. Quote verified
+hashes and publishes `customer-summary.json`. When every section is `native-md`,
+select `{step:"report-phase",file:"report.html"}` for the combined standalone
+HTML and keep `report.md` when Markdown is also requested. Existing verified
+timing JSON files need only this assembly phase, not repeated analyses or science.
+Quote verified
 `completion_summaries` and complete returned artifact URLs. Do not hand-copy
 measurements or operation IDs into a summary index. Last sampled temperature,
 its step/time and a mean are distinct; a mean requires its actual sample window.

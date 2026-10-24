@@ -458,12 +458,14 @@ def collect(folder, workspace, expected_repeats=None):
         ]}
 
 
-def html_report(report, workspace, structure_html=None):
+def html_report(report, workspace, structure_html=None, *, fragment=False, section_id='native-md-summary'):
     """A scientific summary, optionally in the existing interactive viewer page."""
+    if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]*', section_id):
+        raise ValueError('HTML section ID must be a plain identifier.')
     escape = lambda value: html.escape(str(value), quote=True)
     display = lambda value: 'unknown' if value is None else escape(f'{value:.9g}' if isinstance(value, float) else value)
     title = 'Native MD report — ' + report['operation_id']
-    parts = [f'<section id="native-md-summary"><h1>{escape(title)}</h1>',
+    parts = [f'<section id="{section_id}"><h1>{escape(title)}</h1>',
              '<p>Read-only analysis of hash-verified retained results. No simulation was submitted.</p>',
              '<h2>Observed scientific results</h2>']
     for row, observed in zip(report['timing_rows'], report['observations']):
@@ -528,6 +530,9 @@ def html_report(report, workspace, structure_html=None):
               if structure_html else '<p>Not included in this report. Request the optional verified final-coordinate preview if needed.</p>', '</section>']
     section = ''.join(parts)
     style = '<style>#native-md-summary{font:15px/1.5 system-ui,sans-serif;padding:20px;color:#14213d;background:#fff;overflow-wrap:anywhere}#native-md-summary h1{font-size:22px}#native-md-summary h2{font-size:18px;margin-top:24px}#native-md-summary dl{display:grid;grid-template-columns:minmax(180px,2fr) minmax(80px,1fr);gap:6px 16px}#native-md-summary dd{margin:0;font-variant-numeric:tabular-nums}</style>'
+    style = style.replace('#native-md-summary', '#' + section_id)
+    if fragment:
+        return style + section
     if structure_html:
         if '<body>' not in structure_html or '</head>' not in structure_html:
             raise ValueError('Expected the installed complete structure viewer document.')
