@@ -202,9 +202,8 @@ Current explicit `:resume` retains the original request parameters and the
 cumulative `elapsed_seconds` saved in the checkpoint. It uses only the remaining
 original `max_wall_seconds`; a spent budget is not renewed by another attempt or
 by the native delivery margin. Do not promise fresh time or repeatedly resume
-an exhausted budget. The GROMACS schema currently describes a fresh budget for
-explicit continuation, but that behavior is not implemented on this path;
-treat this wording as an open contract gap, not an available capability.
+an exhausted budget. The current GROMACS and MPI schemas describe this same
+cumulative budget; check the live schema before offering continuation.
 
 An explicit `max_output_bytes` bounds total retained workflow bytes, not only a
 single final download. The current GROMACS MPI schema uses `default: null`:

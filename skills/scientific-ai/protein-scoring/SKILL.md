@@ -1,6 +1,7 @@
 ---
 name: protein-scoring
 description: Compare protein variants, binder interfaces and developability using ESM-2, StaB-ddG, PyRosetta interface metrics or Flex ddG; route FoldX and CamSol requests when those licensed tools are available.
+license: Apache-2.0 AND CC-BY-4.0
 ---
 
 # Protein scoring
