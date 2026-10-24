@@ -44,6 +44,10 @@ Read the live study guide and CNA guidance before querying. Verify the profile
 and its observed values: an AMP/deep-deletion event table may omit gains, shallow
 deletions and diploid measurements. A zero result in that table does not establish
 absence of the omitted categories; inspect the full discrete profile instead.
+Preserve nonstandard numerical values literally unless a source defines their
+meaning; never turn them into gain/deletion categories by guessed thresholds.
+Use authoritative profile membership or coverage to identify profiled samples,
+not the presence of records for a single convenient gene.
 
 For "top genes", aggregate across all measured genes in the requested cohort,
 with bounded returned rows and an explicit ranking rule. Do not substitute a
