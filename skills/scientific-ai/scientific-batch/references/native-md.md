@@ -77,17 +77,30 @@ the field is omitted; a `maximum` is an allowed bound, not the default or a
 promise of sufficient resources. Do not copy another engine's defaults, an
 old example's limits or a short benchmark's explicit budget into the request.
 
-For current OpenMM, omitting `max_output_bytes` (or passing schema-supported
-`null`) adds no workflow byte cap beyond authorized storage capacity. An explicit
-integer caps all retained workflow bytes, including inputs, preparation and
-archived outputs. Other Apps can have different defaults and maxima: discover
-them rather than assuming OpenMM's behavior applies everywhere. These are
-submission budgets, not a universal download limit for existing results.
+Current explicit `:resume` retains the original request parameters and the
+cumulative `elapsed_seconds` saved in the checkpoint. It uses only the remaining
+original `max_wall_seconds`; a spent budget is not renewed by another attempt or
+by the native delivery margin. Do not promise fresh time or repeatedly resume
+an exhausted budget. The GROMACS schema currently describes a fresh budget for
+explicit continuation, but that behavior is not implemented on this path;
+treat this wording as an open contract gap, not an available capability.
+
+For GROMACS, GROMACS MPI, AMBER, NAMD, LAMMPS and OpenMM, the current contract
+uses `default: null` for `max_output_bytes`. Omission or schema-supported `null`
+adds no aggregate workflow byte cap. An explicit integer still caps all retained
+workflow bytes, including inputs, preparation and archived outputs. Confirm this
+in the live schema; do not copy the former 4 GiB default or 48 GiB maximum from
+an old example into a new request. Other Apps may have different contracts.
+These are submission budgets, not a universal limit on downloading existing
+results.
 
 Request budgets do not enlarge bucket quotas or execution scratch. Keep the
 scientist's output cadence; estimate storage from real inputs and requested
 frames, and explain any measured capacity problem without silently reducing
-output. Recover completed results through their existing operation ID; do not
+output. An omitted byte cap does not remove per-file transport or
+file-count/manifest limits or prove fourteen-day storage endurance. Native scripts may read older restart files
+later: do not delete them or overwrite the requested cadence to fit storage.
+Recover completed results through their existing operation ID; do not
 resubmit science or change its budgets merely to download or report on it.
 
 ## Evidence to return

@@ -198,18 +198,28 @@ useful throughput from durably completed simulated duration and elapsed time.
 
 ## Output budget and failure diagnostics
 
-`max_output_bytes` bounds total files in the workflow's workspace, not only a
-single final download. Read its default and maximum from the current GROMACS
-MPI schema; the maximum is not the default. Do not inherit another App's
-budget semantics. Assigned scratch and bucket quota remain separate constraints.
+Current explicit `:resume` retains the original request parameters and the
+cumulative `elapsed_seconds` saved in the checkpoint. It uses only the remaining
+original `max_wall_seconds`; a spent budget is not renewed by another attempt or
+by the native delivery margin. Do not promise fresh time or repeatedly resume
+an exhausted budget. The GROMACS schema currently describes a fresh budget for
+explicit continuation, but that behavior is not implemented on this path;
+treat this wording as an open contract gap, not an available capability.
+
+An explicit `max_output_bytes` bounds total retained workflow bytes, not only a
+single final download. The current GROMACS MPI schema uses `default: null`:
+omission or schema-supported `null` adds no aggregate workflow byte cap. Read
+the live schema before submitting; do not insert the historical 4 GiB default
+or 48 GiB maximum. Assigned scratch and bucket quota remain separate constraints.
 Budget for staged TPR/input files, checkpoint generations, segment/final `.gro`
 files, XTC/TRR/EDR parts, joined copies and analysis outputs. A ~12.5-million-atom
-benchmark generated ~862 MB per final `.gro`; repeated files exhausted its 4 GiB
-request budget even though integration progressed. File count also has a bound.
+benchmark generated ~862 MB per final `.gro`; repeated files exhausted its
+historical 4 GiB request budget even though integration progressed. File count
+and manifest size still have bounds; omission does not prove long-run endurance.
 
 Estimate from real input sizes and requested trajectory cadence, retaining
 headroom; do not silently disable requested output to make a run fit. Larger
-bucket capacity alone does not raise this per-request limit or Pod scratch.
+bucket capacity alone does not raise an explicit per-request limit or Pod scratch.
 If the estimate exceeds published limits, report the exact requirement rather
 than split/change the scientific protocol without agreement.
 
