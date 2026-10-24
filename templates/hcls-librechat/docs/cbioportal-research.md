@@ -30,15 +30,30 @@ The database at `https://mcp.cbioportal.org/db/mcp` advertises OAuth discovery,
 dynamic client registration, S256 and `client_secret_post`; LibreChat handles
 these natively. Do not seed the database into every chat before authentication.
 The user connects it in MCP Settings, signs in with Google and selects it when
-needed. Keep the instance's correct HTTPS `DOMAIN_SERVER` for the callback.
+needed. For a saved agent, enabling the connection is a separate step from
+adding its tools to that agent. Preserve existing tools and add
+`sys__all__sys_mcp_cbioportal-database` with the matching `mcpServerNames` entry;
+keep `list_guides` and `list_studies` directly loaded and defer other schemas.
+Use the normal agent editor/API where available. An authorized operator repair
+must back up the agent, compare against the current version and change only the
+selected tools/options; no instance restart or token revocation is needed.
+Keep the instance's correct HTTPS `DOMAIN_SERVER` for the callback.
 No manually supplied shared database API key is needed.
+
+Diagnose connection status, user authorization and agent tool selection
+independently. `tool_search` excludes already-loaded tools. "No MCP server
+matched" is not evidence that a connected user's OAuth credentials are invalid.
 
 Acceptance covers exact package loading, unchanged existing skills/settings,
 public study resolution and link generation from the actual browser agent,
 clear unauthenticated database behavior, preserved chat state, and persisted
-configuration. Authenticated database queries/refresh remain unqualified until
-the owner completes Google consent. Never report navigator metadata as a
-completed database analysis. Hosted query logging means private documents and
+configuration. After owner consent, qualify actual queries in the saved agent,
+then reopen the conversation and verify its retained tool evidence. For CNA
+analysis, inspect the full discrete profile, assay coverage and missingness;
+rank all measured genes with bounded aggregate queries and retain provenance.
+Connection status or a successful navigation call does not qualify a database
+analysis, and query success does not by itself qualify token refresh.
+Hosted query logging means private documents and
 patient information must not be included in external queries.
 
 The upstream database README calls itself MIT, but its inspected `LICENSE`

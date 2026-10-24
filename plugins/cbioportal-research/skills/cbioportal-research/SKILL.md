@@ -20,7 +20,12 @@ performs data queries. A generated link is not an executed statistical analysis.
   If disconnected, explain this and continue useful public navigation when that
   answers part of the request. Never repeatedly retry authentication, ask for a
   Google password, substitute another user's token, or fabricate query results.
-  After connecting, select this server in the chat tools menu when needed.
+  After connecting, select this server in the chat tools menu or the saved
+  agent's tools configuration when needed. Connection authorization and agent
+  tool selection are separate. A "No MCP server matched" discovery result
+  does not prove missing authorization: check that the connected server is
+  selected for the current agent, and check already-loaded tools before
+  repeating discovery. Do not ask the user to revoke a working connection.
 - Once a tool is discovered, use it rather than repeating discovery. Read the
   live input schema; server interfaces are under active development.
 - Loading this skill or reading tool documentation is preparation, not the
@@ -32,6 +37,28 @@ Read only the relevant cBioPortal guide (mutation frequency, clinical data,
 sample filtering, or gene expression) through the available guide/resource tool.
 Do not assume a fixed ClickHouse table schema. Prefer supported bounded tools;
 any SQL must be read-only and retain its exact filters and query with the result.
+
+## Copy-number analysis
+
+Read the live study guide and CNA guidance before querying. Verify the profile
+and its observed values: an AMP/deep-deletion event table may omit gains, shallow
+deletions and diploid measurements. A zero result in that table does not establish
+absence of the omitted categories; inspect the full discrete profile instead.
+
+For "top genes", aggregate across all measured genes in the requested cohort,
+with bounded returned rows and an explicit ranking rule. Do not substitute a
+hand-picked driver list or interpret truncated output as a complete ranking.
+Retain the full aggregate result when it fits the service's response limits.
+Use gene-specific eligible coverage and nonmissing measurements for denominators,
+and report missing/off-panel data separately from unaltered calls. Include each
+requested alteration category even when its observed count is zero, explaining
+when the source profile does not resolve that category.
+
+Keep the exact clinical sample-type values, count unique samples and patients
+separately, and check overlap between groups. A primary/metastasis split is not
+automatically a paired comparison. Save the executed queries and responses;
+label any explicitly permitted REST or bulk-data fallback by its actual source,
+never as a successful database MCP query.
 
 ## Scientific interpretation
 
