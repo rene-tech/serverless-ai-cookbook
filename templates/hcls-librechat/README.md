@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A6eab1b90c79b8e9144b7a9e7b595495ea046ce3fe49a826c2695d37e2c7e6d7b&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A90a385ca32b36d128135184245860baf77705a30b60846b7ff5aeaccea09d31d&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,18 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:client-fixes-20261024-c6d0950`,
-digest `sha256:6eab1b90c79b8e9144b7a9e7b595495ea046ce3fe49a826c2695d37e2c7e6d7b`.
+The selected and published default release is: `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:tool-report-f32a5d29-r3-20261024`,
+digest `sha256:90a385ca32b36d128135184245860baf77705a30b60846b7ff5aeaccea09d31d`.
+Its [exact-image receipt](docs/evidence/report-skill-release-20261024.json) records
+installed checks and actual isolated-client acceptance of the scoped changed features.
+The isolated client export/local restore and retirement passed; original QA was preserved.
+The temporary QA request limit is restored to 250. The default includes
+[registered continuation and typed report grounding](docs/durable-report-grounding-20261024.md),
+standalone native-MD HTML summaries, deployment Skill-body freshness and
+[full-width report previews with optional companion metadata](docs/report-preview-layout-20261024.md), plus
+[direct rendering from completed viewer tools](docs/tool-report-rendering-20261024.md).
+These packaged corrections do not establish that a retained client's cached
+builtin Skill definitions have refreshed; existing clients need separate acceptance.
 The [consolidated client fixes](docs/client-fixes-20261024.md) package corrected
 inline rendering, complete native MD observations, Kimi context/deferred tools,
 current research skills and optional Dropbox/cBioPortal integration.
@@ -140,14 +150,23 @@ the native-operation fixes, arbitrary-file uploads, bucket selection, authentica
 downloads and audio playback. MongoDB diagnostic logs rotate instead of filling
 the state disk. The dated earlier receipts remain historical evidence, not proof
 that their image contained these restored components.
-The current image’s 46 canonical customer skills (94 installed including the pinned ClawBio
+The candidate image’s 47 canonical customer skills (95 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. The selected image contains skills
-`2026.10.24.4`; the consolidated image source is
-`c6d095056893dc8bffbd48ec94bf4f63a32a66db`.
-See its exact-image receipt for installed components, retained login/history,
-and actual browser/file/agent checks. This is client lifecycle/interface evidence,
+`2026.10.24.8`; the exact candidate source is
+`f32a5d29eba689ecd1de3290970f9455f5fc2322`. Its unchanged runtime Config retains
+the parent OCI revision label `539753f`; installed UI source hashes identify this successor.
+The isolated client passed six actual builtin Skill calls across original,
+temporary-marker and restored bodies without restarting its API or workers. One
+registered CPU report reused six retained sources; its typed values, authenticated
+HTML download and initial/reopened report pixels passed. Agent/ACL/settings and
+all other skills were preserved. The older retained QA API still has its separate
+startup-cache limitation. Direct rendering of an older report from a completed
+viewer tool now passes actual saved-chat, already-open streamed output, normal
+download and saved-reopen checks, without another report or simulation. One
+reopen required ordinary same-account login; its cause remains unknown. This is
+scoped client lifecycle/interface evidence,
 not qualification of every scientific workflow, autonomous skill selection,
 capacity or non-root portability. Operators maintain the image in
 `scripts/release-image.sh`. Existing running instances do not auto-upgrade when
@@ -160,9 +179,9 @@ New installations include the shared compact agent instructions and the actual
 [OpenFF CPU runtime](openff/README.md), not just its skill. Standalone ligand
 preparation uses `/opt/openff/bin/python` with pinned Sage and AM1-BCC dependencies;
 no interactive conda/pip installation or GPU is required. Kimi K3 is the selected
-model, with high reasoning, a 131072-token context ceiling and a 16384-token
-completion ceiling. Explicit deployment overrides remain possible; there is no
-automatic model fallback. This is a general-purpose release, not a customer overlay.
+model, with high reasoning, a configured 1,024,000-token context ceiling and a
+16,384-token completion ceiling for new deployments. Explicit deployment overrides
+remain possible; there is no automatic model fallback. This is a general-purpose release, not a customer overlay.
 Native skill loading returns the instructions as tool content, and installed
 `/app/skill/` paths resolve through the existing authorized skill reader.
 See the [current catalog-discovery release evidence](docs/catalog-discovery-20261007.md),

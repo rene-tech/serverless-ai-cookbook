@@ -2,9 +2,9 @@
 
 The product-owner-approved default conversational model is
 `moonshotai/Kimi-K3` on Nebius Token Factory, approved on October 2, 2026.
-The general agent uses high reasoning, a 131072-token context ceiling and a
-16384-token completion ceiling. The independent runtime budget remains 90 seconds
-per model invocation and 300 seconds of accumulated model time per turn; tool
+New deployments configure the general agent with high reasoning, a
+1,024,000-token context ceiling and a 16,384-token completion ceiling. The
+independent runtime budget remains 90 seconds per model invocation and 300 seconds of accumulated model time per turn; tool
 execution and scientific job time do not consume that budget.
 
 This replaces the earlier GLM-5.3-Flash default for new deployments. It does not
