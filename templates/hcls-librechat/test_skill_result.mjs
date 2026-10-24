@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { patchSkillResult, patchInstalledSkillPaths } from './patch-skill-result.mjs';
+import { patchSkillResult, patchInstalledSkillPaths, patchDeploymentSkillFreshness } from './patch-skill-result.mjs';
 
 const fixture = `async function handler(args, skill) {
   if (!skill.accessible) throw new Error('No access');
@@ -28,6 +28,8 @@ test('model-invoked skill is returned completely as reference tool content', asy
 test('upstream drift and double patching are rejected', () => {
   assert.throws(() => patchSkillResult('different upstream'), /Unsupported/);
   assert.throws(() => patchSkillResult(patchSkillResult(fixture)), /already patched/);
+  assert.throws(() => patchDeploymentSkillFreshness('different upstream'), /Unsupported/);
+  assert.throws(() => patchDeploymentSkillFreshness('scientific-ai: current deployment skill body'), /already patched/);
 });
 
 test('installed skill aliases retain ACLs and never read arbitrary host files', async () => {
