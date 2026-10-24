@@ -3,8 +3,9 @@
 `plugins/cbioportal-research` is an opt-in Agent Plugins 1.0.0 package: two
 official hosted MCP connections and one original portable skill. It uses the
 existing LibreChat plugin loader, OAuth manager and report tools. It installs
-no database, proxy, scheduler or GPU runtime. The standard image/default skill
-bundle and other clients are unchanged.
+no database, proxy, scheduler or GPU runtime. The default image packages it at `/opt/hcls-librechat/plugins/cbioportal-research`
+for explicit activation; it remains separate from the canonical skill bundle and
+is not automatically connected in other clients.
 
 Install the package as one child of a versioned directory on the instance's
 persistent `/data` filesystem, retaining any already installed plugins. Set
@@ -16,7 +17,8 @@ the existing skill path, provider credentials, user accounts, conversations,
 model settings, shared bucket and study owner.
 
 The actual LibreChat release used for qualification already supports Agent
-Plugins; no client runtime patch or new image is required. Copying the package
+Plugins. Existing supported clients can install this package without a runtime
+patch; new default images include the same package. Copying the package
 to `/data` makes it survive provider VM replacement when that state filesystem
 and environment are retained. Do not activate it in other deployments merely
 because the source is published.

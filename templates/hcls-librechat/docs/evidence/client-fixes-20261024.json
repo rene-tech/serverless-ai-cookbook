@@ -1,0 +1,82 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:client-fixes-20261024-c6d0950",
+  "manifest": "sha256:6eab1b90c79b8e9144b7a9e7b595495ea046ce3fe49a826c2695d37e2c7e6d7b",
+  "config": "sha256:91e6f39056ff3d001ced0b35eb03d85743a238eec8188c03e4c51f986b75a0c7",
+  "source": "c6d095056893dc8bffbd48ec94bf4f63a32a66db",
+  "base_image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:be5adc6c39b5ef7909d382d7122e56c79336edf11b1a94342df05f4765ea08f6",
+  "base_layers_preserved": 112,
+  "layer_metadata": "Docker gzip to OCI gzip descriptors; compressed digest+size and uncompressed diffIDs unchanged",
+  "layers": 116,
+  "runtime_config_preserved_except": {
+    "SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS": [
+      "131072",
+      "1024000"
+    ]
+  },
+  "installed_source_files": {
+    "app/seed-hcls-workbench.js": "316e43f7401678ea4d846f8bf97e4b23cfe4c7ba96b5365b5a18fd508366f8d0",
+    "opt/hcls-librechat/scientific-tool-options.cjs": "3c0e86833fa932d29c7b756a8462a79ea6d2e3d7001336ec65492a7e78999f71",
+    "opt/hcls-librechat/render-config.mjs": "cde4b5fa2703909859b3fd9ddbd80e940faeb34601d9d1669891cf5b25c06743",
+    "app/client/src/components/ScientificArtifactMarkdown.ts": "420ec51237f6ef04f66ee6eae5b4ddd351fc2eda2fd81804565d7fbdb6eece7b",
+    "opt/bionemo/viewer-mcp.py": "b2c0c54b0b62df94f03338f5e7035418fc211dfbfe03a03972a96b838e3f4fdd",
+    "opt/bionemo/report-native-md.py": "1981d4bbbdf7eb15a60896dda69140fc3acb8ebf0e5753ad6b8437cb0417c554",
+    "opt/bionemo/invoke-scientific-batch.py": "f453cebfc990711f65770025a63ed3dceb6a2ec3ce6aa96ae2d89bddd9ddf0e3",
+    "opt/bionemo/scientific_study.py": "64c21d73f098805441ec84837127e1d285b16ebda9c4b5b49113607f9358565d",
+    "opt/bionemo/scientific_study_schema.py": "001bf85646036889f47f5a5ec7615473f27e5f718d8513122bc8fa59288c6519",
+    "opt/bionemo/structure-analysis.py": "18ebe3ff21c46d7f5a9458c1b7a057f56f5349c23c68b8ac50b54222207c21ee",
+    "opt/bionemo/scientific_protein_preparation.py": "f107324104e7f03cf6ad85d0e8c4cd4386758ab9fd52128aaa759f0ea4c86483",
+    "opt/bionemo/native_md_artifacts.py": "fb53ef67b7cb5eaf4ca39e73bf4065eb6ddd46456f8981f39a0692356ca5ddf2",
+    "opt/bionemo/native_md_preview.py": "e44d2fc7de223755a3f032bf48aba66788d79cfef863eb27ce6355661b568d38",
+    "opt/bionemo/native_md_report.py": "1981d4bbbdf7eb15a60896dda69140fc3acb8ebf0e5753ad6b8437cb0417c554",
+    "opt/bionemo/scientific_starter.py": "b61c1b75259f69e4d70ac94bdd7ee9b1427c545f98ef9a42332421a953ce6afe",
+    "opt/bionemo/execution-mcp.py": "12503c4448a94793a3e9113d9bb7aefcec2aee8276d5e0f9044aa88b3340418a",
+    "opt/bionemo/scientific_verified_results.py": "d8f74ec4e3f4272e666726fce64947e43ff414374fe006573a9eace72dd2a821",
+    "opt/bionemo/scientific-workflow.py": "41db1c832c49c828c51c81ae5949d739bbc65b9e1cce35a5ba39d152b2039ea0",
+    "opt/bionemo/scientific-study-worker.py": "41d534c320a0683f9ae78ca7fc0eab15729f4c4226c707dd8025e78b43c865db",
+    "opt/hcls-librechat/demos/service.cjs": "41b642e7449624eb188a9d937db6fa0c1e2dcaacbb49ec00a67cbbfc80e0650c",
+    "opt/hcls-librechat/demos/analysis.cjs": "423464e9acf6193370d97a61c7f1f06d61c95046bc2609468187213ab0069a3f",
+    "opt/hcls-librechat/demos/mcp.cjs": "274dfcfe314b8a6735c0fb00bafc0931d1633814283fa367eaff57a52809fd0b"
+  },
+  "bundle_files_verified": 123,
+  "skills_version": "2026.10.24.4",
+  "optional_plugin_files": [
+    "plugin.json",
+    "mcp.json",
+    "skills/cbioportal-research/SKILL.md"
+  ],
+  "published_verified": true,
+  "customer_instances_replaced": 0,
+  "all_scientific_workflows_qualified": false,
+  "base_receipt": "sparse-preview-20261023.json",
+  "qualification": "packaged client fixes; inherited live evidence plus exact installed-file/runtime-loader/UI checks",
+  "tests": {
+    "focused_source": 92,
+    "tool_loading": 6,
+    "built_inline_renderer": 18,
+    "actual_installed_loader": {
+      "skills": 94,
+      "resources": 115,
+      "hash_verified_bundle_files": 123
+    }
+  },
+  "changes_to_running_endpoints_by_image_promotion": 0,
+  "scientific_submissions": 0,
+  "external_connectors_enabled_by_image": false,
+  "inherited_live_scope": [
+    "sparse and large-mmCIF preview rendering",
+    "five-engine retained-result reports with qualified 1981 helper",
+    "Rene-PhD inline artifact rendering and deferred tools",
+    "Rene-PhD authorized cBioPortal pagination and Dropbox reads"
+  ],
+  "new_full_image_customer_workflow_qualification": false,
+  "known_limits": [
+    "Current workflow/capacity claims remain separately qualified; this publication does not replay model science.",
+    "Existing client processes/customizations/connection scope are not changed by the default pointer.",
+    "Optional external connectors require explicit activation and user authorization.",
+    "Multiweek MD storage endurance remains unqualified."
+  ],
+  "verification_notes": [
+    "Initial manifest comparison rejected Docker-to-OCI descriptor metadata; all 112 compressed layer digests/sizes and uncompressed diffIDs are exact.",
+    "An initial read occurred before publication completed and returned manifest unknown; the later published manifest/config/digest and installed bytes were verified."
+  ]
+}

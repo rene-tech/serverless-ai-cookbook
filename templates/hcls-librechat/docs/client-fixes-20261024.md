@@ -37,3 +37,21 @@ checks, inherited layers/runtime configuration, loader/UI verification and
 remaining qualification scope. Existing scientific execution and live-client
 receipts are reused at their exact scope; no model job is replayed just to
 publish a client image.
+
+## Published image and checks
+
+- Image: `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:client-fixes-20261024-c6d0950`.
+- Digest: `sha256:6eab1b90c79b8e9144b7a9e7b595495ea046ce3fe49a826c2695d37e2c7e6d7b`.
+- Source: `c6d095056893dc8bffbd48ec94bf4f63a32a66db`; bundle `2026.10.24.4`.
+- [Exact image receipt](evidence/client-fixes-20261024.json).
+
+All 112 inherited layers preserve their compressed digests/sizes and uncompressed
+identities; the final image has 116 layers. OCI descriptors replace Docker gzip
+descriptors without changing those bytes. Runtime configuration changes only
+the context default from 131,072 to 1,024,000 tokens. All 123 canonical bundle
+files and 22 explicitly compared source/runtime files match; both report entry
+points match the qualified helper. The real installed loader reads 94 skills and
+115 resources. Source checks pass 92 tests, tool loading six, and the built
+inline renderer 18. Existing scoped live-client evidence remains distinct from
+a new whole-image end-to-end qualification; no customer client or scientific job
+was restarted/replayed to publish this default.

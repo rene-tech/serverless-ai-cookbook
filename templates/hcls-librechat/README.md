@@ -37,7 +37,7 @@ key `SCIENTIFIC_MODELS_API_KEY` and map it only as a secret environment variable
 
 ## Deploy
 
-<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3Abe5adc6c39b5ef7909d382d7122e56c79336edf11b1a94342df05f4765ea08f6&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
+<a href="https://console.nebius.com/serverless/endpoint/create?image=cr.eu-north1.nebius.cloud%2Fe00akg9ndpx77eaexh%2Flc%40sha256%3A6eab1b90c79b8e9144b7a9e7b595495ea046ce3fe49a826c2695d37e2c7e6d7b&amp;targetPort=3080&amp;platform=cpu-d3&amp;preset=4vcpu-16gb&amp;diskSize=100GiB&amp;preemptible=false&amp;volumeMountPath=%2Fdata&amp;volumeSize=32"><img src="../assets/create-endpoint.svg" alt="Configure a Scientific AI LibreChat endpoint" width="138" height="20"></a>
 
 This opens a prefilled **configuration form**, not a secret-bearing launch URL.
 Select your project and subnet, supply secret references, and mount the workspace
@@ -65,8 +65,11 @@ export SCIENTIFIC_STUDY_OWNER_MODE='first-instance'
 ./templates/hcls-librechat/scripts/deploy.sh
 ```
 
-The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:sparse-preview-20261023-20da61c`,
-digest `sha256:be5adc6c39b5ef7909d382d7122e56c79336edf11b1a94342df05f4765ea08f6`.
+The default is `cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:client-fixes-20261024-c6d0950`,
+digest `sha256:6eab1b90c79b8e9144b7a9e7b595495ea046ce3fe49a826c2695d37e2c7e6d7b`.
+The [consolidated client fixes](docs/client-fixes-20261024.md) package corrected
+inline rendering, complete native MD observations, Kimi context/deferred tools,
+current research skills and optional Dropbox/cBioPortal integration.
 The [sparse-coordinate viewer fix](docs/sparse-preview-20261023.md) displays
 isolated atoms as labelled spheres, including in Sticks mode, without adding
 connections. New reports use the corrected viewer; existing saved HTML and
@@ -137,12 +140,12 @@ the native-operation fixes, arbitrary-file uploads, bucket selection, authentica
 downloads and audio playback. MongoDB diagnostic logs rotate instead of filling
 the state disk. The dated earlier receipts remain historical evidence, not proof
 that their image contained these restored components.
-Its 37 canonical customer skills (85 installed including the pinned ClawBio
+The current image’s 46 canonical customer skills (94 installed including the pinned ClawBio
 selection) come from the same
 [canonical public directory](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai)
 as the website's **Get the Skills** button. The selected image contains skills
-`2026.10.19.1`; the presentation/skill overlay source is
-`28580611769040c822dfa115559c55353b7e0422`.
+`2026.10.24.4`; the consolidated image source is
+`c6d095056893dc8bffbd48ec94bf4f63a32a66db`.
 See its exact-image receipt for installed components, retained login/history,
 and actual browser/file/agent checks. This is client lifecycle/interface evidence,
 not qualification of every scientific workflow, autonomous skill selection,
