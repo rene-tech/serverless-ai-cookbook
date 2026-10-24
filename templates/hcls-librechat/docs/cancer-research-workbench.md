@@ -33,6 +33,12 @@ are account identity, metadata read and content read; no app credential is a
 substitute for the user's actual consent. Connect from the MCP menu once. Do
 not use a shared access token in agent instructions or a custom proxy.
 
+Keep Dropbox out of seeded agent tools and preset MCP selections. LibreChat
+initializes selected servers before a turn: selecting an unauthenticated OAuth
+server blocks even unrelated questions behind its consent prompt. The user
+connects Dropbox in MCP Settings, then selects it in the chat tools menu when
+needed. The standard research workflow remains usable before consent.
+
 If the origin is assigned after endpoint creation, record `DOMAIN_SERVER` (and
 `DOMAIN_CLIENT`) in that new instance's private persisted runtime environment
 before activating OAuth, then restart only that newly provisioned instance's
