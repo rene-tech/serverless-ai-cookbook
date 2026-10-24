@@ -27,6 +27,7 @@ for name in ('scientific_study.py', 'scientific_study_schema.py', 'scientific_wo
 for name, target in {
     'agent-instructions.md': '/app/agent-instructions.md',
     'seed-workbench.js': '/app/seed-hcls-workbench.js',
+    'patch-skill-result.mjs': '/opt/hcls-librechat/patch-skill-result.mjs',
     'scientific-tool-options.cjs': '/opt/hcls-librechat/scientific-tool-options.cjs',
     'render-config.mjs': '/opt/hcls-librechat/render-config.mjs',
     'native_md_report.py': '/opt/bionemo/report-native-md.py',
@@ -63,6 +64,14 @@ PY
 cp /tmp/client/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
  && cp /tmp/client/scientific-workflow.py /tmp/client/scientific-study-worker.py /opt/bionemo/ \
  && /opt/scientific-client/bin/python /tmp/client/scripts/verify-observer-recovery.py --source /tmp/client
+# The base already has Skill result/path patches; apply only the new body reader.
+node --input-type=module <<'JSSKILL'
+import { readFile, writeFile } from 'node:fs/promises';
+import { patchDeploymentSkillFreshness } from '/tmp/client/patch-skill-result.mjs';
+const path = '/app/packages/api/dist/index.cjs';
+await writeFile(path, patchDeploymentSkillFreshness(await readFile(path, 'utf8')));
+JSSKILL
+node /tmp/client/scripts/test-skill-body-freshness.cjs
 node /tmp/client/patch-report-preview.mjs /app/client \
  && cp /tmp/client/ScientificArtifactMarkdown.test.ts /app/client/src/components/ \
  && cp /tmp/client/WorkspaceReportPreview.test.tsx /app/client/src/components/ \
