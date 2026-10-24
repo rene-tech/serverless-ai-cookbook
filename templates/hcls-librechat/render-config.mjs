@@ -259,6 +259,9 @@ if (process.env.SCIENTIFIC_DROPBOX_ENABLED === 'true') {
       grant_types_supported: ['authorization_code', 'refresh_token'],
     },
   };
+  for (const spec of modelSpecs) {
+    spec.mcpServers = [...new Set([...(spec.mcpServers || []), 'dropbox'])];
+  }
 }
 
 // JSON is valid YAML and preserves multiline instructions and literal key references.

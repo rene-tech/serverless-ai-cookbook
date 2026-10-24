@@ -11,6 +11,7 @@ RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/core-skills,ro \
  && python3 /tmp/core-skills/bundle.py build --output /tmp/research-skill-bundle \
  && tar -xzf /tmp/research-skill-bundle/scientific-ai-skills-${SKILLS_VERSION}.tar.gz --strip-components=1 -C /app/skill \
  && cp /tmp/workbench-release/render-config.mjs /opt/hcls-librechat/render-config.mjs \
+ && cp /tmp/workbench-release/seed-workbench.js /app/seed-hcls-workbench.js \
  && mkdir -p /opt/hcls-librechat/profiles \
  && cp /tmp/workbench-release/profiles/cancer-immunology.md /opt/hcls-librechat/profiles/cancer-immunology.md \
  && cat /app/agent-instructions.md /opt/hcls-librechat/profiles/cancer-immunology.md > /opt/hcls-librechat/profiles/cancer-research-instructions.md \
