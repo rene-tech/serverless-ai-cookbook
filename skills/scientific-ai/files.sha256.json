@@ -120,6 +120,6 @@
   "tests/native-md-contracts.json": "4ae84127b24a3b0c570c8bae7a638baa15e7c941727f8a269dfd38ea5456d533",
   "tests/sync-native-md-contracts.py": "e0e2ad23d7fcb074384bf3b7dcc48fbf9ef4e769e1efbc1d89d0fac8d3a8f195",
   "tests/test_bioemu2.py": "a92e3c9a7e61820d3b28641550996f120b8125a2c6f24676d40dc84aab154b95",
-  "tests/test_bundle.py": "b2f6b9cf2ef56cef6d7b3848c02a9436c55d470b35cf2d0d4a3510eaf8fcb3ed",
+  "tests/test_bundle.py": "4327f3fb0e68eb490bc287c9b618e7752d9bde6a34a80cc0146d50d5cc081d99",
   "tests/test_rfd4.py": "32e3fb38e564ee91068a98781636e0f8e50f10068b41ed943480d9ea5cce8dd8"
 }

@@ -33,7 +33,7 @@ def text(name):
 
 def test_manifest_and_skill_format():
     data = bundle.validate()
-    assert len(data['skills']) == 41
+    assert len(data['skills']) == 46
     assert len({model for models in data['skills'].values() for model in models}) == 46
     for name in data['skills']:
         assert 'license:' in text(name).split('---')[1]
@@ -166,7 +166,7 @@ def test_install_repeat_conflict_and_integrity(tmp_path):
     (source / 'files.sha256.json').write_text(json.dumps(bundle.inventory(source)))
     destination = tmp_path / 'installed'
     result = bundle.install(destination, source)
-    assert result['skills'] == 41
+    assert result['skills'] == 46
     assert bundle.install(destination, source) == result
     assert (destination / 'clinical-documentation/scripts/study_report.py').is_file()
     assert (destination / 'rfd4-proteina/LICENSE').is_file()
