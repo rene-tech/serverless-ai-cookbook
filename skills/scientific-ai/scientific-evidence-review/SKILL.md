@@ -29,6 +29,17 @@ critical-thinking and literature-review skills; see [sources](references/sources
    Deduplicate papers reporting the same trial/cohort; records are not independent
    studies. Separate preprints and abstracts from peer-reviewed articles.
 
+Before writing a cited report, fetch the actual publisher page, PubMed record or
+DOI metadata with the available web/file tools and record its exact title,
+authors, publication date and article type. A search snippet is discovery only;
+do not call it full-text verification. If only search is available, use the
+execution tool to retrieve the public source. Copy author names from the record,
+or omit them when unverified; never reconstruct them from memory. A review is
+secondary evidence even when peer-reviewed. If primary evidence was requested,
+inspect an original research article, or explicitly report that requirement as
+unmet. Obtain the access date from the execution environment's UTC clock; do not
+invent it. Keep publication date, access date and evidence cutoff distinct.
+
 ## Judge what the evidence supports
 
 - Identify biological sampling units and paired/longitudinal structure. Cells,
