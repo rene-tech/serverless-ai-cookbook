@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1.7
+# Additive research skills and optional official Dropbox MCP on the exact standard
+# workbench. It does not change the default chat model or replace existing clients.
+ARG WORKBENCH_BASE
+FROM ${WORKBENCH_BASE}
+ARG SKILLS_VERSION
+ARG SKILLS_REVISION
+RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/core-skills,ro \
+    --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workbench-release,ro \
+    python3 /tmp/core-skills/bundle.py verify \
+ && python3 /tmp/core-skills/bundle.py build --output /tmp/research-skill-bundle \
+ && tar -xzf /tmp/research-skill-bundle/scientific-ai-skills-${SKILLS_VERSION}.tar.gz --strip-components=1 -C /app/skill \
+ && cp /tmp/workbench-release/render-config.mjs /opt/hcls-librechat/render-config.mjs \
+ && mkdir -p /opt/hcls-librechat/profiles \
+ && cp /tmp/workbench-release/profiles/cancer-immunology.md /opt/hcls-librechat/profiles/cancer-immunology.md \
+ && cat /app/agent-instructions.md /opt/hcls-librechat/profiles/cancer-immunology.md > /opt/hcls-librechat/profiles/cancer-research-instructions.md \
+ && node --check /opt/hcls-librechat/render-config.mjs \
+ && node /tmp/workbench-release/scripts/test-skills-installed.cjs \
+ && rm -rf /tmp/research-skill-bundle
+LABEL ai.nebius.scientific.skills.version="${SKILLS_VERSION}" \
+      ai.nebius.scientific.skills.revision="${SKILLS_REVISION}"

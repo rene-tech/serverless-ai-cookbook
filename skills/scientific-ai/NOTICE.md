@@ -47,3 +47,16 @@ Its [BSD-3-Clause notice](rfd4-proteina/LICENSE) accompanies the adapted skill.
 Local GPU/scheduler setup and optional search/oracle workflows were replaced
 with the distinct hosted generation contract; no upstream endorsement or new
 rights to model weights are implied.
+# Research skills added 24 October 2026
+
+`cancer-biology`, `immunology-research` and `car-t-research` adapt selected
+MIT-licensed guidance from K-Dense-AI/scientific-agents at
+98c7fae46648724e1a43a1f2b207b0c82fcc462e (K-Dense, Inc., 2026).
+`scientific-evidence-review` adapts critical-thinking and literature-review
+guidance from K-Dense-AI/scientific-agent-skills at
+593377bb048752abb0152deab9fbb1083a6087df (K-Dense Inc., 2025).
+Each adapted skill contains its upstream MIT license and source/change notes.
+The adaptations are concise research guidance, with current-platform tool routing;
+upstream optional commercial tools and treatment instructions were not imported.
+Scientific papers are linked and summarized, not redistributed. No institutional
+endorsement or clinical validation is implied.

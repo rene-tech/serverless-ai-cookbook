@@ -237,6 +237,30 @@ const config = {
   },
 };
 
+// Optional, per-user OAuth connection. The app credentials are references, never
+// baked into the image or sent to the model. Consent stays with the signed-in user.
+if (process.env.SCIENTIFIC_DROPBOX_ENABLED === 'true') {
+  for (const key of ['DROPBOX_APP_KEY', 'DROPBOX_APP_SECRET']) {
+    if (!process.env[key]) throw new Error(`Dropbox requires ${key}`);
+  }
+  config.mcpServers.dropbox = {
+    title: 'Dropbox research library',
+    description: 'Search and read the Dropbox account you authorize. Connect in the MCP menu.',
+    type: 'streamable-http', url: 'https://mcp.dropbox.com/mcp',
+    startup: false, requiresOAuth: true, initTimeout: 60000, timeout: 120000,
+    serverInstructions: 'Use only the requested research files and actual granted tools. Preserve originals. Read the dropbox-research skill. Never share, delete, move, restore or publish files without explicit user intent.',
+    oauth: {
+      authorization_url: 'https://www.dropbox.com/oauth2/authorize?token_access_type=offline',
+      token_url: 'https://api.dropboxapi.com/oauth2/token',
+      client_id: '${DROPBOX_APP_KEY}', client_secret: '${DROPBOX_APP_SECRET}',
+      scope: 'account_info.read files.metadata.read files.content.read',
+      token_endpoint_auth_methods_supported: ['client_secret_basic'],
+      code_challenge_methods_supported: ['S256'],
+      grant_types_supported: ['authorization_code', 'refresh_token'],
+    },
+  };
+}
+
 // JSON is valid YAML and preserves multiline instructions and literal key references.
 await writeFile(outputPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
 process.stdout.write(`Scientific workspace config ready: ${modelSpecs.length} chat choices; gateway ${sharedGatewayKey ? 'server-managed' : 'per-user'}.\n`);

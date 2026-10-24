@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.10.23.3",
+  "version": "2026.10.24.1",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -9,49 +9,149 @@
     "NVIDIA-BioNeMo/bionemo-agent-toolkit": "0e67a612e4045f007e38fa77adc8f3ebfc5616b6",
     "RosettaCommons/RFD4-Proteina": "ed63183a7f2703a6dc2e4add3314c265b7e4ffcb",
     "microsoft/bioemu2": "f99e0d899a2548ee6d9d54b6854b2bc35b6652d5",
-    "openmm/openmm": "b399af4725573963b46d6c1083fdcf7a37615857"
+    "openmm/openmm": "b399af4725573963b46d6c1083fdcf7a37615857",
+    "K-Dense-AI/scientific-agents": "98c7fae46648724e1a43a1f2b207b0c82fcc462e",
+    "K-Dense-AI/scientific-agent-skills": "593377bb048752abb0152deab9fbb1083a6087df"
   },
   "skills": {
-    "aging-models": ["altumage", "phenoage"],
-    "amber": ["amber"],
-    "binder-design-campaigns": ["proteina-complexa", "boltzgen", "mosaic", "bindcraft"],
-    "boltz2": ["boltz2"],
-    "bioemu2": ["bioemu2"],
+    "aging-models": [
+      "altumage",
+      "phenoage"
+    ],
+    "amber": [
+      "amber"
+    ],
+    "binder-design-campaigns": [
+      "proteina-complexa",
+      "boltzgen",
+      "mosaic",
+      "bindcraft"
+    ],
+    "bioemu2": [
+      "bioemu2"
+    ],
+    "boltz2": [
+      "boltz2"
+    ],
+    "cancer-biology": [],
+    "car-t-research": [],
     "clawbio-catalog": [],
-    "clinical-asr-evaluation": ["nemotron-speech-en-0-6b", "nemotron-speech-multilingual-0-6b", "parakeet-realtime-eou-120m-v1"],
+    "clinical-asr-evaluation": [
+      "nemotron-speech-en-0-6b",
+      "nemotron-speech-multilingual-0-6b",
+      "parakeet-realtime-eou-120m-v1"
+    ],
     "clinical-documentation": [],
     "crispr-workflows": [],
-    "diffdock": ["diffdock"],
-    "drug-discovery-pipeline": ["genmol", "diffdock"],
-    "evo2": ["evo2-40b"],
-    "generative-media": ["sdxl", "cosmos3-nano", "cosmos3-lerobot-augmentation", "wan2-2-t2v-nim", "wan2-2-i2v-nim"],
-    "genmol": ["genmol"],
-    "gromacs": ["gromacs", "gromacs-mpi"],
-    "imaging-models": ["nv-reason-cxr-3b", "nv-segment-ct"],
-    "lammps": ["lammps"],
-    "md-precheck": ["mdprecheck"],
-    "microscopy-segmentation": ["cellpose-cpsam-v2"],
+    "diffdock": [
+      "diffdock"
+    ],
+    "dropbox-research": [],
+    "drug-discovery-pipeline": [
+      "genmol",
+      "diffdock"
+    ],
+    "evo2": [
+      "evo2-40b"
+    ],
+    "generative-media": [
+      "sdxl",
+      "cosmos3-nano",
+      "cosmos3-lerobot-augmentation",
+      "wan2-2-t2v-nim",
+      "wan2-2-i2v-nim"
+    ],
+    "genmol": [
+      "genmol"
+    ],
+    "gromacs": [
+      "gromacs",
+      "gromacs-mpi"
+    ],
+    "imaging-models": [
+      "nv-reason-cxr-3b",
+      "nv-segment-ct"
+    ],
+    "immunology-research": [],
+    "lammps": [
+      "lammps"
+    ],
+    "md-precheck": [
+      "mdprecheck"
+    ],
+    "microscopy-segmentation": [
+      "cellpose-cpsam-v2"
+    ],
     "mindeval-workflows": [],
-    "molmim": ["molmim"],
-    "openmm": ["openmm"],
-    "msa-search": ["msa-search-pdb70"],
-    "msa-structure-prediction-pipeline": ["msa-search-pdb70", "boltz2", "openfold3"],
-    "namd": ["namd"],
+    "molmim": [
+      "molmim"
+    ],
+    "msa-search": [
+      "msa-search-pdb70"
+    ],
+    "msa-structure-prediction-pipeline": [
+      "msa-search-pdb70",
+      "boltz2",
+      "openfold3"
+    ],
+    "namd": [
+      "namd"
+    ],
     "nebius-infrastructure-prep": [],
     "openff": [],
-    "openfold2": ["openfold2"],
-    "openfold3": ["openfold3"],
-    "protein-binder-design": ["rfdiffusion", "proteinmpnn"],
-    "proteinmpnn": ["proteinmpnn"],
-    "rfdiffusion": ["rfdiffusion"],
-    "rfd4-proteina": ["rfd4-proteina"],
-    "sam2-segmentation": ["sam2-1-hiera-large"],
+    "openfold2": [
+      "openfold2"
+    ],
+    "openfold3": [
+      "openfold3"
+    ],
+    "openmm": [
+      "openmm"
+    ],
+    "protein-binder-design": [
+      "rfdiffusion",
+      "proteinmpnn"
+    ],
+    "proteinmpnn": [
+      "proteinmpnn"
+    ],
+    "rfd4-proteina": [
+      "rfd4-proteina"
+    ],
+    "rfdiffusion": [
+      "rfdiffusion"
+    ],
+    "sam2-segmentation": [
+      "sam2-1-hiera-large"
+    ],
     "scientific-agent-tutorials": [],
-    "scientific-batch": ["alphafold3", "openfold3-openbind", "protenix-v2", "esmfold2", "esmfold2-fast", "proteina-complexa", "bindcraft", "boltzgen", "mosaic", "rfdiffusion"],
-    "scientific-gateway": ["qwen3-8b"],
+    "scientific-batch": [
+      "alphafold3",
+      "openfold3-openbind",
+      "protenix-v2",
+      "esmfold2",
+      "esmfold2-fast",
+      "proteina-complexa",
+      "bindcraft",
+      "boltzgen",
+      "mosaic",
+      "rfdiffusion"
+    ],
+    "scientific-evidence-review": [],
+    "scientific-gateway": [
+      "qwen3-8b"
+    ],
     "scientific-starter-data": [],
-    "single-cell-analysis": ["scvi-scanvi"],
-    "speech-workflows": ["nemotron-speech-en-0-6b", "nemotron-speech-multilingual-0-6b", "parakeet-realtime-eou-120m-v1", "diar-streaming-sortformer-4spk-v2-1", "magpie-tts-multilingual-357m"],
+    "single-cell-analysis": [
+      "scvi-scanvi"
+    ],
+    "speech-workflows": [
+      "nemotron-speech-en-0-6b",
+      "nemotron-speech-multilingual-0-6b",
+      "parakeet-realtime-eou-120m-v1",
+      "diar-streaming-sortformer-4spk-v2-1",
+      "magpie-tts-multilingual-357m"
+    ],
     "tavily-research": []
   }
 }
