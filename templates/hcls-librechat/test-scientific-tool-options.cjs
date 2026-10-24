@@ -6,9 +6,30 @@ test('current and future typed model tools are deferred after mcp_all expansion'
   for (const name of ['cosmos3_nano_video_to_video', 'submit_cosmos3_lerobot_augmentation', 'future_typed_model']) {
     assert.equal(value[name + '_mcp_scientific-ai-apps'].defer_loading, true);
   }
-  assert.equal(value.get_model_schema_mcp_bionemo_models, undefined);
+  assert.equal(value.plain_helper, undefined);
   assert.equal(value['get_model_schema_mcp_scientific-ai-apps'], undefined);
   assert.equal(value['execute_command_mcp_environment-execution'], undefined);
+});
+
+test('new connected servers defer schemas without a maintained server allowlist', () => {
+  const names = ['search_mcp_dropbox', 'query_mcp_cbioportal-database', 'future_mcp_new-service'];
+  const value = options({ tools: ['sys__all__sys_mcp_new-service'] });
+  for (const name of names) assert.equal(value[name].defer_loading, true);
+  assert.equal(value['sys__all__sys_mcp_new-service'], undefined);
+});
+
+test('explicit direct or deferred selection wins and does not mutate caller settings', () => {
+  const agent = { tool_options: {
+    'search_mcp_dropbox': { defer_loading: false, allowed_callers: ['direct'] },
+    'submit_openfold3_native_mcp_scientific-ai-apps': { defer_loading: false },
+    'workbench_list_apps_mcp_scientific-demos': { defer_loading: true },
+  } };
+  const original = JSON.stringify(agent);
+  const value = options(agent);
+  for (const [name, configured] of Object.entries(agent.tool_options)) {
+    assert.deepEqual(value[name], configured);
+  }
+  assert.equal(JSON.stringify(agent), original);
 });
 test('existing tool options survive unchanged except deferred schema loading', () => {
   const name = 'future_typed_model_mcp_scientific-ai-apps';

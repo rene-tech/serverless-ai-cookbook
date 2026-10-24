@@ -3,6 +3,11 @@
 # workbench. It does not change the default chat model or replace existing clients.
 ARG WORKBENCH_BASE
 FROM ${WORKBENCH_BASE}
+# Token Factory /v1/models advertises Kimi K3 context_length=1024000.
+ENV SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=1024000
+COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
+COPY templates/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/scientific-tool-options.cjs
+COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
 ARG SKILLS_VERSION
 ARG SKILLS_REVISION
 RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/core-skills,ro \

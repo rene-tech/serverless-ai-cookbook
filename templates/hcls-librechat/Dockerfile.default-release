@@ -4,6 +4,11 @@
 # Build with --build-context scientific-skills=./skills/scientific-ai.
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:962fff454d231c3ea40b31f494cc9e78fabe590ca8e10786c38a01f58df38363
 FROM ${WORKBENCH_BASE}
+# Token Factory /v1/models advertises Kimi K3 context_length=1024000.
+ENV SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=1024000
+COPY templates/hcls-librechat/seed-workbench.js /app/seed-hcls-workbench.js
+COPY templates/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/scientific-tool-options.cjs
+COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
 USER root
 COPY life-science/bionemo-librechat/viewer-mcp.py /opt/bionemo/viewer-mcp.py
 COPY templates/hcls-librechat/scientific_study.py /opt/bionemo/scientific_study.py

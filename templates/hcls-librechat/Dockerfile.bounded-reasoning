@@ -35,7 +35,7 @@ FROM ${WORKBENCH_BASE}
 USER root
 COPY --from=assembled /release/ /
 ENV SCIENTIFIC_CHAT_REASONING_EFFORT=high \
-    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072
+    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=1024000
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL ai.nebius.scientific.bounded-reasoning.revision="${HCLS_IMAGE_REVISION}"
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \

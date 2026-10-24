@@ -42,7 +42,7 @@ const tokenFactoryContext = new Map([
   ['openai/gpt-oss-120b', 131072],
   ['zai-org/GLM-5.3-Flash', 1048576],
   ['deepseek-ai/DeepSeek-V4-Flash-0731', 1048576],
-  ['moonshotai/Kimi-K3', 1048576],
+  ['moonshotai/Kimi-K3', 1024000],
   ['meta-llama/Llama-3.3-70B-Instruct', 127500],
   ['zai-org/GLM-5.2', 1048576],
   ['zai-org/GLM-5.1', 204800],

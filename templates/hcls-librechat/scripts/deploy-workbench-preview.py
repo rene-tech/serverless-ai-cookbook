@@ -33,7 +33,7 @@ def preview(source, name, image, owner, public_key):
                        'SCIENTIFIC_STUDY_OWNER': owner,
                        'SCIENTIFIC_CHAT_MODEL': 'moonshotai/Kimi-K3',
                        'SCIENTIFIC_CHAT_REASONING_EFFORT': 'high',
-                       'SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS': '131072',
+                       'SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS': '1024000',
                        'SCIENTIFIC_CHAT_MAX_OUTPUT_TOKENS': '16384',
                        'SCIENTIFIC_AGENT_MODEL_DEADLINE_MS': '90000',
                        'SCIENTIFIC_AGENT_MODEL_TIME_MS': '300000',

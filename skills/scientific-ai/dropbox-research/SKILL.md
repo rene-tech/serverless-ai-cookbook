@@ -9,7 +9,12 @@ license: Apache-2.0
 Use the configured `dropbox` MCP server and its actual current tool schemas.
 OAuth consent belongs to the signed-in user; an app key/secret is not access to
 their Dropbox. If disconnected, direct the user to connect Dropbox in the MCP
-menu. Do not request a password, print tokens or search unrelated directories.
+menu. Authorization and agent selection are separate: if discovery says no
+server matched despite authorization, select Dropbox in this chat/agent's tools
+menu. Stop there and explain that missing selection; enumerating every other
+server cannot repair it and needlessly loads unrelated schemas. Once available,
+use a named search/list tool or one narrowly scoped discovery request, then call
+it. Do not request a password, print tokens or search unrelated directories.
 
 Resolve the intended folder/project first. Use Search/ListFolder with available
 filters and pagination, then GetFileMetadata/GetFileContent or their current

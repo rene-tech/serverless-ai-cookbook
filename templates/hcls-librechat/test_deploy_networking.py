@@ -92,7 +92,7 @@ def test_reasoning_time_budgets_are_forwarded_without_changing_model(tmp_path, d
     assert 'SCIENTIFIC_AGENT_MODEL_TIME_MS=300000' in arguments
     assert 'SCIENTIFIC_AGENT_REPEAT_ROUNDS=2' in arguments
     assert 'SCIENTIFIC_CHAT_MODEL=moonshotai/Kimi-K3' in arguments
-    assert 'SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072' in arguments
+    assert 'SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=1024000' in arguments
 
 
 @pytest.mark.parametrize('override,expected', [(None, 'high'), ('low', 'low')])

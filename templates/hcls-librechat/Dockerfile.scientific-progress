@@ -50,7 +50,7 @@ ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     SCIENTIFIC_MODELS_API_BASE_URL=https://89.169.99.188/v1 \
     SCIENTIFIC_MODELS_MCP_URL=https://89.169.99.188/mcp \
     SCIENTIFIC_CHAT_REASONING_EFFORT=high \
-    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072 \
+    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=1024000 \
     SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true
 EXPOSE 3080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \

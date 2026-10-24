@@ -104,7 +104,7 @@ Promise.resolve(vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), con
             self.assertEqual(primary['instructions'], (HERE / 'agent-instructions.md').read_text().strip())
             self.assertEqual(primary['model'], 'moonshotai/Kimi-K3')
             self.assertEqual(primary['model_parameters']['reasoning_effort'], 'high')
-            self.assertEqual(primary['model_parameters']['maxContextTokens'], 131072)
+            self.assertEqual(primary['model_parameters']['maxContextTokens'], 1024000)
             self.assertTrue(primary['skills_enabled'])
             self.assertIn('all_mcp_scientific-ai-apps', primary['tools'])
             design = next(a for a in agents if a['id'] == 'agent_molecular_design')

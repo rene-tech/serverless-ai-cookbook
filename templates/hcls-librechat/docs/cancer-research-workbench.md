@@ -37,7 +37,17 @@ Keep Dropbox out of seeded agent tools and preset MCP selections. LibreChat
 initializes selected servers before a turn: selecting an unauthenticated OAuth
 server blocks even unrelated questions behind its consent prompt. The user
 connects Dropbox in MCP Settings, then selects it in the chat tools menu when
-needed. The standard research workflow remains usable before consent.
+needed. For an owner-requested dedicated Dropbox workspace, retain that selection
+in the saved agent after consent, preserving its other tools/settings. Keep
+search/list/metadata/content ready if needed and defer other schemas. Verify a
+real read-only chat search; an authorized MCP Settings entry alone is not proof
+that the selected agent can call it. The standard research workflow remains
+usable before consent.
+
+Kimi K3's Token Factory catalog currently advertises 1,024,000 context tokens
+(24 October 2026). The seed and deployment defaults use that value; an explicit
+operator context setting still wins. Tool schemas should still load on demand:
+a large model window is not a reason to expand every connected service.
 
 If the origin is assigned after endpoint creation, record `DOMAIN_SERVER` (and
 `DOMAIN_CLIENT`) in that new instance's private persisted runtime environment
