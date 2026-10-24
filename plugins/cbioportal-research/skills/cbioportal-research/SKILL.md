@@ -12,8 +12,9 @@ performs data queries. A generated link is not an executed statistical analysis.
 
 ## Select the appropriate connection
 
-- **cbioportal-navigator** is public. Discover `resolve_and_route` once, then
-  resolve the requested cancer/study before selecting a navigation tool. Use
+- **cbioportal-navigator** is public. Call the available `resolve_and_route`
+  tool; discover it once only if its schema is not already available. Resolve
+  the requested cancer/study before selecting a navigation tool. Use
   returned study/profile/attribute IDs and values rather than inventing them.
 - **cbioportal-database** requires the user's Google sign-in through MCP Settings.
   If disconnected, explain this and continue useful public navigation when that
@@ -22,6 +23,9 @@ performs data queries. A generated link is not an executed statistical analysis.
   After connecting, select this server in the chat tools menu when needed.
 - Once a tool is discovered, use it rather than repeating discovery. Read the
   live input schema; server interfaces are under active development.
+- Loading this skill or reading tool documentation is preparation, not the
+  requested lookup. Execute the tool and report its observed result; do not
+  return its instructions or schema as the answer.
 
 For actual database questions, discover its current tools and topic guides.
 Read only the relevant cBioPortal guide (mutation frequency, clinical data,

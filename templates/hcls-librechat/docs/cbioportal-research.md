@@ -22,8 +22,10 @@ and environment are retained. Do not activate it in other deployments merely
 because the source is published.
 
 The navigator at `https://mcp.cbioportal.org/navigator/mcp` currently needs no
-login. Make its tools available to the chosen agent, with `defer_loading: true`
-for its detailed schemas, preserving that agent's existing tools/customizations.
+login. Make its tools available to the chosen agent, keeping `resolve_and_route`
+and `navigate_to_study_view` directly loaded (`defer_loading: false`) and deferring
+the other four schemas. This avoids an unnecessary discovery step for ordinary
+study lookups. Preserve that agent's existing tools/customizations.
 The database at `https://mcp.cbioportal.org/db/mcp` advertises OAuth discovery,
 dynamic client registration, S256 and `client_secret_post`; LibreChat handles
 these natively. Do not seed the database into every chat before authentication.
@@ -33,7 +35,7 @@ No manually supplied shared database API key is needed.
 
 Acceptance covers exact package loading, unchanged existing skills/settings,
 public study resolution and link generation from the actual browser agent,
-clear unauthenticated database behavior, saved inline reports, and persisted
+clear unauthenticated database behavior, preserved chat state, and persisted
 configuration. Authenticated database queries/refresh remain unqualified until
 the owner completes Google consent. Never report navigator metadata as a
 completed database analysis. Hosted query logging means private documents and
