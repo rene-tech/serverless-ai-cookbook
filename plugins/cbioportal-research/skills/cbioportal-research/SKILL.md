@@ -38,6 +38,32 @@ sample filtering, or gene expression) through the available guide/resource tool.
 Do not assume a fixed ClickHouse table schema. Prefer supported bounded tools;
 any SQL must be read-only and retain its exact filters and query with the result.
 
+## Large results and export
+
+Inspect the actual tool result before declaring a response-size limit. The
+database's `truncated`, `returned_rows` and `note` fields describe its row cap;
+the live `clickhouse_run_select_query` schema defines `max_rows`. A client marker
+such as `truncated: ... chars exceeded ... limit` is a separate character limit.
+A shortened UI/log preview or difficulty copying a result is not evidence that
+the database truncated it. Complete small results can exceed a preview's size.
+
+Prefer a bounded server-side aggregate for aggregate questions. For row exports,
+select only needed columns and use deterministic SQL pages: a stable unique
+`ORDER BY` with `LIMIT` and `OFFSET`, or a keyset predicate when supported.
+Keep each page within both row and client character limits; inspect it before
+requesting the next. The absence of a cursor field in the MCP schema does not
+mean SQL pagination is unavailable. Record filters, ordering, expected count,
+page counts and duplicate checks; never call a capped export complete.
+
+Reuse complete saved results when available. For programmatic handoff, use only
+tools and output-reference features actually exposed by the current client;
+do not invent an export tool, transcribe a large matrix by hand, or manufacture
+placeholder data. If a file handoff is unavailable, state that exact boundary
+and use a supported bounded query or clearly labelled official public download.
+An authenticated database MCP does not grant direct shell access to its backing
+ClickHouse service. Do not probe guessed credentials or search local secret
+files after a shell 401; continue through the authorized MCP connection.
+
 ## Copy-number analysis
 
 Read the live study guide and CNA guidance before querying. Verify the profile
