@@ -22,6 +22,10 @@ Ask only for missing scientific choices, not approval already given for the run.
 Read [model distinctions](references/model-contracts.md) for the selected App,
 then its live `get_model_schema`, parameter schema and `input_artifact_contract`.
 Do not load every model schema when only one is being used.
+For Proteina-Complexa, read [custom targets](references/proteina-targets.md):
+an uploaded target structure, selected chains/residues, hotspots and binder
+lengths define a user target. Catalog tasks are optional presets; do not replace
+the user's target with a preset or infer unsupported status from a missing ID.
 
 ## Execute and evaluate
 

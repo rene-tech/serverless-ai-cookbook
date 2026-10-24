@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import studyAdmissionAcknowledgement from './scientific-study-admission.cjs';
 import workflowValidation from './scientific-workflow-validation.cjs';
 import toolSearchPatch from './scientific-tool-search-patch.cjs';
+import mcpCatalog from './scientific-mcp-catalog.cjs';
 const mcpPath = '/app/api/server/services/MCP.js';
 await writeFile(mcpPath, workflowValidation.patchFactory(await readFile(mcpPath, 'utf8')));
 const path = '/app/api/server/services/ToolService.js';
@@ -14,7 +15,9 @@ for (const property of ['toolOptions', 'agentToolOptions']) {
   if (!source.includes(before)) throw new Error(`Unsupported tool options: ${property}`);
   source = source.replaceAll(before, `${property}: require('/opt/hcls-librechat/scientific-tool-options.cjs')(agent, typeof loadedTools === 'undefined' ? [] : loadedTools),`);
 }
-await writeFile(path, source);
+await writeFile(path, mcpCatalog.patchDefinitions(source));
+const toolInstancesPath = '/app/api/app/clients/tools/util/handleTools.js';
+await writeFile(toolInstancesPath, mcpCatalog.patchInstances(await readFile(toolInstancesPath, 'utf8')));
 
 // LibreChat normally permits an empty MCP-server search that returns every
 // deferred tool. The Scientific AI server has dozens of model contracts, so a

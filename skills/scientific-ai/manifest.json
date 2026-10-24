@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.10.24.4",
+  "version": "2026.10.24.5",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -111,6 +111,13 @@
     "protein-binder-design": [
       "rfdiffusion",
       "proteinmpnn"
+    ],
+    "protein-scoring": [
+      "esm2-650m",
+      "esm2-3b",
+      "stab-ddg",
+      "pyrosetta-interface-metrics",
+      "rosetta-flex-ddg"
     ],
     "proteinmpnn": [
       "proteinmpnn"

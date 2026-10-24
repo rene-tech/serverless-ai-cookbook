@@ -2,7 +2,7 @@
 
 | App | What to preserve / check |
 | --- | --- |
-| `proteina-complexa` | Select the exact published `target_catalog` task ID. Tasks sharing a PDB can use different hotspots/length ranges. Upstream target/design/sweep/evaluate CLI options are not automatically exposed. |
+| `proteina-complexa` | Supply an uploaded structure and explicit `parameters.target` for a user-defined target, or choose an exact `target_id` preset from the live `target_catalog`. These are alternative inputs. Preserve chains, residue numbering, hotspots and binder lengths; see [custom targets](proteina-targets.md). |
 | `boltzgen` | Use its published design specification and manifest role. Keep target entities, designed entities and constraints distinct; not the protein-only native `boltz2` App. |
 | `mosaic` | Record the exact deployed implementation/version, not an assumed paper identity. Use its source bundle/config schema and retain optimization/selection metrics and failed candidates. |
 | `bindcraft` | Preserve target chains, hotspots, trajectory limits and filter settings. Report no candidates passing as a result. Model access does not independently grant a PyRosetta license. |
