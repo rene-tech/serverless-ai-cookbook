@@ -43,6 +43,17 @@ await writeFile(filename, source);
 // fix is too late: sandbox:/workspace links have already become href="".
 const blocksFile = path.join(root, 'src/components/Chat/Messages/Content/MarkdownBlocks.tsx');
 let blocks = await readFile(blocksFile, 'utf8');
+const artifactImport = "import { normalizeArtifactMarkdown } from '~/components/ScientificArtifactMarkdown';";
+const artifactBefore = 'splitMarkdownIntoBlocks(content).map';
+const artifactAfter = 'splitMarkdownIntoBlocks(normalizeArtifactMarkdown(content)).map';
+await writeFile(path.join(root, 'src/components/ScientificArtifactMarkdown.ts'),
+  await readFile(new URL('./ScientificArtifactMarkdown.ts', import.meta.url)));
+if (!blocks.includes(artifactImport)) {
+  if (blocks.split(artifactBefore).length !== 2) throw new Error('Unsupported artifact Markdown boundary seam');
+  blocks = artifactImport + '\n' + blocks.replace(artifactBefore, artifactAfter);
+} else if (!blocks.includes(artifactAfter)) {
+  throw new Error('Artifact boundary normalizer imported without its parser seam');
+}
 const pluginImport = "import workspaceMarkdownLinks from '~/components/WorkspaceMarkdownLinks';";
 const pluginBefore = 'rehypePlugins={blockRehypePlugins}';
 const pluginAfter = 'rehypePlugins={[...blockRehypePlugins, workspaceMarkdownLinks]}';
@@ -53,3 +64,4 @@ if (!blocks.includes(pluginImport)) {
 } else if (!blocks.includes(pluginAfter)) {
   throw new Error('Workspace Markdown plugin imported without its renderer seam');
 }
+await writeFile(blocksFile, blocks);
