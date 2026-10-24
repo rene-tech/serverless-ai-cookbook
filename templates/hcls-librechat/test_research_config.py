@@ -27,9 +27,6 @@ def test_dropbox_is_optional_and_preserves_every_standard_server(tmp_path):
                           DROPBOX_APP_KEY='fixture-client', DROPBOX_APP_SECRET='fixture-secret')
     assert on.returncode == 0
     dropbox = research['mcpServers'].pop('dropbox')
-    for spec in research['modelSpecs']['list']:
-        assert 'dropbox' in spec['mcpServers']
-        spec['mcpServers'].remove('dropbox')
     assert research == standard
     assert dropbox['url'] == 'https://mcp.dropbox.com/mcp'
     assert dropbox['requiresOAuth'] and not dropbox['startup']
