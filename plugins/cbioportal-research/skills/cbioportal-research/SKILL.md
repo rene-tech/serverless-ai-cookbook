@@ -52,6 +52,9 @@ not the presence of records for a single convenient gene.
 For "top genes", aggregate across all measured genes in the requested cohort,
 with bounded returned rows and an explicit ranking rule. Do not substitute a
 hand-picked driver list or interpret truncated output as a complete ranking.
+Combine related genes and groups in one bounded server-side query where
+supported, then inspect its result before issuing more calls. Avoid parallel
+one-call-per-gene fan-out or generating many speculative queries at once.
 Retain the full aggregate result when it fits the service's response limits.
 Use gene-specific eligible coverage and nonmissing measurements for denominators,
 and report missing/off-panel data separately from unaltered calls. Include each
