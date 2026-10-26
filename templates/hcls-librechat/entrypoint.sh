@@ -51,4 +51,13 @@ if [ -n "${SEED_DEFAULT_USER_EMAIL:-}" ] && [ -n "${SEED_DEFAULT_USER_PASSWORD:-
   node /app/seed-user.js
 fi
 
+if [ "${SCIENTIFIC_CAMSOL_ENABLED:-false}" = true ]; then
+  # exec below preserves this PID/start time. The auxiliary loopback service
+  # exits with that exact owner; it never starts another API/study supervisor.
+  camsol_owner_start=$(/opt/scientific-client/bin/python -c \
+    'from pathlib import Path; import sys; print(Path("/proc/"+sys.argv[1]+"/stat").read_text().rsplit(")",1)[1].split()[19])' "$$")
+  /opt/scientific-client/bin/python /opt/hcls-librechat/camsol/server.py \
+    --owner-pid "$$" --owner-start "$camsol_owner_start" > "$DATA_DIR/camsol-connection.log" 2>&1 &
+fi
+
 exec /opt/scientific-client/bin/python /opt/bionemo/scientific-study-worker.py -- node /app/api/server/index.js

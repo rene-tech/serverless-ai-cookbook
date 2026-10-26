@@ -42,3 +42,16 @@ def test_partial_dropbox_credentials_fail_clearly(tmp_path):
     result, _ = render(tmp_path, SCIENTIFIC_DROPBOX_ENABLED='true', DROPBOX_APP_KEY='fixture')
     assert result.returncode != 0
     assert 'Dropbox requires DROPBOX_APP_SECRET' in result.stderr
+
+
+def test_camsol_opt_in_preserves_existing_settings_and_dropbox(tmp_path):
+    extra = dict(SCIENTIFIC_DROPBOX_ENABLED='true', DROPBOX_APP_KEY='fixture', DROPBOX_APP_SECRET='secret')
+    before, standard = render(tmp_path, **extra)
+    after, connected = render(tmp_path, SCIENTIFIC_CAMSOL_ENABLED='true', **extra)
+    assert before.returncode == after.returncode == 0
+    camsol = connected['mcpServers'].pop('camsol')
+    assert connected.pop('mcpSettings') == {'allowedAddresses': ['127.0.0.1:8786']}
+    assert connected == standard
+    assert camsol['startup'] is False and camsol['requiresOAuth'] is False
+    assert camsol['headers']['X-CamSol-Password'] == '{{CAMSOL_PASSWORD:base64}}'
+    assert 'camsol' not in json.dumps(connected['modelSpecs'])

@@ -1,0 +1,28 @@
+{
+  "title": "CamSol",
+  "description": "Connect your Cambridge account privately. Login and read-only form inspection; calculation submission is not yet qualified.",
+  "type": "streamable-http",
+  "url": "http://127.0.0.1:8786/mcp",
+  "startup": false,
+  "requiresOAuth": false,
+  "initTimeout": 30000,
+  "timeout": 90000,
+  "headers": {
+    "X-Scientific-User": "{{LIBRECHAT_USER_ID}}",
+    "X-CamSol-Email": "{{CAMSOL_EMAIL:base64}}",
+    "X-CamSol-Password": "{{CAMSOL_PASSWORD:base64}}"
+  },
+  "customUserVars": {
+    "CAMSOL_EMAIL": {
+      "title": "Cambridge username or email",
+      "description": "Your existing Cambridge CamSol username or email. Stored encrypted for your LibreChat user; never sent to the chat model.",
+      "sensitive": true
+    },
+    "CAMSOL_PASSWORD": {
+      "title": "Cambridge account password",
+      "description": "Your existing CamSol password. Used only for the normal Cambridge login over HTTPS; do not paste it into chat.",
+      "sensitive": true
+    }
+  },
+  "serverInstructions": "Use connect_camsol only when the user asks to connect their Cambridge account. Read status and inspect actual forms via GET. This external-provider connector cannot submit calculations. Never ask for credentials in chat, bypass a challenge, infer a calculation API, or send scientific inputs. An authenticated form does not establish calculation readiness."
+}

@@ -104,6 +104,9 @@ RUN node /opt/hcls-librechat/patch-client-assets.mjs
 COPY templates/hcls-librechat/uploads/verify-installed.mjs /opt/hcls-librechat/verify-workspace-installed.mjs
 RUN node /opt/hcls-librechat/verify-workspace-installed.mjs
 COPY templates/hcls-librechat/tavily-mcp.mjs /opt/bionemo/tavily-mcp.mjs
+COPY templates/hcls-librechat/camsol/ /opt/hcls-librechat/camsol/
+RUN node /opt/hcls-librechat/camsol/patch-private-vars.mjs \
+    /app/packages/api/src/utils/env.ts /app/packages/api/dist/index.cjs
 COPY templates/hcls-librechat/structure-mcp.py /opt/bionemo/structure-mcp.py
 COPY templates/hcls-librechat/execution-mcp.py /opt/bionemo/execution-mcp.py
 COPY templates/hcls-librechat/scientific_verified_results.py /opt/bionemo/scientific_verified_results.py

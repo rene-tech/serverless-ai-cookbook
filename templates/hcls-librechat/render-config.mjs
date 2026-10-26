@@ -261,6 +261,14 @@ if (process.env.SCIENTIFIC_DROPBOX_ENABLED === 'true') {
   };
 }
 
+// Optional personal Cambridge connection. Credentials stay in LibreChat's
+// encrypted user settings; this does not activate or submit CamSol calculations.
+if (process.env.SCIENTIFIC_CAMSOL_ENABLED === 'true') {
+  config.mcpServers.camsol = JSON.parse(await readFile(new URL('./camsol/connection.json', import.meta.url), 'utf8'));
+  config.mcpSettings = { ...config.mcpSettings,
+    allowedAddresses: [...(config.mcpSettings?.allowedAddresses || []), '127.0.0.1:8786'] };
+}
+
 // JSON is valid YAML and preserves multiline instructions and literal key references.
 await writeFile(outputPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
 process.stdout.write(`Scientific workspace config ready: ${modelSpecs.length} chat choices; gateway ${sharedGatewayKey ? 'server-managed' : 'per-user'}.\n`);
