@@ -45,3 +45,18 @@ test('verification rejects lost theme and title', async (t) => {
   await writeFile(join(root, 'index.html'), '<title>LibreChat</title>');
   await assert.rejects(verifyBranding(root), /Workspace title regressed/);
 });
+
+test('verification rejects a retained theme marker with lost or stale foreground rules', async (t) => {
+  const root = await fixture(t);
+  await brandClient(root);
+  const index = await readFile(join(root, 'index.html'), 'utf8');
+  for (const broken of [
+    index.replace(/<style id="nebius-scientific-theme">[\s\S]*?<\/style>/,
+      '<style id="nebius-scientific-theme"></style>'),
+    index.replace('body { color: rgb(var(--text-primary)); }', 'body { color: black; }'),
+    index.replace('--tw-prose-code: rgb(var(--text-primary));', '--tw-prose-code: #111827;'),
+  ]) {
+    await writeFile(join(root, 'index.html'), broken);
+    await assert.rejects(verifyBranding(root), /Scientific theme rules regressed/);
+  }
+});
