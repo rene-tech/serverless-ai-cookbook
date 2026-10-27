@@ -25,6 +25,12 @@ assert catalog, "Installed SDK contains no workflow modules"
 assert not default_registry().errors, "Installed registry contains invalid manifests"
 assert parameters({})["episode_steps"] is None
 patches = json.loads(Path("/opt/isaac-healthcare/upstream-patches.json").read_bytes())
+expected_patches = {
+    "soarm-camera-disable-v1": "soarm-camera-disable.patch",
+    "arena-camera-control-v1": "arena-camera-control.patch",
+}
+assert len(patches["patches"]) == len(expected_patches)
+assert {patch["id"]: patch["patch"] for patch in patches["patches"]} == expected_patches
 for patch in patches["patches"]:
     patch_file = Path("/opt/isaac-healthcare/patches") / patch["patch"]
     assert hashlib.sha256(patch_file.read_bytes()).hexdigest() == patch["patch_sha256"]

@@ -1,0 +1,16 @@
+--- a/arena/i4h_arena/cli.py
++++ b/arena/i4h_arena/cli.py
+@@ -257,8 +257,13 @@
+     # Scenes may require XR or early Pinocchio loading. Configure the launcher
+     # before Kit starts, keeping asset registration inside AppContext.make_env.
+     args.mode = workflow.mode
++    # Scene builders and AppLauncher must share the explicit camera choice.
++    # An absent field otherwise defaults to True in several embodiments.
++    args.enable_cameras = not args.no_cameras
+     scene = load_scene(workflow.scene, args, register_assets=False)
+     scene.configure_args(args)
++    if args.no_cameras:
++        args.enable_cameras = False
+     _check_fluoroscopy_device(args)
+     with launch_app(args) as app_ctx:
+         from i4h_arena.io.publishers import ScenePublisher

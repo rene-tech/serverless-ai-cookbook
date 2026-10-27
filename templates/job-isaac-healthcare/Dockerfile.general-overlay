@@ -38,6 +38,7 @@ ARG USE_VERIFIED_ASSET_CACHE=0
 COPY scripts /opt/isaac-healthcare/scripts
 COPY patches /opt/isaac-healthcare/patches
 COPY asset-sources.json /opt/isaac-healthcare/asset-sources.json
+RUN /opt/i4h/arena/.venv/bin/python /opt/isaac-healthcare/scripts/apply_runtime_patches.py
 RUN --mount=type=bind,source=.,target=/source,readonly \
     case "$USE_VERIFIED_ASSET_CACHE" in \
       0) set -- ;; \

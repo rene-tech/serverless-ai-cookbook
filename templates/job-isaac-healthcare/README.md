@@ -25,6 +25,12 @@ environments; the runtime never silently installs packages or downloads weights
 inside a customer invocation. Build the environments and local assets your
 workflow needs, and supply owned checkpoints/data in the project archive.
 
+Reviewed source patches preserve explicit camera control in both scene builders
+and the simulator launcher. `cameras: false` disables scene camera capture; it
+does not force the renderer on to hide a configuration mismatch. The build
+records original and patched source hashes in `upstream-patches.json` and checks
+inherited patch bytes before extending an existing image.
+
 Rendering requires an RTX-capable GPU and the graphics/Vulkan driver libraries.
 The previous image ran on L40S and RTX PRO 6000 with driver 580.173.02. H100/H200
 lack the RT cores required by the renderer; pure training/data compatibility is
