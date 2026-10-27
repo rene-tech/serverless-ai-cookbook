@@ -3,14 +3,31 @@
 This route runs the general pretrained NIfTI engine with `provider_driver.py`.
 It requires your own Nebius project/profile, registry, existing object-storage
 bucket and ordinary S3 credentials. It needs no Scientific AI account, private
-registry, application token, SSH key or bucket mount. Results persist in your
-bucket after the Job stops. Local preparation/verification uses Python 3.11+.
+registry, application token or bucket mount. The general example below omits a
+public IP and SSH access; that network configuration has not yet been qualified
+end to end. Results persist in your bucket after the Job stops. Local
+preparation/verification uses Python 3.11+.
 
-The current qualification has passed the complete request dry-run with a short
-repository name and a **full image digest**. Provider scientific execution is
-still pending. The earlier long-reference label failure is retained; shortening
-the repository path does not alter image bytes. The bucket-mounted example in
-README.md is a separate unqualified transport.
+On 27 October 2026, one provider Job completed with a short repository name and
+**full image digest**, using the unchanged float32 engine and scoped input/output
+transfer. The complete 61,440-byte output archive and all five files were verified;
+independent CPU validation preserved geometry, labels and provenance and measured
+Dice **0.936098** on the published validation-subset example. This is a functional
+regression, not an independent clinical accuracy estimate.
+
+The actual container manifest/configuration and L40S identity were observed; the
+requested digest alone was not used as execution proof. The same Job experienced
+two `NotEnoughResources` allocation failures, then completed without an alternate
+Job or scientific replay. This establishes neither assured capacity nor fallback.
+The earlier long-reference label failure is retained; shortening the repository
+path did not alter image bytes. The bucket-mounted example in README.md remains
+a separate unqualified transport. Exact runtime and artifact hashes are recorded
+in [qualification.json](qualification.json).
+
+The accepted diagnostic qualification request uses a public IP and an existing
+authorized SSH public key for read-only host image/GPU verification, with no
+workload ports. Its diagnostic wrapper runs the same engine and transfer driver.
+Evidence from that request does not qualify the no-IP/no-SSH configuration below.
 
 ## Prepare your image and input
 
@@ -111,7 +128,9 @@ volumes. The fixed validation example uses the separate
 
 Use the current CLI's `ai job create --help` to verify available flags. Keep its
 dry-run output private because injected file content can contain signed URLs.
-No ports, public IP, SSH access or mounted volumes are needed for this route.
+The example configures no workload ports, public IP, SSH access or mounted
+volumes. It requires outbound access to the registry and HTTPS object URLs; this
+no-IP/no-SSH variant remains unqualified end to end.
 
 ```bash
 nebius --profile "$NEBIUS_PROFILE" --no-check-update --retries 1 --format json \
@@ -137,8 +156,13 @@ resubmit. A request dry-run does not prove image startup or scientific success.
 ## Retrieve and verify complete results
 
 Use `nebius --profile "$NEBIUS_PROFILE" ai job get JOB_ID --format json` and
-`nebius --profile "$NEBIUS_PROFILE" ai job logs JOB_ID --timestamps --tail 1000000`.
-Retain full logs and check any truncation. Success requires terminal `COMPLETED`,
+`nebius --profile "$NEBIUS_PROFILE" ai job logs JOB_ID --timestamps --tail 1000`.
+The provider API accepts at most 1,000 tail lines. Retain this bounded tail and
+any truncation notice; it can omit earlier output even without a warning, so do
+not describe it as the full provider log. The verified output archive contains
+`execution.log`, the driver's complete capture of scientific-command stdout and
+stderr. Preserve and hash that file; it does not include all provider lifecycle
+logs. Success requires terminal `COMPLETED`,
 the driver's `execution_exit_code: 0` and `uploaded: true`, and independent byte
 and semantic validation below. A successful diagnostic upload can accompany a
 failed scientific command; it does not make the science successful.

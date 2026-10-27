@@ -101,12 +101,19 @@ mask with an appropriate NIfTI viewer before using it in further research.
 
 ## Nebius Serverless
 
-Qualification status on 27 October 2026: earlier Job/Endpoint requests using
-long image references failed label-length validation before container startup.
-A short repository path retaining the same full digest passed a final Job
-dry-run with scoped input/output transfer; scientific execution remains pending.
-Bucket-mount transport below is a separate unqualified route. Keep the immutable
-digest when shortening your repository path; a mutable tag is not equivalent.
+Qualification status on 27 October 2026: one provider Job completed on an L40S
+using a short repository path and the full immutable image digest. Independent
+CPU validation of the downloaded output passed full geometry, labels, provenance
+and Dice **0.936098** for the documented validation volume; actual container
+manifest/configuration and GPU identity were observed. The same Job had two
+provider-reported `NotEnoughResources` allocation failures before it completed;
+no alternative Job or scientific replay was submitted.
+
+Earlier long-reference Job/Endpoint requests failed label-length validation
+before container startup. Keep the full digest when shortening your repository
+path. The measured scoped-transfer request used a public IP and an existing SSH
+key for host diagnostics, with no workload ports. Bucket-mount transport below
+and the no-IP/no-SSH variant remain unqualified; see [PROVIDER.md](PROVIDER.md).
 
 Build and push to **your** registry. This repository does not require access to
 our private image registry. Use a short repository name such as `ms` and preserve

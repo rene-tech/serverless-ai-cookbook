@@ -1,6 +1,6 @@
 {
   "date": "2026-10-27",
-  "status": "Portable float32 compatibility qualified on four GPU classes; Scientific AI REST/MCP scientific acceptance and same-tenant isolation/idempotency passed; provider scoped-transfer science pending",
+  "status": "Portable float32 compatibility qualified on four GPU classes; Scientific AI REST/MCP acceptance and same-tenant isolation/idempotency passed; one provider scoped-transfer L40S Job passed",
   "cpu": {
     "actual_runtime_uid": "unprivileged",
     "network": "disabled",
@@ -226,7 +226,7 @@
       "output_size_bytes": 61440,
       "uploaded": true,
       "driver_sha256": "9f314bc44a064d2a97ca9abddf20e0e3dbef73e10b07ae11740a52c4ada388cf",
-      "mode": "CPU, local TLS transfer test; actual GPU execution remains pending",
+      "mode": "CPU, local TLS transfer test; actual provider GPU qualification is recorded separately under provider_serverless.",
       "dice": 0.9361426978818284,
       "files": [
         "execution.log",
@@ -246,8 +246,8 @@
     "capacity qualification",
     "owner cancellation during execution and recovery",
     "cross-tenant isolation",
-    "provider-managed Serverless scoped-transfer scientific execution",
-    "provider bucket-mount transport"
+    "provider bucket-mount transport",
+    "provider scoped transfer without public IP/SSH diagnostics"
   ],
   "supersedes_portable_image": "sha256:72b86537cde390d80db100ce7d05db7fbb008c809a8610fd6ef5e2822851529f",
   "definition_resources": {
@@ -263,7 +263,7 @@
     "runtime.py": "82c6ebba15a4d00ee2a79532d9dad6a7e7c17957e62eb5b5e79f80dcbb0b9ade"
   },
   "provider_serverless": {
-    "status": "short_full_digest_final_request_dry_run_pass_science_pending",
+    "status": "finite_scoped_transfer_science_pass",
     "date": "2026-10-27",
     "historical_long_reference_failure": {
       "status": "blocked_before_container_start",
@@ -278,10 +278,176 @@
     },
     "full_digest_preserved": true,
     "transport": "Scoped HTTPS input/output and unchanged provider_driver.py",
-    "scientific_execution": "pending",
+    "scientific_execution": "passed",
     "bucket_mounted_transport": "unqualified",
     "general_supplied_input_command": "provider-command.json",
-    "general_workflow": "PROVIDER.md"
+    "general_workflow": "PROVIDER.md",
+    "network_scope": {
+      "qualified": "Public IP and existing authorized SSH key for read-only host diagnostics; no workload ports.",
+      "no_public_ip_or_ssh_variant": "unqualified end to end"
+    },
+    "accepted_finite_run": {
+      "date": "2026-10-27",
+      "region": "eu-north1",
+      "platform": "gpu-l40s-d",
+      "preset": "1gpu-16vcpu-96gb",
+      "requested_resources": {
+        "gpu": 1,
+        "cpu": 16,
+        "memory_gib": 96,
+        "disk_gib": 100,
+        "disk_type": "NETWORK_SSD",
+        "timeout_seconds": 1800,
+        "restart_attempts": 0
+      },
+      "actual_gpu": {
+        "name": "NVIDIA L40S",
+        "driver": "580.173.02",
+        "compute_capability": "8.9",
+        "reported_memory_mib": 46068
+      },
+      "actual_image_manifest_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+      "actual_image_config_digest": "sha256:11155a608d7fc54d7a41e17994c733e6fbc0df965fd7a1188457bde7ab83d415",
+      "actual_identity_scope": "Two retained exact-container observations, joined to the accepted Job and Compute VM; containerd manifest target and actual config blob both verified.",
+      "runtime": {
+        "python": "3.11.14",
+        "monai": "1.6.1",
+        "torch": "2.9.1+cu128",
+        "cuda": "12.8"
+      },
+      "uid": 10001,
+      "driver_sha256": "9f314bc44a064d2a97ca9abddf20e0e3dbef73e10b07ae11740a52c4ada388cf",
+      "command_sha256": "10ae65000048d4f9a46a5a7f29051ff8881b89ebf0b7a853b6eab0c88c5a4496",
+      "portable_sources_sha256": {
+        "__init__.py": "062a52d8ee9eb1e00edeebf7dac9f4d42ccd7f47de915c38c593acec1ab034fc",
+        "metadata.py": "1966c9045aa7e8794569059eeab70b5ddf84e6e68fb33c639a5e9737f3ad7c65",
+        "runtime.py": "82c6ebba15a4d00ee2a79532d9dad6a7e7c17957e62eb5b5e79f80dcbb0b9ade"
+      },
+      "weights_sha256": "502c312893994ec071a85c4f2e7d83a43f7789969faa73dae62f1291177f50fe",
+      "case": "MSD spleen_56",
+      "case_scope": "Published validation-subset functional regression, not independent clinical accuracy",
+      "parameters": {
+        "precision": "float32",
+        "sw_batch_size": 4,
+        "overlap": 0.5,
+        "spatial_units": "header"
+      },
+      "minimum_dice": 0.9,
+      "independent_semantic_validation": {
+        "geometry_preserved": true,
+        "foreground_voxels": 22038,
+        "dice": 0.936098104793757,
+        "reference_foreground_voxels": 22812
+      },
+      "labels": {
+        "0": 8628714,
+        "1": 22038
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          33
+        ],
+        "affine": [
+          [
+            0.6992189884185791,
+            0.0,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.6992189884185791,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.0,
+            6.999969959259033,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "spacing": [
+          0.6992189884185791,
+          0.6992189884185791,
+          6.999969959259033
+        ],
+        "axis_codes": [
+          "R",
+          "A",
+          "S"
+        ],
+        "xyzt_units": [
+          "mm",
+          "sec"
+        ],
+        "qform_code": 1,
+        "sform_code": 1,
+        "effective_spatial_units": "mm",
+        "millimeters_per_coordinate_unit": 1.0
+      },
+      "terminal_state": "COMPLETED",
+      "scientific_execution_exit_code": 0,
+      "output_archive_sha256": "dd1c3abd82b18333a363c9dc96024553c5f589d8e71fb32ac70db7f9902dcbce",
+      "output_archive_size_bytes": 61440,
+      "all_five_downloaded_files_verified": true,
+      "files": {
+        "execution.log": {
+          "sha256": "e31149acf4b90e0030336a4916be3484ed6ee903715b23ba72d708495df0526e",
+          "size_bytes": 1128
+        },
+        "qualification.json": {
+          "sha256": "8bdf88e3086486c05079d27b714286b3a4b19ae729d6cea9ba915b4dc3ac81da",
+          "size_bytes": 655
+        },
+        "result.json": {
+          "sha256": "91df7b2cb192c73ff734a8650321c64c935fab5764870992ad1e4eddcbc998bc",
+          "size_bytes": 2809
+        },
+        "segmentation.nii.gz": {
+          "sha256": "15056061a043d09c19aa59d6a2a35c48df076382e997e55fbc92d354eee7cd0b",
+          "size_bytes": 41666
+        },
+        "transfer-result.json": {
+          "sha256": "bdcb8b02da20629e0569cd72508557d3bfc80cdb6519c54a7a37834c7b7d2bf6",
+          "size_bytes": 829
+        }
+      },
+      "timings_s": {
+        "load": 0.4369203269999957,
+        "preprocess": 0.3527339449999829,
+        "inference": 0.4063797750000049,
+        "total": 2.591010873999977
+      },
+      "timing_scope": "One engine run; excludes imports, allocation retries, image pull and transfer. No speed/cost ranking or sustainable capacity estimate.",
+      "allocation_history": {
+        "failures": 2,
+        "operation_kinds": [
+          "Create Instance",
+          "Start Instance"
+        ],
+        "error": "NotEnoughResources",
+        "provider_status_code": 8,
+        "requested_shape": "1gpu-16vcpu-96gb",
+        "resolution": "The same original Job and VM later reached image pulling and completed; no alternative allocation or scientific replay was submitted."
+      },
+      "provider_log_tail_max_lines": 1000,
+      "complete_scientific_stdout_stderr": "Verified archived execution.log; bounded provider tail does not establish full lifecycle-log coverage.",
+      "physical_cleanup": "Separate root-owned terminal/accounting/deletion verification; scientific PASS does not itself release resources.",
+      "scope_limits": [
+        "One fixed float32 volume on one provider L40S; not all MONAI tasks",
+        "No-IP/no-SSH transport and bucket mounts unqualified",
+        "Native availability fallback, owner cancellation/recovery and sustainable capacity unqualified"
+      ]
+    }
   },
   "kubernetes": {
     "status": "Four hardware-specific scoped-URL finite GPU regressions passed; general PVC template client-validated only",

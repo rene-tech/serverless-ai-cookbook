@@ -107,11 +107,33 @@ those behaviors. No sustainable shared-service capacity is claimed.
 The original long-reference Job and Endpoint dry-run failures remain retained.
 A later 119-character short repository reference with the **same complete digest**
 passed an actual Job SDK dry-run after manifest/config/all-layer equality checks.
-One finite provider Job has been accepted; actual runtime identity, GPU/driver,
-scientific outputs, durable export and physical closeout remain pending. This is
-not provider execution PASS. Bucket-mounted transport and Endpoint execution are
-unqualified. Neither portable Kubernetes nor hosted App results substitute for
-those provider checks.
+The first finite provider Job passed science and full requested-bucket delivery,
+but its OCI identity remains **unresolved**: an observer assertion occurred before
+Docker's raw Image value was retained. Later observations cannot reconstruct it.
+
+One separately named verification used the same image, 30-frame input,
+parameters, transfer/runtime scripts and resources. It passed actual image
+identity and independent science/delivery checks. Two host observations, while
+the container ran and after exit 0, verified the complete manifest above,
+config `sha256:09f71de1d8e93c44ee86684626892ff543d55ff3d4705d1bf0f3aa05836a489d`,
+exact RepoDigest and all 103 ordered RootFS entries. Docker 29.9.2 used the
+containerd image store: its Image field was the manifest ID, joined to the
+actual manifest/config bytes read from that daemon's content store.
+
+All 30 frames, 210 ordered tool rows, finite `[30,7,60,107]` masks and the complete
+854×480/25fps video passed. All eight files and the full output tar were read
+back from the requested object prefix and verified by size/SHA. Actual diagnostics
+recorded L40S, host driver 580.173.02, UID10001 and exact engine/launcher files and
+native graph binary. The official compatibility path loaded bundled CUDA 13.2
+library 595.45.04 with driver API 13020; the host driver was unchanged. Cold graph
+time including engine construction was 12.733 seconds. The Job completed, its
+exact Compute VM was absent, and the physical reservation was closed.
+
+This qualifies the finite scoped-GET/PUT Job path on the observed L40S envelope.
+Bucket-mounted transport and Endpoint execution remain unqualified. These
+results do not establish sustained capacity, streaming, clinical use or native
+placement fallback. The first run's missing image proof stays explicitly unknown;
+Kubernetes and hosted App evidence remain separate.
 
 The upstream application reports 300-frame execution on ARM64 GB10. That is
 upstream evidence and does not qualify this AMD64 image or the target fleet.

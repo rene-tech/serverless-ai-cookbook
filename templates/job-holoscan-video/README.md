@@ -10,8 +10,8 @@ This finite workflow runs on an NVIDIA Linux host without Scientific AI, a priva
 application, or a cloud account. The exact portable image passed finite Kubernetes
 executions on L40S, H100, H200 and RTX PRO 6000 Blackwell; see
 [QUALIFICATION.md](QUALIFICATION.md) for the driver, workload and measured scope.
-The provider Job path now has a successful short-repository/full-digest dry-run;
-its real execution is pending. See the Serverless section and
+The provider Job path also passed a finite L40S execution with actual image
+identity, scientific outputs and full requested-output delivery verified. See the Serverless section and
 [provider/README.md](provider/README.md). Live camera/capture-card acquisition,
 persistent streams, clinical control,
 and real-time network latency are separate, unqualified workflows.
@@ -128,8 +128,12 @@ It supports ordinary filenames and the same video/frame parameters as Docker.
 No Scientific AI account, application token or private source is required.
 
 A 119-character short full-digest reference passed a real provider SDK dry-run
-on 27 October 2026 with byte-identical manifest/config/layers. A finite Job has
-been accepted; GPU execution, durable output and physical closeout are **pending**.
+on 27 October 2026 with byte-identical manifest/config/layers. A separately
+observed verification Job passed actual manifest/config/RootFS identity, all
+30-frame scientific checks, full output hashes and physical resource closeout
+on L40S. The earlier run's missing image observation remains recorded separately
+in [QUALIFICATION.md](QUALIFICATION.md). This is finite execution evidence, not
+shared-capacity, streaming or clinical qualification.
 Earlier longer references failed Job and Endpoint dry-runs with a Compute
 label-length error. Preserve that failure and dry-run your own exact reference;
 shortening the repository is not a guarantee for every registry configuration.

@@ -6,9 +6,16 @@ Scientific AI. The same files also run on premises.
 
 On 27 October 2026 a **119-character short repository reference with the complete
 SHA-256 digest** passed an actual provider Job SDK dry-run. Its manifest, config
-and all layers matched the previously qualified portable image. A real provider
-Job has been accepted; runtime, outputs and resource closeout remain pending.
-A dry-run or accepted ID is not GPU execution qualification.
+and all layers matched the previously qualified portable image. A finite L40S
+verification then passed actual runtime image identity, 30-frame scientific
+validation, full requested-output delivery and physical resource closeout. Its
+Docker containerd manifest/config/RootFS evidence was captured while running
+and after exit 0. See [QUALIFICATION.md](../QUALIFICATION.md) for exact scope.
+
+An earlier Job passed science and delivery but lost its raw Docker Image value
+before an observer assertion; its OCI identity remains unresolved. The separate
+verification does not rewrite that earlier result. A dry-run, accepted ID or
+requested image field alone is not runtime image qualification.
 
 The longer immutable reference previously failed both Job and Endpoint dry-runs
 with `metadata.labels: label value length (...) exceeds maximum value (64)`.
@@ -124,9 +131,9 @@ loop. Bucket-mounted transport is a separate, **untested** provider path.
 
 Choose an available platform/preset compatible with the exact image; four GPU
 architectures have portable execution evidence in [QUALIFICATION.md](../QUALIFICATION.md).
-The current provider trial uses one L40S, eight CPUs, 32 GiB RAM, 100 GiB disk and
+The qualified finite provider run used one L40S, eight CPUs, 32 GiB RAM, 100 GiB disk and
 16 GiB shared memory, with a 1,800-second science timeout inside a 2,400-second
-Job deadline. This is a finite trial envelope, not a capacity claim.
+Job deadline. This is one finite execution envelope, not a capacity claim.
 
 ```bash
 python3 provider/prepare_job.py \
@@ -142,7 +149,7 @@ official compatibility wrapper and isolated Python mode. It sets zero restart
 attempts, on-demand pricing, no workload ports and no bucket mounts. By default
 it requests no public IP. If you need authorized host diagnostics, pass
 `--ssh-public-key /path/to/YOUR_EXISTING_KEY.pub`; this adds only that public key
-and a public IP, without a workload port. The current provider trial includes
+and a public IP, without a workload port. The qualified provider run included
 this diagnostic option. Network reachability and registry/object egress remain
 requirements of your selected platform.
 
