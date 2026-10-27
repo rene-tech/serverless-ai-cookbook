@@ -118,7 +118,7 @@ const modelSpecs = providerModels.flatMap(({ endpoint, group, models }) => model
     name: `science-${endpoint}-${model}`.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase(),
     label, group, groupIcon: endpoint === 'anthropic' ? 'anthropic' : endpoint === 'openAI' ? 'openAI' : '/assets/token-factory.svg',
     iconURL: endpoint === 'anthropic' || endpoint === 'openAI' ? endpoint : '/assets/token-factory.svg',
-    default: false, showOnLanding: false, showIconInHeader: true,
+    default: false, showOnLanding: false, showIconInHeader: true, hideBadgeRow: true,
     description: endpoint === 'Nebius Token Factory'
         ? 'Public Token Factory · scientific tools and web research'
         : 'Scientific tools · connect your provider key',
