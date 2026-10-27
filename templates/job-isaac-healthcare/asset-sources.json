@@ -11,6 +11,8 @@
     "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_blue.png",
     "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Environments/Grid/Materials/Textures/Wireframe_blue.png",
     "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Environments/Grid/default_environment.usd",
+    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/arrow_x.usd",
+    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/frame_prim.usd",
     "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/Props/ABDPhantom/phantom.usda",
     "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/Props/Board/board.usd",
     "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/Props/Lightwheel/Assets/Cart003/Cart003.usd",
@@ -2020,6 +2022,20 @@
       "original_reference": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Environments/Grid/default_environment.usd",
       "sha256": "78e9a1e72a8838a13d0f65c49cd487ab92e89233cd128b057730b5b5b4ca2164",
       "size_bytes": 17624
+    },
+    {
+      "path": "external/Isaac/6.0/Isaac/Props/UIElements/arrow_x.usd",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/arrow_x.usd",
+      "original_reference": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/arrow_x.usd",
+      "sha256": "d321116a8fecfef657ac95a5392115b2bfbe7d5eeae2a74556a7037f15259132",
+      "size_bytes": 5377
+    },
+    {
+      "path": "external/Isaac/6.0/Isaac/Props/UIElements/frame_prim.usd",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/frame_prim.usd",
+      "original_reference": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/frame_prim.usd",
+      "sha256": "d1299a3164458df37f636eefa5963f2ba60dcbf435cac69f61c6a4af39e0449b",
+      "size_bytes": 4662
     },
     {
       "path": "external/omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.0/Isaac/IsaacLab/Robots/FrankaEmika/Materials/Materials.usd",
@@ -21897,5 +21913,73 @@
       "scope": "Lexical declarations only; compilation and transitive closure remain separate.",
       "mdl_version": null
     }
+  },
+  "default_marker_assets": {
+    "schema": "isaaclab-default-marker-sources/v1",
+    "source_asset_root": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0",
+    "marker_source_files": [
+      {
+        "path": "__init__.py",
+        "sha256": "7a69f333dcb5ccf69319e742d631c96f10a570ffbe6024d32000669785369097"
+      },
+      {
+        "path": "config/__init__.py",
+        "sha256": "ea20d6d0fd45daedf04fb5bddf39f6a43cd24bd964eb94660f5da2b952de46f5"
+      },
+      {
+        "path": "vis_marker_registry.py",
+        "sha256": "b37130caf6f06d344b9e5dff16884e6add06f8b58b99040ef6ca7a5450e0959d"
+      },
+      {
+        "path": "visualization_markers.py",
+        "sha256": "696aaef78052829328459c64aba7fc4ea1f8174f6c809c683f94edc3db848cf2"
+      },
+      {
+        "path": "visualization_markers_cfg.py",
+        "sha256": "694085b9ffa95f56f5d6abf2bf7c2e1290ada02047b5dd0c4f4628573439ab49"
+      }
+    ],
+    "references": [
+      {
+        "source": "config/__init__.py",
+        "line": 67,
+        "configuration": "FRAME_MARKER_CFG",
+        "constructor": "sim_utils.UsdFileCfg",
+        "field": "usd_path",
+        "expression": "f\"{ISAAC_NUCLEUS_DIR}/Props/UIElements/frame_prim.usd\"",
+        "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/frame_prim.usd"
+      },
+      {
+        "source": "config/__init__.py",
+        "line": 83,
+        "configuration": "RED_ARROW_X_MARKER_CFG",
+        "constructor": "sim_utils.UsdFileCfg",
+        "field": "usd_path",
+        "expression": "f\"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd\"",
+        "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/arrow_x.usd"
+      },
+      {
+        "source": "config/__init__.py",
+        "line": 95,
+        "configuration": "BLUE_ARROW_X_MARKER_CFG",
+        "constructor": "sim_utils.UsdFileCfg",
+        "field": "usd_path",
+        "expression": "f\"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd\"",
+        "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/arrow_x.usd"
+      },
+      {
+        "source": "config/__init__.py",
+        "line": 106,
+        "configuration": "GREEN_ARROW_X_MARKER_CFG",
+        "constructor": "sim_utils.UsdFileCfg",
+        "field": "usd_path",
+        "expression": "f\"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd\"",
+        "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/arrow_x.usd"
+      }
+    ],
+    "seed_urls": [
+      "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/arrow_x.usd",
+      "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Props/UIElements/frame_prim.usd"
+    ]
   }
 }

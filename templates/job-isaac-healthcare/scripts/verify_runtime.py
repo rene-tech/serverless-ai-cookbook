@@ -2,6 +2,7 @@
 
 import hashlib
 import importlib.metadata
+import importlib.util
 import json
 import subprocess
 from pathlib import Path
@@ -88,6 +89,16 @@ assert (
     Path(localization["local_asset_root"])
     / "Isaac/Environments/Grid/default_environment.usd"
 ).is_file()
+marker_module_path = Path("/opt/isaac-healthcare/scripts/default_marker_assets.py")
+marker_spec = importlib.util.spec_from_file_location("isaac_default_marker_assets", marker_module_path)
+marker_module = importlib.util.module_from_spec(marker_spec)
+marker_spec.loader.exec_module(marker_module)
+marker_proof = marker_module.verify_installed(
+    root / "third_party/IsaacLab-ffff603/source/isaaclab/isaaclab/markers",
+    kit, asset_root / "kit-localization.json",
+    Path("/opt/isaac-healthcare/asset-sources.json"), asset_root,
+    asset_root / "composed-assets.json",
+)
 installed = Path(isaac_healthcare_runtime.__file__).parent
 for source in Path("/opt/isaac-healthcare/src/isaac_healthcare_runtime").iterdir():
     if source.suffix in {".py", ".json"}:
@@ -102,6 +113,7 @@ print(
             "localized_assets": len(assets["files"]),
             "composed_asset_proof": composed["summary"],
             "pinned_material_modules": len(mdl["modules"]),
+            "default_marker_assets": marker_proof,
             "cpu_import_and_graph_validation": "passed",
             "gpu_execution": "not-performed",
         }
