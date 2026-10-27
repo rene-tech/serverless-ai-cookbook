@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.10.24.8",
+  "version": "2026.10.27.1",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -11,7 +11,10 @@
     "microsoft/bioemu2": "f99e0d899a2548ee6d9d54b6854b2bc35b6652d5",
     "openmm/openmm": "b399af4725573963b46d6c1083fdcf7a37615857",
     "K-Dense-AI/scientific-agents": "98c7fae46648724e1a43a1f2b207b0c82fcc462e",
-    "K-Dense-AI/scientific-agent-skills": "593377bb048752abb0152deab9fbb1083a6087df"
+    "K-Dense-AI/scientific-agent-skills": "593377bb048752abb0152deab9fbb1083a6087df",
+    "Project-MONAI/model-zoo": "8c4da75225ff7cb30292729dd704cceccae5413c",
+    "nvidia-holoscan/holoscan-applications": "7d2e3b3c2b5d48bf0bc5caeba4d715b797ae3031",
+    "isaac-for-healthcare/i4h-workflows": "5b430a6d8d8c9cccc547b05b5e079d22b08ade9e"
   },
   "skills": {
     "aging-models": [
@@ -68,11 +71,17 @@
       "gromacs",
       "gromacs-mpi"
     ],
+    "holoscan-video": [
+      "holoscan-endoscopy"
+    ],
     "imaging-models": [
       "nv-reason-cxr-3b",
       "nv-segment-ct"
     ],
     "immunology-research": [],
+    "isaac-healthcare": [
+      "isaac-healthcare"
+    ],
     "lammps": [
       "lammps"
     ],
@@ -85,6 +94,9 @@
     "mindeval-workflows": [],
     "molmim": [
       "molmim"
+    ],
+    "monai": [
+      "monai-spleen-ct"
     ],
     "msa-search": [
       "msa-search-pdb70"

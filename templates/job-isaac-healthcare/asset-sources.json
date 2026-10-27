@@ -1,0 +1,85 @@
+{
+  "schema": "isaac-healthcare-asset-sources/v1",
+  "asset_generation": "v0.9.0/7cf86a1",
+  "source_root": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/",
+  "files": [
+    {
+      "path": "Robots/SO-ARM/SO-ARMDualCamera.usd",
+      "sha256": "9ed86d21911995206a25a0c6cf5667ca7af0c2cccd323ae34009966a3ccfca32",
+      "size_bytes": 27586651,
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/Robots/SO-ARM/SO-ARMDualCamera.usd"
+    },
+    {
+      "path": "Robots/SO-ARM/README.md",
+      "sha256": "5c4fb729f6f5e23eed8bc546a480c96efd6f4cd34be0138af1b8d8b43b93f6e6",
+      "size_bytes": 1053,
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/Robots/SO-ARM/README.md"
+    },
+    {
+      "path": "Props/Table/table.usd",
+      "sha256": "d2bb50ca8d5001ba46cb273a779f45a99cfeafd5a3c0ab88ce5e5e7d26cc4e56",
+      "size_bytes": 18839808,
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/Props/Table/table.usd"
+    },
+    {
+      "path": "Props/SurgicalInstruments/SurgicalScissors.usd",
+      "sha256": "bfa6ceca4370d24655efe1c4114617a9904866e6e3024a1d705fd8a92d11e359",
+      "size_bytes": 1336422,
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/Props/SurgicalInstruments/SurgicalScissors.usd"
+    },
+    {
+      "path": "Props/SurgicalInstruments/SurgicalTray.usd",
+      "sha256": "d33fdb6de6b96e6a1fd9b7b7e06b86bbcb4ce206561e2e09b410a8f86b4acf02",
+      "size_bytes": 403187,
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/Healthcare/v0.9.0/7cf86a1/Props/SurgicalInstruments/SurgicalTray.usd"
+    },
+    {
+      "path": "external/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Map_Labels_D.png",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Map_Labels_D.png",
+      "original_reference": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Map_Labels_D.png",
+      "sha256": "7ed4642ab31d970e22c7edf62508347c6fbb14bfdf47487696a6a9a681359f22",
+      "size_bytes": 6674448
+    },
+    {
+      "path": "external/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_D.png",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_D.png",
+      "original_reference": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Map_Magenta_Box_D.png",
+      "sha256": "191e3e8f6b583dc35232f5079d18b421f97dd09d79b374b03b1b1745dd9d8477",
+      "size_bytes": 8461312
+    },
+    {
+      "path": "external/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Mesh_Labels_D.png",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Mesh_Labels_D.png",
+      "original_reference": "http://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/KLT_Bin/Materials/Textures/FOF_Mesh_Labels_D.png",
+      "sha256": "7ed4642ab31d970e22c7edf62508347c6fbb14bfdf47487696a6a9a681359f22",
+      "size_bytes": 6674448
+    },
+    {
+      "path": "external/Isaac/6.0/Isaac/Environments/Grid/default_environment.usd",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Environments/Grid/default_environment.usd",
+      "size_bytes": 17624,
+      "sha256": "78e9a1e72a8838a13d0f65c49cd487ab92e89233cd128b057730b5b5b4ca2164"
+    },
+    {
+      "path": "external/Isaac/6.0/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_basecolor.png",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_basecolor.png",
+      "size_bytes": 436257,
+      "sha256": "deab39088eaf39ed7be951966c5e6bd5e58b90ab64743b0cdc8e5579fd5a99d9"
+    },
+    {
+      "path": "external/Isaac/6.0/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_blue.png",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_blue.png",
+      "size_bytes": 1474958,
+      "sha256": "44fc0e82007bb0bd94631cd7ec45986a71ed74b9413899fbffac13efe151be4b"
+    },
+    {
+      "path": "external/Isaac/6.0/Isaac/Environments/Grid/Materials/Textures/Wireframe_blue.png",
+      "url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.0/Isaac/Environments/Grid/Materials/Textures/Wireframe_blue.png",
+      "size_bytes": 111895,
+      "sha256": "940b96ee8c8e53bd1acbc770d4ca0ac98bed9c96439ab386d1b27dbc9790cc4e"
+    }
+  ],
+  "builtin_materials": [
+    "OmniPBR.mdl"
+  ]
+}

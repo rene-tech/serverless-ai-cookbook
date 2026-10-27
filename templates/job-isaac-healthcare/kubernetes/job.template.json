@@ -1,0 +1,74 @@
+{
+  "apiVersion": "batch/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "isaac-healthcare-run-001",
+    "namespace": "default",
+    "labels": {"app.kubernetes.io/name": "isaac-healthcare"}
+  },
+  "spec": {
+    "backoffLimit": 0,
+    "activeDeadlineSeconds": 7200,
+    "template": {
+      "metadata": {"labels": {"app.kubernetes.io/name": "isaac-healthcare"}},
+      "spec": {
+        "restartPolicy": "Never",
+        "automountServiceAccountToken": false,
+        "terminationGracePeriodSeconds": 120,
+        "nodeSelector": {
+          "kubernetes.io/arch": "amd64",
+          "kubernetes.io/os": "linux",
+          "nvidia.com/gpu.product": "NVIDIA-L40S"
+        },
+        "securityContext": {
+          "runAsNonRoot": true,
+          "runAsUser": 10001,
+          "runAsGroup": 10001,
+          "fsGroup": 10001,
+          "fsGroupChangePolicy": "OnRootMismatch",
+          "seccompProfile": {"type": "RuntimeDefault"}
+        },
+        "containers": [{
+          "name": "simulation",
+          "image": "${ISAAC_IMAGE}",
+          "imagePullPolicy": "IfNotPresent",
+          "command": ["/opt/i4h/arena/.venv/bin/python", "-I"],
+          "args": [
+            "/opt/isaac-healthcare/scripts/run_serverless.py",
+            "--input", "/inputs/scenarios.json",
+            "--parameters", "/inputs/parameters.json",
+            "--output-prefix", "/output/isaac-healthcare-run-001"
+          ],
+          "env": [
+            {"name": "ACCEPT_EULA", "value": "${ACCEPT_EULA}"},
+            {"name": "ISAACSIM_ACCEPT_EULA", "value": "${ACCEPT_EULA}"},
+            {"name": "OMNI_KIT_ACCEPT_EULA", "value": "${ACCEPT_EULA}"},
+            {"name": "NVIDIA_DRIVER_CAPABILITIES", "value": "all"},
+            {"name": "VK_DRIVER_FILES", "value": "/etc/vulkan/icd.d/nvidia_icd.json"}
+          ],
+          "resources": {
+            "requests": {"cpu": "8", "memory": "32Gi", "ephemeral-storage": "128Gi", "nvidia.com/gpu": "1"},
+            "limits": {"cpu": "24", "memory": "48Gi", "ephemeral-storage": "128Gi", "nvidia.com/gpu": "1"}
+          },
+          "securityContext": {
+            "allowPrivilegeEscalation": false,
+            "readOnlyRootFilesystem": true,
+            "capabilities": {"drop": ["ALL"]}
+          },
+          "volumeMounts": [
+            {"name": "inputs", "mountPath": "/inputs", "readOnly": true},
+            {"name": "outputs", "mountPath": "/output"},
+            {"name": "scratch", "mountPath": "/tmp"},
+            {"name": "shared-memory", "mountPath": "/dev/shm"}
+          ]
+        }],
+        "volumes": [
+          {"name": "inputs", "persistentVolumeClaim": {"claimName": "isaac-inputs", "readOnly": true}},
+          {"name": "outputs", "persistentVolumeClaim": {"claimName": "isaac-results"}},
+          {"name": "scratch", "emptyDir": {"sizeLimit": "128Gi"}},
+          {"name": "shared-memory", "emptyDir": {"medium": "Memory", "sizeLimit": "16Gi"}}
+        ]
+      }
+    }
+  }
+}

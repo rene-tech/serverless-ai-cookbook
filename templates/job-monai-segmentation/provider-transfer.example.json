@@ -1,0 +1,15 @@
+{
+  "input": {
+    "url": "INSERT_SCOPED_HTTPS_GET_URL",
+    "sha256": "be3da1a63973734da44b32a29be49b55b3baaf2830299af8a5b853e2d1243ed1",
+    "size_bytes": 9768960
+  },
+  "output": {
+    "url": "INSERT_SCOPED_HTTPS_PUT_URL",
+    "max_bytes": 134217728,
+    "headers": {
+      "Content-Type": "application/x-tar"
+    }
+  },
+  "command_sha256": "10ae65000048d4f9a46a5a7f29051ff8881b89ebf0b7a853b6eab0c88c5a4496"
+}

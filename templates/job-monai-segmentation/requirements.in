@@ -1,0 +1,4 @@
+monai==1.6.1
+nibabel==5.3.3
+scipy==1.16.2
+jsonschema==4.26.0

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "scenarios"],
+  "properties": {
+    "schema": {"const": "isaac-healthcare-scenarios/v1"},
+    "scenarios": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["name"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "description": "Unique scientific scenario label; never interpreted as a path."},
+          "seed": {"type": ["integer", "null"], "minimum": 0, "maximum": 4294967295, "default": null, "description": "IsaacLab reset seed. Null retains upstream random initialization; initial state is recorded for replay."}
+        }
+      }
+    }
+  }
+}

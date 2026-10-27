@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "workflow": {"enum": ["scissor_pick_and_place"], "default": "scissor_pick_and_place", "description": "SO-ARM 101 surgical-scissor pick-and-place, using the upstream rule-based controller."},
+    "episodes": {"type": "integer", "minimum": 1, "default": 1, "description": "Requested successful episodes per scenario; unsuccessful attempts remain recorded."},
+    "attempts": {"type": "integer", "minimum": 1, "default": 1, "description": "Maximum attempts per requested episode, matching upstream semantics."},
+    "episode_steps": {"type": ["integer", "null"], "minimum": 1, "maximum": 600, "default": null, "description": "Null preserves the upstream 600-step scene cap at 60 Hz. An explicit value may only lower it; a time-limited attempt is not task success."},
+    "physics": {"enum": [null, "physx"], "default": null, "description": "Null selects the upstream scene default (PhysX). Scissor scene Newton execution is not supported by this runtime."},
+    "cameras": {"type": "boolean", "default": true, "description": "Record upstream room and wrist RGB sensors; false explicitly requests trajectories without camera images."}
+  }
+}

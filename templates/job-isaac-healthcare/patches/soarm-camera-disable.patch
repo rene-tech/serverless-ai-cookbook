@@ -1,0 +1,23 @@
+--- a/arena/i4h_arena/scenes/soarm_scissors.py
++++ b/arena/i4h_arena/scenes/soarm_scissors.py
+@@ -73,6 +73,8 @@
+ 
+     def configure_args(self, args: argparse.Namespace) -> None:
+         super().configure_args(args)
++        if getattr(args, "no_cameras", False):
++            args.enable_cameras = False
+         # The SO-ARM has no IK; nothing in this scene can accept a Cartesian
+         # target, which the scene manifest declares as joint_position so
+         # workflow-lint rejects tasks/ik nodes before Isaac boots.
+--- a/arena/i4h_arena/embodiments/so_arm.py
++++ b/arena/i4h_arena/embodiments/so_arm.py
+@@ -194,6 +194,9 @@
+             self.camera_config = CameraSceneCfg()
+             self.action_config = action_cfg_fn(action_device)
+             self.observation_config = _ObservationsCfg()
++            if not self.enable_cameras:
++                self.observation_config.policy.wrist = None
++                self.observation_config.policy.room = None
+             self.event_config = _default_events_cfg()
+ 
+         def use_action_device(self, action_device: str) -> None:

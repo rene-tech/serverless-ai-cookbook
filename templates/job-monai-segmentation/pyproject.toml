@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monai-spleen-workflow"
+version = "0.1.1"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+include = ["monai_workflow*"]
