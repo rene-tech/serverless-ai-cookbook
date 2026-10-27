@@ -30,7 +30,8 @@ Observed:
   Exact local CLI capture has no labels; provider-side translation is suspected.
   SDK round-trip preserves the same request. Actual Endpoint SDK dry-run also
   fails with the same label limit, with no labels and with short task labels.
-  No provider resource or GPU execution was admitted.
+  Those failed requests created no provider resource. Later short-reference
+  qualification is recorded separately below.
 
 - The finite Kubernetes Job and ConfigMap pass client-side API validation;
   the first admitted Pod remained Pending because its default Kueue flavor
@@ -78,10 +79,39 @@ No tool-probability decisions changed at 0.5. Each comparison changed one mask
 value's side of 0.5 out of 1,348,200 values. These describe this finite regression;
 they are not a universal numerical tolerance or a clinical agreement guarantee.
 
-Private App worker execution, public REST/MCP errors/cancellation/concurrency,
-native fallback and worker regional coverage still require their own results. Provider
-Serverless Job/Endpoint creation remains blocked by the recorded label defect;
-the Kubernetes result does not qualify those provider APIs.
+The separately packaged Scientific AI worker also passed one default public REST
+case and one typed MCP case on L40S: each processed all 683 frames, 4,781 tool
+rows, finite `[683,7,60,107]` masks and a complete 854×480, 25 fps annotated video.
+Every published file was read back with its full checksum from the requested
+custom/default customer-bucket prefix. These hosted results do not add a
+Scientific AI dependency to this portable image or recipe.
+
+The second public cohort passed scientific and requested-bucket checks with a
+previously unseen rotation-tagged MP4: REST selected five later frames without
+annotation; MCP used integral JSON numbers, stride two and a different threshold,
+producing eight annotated frames at 12.5 fps. Encoded-frame geometry, complete
+numerical outputs and all requested bucket files passed independent validation.
+Two intentional failures also retained the unreadable-video or missing-input
+cause through REST and MCP status/results, stopped after one attempt, and
+advertised no successful output.
+
+The separate shared audit passed 84 access/idempotency controls, including 28
+Holoscan checks: same-request replay, changed-parameter/destination conflicts and
+foreign status/result/artifact/cancel denial between two principals in one tenant.
+Owner cancellation during execution, recovery and cross-tenant isolation remain
+unqualified. These finite results do not establish production shared capacity.
+Actual Native fallback and alternate-region worker execution are unobserved;
+configured class/region mappings and verified regional image bytes do not prove
+those behaviors. No sustainable shared-service capacity is claimed.
+
+The original long-reference Job and Endpoint dry-run failures remain retained.
+A later 119-character short repository reference with the **same complete digest**
+passed an actual Job SDK dry-run after manifest/config/all-layer equality checks.
+One finite provider Job has been accepted; actual runtime identity, GPU/driver,
+scientific outputs, durable export and physical closeout remain pending. This is
+not provider execution PASS. Bucket-mounted transport and Endpoint execution are
+unqualified. Neither portable Kubernetes nor hosted App results substitute for
+those provider checks.
 
 The upstream application reports 300-frame execution on ARM64 GB10. That is
 upstream evidence and does not qualify this AMD64 image or the target fleet.

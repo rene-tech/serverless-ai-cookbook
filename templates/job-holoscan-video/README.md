@@ -6,10 +6,14 @@ locations, and returns seven mask channels per frame. It preserves recurrent
 state across the selected frames. Python handles video preparation and artifact
 delivery; inference executes in Holoscan/TensorRT.
 
-This finite workflow targets an NVIDIA Linux host without Scientific AI, a private
-application, or a cloud account. Exact GPU qualification is recorded separately.
-The provider Job path currently hits a backend label-validation error for the
-reviewed immutable image; see the Serverless section and `provider/README.md`. Live camera/capture-card acquisition, persistent streams, clinical control,
+This finite workflow runs on an NVIDIA Linux host without Scientific AI, a private
+application, or a cloud account. The exact portable image passed finite Kubernetes
+executions on L40S, H100, H200 and RTX PRO 6000 Blackwell; see
+[QUALIFICATION.md](QUALIFICATION.md) for the driver, workload and measured scope.
+The provider Job path now has a successful short-repository/full-digest dry-run;
+its real execution is pending. See the Serverless section and
+[provider/README.md](provider/README.md). Live camera/capture-card acquisition,
+persistent streams, clinical control,
 and real-time network latency are separate, unqualified workflows.
 
 ## Exact implementation
@@ -115,69 +119,25 @@ not establish sustained capacity, clinical accuracy, or real-time latency.
 
 ## Nebius Serverless Job
 
-Observed on 27 October 2026: the provider rejects the reviewed full digest with
-`metadata.labels: label value length (...) exceeds maximum value (64)`.
-The CLI request contains no labels, so changing clients is not an established
-fix. Preserve immutable references. The commands below describe the intended
-Job contract; stop if its dry-run reports this defect. The scoped transfer and
-once-only Endpoint diagnostic in [provider/README.md](provider/README.md) is
-also blocked by the same error in an actual SDK dry-run. No provider GPU
-execution is qualified. The portable on-premises build remains independent.
+Follow [the finite provider Job recipe](provider/README.md). Build/push to your
+own short registry repository, retain the **complete immutable digest**, and
+supply one scoped input GET and one scoped output PUT for a fresh prefix in your
+existing bucket. The offline builder retains the exact portable launcher,
+unchanged transfer/bundle scripts, zero restart attempts and a finite timeout.
+It supports ordinary filenames and the same video/frame parameters as Docker.
+No Scientific AI account, application token or private source is required.
 
-Build and push the portable image to **your registry**, using your usual registry
-login; no Scientific AI credentials are required. Do not put passwords in the
-Dockerfile or command arguments. Record the returned immutable digest.
+A 119-character short full-digest reference passed a real provider SDK dry-run
+on 27 October 2026 with byte-identical manifest/config/layers. A finite Job has
+been accepted; GPU execution, durable output and physical closeout are **pending**.
+Earlier longer references failed Job and Endpoint dry-runs with a Compute
+label-length error. Preserve that failure and dry-run your own exact reference;
+shortening the repository is not a guarantee for every registry configuration.
+Never truncate the digest or substitute an unverified mutable tag.
 
-```bash
-export IMAGE="YOUR_REGISTRY/holoscan-video:5.0.0"
-docker tag holoscan-video:5.0.0 "$IMAGE"
-docker push "$IMAGE"
-docker image inspect "$IMAGE" --format '{{json .RepoDigests}}'
-export IMAGE="YOUR_REGISTRY/holoscan-video@sha256:RETURNED_DIGEST"
-```
-
-Use an existing project and regional input/output bucket with authorized access.
-Upload `surgical_video.264`, `tool_loc_convlstm.onnx`, and the included asset
-license to the input bucket. Also upload `parameters.json` containing
-`{"frame_count":30}`. Keep credentials in the provider's secret store or
-normal CLI profile; do not embed them in the image or JSON parameters. Bucket
-mount access uses your project/service identity; cross-account S3 mounts can use
-the CLI's `PROFILE@SECRET_SELECTOR` volume syntax.
-
-Check your installed `nebius ai job create --help` and available platform/presets.
-Set the project, qualified GPU preset, immutable image and both bucket IDs:
-
-```bash
-nebius ai job create \
-  --parent-id "$NEBIUS_PROJECT_ID" --name holoscan-recording-001 \
-  --image "$IMAGE" --platform "$HOLOSCAN_PLATFORM" --preset "$HOLOSCAN_PRESET" \
-  --on-demand --disk-size 128Gi --timeout 1h --restart-policy never \
-  --volume "$INPUT_BUCKET_ID:/inputs:ro" \
-  --volume "$OUTPUT_BUCKET_ID:/outputs:rw" \
-  --container-command /opt/holoscan-video/launch.sh \
-  --args 'python3 /opt/holoscan-video/holoscan_video.py --input-video /inputs/surgical_video.264 --model /inputs/tool_loc_convlstm.onnx --output-dir /outputs/run-001 --parameters-file /inputs/parameters.json' \
-  --dry-run
-```
-
-Review the dry-run projection, especially the argument array. Run the same
-command without `--dry-run` when ready to create your Job. Use a new output
-prefix for each execution. Initial deterministic errors should be corrected,
-not retried indefinitely. If using spot capacity, interruption restarts the
-recurrent clip from the beginning; no checkpoint-resume claim is made.
-
-```bash
-nebius ai job get "$JOB_ID" --format json
-nebius ai job logs "$JOB_ID" --tail 100 --timestamps
-# If needed:
-nebius ai job cancel "$JOB_ID"
-# After verifying and downloading durable outputs:
-nebius ai job delete "$JOB_ID"
-```
-
-Deleting the Job does not delete separately mounted bucket objects. Retain or
-remove only the run prefix you own. Compute, image pulls and storage may be
-billed. No HTTP port, public endpoint, application bearer token or persistent
-stream is needed for this finite Job.
+The scoped transfer path uses local scratch and whole-object export. Provider
+bucket mounts and persistent Endpoint execution remain separate, unqualified
+paths. The on-premises image continues to run without either provider API.
 
 ## Kubernetes on premises
 
@@ -185,7 +145,7 @@ Use the [finite Kubernetes Job recipe](kubernetes/README.md) on your own NVIDIA
 cluster. It retains the same portable image/CLI, read-only script and capability
 mounts, separate scratch and durable outputs, and explicit no-retry Job policy.
 GPU/driver qualification and resource sizing still apply. This path does not use
-the provider Job/Endpoint APIs that currently reject the reviewed digest.
+provider Job/Endpoint APIs; its qualification is independent of provider dry-runs.
 
 ## Verification and troubleshooting
 
@@ -206,5 +166,6 @@ Never label upstream's `--synthetic true --inference false` CI mode as inference
   fail if the recording is shorter, instead of returning silent partial results.
 - Object storage write errors: durable outputs use whole-file copies. Scratch,
   append-only graph tables and temporary encoder files stay on local disk.
-- Job completed but outputs missing: check the output mount/prefix and complete
-  `result.json` inventory. A terminal container status alone is insufficient.
+- Job completed but outputs missing: check the exact output prefix, scoped PUT
+  expiry/permissions, upload receipt and complete `result.json` inventory. A
+  terminal container status alone is insufficient.

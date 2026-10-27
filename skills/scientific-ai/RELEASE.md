@@ -1,3 +1,33 @@
+# Scientific AI skills 2026.10.27.1 — healthcare workflows
+
+This additive bundle contains 50 skills: the 47 existing skills are preserved,
+and three workflow guides are added:
+
+- [`monai`](monai/SKILL.md): the configured pretrained spleen CT segmentation
+  bundle, typed NIfTI artifacts, geometry/label validation and actionable errors.
+- [`holoscan-video`](holoscan-video/SKILL.md): recorded endoscopy tool tracking,
+  frame/coordinate provenance and complete scientific artifact checks.
+- [`isaac-healthcare`](isaac-healthcare/SKILL.md): finite rule-based scissor
+  pick-and-place simulation, requested seeds/cameras and explicit task outcomes.
+
+Each guide discovers the caller's live App contract and links its independent
+public Docker/Serverless source recipe. The Isaac recipe link is absolute so it
+also works from an extracted or installed skills bundle. Workflow coverage is
+limited to the configured model/simulation; broader framework modes have their
+own requirements and qualification.
+
+The retained candidate qualification used a fresh task-local installation.
+Existing agent/workbench clients are unchanged. Verify the released archive with
+`SHA256SUMS` and `python3 bundle.py verify`; install into a new versioned
+destination and select it explicitly in the client. Skill installation does not
+install model runtimes, grant App access or activate a client deployment.
+
+Scientific execution and access-control evidence belong to the individual
+recipe and platform release receipts; they are separate from this skill archive.
+This bundle does not establish provider Serverless execution, native availability
+fallback, sustainable capacity or clinical validity. Historical release notes
+below are retained unchanged.
+
 # Scientific AI skills 2026.10.22.3 — coordinate and confidence contracts
 
 The scientific-batch instructions distinguish a JSON artifact manifest from

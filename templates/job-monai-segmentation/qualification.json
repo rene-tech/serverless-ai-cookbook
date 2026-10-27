@@ -1,6 +1,6 @@
 {
   "date": "2026-10-27",
-  "status": "Portable float32 compatibility qualified on L40S/H100/H200/RTX PRO 6000; provider digest admission blocked; Scientific AI public paths pending",
+  "status": "Portable float32 compatibility qualified on four GPU classes; Scientific AI REST/MCP scientific acceptance and same-tenant isolation/idempotency passed; provider scoped-transfer science pending",
   "cpu": {
     "actual_runtime_uid": "unprivileged",
     "network": "disabled",
@@ -241,11 +241,13 @@
   },
   "pending": [
     "native availability fallback",
-    "public REST and MCP artifacts/errors/cancel/isolation",
-    "provider-managed Serverless execution blocked before inference",
     "general PVC-based Kubernetes storage execution",
     "float16/bfloat16 and broader workload/performance qualification",
-    "capacity qualification"
+    "capacity qualification",
+    "owner cancellation during execution and recovery",
+    "cross-tenant isolation",
+    "provider-managed Serverless scoped-transfer scientific execution",
+    "provider bucket-mount transport"
   ],
   "supersedes_portable_image": "sha256:72b86537cde390d80db100ce7d05db7fbb008c809a8610fd6ef5e2822851529f",
   "definition_resources": {
@@ -261,15 +263,25 @@
     "runtime.py": "82c6ebba15a4d00ee2a79532d9dad6a7e7c17957e62eb5b5e79f80dcbb0b9ade"
   },
   "provider_serverless": {
-    "status": "blocked_before_container_start",
+    "status": "short_full_digest_final_request_dry_run_pass_science_pending",
     "date": "2026-10-27",
-    "tested_services": [
-      "Job",
-      "Endpoint"
-    ],
-    "reason": "Immutable image digest references rejected by provider image-label length validation.",
-    "immutable_pin_retained": true,
-    "inference_executed": false
+    "historical_long_reference_failure": {
+      "status": "blocked_before_container_start",
+      "date": "2026-10-27",
+      "tested_services": [
+        "Job",
+        "Endpoint"
+      ],
+      "reason": "Immutable image digest references rejected by provider image-label length validation.",
+      "immutable_pin_retained": true,
+      "inference_executed": false
+    },
+    "full_digest_preserved": true,
+    "transport": "Scoped HTTPS input/output and unchanged provider_driver.py",
+    "scientific_execution": "pending",
+    "bucket_mounted_transport": "unqualified",
+    "general_supplied_input_command": "provider-command.json",
+    "general_workflow": "PROVIDER.md"
   },
   "kubernetes": {
     "status": "Four hardware-specific scoped-URL finite GPU regressions passed; general PVC template client-validated only",
@@ -1085,5 +1097,22 @@
     "source": "scientific_ai.gateway.ArtifactPointer JSON Schema maximum for size_bytes",
     "current_maximum_bytes": 53687091200,
     "scope": "Existing Scientific AI public upload bound; portable CLI science unchanged."
+  },
+  "public_app_evidence": {
+    "date": "2026-10-27",
+    "model": "monai-spleen-ct",
+    "positive_cohorts": 2,
+    "positive_requests": 4,
+    "negative_requests": 2,
+    "surfaces": [
+      "REST",
+      "MCP"
+    ],
+    "science": "Full original geometry, uint8 labels, delivered file hashes, validation-case Dice 0.936098",
+    "variation": "Renamed/reoriented inputs, spatial units and window batch",
+    "errors": "Non-finite CT rejected with actionable repair cause and no successful output",
+    "controls": "28 MONAI checks within 84 shared checks: same-tenant principal isolation, foreign cancellation denial, same-request identity and changed parameters/destination conflicts",
+    "physical_closeout": "All six scientific cases passed",
+    "scope": "Separate authenticated service; standalone recipe requires no Scientific AI account."
   }
 }

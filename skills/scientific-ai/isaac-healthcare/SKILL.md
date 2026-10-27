@@ -35,7 +35,7 @@ passed. HDF5 v1 excludes the termination/reset sample, so the last recorded
 image is not the final success criterion. No claim of clinical validity follows.
 
 For on-premises or provider Serverless execution, use the standalone
-[recipe](../../../templates/job-isaac-healthcare/README.md). It shares the exact
+[recipe](https://github.com/rene-tech/serverless-ai-cookbook/blob/main/templates/job-isaac-healthcare/README.md). It shares the exact
 portable execution package with the hosted worker and needs no Scientific AI
 token. Check the operator's NVIDIA simulator/component/asset terms before
 accepting the EULA. Use RTX-capable hardware; H100/H200 do not provide Isaac

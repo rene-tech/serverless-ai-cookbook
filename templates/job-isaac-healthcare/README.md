@@ -9,8 +9,25 @@ configuration, initial states, task segments, workflow logs and preview frames.
 default 600-step-cap runs on L40S and RTX PRO 6000, including rendered RGB and
 successful pick-and-place outcomes. A different seed/name with cameras explicitly
 disabled also passed on L40S. These runs blocked network access for the simulator.
+Two ordinary hosted REST/MCP cohorts using the same portable runtime passed
+scientific and full artifact/custom/default-bucket checksum checks. These covered
+two default rendered tasks, a different seed/name with cameras disabled, and an
+explicit 73-step run that correctly recorded `task_complete=false`. Separate
+malformed-JSON requests through REST and MCP preserved the native parser error
+on both status/result surfaces without advertising successful output. One
+camera-off case retained complete scientific outputs but missed capture of its
+full raw operator log after main termination; that diagnostic gap remains
+recorded. A separate 28-check Isaac audit passed same-request replay,
+changed-parameter/destination conflicts and foreign status/result/artifact/cancel
+denial between two principals in one tenant (84 controls across all three Apps).
+Shared capacity, owner cancellation/recovery, cross-tenant isolation, client
+integration and native regional fallback remain unqualified.
 CPU source/import/asset checks passed as non-root UIDs 10001 and 65532. Provider
-Serverless execution remains blocked by the documented image-label limitation.
+Serverless also passed one default 600-step-cap/cameras-on run on L40S using a
+short full-digest image reference: successful task completion, 533 samples,
+dual RGB streams and full requested-bucket/independent CPU checks. Its initial
+VM scheduling capacity failure remains retained. See the provider recipe for
+the exact measured allocation and diagnostic networking.
 This recipe covers one rule-based simulation workflow. Other
 i4h policies, ultrasound, training, interactive WebRTC and physical robot/device
 integration have separate runtime requirements.
@@ -159,55 +176,29 @@ command and retain its actual invocation and outputs.
 
 ## Nebius provider Serverless Job
 
-Build and push to **your authorized registry**, then resolve the immutable image
-digest. Select an available RTX-capable platform/preset in your project and a
-same-region output bucket. Verify the actual host driver before qualification.
-The CLI syntax below was checked with installed `nebius ai job create --help`;
-it is distinct from Scientific AI's native Serverless deployment.
+Use the [scoped-transfer provider recipe](provider/README.md). It prepares a
+finite Job using your own project, immutable image, existing object-storage
+credentials and arbitrary supported scenario/parameter files. It invokes the
+same portable launcher, with local POSIX scratch, simulator network blocking,
+full input/output SHA checks and independent scientific validation. No private
+Scientific AI account, package or token is required.
 
-**Current provider limitation:** qualification encountered a backend label-length
-error for the long digest-pinned image reference. The commands below are not yet
-a successful provider execution claim. Retain the immutable pin and the actual
-dry-run error until a supported provider path passes; do not silently replace it
-with a mutable tag.
+A short repository name with the **complete immutable digest** passed the
+provider's image-label validation; the earlier long-reference failure remains
+recorded. One actual Job used the same portable manifest and unchanged default
+600-step-cap/seed-17/cameras-on request on L40S, 16 vCPU and 96 GiB RAM. It
+completed the task at step 534, recording 533 samples and both 640×480 cameras.
+Actual container image/GPU/driver identity, the offline simulator filter, all
+eight delivered file hashes and independent CPU science validation passed.
+The first VM attempt failed capacity scheduling, then the provider progressed
+the same accepted Job without a manual restart or duplicate scientific request.
+The [provider README](provider/README.md) preserves this measured scope, including
+the opt-in public-IP/SSH diagnostics used for actual image verification.
 
-```bash
-export ISAAC_IMAGE='your-registry/isaac-healthcare@sha256:YOUR_BUILT_DIGEST'
-export PROJECT_ID='your-project-id'
-export OUTPUT_BUCKET='your-same-region-bucket-name'
-export S3_SECRET_SELECTOR='your-existing-object-storage-credential-secret'
-
-nebius ai job create --dry-run \
-  --parent-id "$PROJECT_ID" --name isaac-healthcare-run-001 \
-  --image "$ISAAC_IMAGE" --platform gpu-l40s-d \
-  --preset 1gpu-16vcpu-96gb --on-demand --restart-policy never \
-  --timeout 2h --disk-size 250Gi --shm-size 16Gi \
-  --volume "s3://$OUTPUT_BUCKET:/data:rw:default@$S3_SECRET_SELECTOR" \
-  --env ACCEPT_EULA=Y --env ISAACSIM_ACCEPT_EULA=Y --env OMNI_KIT_ACCEPT_EULA=Y \
-  --inject-file "$PWD/examples/scenarios.json:/inputs/scenarios.json" \
-  --inject-file "$PWD/examples/parameters.json:/inputs/parameters.json" \
-  --container-command /opt/i4h/arena/.venv/bin/python \
-  --args '-I /opt/isaac-healthcare/scripts/run_serverless.py --input /inputs/scenarios.json --parameters /inputs/parameters.json --output-prefix /data/runs/isaac-001'
-```
-
-After reviewing the dry run, remove `--dry-run` to submit. Use a registry secret
-when required; the volume uses your existing object-storage MysteryBox credential
-secret/profile. Do not put passwords or cloud credentials in the recipe. Injected
-files have the provider's 64 KiB limit; place larger scenario documents in an
-authorized read-only input bucket mount and adjust `--input` accordingly.
-
-HDF5 and caches are written to **local POSIX scratch**, then the wrapper copies
-closed `result.json` and `simulation.tar` files to the output bucket and verifies
-their checksums. `completion.json` appears only after verified delivery. A bucket
-mount is not a general POSIX filesystem: do not point HDF5, logs, caches or a
-virtualenv directly at it. A completed unsuccessful task still has its detailed
-results; an interrupted job lacks a completed publication receipt.
-
-Use the returned Job ID with the installed CLI's `get`/`logs` commands, and
-retain that ID and the image digest with results. Cancel/delete only your exact
-Job after exporting evidence. Bucket outputs remain until explicitly deleted;
-delete only the run prefix you own. Local Docker output remains after `--rm`.
-There is no cross-attempt simulator checkpoint resume in this first recipe.
+The supported recipe transfers closed archives with scoped HTTPS capabilities.
+Provider bucket mounts, an always-running Endpoint and WebRTC networking have
+not been qualified by this path. Export all outputs and diagnostics before
+cleaning only your returned Job and its verified dependent VM/disk/IP resources.
 
 ## Verification
 
@@ -236,9 +227,8 @@ streaming and mute some USD diagnostics. Successful rendering and offline task
 completion do not establish warning-free USD composition or quantitative
 physical accuracy. Full warnings remain in operator stdout/logs.
 
-Installation acceptance must also cover a deliberately short episode and
-cancellation; inspect rendered RGB and recorded
-task outcomes. Measure startup, elapsed simulation time, memory, output size and
+For your own installation, repeat the short unfinished-task and malformed-input
+checks and qualify cancellation; inspect rendered RGB and recorded task outcomes. Measure startup, elapsed simulation time, memory, output size and
 failures on each GPU/region before advertising throughput or shared capacity.
 Interactive WebRTC additionally needs its signaling/media transport; managed
 HTTPS alone does not qualify it.

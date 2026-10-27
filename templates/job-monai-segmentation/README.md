@@ -101,18 +101,20 @@ mask with an appropriate NIfTI viewer before using it in further research.
 
 ## Nebius Serverless
 
-Qualification status on 27 October 2026: the tested provider Job and Endpoint
-services rejected immutable image digest references during image-label length
-validation, before starting the container. The provider launch path below remains
-unqualified pending that service correction. Docker and Kubernetes use the same
-immutable image directly; do not replace its digest with a mutable tag to claim
-equivalent qualification.
+Qualification status on 27 October 2026: earlier Job/Endpoint requests using
+long image references failed label-length validation before container startup.
+A short repository path retaining the same full digest passed a final Job
+dry-run with scoped input/output transfer; scientific execution remains pending.
+Bucket-mount transport below is a separate unqualified route. Keep the immutable
+digest when shortening your repository path; a mutable tag is not equivalent.
 
 Build and push to **your** registry. This repository does not require access to
-our private image registry. Preserve the image digest returned by the push.
+our private image registry. Use a short repository name such as `ms` and preserve
+the full image digest returned by the push. Always dry-run the complete request;
+the accepted reference length depends on the provider's label encoding.
 
 ```bash
-MONAI_IMAGE="$MY_REGISTRY/monai-spleen-ct:0.6.1-r3"
+MONAI_IMAGE="$MY_REGISTRY/ms:0.6.1-r3"
 docker build -t "$MONAI_IMAGE" .
 docker push "$MONAI_IMAGE"
 MONAI_DIGEST=$(docker image inspect --format '{{index .RepoDigests 0}}' "$MONAI_IMAGE")
@@ -159,7 +161,17 @@ JOB_ID`; separately delete only its `results/$MONAI_RUN/` prefix when no longer
 needed. Job deletion does not delete your bucket. Local `--rm` removes the
 container; explicitly retain or remove your mounted `output/example` directory.
 
-## Provider qualification with scoped object URLs
+## Provider transfer without bucket mounts
+
+[PROVIDER.md](PROVIDER.md) gives the general signed-object transfer workflow for
+**your** `.nii`/`.nii.gz` input, registry, existing bucket and credentials. It
+uses the same `provider_driver.py`, immutable image and finite Job contract as
+the scoped-transfer qualification, with no reference label or Dice requirement
+for customer volumes. `provider-command.json` supplies the general inference
+command. The bucket-mounted command above is a separate unqualified transport;
+it must not inherit results from the scoped-transfer route.
+
+### Fixed-example regression with scoped object URLs
 
 `provider_driver.py` is an optional finite transfer shim for a Job without a
 bucket mount. Its local injected configuration contains one HTTPS GET URL for
@@ -176,7 +188,7 @@ input contract. Put only `image.nii.gz` and `label.nii.gz` from `fetch_example.p
 in `input.tar`. `provider-transfer.example.json` supplies the expected archive
 identity for the retained deterministic archive; update SHA-256/size for your
 actual tar packaging, while preserving the two individual file checksums in the
-qualification command. For arbitrary CT volumes, use the normal recipe above;
+qualification command. For arbitrary CT volumes, use [PROVIDER.md](PROVIDER.md) and its general command;
 do not apply the example's Dice or file-identity checks to customer data.
 
 After creating scoped URLs with your normal object-storage credentials, create
@@ -273,6 +285,26 @@ immutable ConfigMap, with the capability JSON in a read-only Secret. That is
 the retained qualification route for the fixed example; its Dice and checksum
 gates do not apply to this general PVC-based input path. Kubernetes qualification
 does not establish provider Serverless or Scientific AI REST/MCP readiness.
+
+## Scientific AI integration evidence
+
+On 27 October 2026, the separate authenticated `monai-spleen-ct` App passed two
+consecutive REST/MCP positive cohorts on an unchanged release. Four requests
+covered renamed/reoriented inputs, spatial-unit and window-batch variations.
+Independent downloads preserved geometry, uint8 labels and file hashes, with
+Dice **0.936098** on the documented validation case.
+
+Both non-finite-input cases returned an actionable repair error through REST/MCP
+status and result, without successful scientific output. All six cases completed
+one attempt and passed physical closeout. REST/MCP same-tenant principal
+isolation and idempotency also passed: repeated requests retained their operation
+identity, changed parameters/destinations conflicted, and the other principal
+could not access status/results/artifacts or cancel the operation. These checks
+do not qualify owner cancellation during execution or cross-tenant isolation.
+
+This service evidence is separate from the standalone Docker/Kubernetes recipe,
+which requires no Scientific AI account. It does not establish provider Serverless
+execution, native availability fallback, sustainable capacity or clinical accuracy.
 
 ## License and scope
 
