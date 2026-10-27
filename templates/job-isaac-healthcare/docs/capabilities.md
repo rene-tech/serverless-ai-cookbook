@@ -1,7 +1,7 @@
 # Capability ownership at pinned i4h v0.9.0
 
-This is a source/environment assessment, not a workflow allowlist. Every new image
-and workload needs its own scientific and lifecycle qualification.
+This combines a source/environment assessment with scoped execution evidence; it
+is not a workflow allowlist. Qualification binds the exact image and workload.
 
 The source is pinned to [5b430a6d](https://github.com/isaac-for-healthcare/i4h-workflows/tree/5b430a6d8d8c9cccc547b05b5e079d22b08ade9e).
 `DESIGN.md`, `run.sh`, `arena/i4h_arena/cli.py`, the loader/registry and per-project
@@ -35,9 +35,9 @@ the familiar policy/rule-based/replay/teleop names.
 | Capability | Owning entrypoint / environment | Current boundary |
 |---|---|---|
 | Scene/Task/Workflow discovery and lint | `i4h_engine.cli`; installed Arena Python3.12 | General v2 source and actual CPU project tests; no simulator claim |
-| Simulation and demonstration recording | `i4h_arena.cli`; full Arena/Isaac6.0.1 env | General dispatch; new real scene/mode/image qualification pending |
-| Replay | `i4h_arena.cli --mode replay`; original HDF5 | Only modes authored by a selected workflow; every requested recording index dispatched explicitly |
-| RSL-RL train/evaluate/export | `i4h_rl.cli`, `rl/profiles/*.yaml`; Arena dependency environment | Source implementation in `training/`; trainer/project profile remains authoritative |
+| Simulation and demonstration recording | `i4h_arena.cli`; full Arena/Isaac6.0.1 env | Authored dVRK PSM surgical recording passed on the marker-closure image/L40S; other scenes and modes need their own scientific evidence |
+| Replay | `i4h_arena.cli --mode replay`; original HDF5 | Produced surgical recordings replayed in order `[1, 0]` with exact recorded-action agreement; interactive replay remains under qualification |
+| RSL-RL train/evaluate/export | `i4h_rl.cli`, `rl/profiles/*.yaml`; Arena dependency environment | Finite PPO updates, evaluation and TorchScript export passed on a separately pinned L40S image; zero evaluation successes, no convergence claim |
 | RLinf online training | `i4h_rl.cli` + isolated RLinf trainer/simulator environments | Separate environment/checkpoints required; no import into incompatible Arena dependency stack |
 | GR00T N1.5/N1.6/N1.7 inference and supervised training | `i4h_tasks.gr00t_n15/n16/n17.server:main` and `.train:main`; separate Python3.11 locks | Source present in original image, backend envs/weights were not installed there; build and qualify selected policy stack |
 | OpenPI PI0 inference/training | `i4h_tasks.openpi_pi0.server:main` / `.train:main`; own Python3.11/JAX/Torch environment | Separate environment and checkpoint, graph-derived backend supervision |
@@ -47,6 +47,15 @@ the familiar policy/rule-based/replay/teleop names.
 | Cosmos export/import | `i4h_tools.cosmos.cli:main`; own environment + external Cosmos generation | Source/tool exists; generation service and transformed-data qualification remain separate |
 | Patient digital twin preparation | `i4h_tools.patient_twin.cli:main`; Python3.12/nibabel/scipy/trimesh/USD dependencies | Source/tool exists; caller-owned medical data and generated geometry need their own validation |
 | GUI/video and teleoperation | Isaac6.0.1 WebRTC + authored teleop tasks, `interactive/` | User requested authenticated GUI/teleop; live session/network/relay qualification pending |
+
+The 27 October 2026 surgical proof used
+`sha256:7b82a5b69afc4fdc8c08c5644ae6f1dfd16aa0939ffc371a4c4e90a98b0f345d`:
+two successful episodes, 75 recorded samples each, 150 RGB camera frames at
+640×480, and reverse-order replay with zero recorded-action difference. Full
+output hashes and independent scientific checks passed. This is not trajectory
+equality, clinical accuracy, complete framework coverage, Native fallback or
+shared-capacity evidence. The separate finite RL image and outcome limits are
+recorded in [training qualification](../training/qualification.json).
 
 The original portable image contains the complete pinned source tree and the
 Arena environment, not every source subproject environment or checkpoint. The

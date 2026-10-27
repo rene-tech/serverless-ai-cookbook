@@ -2,11 +2,11 @@
   "schema": "isaac-healthcare-training-qualification/v1",
   "date": "2026-10-27",
   "upstream_revision": "5b430a6d8d8c9cccc547b05b5e079d22b08ade9e",
-  "status": "cpu-dataset-qualified-gpu-training-pending",
+  "status": "scoped-finite-gpu-rl-and-cpu-dataset-qualified",
   "operations": {
-    "train": "cpu-profile-preflight-and-checkpoint-validator-passed-gpu-execution-pending",
-    "evaluate": "cpu-profile-preflight-and-outcome-validator-passed-gpu-execution-pending",
-    "export": "implemented-upstream-export-gpu-execution-pending",
+    "train": "finite-upstream-PPO-execution-and-learned-parameter-checks-passed-no-convergence-claim",
+    "evaluate": "two-simulator-episodes-executed-zero-task-successes",
+    "export": "one-simulator-evaluation-episode-and-TorchScript-export-passed-zero-task-successes",
     "dataset-inspect": "actual-upstream-cpu-inspection-passed",
     "dataset-convert": "actual-upstream-cpu-conversion-passed"
   },
@@ -48,11 +48,32 @@
     ]
   },
   "remaining_gates": [
-    "final-container-installed-imports-and-source-provenance",
-    "real-GPU-train-evaluate-export-on-user-projects",
+    "other-image-and-workload-scientific-qualification",
     "external-RLinf-and-policy-environment-qualification",
     "expanded-native-REST-and-MCP-delivery",
     "owner-cancellation-and-recovery",
-    "GPU-fallback-and-sustained-capacity"
-  ]
+    "GPU-fallback-and-sustained-capacity",
+    "interactive-GUI-video-and-teleoperation"
+  ],
+  "finite_gpu_rl": {
+    "manifest_digest": "sha256:bd5110c3991b74ec670b2c8a20688fbad440e3108b20e24e86b2c975adc9c400",
+    "config_digest": "sha256:35c82bae3fc6bd4768df6daf38ef9e1adac151baf4d104420eba92cb1eb65e32",
+    "gpu": "L40S",
+    "checkpoint_iteration": 2,
+    "changed_learned_parameter_tensors": 8,
+    "all_weights_finite": true,
+    "exported_parameters_equal_final_checkpoint": true,
+    "evaluation": {
+      "episodes": 2,
+      "successes": 0
+    },
+    "export_evaluation": {
+      "episodes": 1,
+      "successes": 0
+    },
+    "delivered_outer_archive_sha256": "0543ea2f9492c0d1adb5dd4c684d58fd2feff5a60595f04cd50d20e77aced35c",
+    "independent_semantic_receipt_sha256": "8a1112c86c775a6338ae7c6b2b174635bca49599f3fced918367617d4930f980",
+    "reward_convergence_claimed": false,
+    "scope": "Finite execution and artifact integrity on this exact image; not all workflows, later images or clinical accuracy."
+  }
 }

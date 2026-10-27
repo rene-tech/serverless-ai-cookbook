@@ -141,7 +141,18 @@ frames skipped and successful-only filtering also passed. All videos were fully
 decoded and every reported artifact hash checked. Non-finite actions produced a
 specific failure without a successful result or converted dataset.
 
-CPU profile preflight and checkpoint/evaluation validators also passed; those
-checks did not train a policy. Final image imports, GPU training/evaluation/
-export, native REST/MCP delivery, cancellation/recovery, GPU fallback and
-sustained capacity remain separate qualification gates for this expanded surface.
+A separate finite L40S provider Job subsequently executed actual RSL-RL PPO
+training, two evaluation episodes and TorchScript export with one simulator
+evaluation episode on image
+`sha256:bd5110c3991b74ec670b2c8a20688fbad440e3108b20e24e86b2c975adc9c400`.
+The final checkpoint recorded iteration 2; all eight learned parameter tensors
+changed, remained finite, and matched the exported policy. Evaluation succeeded
+in 0/2 episodes, and export evaluation in 0/1: execution and artifact integrity
+passed, but learned task success or convergence was not demonstrated. Complete
+delivery hashes and independent CPU artifact checks passed.
+
+This RL evidence is distinct from the later marker-closure image's surgical
+simulation/replay proof; RL was not rerun on that image. External policy stacks,
+expanded Native REST/MCP delivery, cancellation/recovery, interactive sessions,
+GPU fallback and sustained capacity remain separate qualification gates.
+See [the scoped qualification record](qualification.json).

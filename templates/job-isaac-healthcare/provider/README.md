@@ -5,11 +5,14 @@ project, image registry and object storage. It needs no Scientific AI account,
 token or private Python package. The simulator uses local POSIX scratch; a
 separate parent downloads an input archive and uploads the closed result archive.
 The simulator child blocks Internet sockets, so it uses packaged or project-owned
-assets. Graph policy services use private Unix IPC. This v2 source supports
-general project bundles; its new image and provider execution still require
-qualification. The historical measurements below belong to the earlier scissor image.
+assets. Graph policy services use private Unix IPC. General project bundles have
+scoped provider execution evidence: the marker-closure image passed authored
+surgical recording/replay on L40S, and a separately pinned image passed finite
+PPO training/evaluation/export with zero evaluation successes. Exact images and
+limits are in the [main recipe](../README.md) and [training record](../training/qualification.json).
+Interactive transport, Native fallback and shared capacity remain unqualified.
 
-**Qualification status (27 October 2026):** one real provider Job passed the
+**Earlier scissor qualification (27 October 2026):** one real provider Job passed the
 unchanged default 600-step-cap, seed-17, cameras-on workflow on L40S using the
 short full-digest image. The task succeeded at step 534 and recorded 533 samples
 with both 640×480 camera streams. Actual container manifest/config and NVIDIA
@@ -34,7 +37,7 @@ digest or execute through a mutable tag.
 
 ## Image and input
 
-Build the [source image](../README.md#build-and-run-on-premises), review NVIDIA's
+Build the [source image](../README.md#build-and-inspect), review NVIDIA's
 simulator, Kit and asset terms, and publish only to a registry permitted by your
 license. Use an existing registry credential supported by your provider project.
 There is no public prebuilt image in this recipe. If your built image already

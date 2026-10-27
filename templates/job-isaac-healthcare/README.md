@@ -7,12 +7,18 @@ replace Scene, Task and Workflow source, manifests, configuration and assets.
 Workflow names and modes are discovered from the project, not an example list.
 The portable package has no private Scientific AI dependency or platform token.
 
-**Generalization status:** this v2 source is under qualification. CPU tests have
-exercised actual upstream discovery/lint with unseen authored workflows and
-modified package source. A new immutable image and real multi-workflow GPU,
-training, dataset and interactive qualification are still required. The earlier
-published scissor image does **not** implement this v2 interface. Its retained
-L40S/RTX, REST/MCP and provider passes apply only to that earlier finite workflow.
+**Qualification status (27 October 2026):** the generalized runtime passed finite
+L40S simulation, demonstration recording and reverse-order replay of an authored
+dVRK PSM surgical workflow on marker-closure image
+`sha256:7b82a5b69afc4fdc8c08c5644ae6f1dfd16aa0939ffc371a4c4e90a98b0f345d`.
+Finite PPO training, evaluation and TorchScript export passed separately on
+`sha256:bd5110c3991b74ec670b2c8a20688fbad440e3108b20e24e86b2c975adc9c400`;
+evaluation had zero successful episodes and does not establish convergence.
+CPU project discovery/lint and dataset conversion also have retained evidence.
+Interactive GUI/teleoperation and expanded Native REST/MCP delivery remain under
+qualification. These observations do not qualify every workflow, shared capacity
+or clinical use. The earlier scissor image's REST/MCP and cross-GPU passes remain
+separate evidence; they do not implement this generalized interface.
 See [capabilities and owning entrypoints](docs/capabilities.md),
 [training and datasets](training/README.md), and [interactive sessions](interactive/README.md).
 
@@ -32,7 +38,8 @@ records original and patched source hashes in `upstream-patches.json` and checks
 inherited patch bytes before extending an existing image.
 
 Rendering requires an RTX-capable GPU and the graphics/Vulkan driver libraries.
-The previous image ran on L40S and RTX PRO 6000 with driver 580.173.02. H100/H200
+The earlier scissor image ran on L40S and RTX PRO 6000 with driver 580.173.02;
+the generalized GPU observations above are on L40S. H100/H200
 lack the RT cores required by the renderer; pure training/data compatibility is
 a separate question. Those observations are not qualification of every scene or
 future driver. Check the pinned simulator's host requirements. Allocate disk for
@@ -51,7 +58,7 @@ does not grant redistribution rights or provide a public simulator image.
 
 From this directory, build into your own authorized registry. Training and
 interactive build additions are documented in their owning directories; use the
-combined qualified Dockerfile for the operations you need.
+combined Dockerfile and qualify the operations you need.
 
 ```bash
 docker build --platform linux/amd64 -t isaac-healthcare:local .
@@ -157,8 +164,10 @@ selects each index in order within one Kit session, retaining `episodes`
 repetitions and the requested attempt budget for each index. This corrects the
 pinned CLI's first-index-only comma parsing. Upstream reads the recorded initial
 state/actions and owns stepping; `replay-sequence.json` records sequence outcomes.
-Replay does not infer a new task-success predicate. Real replay rendering remains
-part of the new image's qualification.
+Replay does not infer a new task-success predicate. The marker-closure image's
+finite batch replay passed with recorded indices `[1, 0]`, exact recorded-action
+agreement and successful upstream task outcomes. This does not establish identical
+physical trajectories. Same-Kit interactive replay remains under qualification.
 An explicit replay operation selects replay even when the project's default mode
 is different; an explicitly conflicting request mode fails. Custom teleop kwargs
 use the same authored workflow construction as batch modes. CPU tests cover that
@@ -225,9 +234,11 @@ The [provider recipe](provider/README.md) uses your project, registry, existing
 object storage and scoped HTTPS transfers around the same portable launcher.
 A short repository with the full immutable digest avoids an observed provider
 image-derived-label failure; do not truncate digests or use mutable tags. The
-prior provider pass used the old scissor image, L40S/16 vCPU/96 GiB, full object
-hashes and actual host/container identity. Its initial capacity failure is
-retained. The new generalized provider path requires its own qualification.
+earlier provider pass used the scissor image and remains separate evidence.
+Generalized provider Jobs subsequently passed the finite surgical recording/replay
+and RL cases described above, with complete delivered artifact hashes and actual
+container identity retained. Earlier capacity, camera-control and missing-marker
+failures remain preserved; the later scoped passes do not rewrite those results.
 Provider bucket mounts and persistent interactive endpoints are separate paths.
 GUI/teleoperation requires authenticated signaling/media and owned session
 lifecycle; see `interactive/`, not an exposed raw Kit port.
