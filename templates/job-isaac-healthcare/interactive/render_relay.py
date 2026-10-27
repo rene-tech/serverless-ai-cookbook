@@ -13,7 +13,7 @@ def render(
     worker_namespace,
     model,
     image,
-    public_ip,
+    public_ip=None,
     pod_cidr,
     hostname,
     tls_secret,
@@ -21,12 +21,26 @@ def render(
     relay_min,
     relay_max,
     service_port=443,
+    relay_address_mode=None,
+    name="isaac-interactive-turn",
 ):
     if not re.fullmatch(r"[^\s]+@sha256:[0-9a-f]{64}", image):
         raise ValueError("pin the reviewed coturn image by digest")
     if not 1024 < relay_min <= relay_max <= 65535 or not 1 <= service_port <= 65535:
         raise ValueError("operator-selected relay range/port is invalid")
-    public_ip = str(ipaddress.IPv4Address(public_ip))
+    # A supplied public NAT address retains the original explicit NAT topology.
+    # Without one, use the same-region private Pod-IP relay over public TLS only.
+    relay_address_mode = relay_address_mode or (
+        "public-nat" if public_ip is not None else "private-pod"
+    )
+    if relay_address_mode not in {"private-pod", "public-nat"}:
+        raise ValueError("relay address mode must be private-pod or public-nat")
+    if relay_address_mode == "public-nat":
+        if public_ip is None:
+            raise ValueError("public-nat requires the actual public relay IPv4")
+        public_ip = str(ipaddress.IPv4Address(public_ip))
+    elif public_ip is not None:
+        raise ValueError("private-pod advertises its Pod IPv4; omit public-ip")
     networks = sorted(
         {
             ipaddress.IPv4Network(c)
@@ -34,7 +48,7 @@ def render(
         }
     )
     if not networks:
-        raise ValueError("at least one actual worker Pod CIDR is required")
+        raise ValueError("at least one operator-bound worker allocation CIDR is required")
     for value in (
         namespace,
         worker_namespace,
@@ -42,10 +56,10 @@ def render(
         hostname,
         tls_secret,
         auth_secret,
+        name,
     ):
         if not re.fullmatch(r"[a-z0-9][a-z0-9.-]*", value):
             raise ValueError("invalid Kubernetes/DNS identity")
-    name = "isaac-interactive-turn"
     labels = {"app.kubernetes.io/name": name}
     config = "\n".join(
         [
@@ -60,11 +74,12 @@ def render(
             "fingerprint",
             "use-auth-secret",
             f"realm={hostname}",
-            f"external-ip={public_ip}",
+            *([f"external-ip={public_ip}"] if public_ip else []),
             f"min-port={relay_min}",
             f"max-port={relay_max}",
-            "cert=/tls/tls.crt",
-            "pkey=/tls/tls.key",
+            "relay-threads=2",
+            "cert=/state/current/tls.crt",
+            "pkey=/state/current/tls.key",
             "no-cli",
             "no-multicast-peers",
             "no-tcp-relay",
@@ -80,9 +95,9 @@ def render(
             "",
         ]
     )
-    # The shared secret is read from the mounted Secret into an in-memory config,
-    # never a Pod command-line argument or source/configmap value.
-    launcher = "umask 077\ncat /config/turnserver.conf > /state/turnserver.conf\nprintf 'static-auth-secret=%s\\n' \"$(cat /auth/secret)\" >> /state/turnserver.conf\nexec turnserver -c /state/turnserver.conf"
+    # The supervisor reads authority only from mounted Secrets and copies one
+    # atomic TLS revision before SIGUSR2 reload; no secret enters the Pod argv.
+    launcher = (Path(__file__).parent / "turn-supervisor.sh").read_text()
     ports = [
         {
             "name": "turn-tls",
@@ -91,10 +106,14 @@ def render(
             "protocol": "TCP",
         }
     ]
-    ports += [
-        {"name": f"media-{p}", "port": p, "targetPort": p, "protocol": "UDP"}
-        for p in range(relay_min, relay_max + 1)
-    ]
+    ports += (
+        [
+            {"name": f"media-{p}", "port": p, "targetPort": p, "protocol": "UDP"}
+            for p in range(relay_min, relay_max + 1)
+        ]
+        if relay_address_mode == "public-nat"
+        else []
+    )
     deployment = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -107,6 +126,9 @@ def render(
                 "metadata": {"labels": labels},
                 "spec": {
                     "automountServiceAccountToken": False,
+                    "hostNetwork": False,
+                    "hostPID": False,
+                    "hostIPC": False,
                     "securityContext": {
                         "runAsNonRoot": True,
                         "runAsUser": 65532,
@@ -118,7 +140,16 @@ def render(
                         {
                             "name": "turn",
                             "image": image,
-                            "command": ["/bin/sh", "-ec", launcher],
+                            "command": ["/bin/sh", "/config/turn-supervisor.sh"],
+                            "env": [
+                                {
+                                    "name": "POD_IP",
+                                    "valueFrom": {
+                                        "fieldRef": {"fieldPath": "status.podIP"}
+                                    },
+                                },
+                                {"name": "TURN_REALM", "value": hostname},
+                            ],
                             "securityContext": {
                                 "allowPrivilegeEscalation": False,
                                 "readOnlyRootFilesystem": True,
@@ -150,9 +181,18 @@ def render(
                     ],
                     "volumes": [
                         {"name": "config", "configMap": {"name": name}},
-                        {"name": "tls", "secret": {"secretName": tls_secret}},
-                        {"name": "auth", "secret": {"secretName": auth_secret}},
-                        {"name": "state", "emptyDir": {"medium": "Memory"}},
+                        {
+                            "name": "tls",
+                            "secret": {"secretName": tls_secret, "defaultMode": 288},
+                        },
+                        {
+                            "name": "auth",
+                            "secret": {"secretName": auth_secret, "defaultMode": 288},
+                        },
+                        {
+                            "name": "state",
+                            "emptyDir": {"medium": "Memory", "sizeLimit": "32Mi"},
+                        },
                     ],
                 },
             },
@@ -162,13 +202,18 @@ def render(
         "apiVersion": "v1",
         "kind": "ConfigMap",
         "metadata": {"name": name, "namespace": namespace},
-        "data": {"turnserver.conf": config},
+        "data": {"turnserver.conf": config, "turn-supervisor.sh": launcher},
     }
     service = {
         "apiVersion": "v1",
         "kind": "Service",
         "metadata": {"name": name, "namespace": namespace},
-        "spec": {"type": "LoadBalancer", "selector": labels, "ports": ports},
+        "spec": {
+            "type": "LoadBalancer",
+            "externalTrafficPolicy": "Cluster",
+            "selector": labels,
+            "ports": ports,
+        },
     }
     worker_selector = {"serving.kserve.io/inferenceservice": model}
     relay_selector = {
@@ -196,12 +241,28 @@ def render(
             "podSelector": {"matchLabels": labels},
             "policyTypes": ["Ingress", "Egress"],
             "ingress": [
+                {"ports": [{"protocol": "TCP", "port": 5349}]},
                 {
+                    **(
+                        {
+                            "from": [
+                                {
+                                    "namespaceSelector": {
+                                        "matchLabels": {
+                                            "kubernetes.io/metadata.name": worker_namespace
+                                        }
+                                    },
+                                    "podSelector": {"matchLabels": worker_selector},
+                                }
+                            ]
+                        }
+                        if relay_address_mode == "private-pod"
+                        else {}
+                    ),
                     "ports": [
-                        {"protocol": "TCP", "port": 5349},
-                        {"protocol": "UDP", "port": relay_min, "endPort": relay_max},
-                    ]
-                }
+                        {"protocol": "UDP", "port": relay_min, "endPort": relay_max}
+                    ],
+                },
             ],
             "egress": [
                 {
@@ -220,10 +281,35 @@ def render(
             ],
         },
     }
+    items = [cm, deployment, service, worker_policy, relay_policy]
+    if relay_address_mode == "private-pod":
+        items.append(
+            {
+                "apiVersion": "networking.k8s.io/v1",
+                "kind": "NetworkPolicy",
+                "metadata": {"name": name + "-return", "namespace": worker_namespace},
+                "spec": {
+                    "podSelector": {"matchLabels": worker_selector},
+                    "policyTypes": ["Egress"],
+                    "egress": [
+                        {
+                            "to": [relay_selector],
+                            "ports": [
+                                {
+                                    "protocol": "UDP",
+                                    "port": relay_min,
+                                    "endPort": relay_max,
+                                }
+                            ],
+                        }
+                    ],
+                },
+            }
+        )
     return {
         "apiVersion": "v1",
         "kind": "List",
-        "items": [cm, deployment, service, worker_policy, relay_policy],
+        "items": items,
     }
 
 
@@ -234,17 +320,30 @@ def main():
         "worker-namespace",
         "model",
         "image",
-        "public-ip",
         "hostname",
         "tls-secret",
         "auth-secret",
     ):
         p.add_argument("--" + name, required=True)
     p.add_argument(
+        "--public-ip",
+        help="actual public NAT relay address; selects public-nat when mode is omitted",
+    )
+    p.add_argument(
+        "--relay-address-mode",
+        choices=["private-pod", "public-nat"],
+        help="defaults to private-pod unless public-ip is supplied",
+    )
+    p.add_argument(
+        "--name",
+        default="isaac-interactive-turn",
+        help="operator-owned relay resource name",
+    )
+    p.add_argument(
         "--pod-cidr",
         action="append",
         required=True,
-        help="repeat for each actual worker Pod CIDR",
+        help="repeat for each authoritative worker allocation CIDR, excluding Service CIDRs",
     )
     p.add_argument("--relay-min", type=int, required=True)
     p.add_argument("--relay-max", type=int, required=True)

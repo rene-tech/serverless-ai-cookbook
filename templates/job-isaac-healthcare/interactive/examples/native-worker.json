@@ -8,6 +8,7 @@
   "work_root": "/work/sessions",
   "ipc_root": "/work/b",
   "base_root": "/opt/i4h",
+  "runtime_python": "/opt/i4h/arena/.venv/bin/python",
   "runtime_roots": ["/opt/i4h", "/opt/python", "/opt/isaac-healthcare", "/opt/i4h-assets"],
   "runtime_environment": {
     "NVIDIA_DRIVER_CAPABILITIES": "compute,utility,graphics,video,display",

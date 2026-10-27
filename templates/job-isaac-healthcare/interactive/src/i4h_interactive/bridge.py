@@ -14,6 +14,7 @@ import contextlib
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import ssl
 import time
@@ -199,14 +200,63 @@ class Tunnel:
 def application(
     *,
     service_token,
-    native_endpoint,
-    expected_image,
-    runtime_revision,
+    targets,
     connect_factory=NoRedirectConnect,
 ):
-    u = urlsplit(native_endpoint)
-    if u.scheme != "wss" or not u.hostname or u.query or u.fragment or u.username:
-        raise ValueError("exact operator-bound native WSS endpoint required")
+    if not isinstance(targets, list) or not targets:
+        raise ValueError("approved Native target mappings are required")
+    mappings = []
+    identities = set()
+    for row in targets:
+        if not isinstance(row, dict) or set(row) != {
+            "region",
+            "target",
+            "native_endpoint",
+            "runtime_revision",
+        }:
+            raise ValueError("invalid operator target mapping")
+        target = row["target"]
+        if not isinstance(target, dict) or set(target) != {
+            "cluster",
+            "variant",
+            "id",
+            "image",
+            "gpu_class",
+        }:
+            raise ValueError("exact Native target identity is required")
+        if any(
+            not isinstance(row[name], str) or not row[name]
+            for name in ("region", "runtime_revision")
+        ):
+            raise ValueError("target region/runtime are required")
+        if any(
+            not isinstance(target[name], str) or not target[name]
+            for name in ("cluster", "id", "image")
+        ):
+            raise ValueError("invalid Native target identity")
+        if any(
+            target[name] is not None
+            and (not isinstance(target[name], str) or not target[name])
+            for name in ("variant", "gpu_class")
+        ):
+            raise ValueError("invalid Native target variant/class")
+        if not re.fullmatch(r"[^\s]+@sha256:[0-9a-f]{64}", target["image"]):
+            raise ValueError("immutable target image required")
+        u = urlsplit(row["native_endpoint"])
+        if (
+            u.scheme != "wss"
+            or not u.hostname
+            or not u.path
+            or u.query
+            or u.fragment
+            or u.username
+        ):
+            raise ValueError("exact operator-bound native WSS endpoint required")
+        identity = (row["region"], target["cluster"], target["variant"], target["id"])
+        if identity in identities:
+            raise ValueError("duplicate Native target mapping")
+        identities.add(identity)
+        mappings.append(json.loads(json.dumps(row)))
     if len(service_token) < 32:
         raise ValueError("operator service credential required")
     tunnels = {}
@@ -225,13 +275,44 @@ def application(
         raw = await request.body()
         if len(raw) > 1024 * 1024:
             return JSONResponse({"error": "invalid_start"}, status_code=400)
-        value = json.loads(raw)
+        try:
+            value = json.loads(raw)
+        except (ValueError, UnicodeDecodeError):
+            return JSONResponse({"error": "invalid_start"}, status_code=400)
+        if not isinstance(value, dict) or not isinstance(value.get("start"), dict):
+            return JSONResponse({"error": "invalid_start"}, status_code=400)
         sid = value.get("session_id", "")
+        start = value.get("start", {})
+        selected = [
+            row
+            for row in mappings
+            if row["region"] == start.get("region")
+            and row["target"] == start.get("target")
+        ]
         if (
-            not SESSION.fullmatch(sid)
-            or value.get("start", {}).get("session_id") != sid
-            or value.get("start", {}).get("image") != expected_image
-            or value.get("start", {}).get("runtime_revision") != runtime_revision
+            set(value)
+            != {"session_id", "claim", "deadline_at", "startup_timeout_s", "start"}
+            or set(start)
+            != {
+                "type",
+                "session_id",
+                "image",
+                "runtime_revision",
+                "region",
+                "target",
+                "deadline_at",
+                "start",
+                "display",
+                "start_signature",
+            }
+            or not isinstance(sid, str)
+            or not SESSION.fullmatch(sid)
+            or len(selected) != 1
+            or start.get("type") != "isaac.session.start"
+            or start.get("session_id") != sid
+            or start.get("image") != selected[0]["target"]["image"]
+            or start.get("runtime_revision") != selected[0]["runtime_revision"]
+            or start.get("deadline_at") != value.get("deadline_at")
         ):
             return JSONResponse({"error": "identity_mismatch"}, status_code=409)
         if (
@@ -253,7 +334,9 @@ def application(
                 },
                 status_code=200 if prior.digest == digest else 409,
             )
-        tunnel = Tunnel(value, native_endpoint, connect_factory=connect_factory)
+        tunnel = Tunnel(
+            value, selected[0]["native_endpoint"], connect_factory=connect_factory
+        )
         tunnel.digest = digest
         tunnels[sid] = tunnel
         tunnel.task = asyncio.create_task(tunnel.run())
@@ -351,9 +434,7 @@ def main():
     config = json.loads(args.config.read_text())
     app = application(
         service_token=args.token_file.read_text().strip(),
-        native_endpoint=config["native_endpoint"],
-        expected_image=config["image"],
-        runtime_revision=config["runtime_revision"],
+        targets=config["targets"],
     )
     uvicorn.run(
         app,

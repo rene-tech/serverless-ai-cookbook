@@ -1,19 +1,18 @@
 import asyncio
+import hashlib
+import hmac
 import json
 import sys
 import time
-import hashlib
-import hmac
+from datetime import UTC, datetime
 from types import SimpleNamespace
-from datetime import datetime, timezone
 
 import pytest
-
+from i4h_interactive.bridge import Tunnel
 from i4h_interactive.contract import authenticate, kit_arguments, turn_credentials
 from i4h_interactive.native import NativeSessionAPI
 from i4h_interactive.native import application as native_application
 from i4h_interactive.process import SessionProcess
-from i4h_interactive.bridge import Tunnel
 from starlette.testclient import TestClient
 
 
@@ -170,7 +169,7 @@ def test_actual_native_protocol_reconnect_then_owner_cancel_joins_before_release
 ):
     sid, model, key = "ses-0123456789abcdef", "isaac-interactive", b"s" * 32
     deadline = time.time() + 60
-    stamp = datetime.fromtimestamp(deadline, timezone.utc).isoformat()
+    stamp = datetime.fromtimestamp(deadline, UTC).isoformat()
     deadline = datetime.fromisoformat(stamp).timestamp()
     owner = {"tenant": "a", "owner": "b", "model": model}
     events = []
@@ -258,6 +257,14 @@ def test_actual_native_protocol_reconnect_then_owner_cancel_joins_before_release
         "session_id": sid,
         "image": "image",
         "runtime_revision": "r1",
+        "region": "test-region",
+        "target": {
+            "cluster": "test-cluster",
+            "variant": None,
+            "id": model,
+            "image": "image",
+            "gpu_class": None,
+        },
         "deadline_at": deadline,
         "start": {},
         "display": {},
@@ -364,7 +371,15 @@ def test_baked_settings_pin_postpublication_image_and_consume_secret(tmp_path):
     from i4h_interactive.native_server import consume_start_key, load_settings
 
     path = tmp_path / "worker.json"
-    path.write_text(json.dumps({"image_env": "EXPECTED", "start_key_env": "KEY"}))
+    path.write_text(
+        json.dumps(
+            {
+                "image_env": "EXPECTED",
+                "start_key_env": "KEY",
+                "runtime_python": "/opt/i4h/arena/.venv/bin/python",
+            }
+        )
+    )
     env = {"EXPECTED": "registry.example/worker@sha256:" + "a" * 64, "KEY": "b" * 64}
     config = load_settings(path, env)
     assert config["image"] == env["EXPECTED"]
@@ -377,6 +392,7 @@ def test_baked_settings_pin_postpublication_image_and_consume_secret(tmp_path):
 
 def test_policy_is_actually_sealed_without_python_memfd_api(monkeypatch):
     import os
+
     from i4h_interactive.isolation import sealed_policy
 
     monkeypatch.delattr(os, "memfd_create", raising=False)
@@ -392,8 +408,8 @@ def test_policy_is_actually_sealed_without_python_memfd_api(monkeypatch):
 
 
 def test_relay_uses_exact_multiple_worker_cidrs_and_model_selector():
-    from pathlib import Path
     import runpy
+    from pathlib import Path
 
     render = runpy.run_path(str(Path(__file__).parents[1] / "render_relay.py"))[
         "render"

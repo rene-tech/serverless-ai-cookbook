@@ -6,15 +6,16 @@ USER root
 RUN case "$ISAAC_RUNTIME_BASE" in *@sha256:*) ;; *) exit 2 ;; esac
 WORKDIR /opt/interactive
 COPY requirements.lock build-requirements.lock ./
-RUN uv pip install --python /opt/i4h/arena/.venv/bin/python --require-hashes -r requirements.lock -r build-requirements.lock
+RUN uv venv --python /opt/i4h/arena/.venv/bin/python /opt/i4h/interactive/.venv \
+    && uv pip install --python /opt/i4h/interactive/.venv/bin/python --require-hashes -r requirements.lock -r build-requirements.lock
 COPY pyproject.toml ./
 COPY src ./src
-RUN uv pip install --python /opt/i4h/arena/.venv/bin/python --no-deps --no-build-isolation .
+RUN uv pip install --python /opt/i4h/interactive/.venv/bin/python --no-deps --no-build-isolation .
 COPY ${WORKER_CONFIG} /opt/interactive/worker.json
 USER 0:0
 # The trusted entrypoint self-drops capabilities to CHOWN/SETUID/SETGID/KILL,
 # sets no-new-privileges and enforces Landlock before listening or project code.
 # Native201 needs no unsupported container securityContext projection.
 # Every authored project runs as a distinct unprivileged UID under Landlock.
-ENTRYPOINT ["/opt/i4h/arena/.venv/bin/python", "-I", "-B", "-m", "i4h_interactive.native_server"]
+ENTRYPOINT ["/opt/i4h/interactive/.venv/bin/python", "-I", "-B", "-m", "i4h_interactive.native_server"]
 CMD ["--config", "/opt/interactive/worker.json"]

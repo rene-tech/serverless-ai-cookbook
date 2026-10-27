@@ -4,7 +4,6 @@ import argparse
 import hashlib
 import json
 import os
-import sys
 import time
 import socket
 import ipaddress
@@ -56,7 +55,23 @@ def load_settings(path, environ=None):
         config["image"] = environ[config["image_env"]]
     if not re.fullmatch(r"[^\s]+@sha256:[0-9a-f]{64}", config["image"]):
         raise ValueError("worker requires the full immutable published image binding")
+    if not isinstance(config.get("runtime_python"), str) or not Path(
+        config["runtime_python"]
+    ).is_absolute():
+        raise ValueError("the installed Arena interpreter must be an absolute path")
     return config
+
+
+def workflow_command(settings, spec_path):
+    """Keep authored imports in Arena, outside the transport dependency environment."""
+    return [
+        settings["runtime_python"],
+        "-I",
+        "-B",
+        str(Path(__file__).with_name("workflow.py")),
+        "--spec",
+        str(spec_path),
+    ]
 
 
 def consume_start_key(config, environ=None):
@@ -170,15 +185,7 @@ def preparer(settings):
         spec_path.write_text(json.dumps(spec, indent=2) + "\n")
         spec_path.chmod(0o440)
         os.chown(spec_path, 0, uid)
-        config["command"] = [
-            sys.executable,
-            "-I",
-            "-B",
-            "-m",
-            "i4h_interactive.workflow",
-            "--spec",
-            str(spec_path),
-        ]
+        config["command"] = workflow_command(settings, spec_path)
         if start.get("output"):
             config["_finalize"] = lambda: deliver(
                 root, sid, start["output"], data_root=project_root / "output"

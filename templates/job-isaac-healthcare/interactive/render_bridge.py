@@ -6,7 +6,15 @@ import re
 from pathlib import Path
 
 
-def render(namespace, image, config_name, tls_secret, token_secret):
+def render(
+    namespace,
+    image,
+    config_name,
+    tls_secret,
+    token_secret,
+    trust_bundle_config=None,
+    trust_bundle_key="ca.crt",
+):
     if not re.fullmatch(r"[^\s]+@sha256:[0-9a-f]{64}", image):
         raise ValueError("immutable bridge image required")
     for value in (namespace, config_name, tls_secret, token_secret):
@@ -14,7 +22,7 @@ def render(namespace, image, config_name, tls_secret, token_secret):
             raise ValueError("invalid Kubernetes identity")
     name = "isaac-interactive-bridge"
     labels = {"app.kubernetes.io/name": name}
-    return {
+    result = {
         "apiVersion": "v1",
         "kind": "List",
         "items": [
@@ -99,12 +107,38 @@ def render(namespace, image, config_name, tls_secret, token_secret):
             },
         ],
     }
+    if trust_bundle_config is not None:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9.-]*", trust_bundle_config):
+            raise ValueError("invalid operator trust-bundle ConfigMap name")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", trust_bundle_key):
+            raise ValueError("invalid trust-bundle key")
+        pod = result["items"][0]["spec"]["template"]["spec"]
+        pod["volumes"].append(
+            {
+                "name": "native-trust",
+                "configMap": {
+                    "name": trust_bundle_config,
+                    "items": [{"key": trust_bundle_key, "path": "ca.crt"}],
+                },
+            }
+        )
+        container = pod["containers"][0]
+        container["volumeMounts"].append(
+            {"name": "native-trust", "mountPath": "/native-trust", "readOnly": True}
+        )
+        container["env"] = [{"name": "SSL_CERT_FILE", "value": "/native-trust/ca.crt"}]
+    return result
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     for name in ("namespace", "image", "config-name", "tls-secret", "token-secret"):
         p.add_argument("--" + name, required=True)
+    p.add_argument(
+        "--trust-bundle-config",
+        help="operator-approved CA bundle for Native endpoint TLS",
+    )
+    p.add_argument("--trust-bundle-key", default="ca.crt")
     p.add_argument("--output", type=Path, required=True)
     args = vars(p.parse_args())
     output = args.pop("output")

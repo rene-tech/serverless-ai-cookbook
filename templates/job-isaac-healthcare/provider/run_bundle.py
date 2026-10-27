@@ -16,9 +16,8 @@ PYTHON = "/opt/i4h/arena/.venv/bin/python"
 CODE = Path("/opt/isaac-task")
 
 
-def run():
-    incoming = Path(os.environ["ISAAC_PROVIDER_INPUT"]) / "input.tar"
-    output = Path(os.environ["ISAAC_PROVIDER_OUTPUT"])
+def verify_installation(output):
+    """Check the exact installed source/dependencies before any scientific work."""
     expected = json.loads((CODE / "runtime-sources.json").read_bytes())
     if expected.get("schema") != "isaac-healthcare-runtime-source-contract/v1":
         raise RuntimeError("Required execution-source ownership contract is missing")
@@ -46,6 +45,13 @@ def run():
     }
     (output / "installed-source-check.json").write_text(json.dumps(source_check, indent=2) + "\n")
     print(json.dumps({"event": "isaac-runtime-source-check", **source_check}), flush=True)
+    return source_check
+
+
+def run():
+    incoming = Path(os.environ["ISAAC_PROVIDER_INPUT"]) / "input.tar"
+    output = Path(os.environ["ISAAC_PROVIDER_OUTPUT"])
+    verify_installation(output)
     with tempfile.TemporaryDirectory(prefix="isaac-bundle-") as temporary:
         root = Path(temporary)
         with tarfile.open(incoming, "r:") as archive:

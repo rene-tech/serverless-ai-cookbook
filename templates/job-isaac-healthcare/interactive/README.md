@@ -102,22 +102,83 @@ Browser -- authenticated TURN over TLS --> CPU relay -- UDP 47998 --> same isola
 ```
 
 `render_relay.py` emits a review-only Kubernetes List: a CPU Deployment,
-ConfigMap, separate LoadBalancer Service and two narrow NetworkPolicies. It
+ConfigMap, separate LoadBalancer Service and narrow NetworkPolicies. It
 creates no resources, Secret or namespace. Supply an immutable coturn image,
-actual dedicated public address, TLS hostname/certificate Secret, auth Secret,
-every actual worker Pod CIDR (`--pod-cidr` may be repeated) and an operator-selected relay port range. The initial
+TLS hostname/certificate Secret, auth Secret, authoritative worker allocation CIDRs
+(`--pod-cidr` may be repeated), and an operator-selected relay port range. Derive
+these ranges from the cluster's provider subnet/IPAM allocation authority and
+exclude Service CIDRs. Do not derive a permanent allowlist from the current
+GPU nodes: autoscaled nodes may receive different Pod CIDRs. A shared provider
+pool can include node addresses too; its CIDRs bound addressing, while the
+namespace/model NetworkPolicy restricts relay traffic to the intended Pods and
+UDP port. Re-read this binding when the subnet, pool or Service CIDRs change;
+ordinary node scaling inside the bound allocation domain requires no edits. The initial
 1 CPU/1 GiB request and 2 CPU/2 GiB limit are an unmeasured pilot envelope, not a
 capacity claim. Listener readiness is not stream health. Confirm the image
 contains `/bin/sh` and `turnserver` and supports its non-root configuration.
+
+The default `--relay-address-mode private-pod` exposes only public TURN TLS
+(use `--service-port 5349` for its standard port). The relay advertises its actual
+Pod IPv4 through the ordinary Deployment downward API. Browser datagrams travel
+inside TURN-over-TLS, while the relay and same-region Kit communicate over private
+UDP. Only the selected worker Pods can reach the relay allocation ports; no UDP
+LoadBalancer support, public media ports, or cross-region routing is assumed.
+
+```bash
+python render_relay.py --namespace "$RELAY_NAMESPACE" --worker-namespace "$WORKER_NAMESPACE" \
+  --model "$NATIVE_INFERENCESERVICE" --image "$PINNED_TURN_IMAGE" \
+  --relay-address-mode private-pod --hostname "$TURN_HOSTNAME" \
+  --tls-secret turn-tls --auth-secret turn-auth --pod-cidr "$WORKER_ALLOCATION_CIDR" \
+  --relay-min 52000 --relay-max 52031 --service-port 5349 --output relay.json
+```
+
+For an on-premises network with qualified public UDP/NAT routing, select
+`--relay-address-mode public-nat --public-ip "$ACTUAL_RELAY_PUBLIC_IPV4"`.
+That mode also exposes the selected UDP range and advertises the public address;
+the NAT must preserve relay port numbers and the peer address used by TURN
+permissions. Supplying `--public-ip` without a mode preserves this original
+behavior. Do not broaden peer permissions to hide a source-NAT mismatch.
+[Nebius's load-balancer contract](https://docs.nebius.com/kubernetes/clusters/load-balancer)
+does not support `externalTrafficPolicy: Local` or PROXY protocol and does not
+establish public mixed-protocol behavior. Use the private-Pod transport there
+until a different path has actual evidence.
 
 TURN credentials are HMAC-derived for the native session ID and expire at its
 existing deadline. They do not confer access to signaling or bypass WebRTC's
 DTLS fingerprint. Relay egress is limited to the exact model's worker Pods on
 UDP 47998; no unrestricted private-network proxy is opened. The native endpoint
 retains its existing ingress policy; the additive media policy admits only the
-relay. Configure one relay in each region with an actual route to its workers;
+relay. Run coturn in its dedicated, non-host-network Pod; selected workers must
+also use ordinary Pod networking. Check all Kubernetes and Cilium policies that
+select the relay, because their allows combine. The relay requires no DNS or
+other outbound exception. Do not colocate it with a Gateway sidecar that needs
+DNS, controller or ACME egress: those permissions would also apply to TURN.
+Configure one relay in each region with an actual route to its workers;
 cross-region connectivity is not assumed. The allocator must provide a stable
-L4 address and the configured UDP relay range. HTTPRoutes alone cannot do so.
+public TCP address and the peer must reach the advertised private or public UDP
+relay address, according to the selected mode. HTTPRoutes alone do not provide
+TURN transport. TURN-over-TCP performance under packet loss remains a separate
+measurement; this source makes no latency or sustained-capacity claim.
+
+Provide an ordinary trusted, hostname-matching certificate before starting the
+standalone relay. A dedicated HTTP-01 Gateway/Service can obtain a certificate for
+an operator-owned address using its DNS name or an IP-derived sslip.io hostname;
+keep ACME validation reachable independently of TURN readiness. Do not alter a
+shared Gateway's hostname-less listener or use browser certificate exceptions.
+An existing task Gateway may forward raw TCP/TLS to a separate ClusterIP relay
+Service with a TCPRoute. Keep its HTTP-01 listener and public Service identity,
+and restrict relay TCP ingress to that Gateway's Pods. The Gateway may retain
+its own DNS/controller/ACME policy; those permissions must not select the relay.
+Complete certificate issuance before requiring relay readiness, and gate public
+interactive admission separately.
+
+The auth Secret's `secret` key contains a private random 32-byte value encoded as
+64 lowercase hex characters. The App uses those identical ASCII bytes for HMAC;
+the key is never returned to a browser or authored project. `turn-supervisor.sh`
+reads one atomic TLS Secret revision, verifies its chain/hostname/key pair, and
+uses coturn SIGUSR2 to reload valid renewals without restarting allocations.
+Invalid revisions leave the prior TLS context active and report an operator error.
+Monitor certificate expiry and prove renewal in the actual deployment.
 
 TURN authenticates allocation; native cancellation terminates the associated
 Kit process and its DTLS state. TURN allocations may persist until their normal
@@ -200,8 +261,23 @@ model/revision/origin/runtime values. This file is baked at
 `env` field after publication: an image cannot bake its own manifest digest.
 The bridge starts
 `i4h_interactive.bridge` with explicit config, token file and TLS key/certificate
-files. No Secret is baked into either image. For coturn, select and verify an
-immutable upstream coturn image instead of rebuilding it without reason.
+files. No Secret is baked into either image. Build the supplied coturn overlay:
+
+```bash
+docker build -f Dockerfile.turn -t "$YOUR_REGISTRY/isaac-turn:$UNIQUE_BUILD_TAG" .
+```
+
+`Dockerfile.turn` pins official coturn 4.6.3 and removes its executable's unused
+CAP_NET_BIND_SERVICE file attribute, while verifying unchanged binary bytes.
+The original executable fails under `cap-drop=ALL`; the overlay runs nonroot
+without that capability on port 5349. Publish and verify its immutable digest
+before rendering. The image includes the shell, OpenSSL and core utilities used
+by the supervisor; no package is installed at startup.
+
+An isolated CPU proof passed verified TLS, authenticated private-UDP payload
+exchange, invalid-credential denial, and certificate reload preserving an existing
+allocation. This does not qualify a provider load balancer, Chromium ICE, NVIDIA
+encoding, interactive latency, or shared capacity; those remain live release gates.
 
 `examples/native-worker.json`, `examples/native-security.json` and
 `examples/bridge.json` are templates, not enabled deployment specifications.
