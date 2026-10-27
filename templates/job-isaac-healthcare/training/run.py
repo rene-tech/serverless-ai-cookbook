@@ -180,6 +180,12 @@ def run_operation(operation, *, input_dir, sdk_root, output_dir, parameters, wor
         command += ["--request", str(request)]
         environment = os.environ.copy()
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
+        if operation in ("train", "evaluate", "export"):
+            # The parent portable runtime already supplies a private Kit root.
+            # Standalone users receive one beside this unique output directory,
+            # outside scientific artifacts and checkpoint inventories.
+            environment.setdefault("ISAAC_HEALTHCARE_KIT_ROOT",
+                                   str(output_dir.parent / ("." + output_dir.name + "-runtime") / "kit"))
         # The job owner controls termination; upstream child processes inherit
         # its process group. No retries, detached session or second scheduler.
         with (output_dir / "training-execution.log").open("xb") as log:
@@ -200,7 +206,8 @@ def run_operation(operation, *, input_dir, sdk_root, output_dir, parameters, wor
         operator_files = [name for name in all_files if name in (
             "training-request.json", "training-execution.log", "training-engine-error.json",
             "training-error.json", "training-validation.json") or
-            name.endswith(".log") or (name.startswith("artifacts/") and Path(name).name == "run.json")]
+            name.endswith(".log") or name.startswith("training-child-") or
+            (name.startswith("artifacts/") and Path(name).name == "run.json")]
         result = {"schema": "isaac-healthcare-training-result/v1", "status": "prepared" if preflight else "succeeded",
                   "operation": operation, "workflow": payload["workflow"], "engine_exit_code": completed.returncode,
                   "elapsed_seconds": time.time() - start, "validation": public_validation(validation),

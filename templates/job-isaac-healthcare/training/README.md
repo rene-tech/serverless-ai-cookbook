@@ -107,6 +107,17 @@ and `training.sim_runtime_python` selections must exist and be executable;
 the bridge rejects invalid selections instead of silently choosing a default.
 Omitted/null values retain upstream defaults.
 
+RSL training, evaluation and export start their actual upstream script/module in
+a child bootstrap that uses the same project imports and pinned local asset
+mapping as simulation. A process-local Isaac Lab startup hook merges the
+supported private `--portable-root` option after upstream argument parsing;
+other Kit arguments and trainer settings are preserved. An explicit conflicting
+Kit root fails instead of being overwritten. The portable parent supplies its
+invocation directory; a standalone call without that environment receives a
+private Kit directory beside its output directory. Complete child argv, asset
+mapping and startup receipts remain operator diagnostics. No global subprocess
+module or external RLinf environment is modified.
+
 ## Outputs and qualification
 
 `training-result.json` records operation, source/profile hashes, exact metrics,

@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import sys
 import traceback
+from types import FunctionType
 
 
 def explicit_interpreter(value, field):
@@ -30,6 +31,69 @@ def explicit_interpreter(value, field):
             "the explicit selection will not fall back to another environment"
         )
     return str(path)
+
+
+def _scoped_function(function, **replacements):
+    """Use the upstream function unchanged, with invocation-local collaborators."""
+    scoped = FunctionType(function.__code__, {**function.__globals__, **replacements},
+                          function.__name__, function.__defaults__, function.__closure__)
+    scoped.__kwdefaults__ = function.__kwdefaults__
+    return scoped
+
+
+class PortableRslProcesses:
+    """Only this backend call site receives a bootstrap; subprocess is untouched."""
+
+    def __init__(self, original, request):
+        self.original, self.request, self.count = original, request, 0
+
+    def __getattr__(self, name):
+        return getattr(self.original, name)
+
+    def call(self, command, **kwargs):
+        if (not isinstance(command, (list, tuple)) or len(command) < 2
+                or any(not isinstance(value, str) or not value for value in command)
+                or kwargs.get("shell")):
+            raise ValueError("Portable RSL requires the upstream explicit Python argv without a shell")
+        self.count += 1
+        output = Path(self.request["output_dir"])
+        context_path = output / f"training-child-context-{self.count:04d}.json"
+        receipt = output / f"training-child-startup-{self.count:04d}.jsonl"
+        environment = kwargs.get("env", os.environ)
+        kit_root = environment.get("ISAAC_HEALTHCARE_KIT_ROOT")
+        if not kit_root or not Path(kit_root).is_absolute():
+            raise ValueError("Portable RSL launch is missing its absolute private Kit directory")
+        root = Path(self.request["sdk_root"])
+        paths = [Path(value) for value in self.request["python_paths"]]
+        paths += [root / name for name in ("rl", "tools/dataset", "common", "arena", "engine", "workflows")]
+        context = {
+            "project": {"effective_root": str(root), "project_dir": self.request["input_dir"],
+                        "python_paths": list(dict.fromkeys(str(path) for path in paths if path.is_dir())),
+                        "asset_root": environment.get("I4H_ASSET_PATH")},
+            "kit_root": kit_root, "receipt": str(receipt), "upstream_argv": list(command),
+        }
+        write(context_path, context)
+        actual = [command[0], "-I", str(Path(__file__).with_name("child_bootstrap.py")),
+                  "--context", str(context_path), "--", *command[1:]]
+        print("portable RSL child: " + json.dumps(actual), flush=True)
+        return self.original.call(actual, **kwargs)
+
+
+def portable_rl_call(function, backend, request, *args):
+    """Keep CLI validation and scientific launch functions; adapt only RSL children."""
+    processes = PortableRslProcesses(backend.subprocess, request)
+
+    class InvocationBackend:
+        def __getattr__(self, name):
+            value = getattr(backend, name)
+            return _scoped_function(value, subprocess=processes) if name in ("launch", "export") else value
+
+    original_load = function.__globals__["load_backend"]
+
+    def load(name):
+        return InvocationBackend() if name == "rsl_rl" else original_load(name)
+
+    return _scoped_function(function, load_backend=load)(*args)
 
 
 def read(path):
@@ -202,7 +266,9 @@ def rl(request):
             cli._launch(args, profile, root)
         report["scientific_execution"] = False
         return report
-    code = cli._export(args, profile, root) if operation == "export" else cli._launch(args, profile, root)
+    launch = cli._export if operation == "export" else cli._launch
+    code = (portable_rl_call(launch, backend, request, args, profile, root)
+            if profile.trainer == "rsl_rl" else launch(args, profile, root))
     if code:
         raise RuntimeError(f"Upstream {profile.trainer} {operation} returned exit {code}; preserve the full execution log")
     if profile.trainer == "rsl_rl":
