@@ -35,16 +35,27 @@ def save(path, value):
 
 
 def bundle(args):
-    incoming = [('scenarios.json', args.scenarios), ('parameters.json', args.parameters)]
+    if args.scenarios is None and args.project is None and args.operation != 'inspect':
+        raise ValueError('Provide --scenarios or --project for this operation')
+    incoming = [('parameters.json', args.parameters)]
+    if args.scenarios is not None:
+        incoming.append(('scenarios.json', args.scenarios))
     for _, path in incoming:
         if not isinstance(json.loads(path.read_bytes()), dict):
             raise ValueError('Scenario and parameter documents must be JSON objects')
     with tarfile.open(args.output, 'x:') as archive:
+        request = json.dumps({'schema': 'isaac-healthcare-bundle/v2', 'operation': args.operation,
+                              'scenarios': args.scenarios is not None, 'project': args.project is not None}).encode()
+        member = tarfile.TarInfo('request.json')
+        member.size, member.mode, member.mtime = len(request), 0o644, 0
+        archive.addfile(member, io.BytesIO(request))
+        if args.project is not None:
+            incoming.append(('project.tar', args.project))
         for name, path in incoming:
-            content = path.read_bytes()
             member = tarfile.TarInfo(name)
-            member.size, member.mode, member.mtime = len(content), 0o644, 0
-            archive.addfile(member, io.BytesIO(content))
+            member.size, member.mode, member.mtime = path.stat().st_size, 0o644, 0
+            with path.open('rb') as content:
+                archive.addfile(member, content)
     print(json.dumps({'input_archive': str(args.output), 'sha256': sha(args.output),
                       'size_bytes': args.output.stat().st_size}))
 
@@ -120,7 +131,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='mode', required=True)
     make = sub.add_parser('bundle')
-    for name in ('scenarios', 'parameters', 'output'):
+    make.add_argument('--operation', required=True)
+    for name in ('scenarios', 'project'):
+        make.add_argument('--' + name, type=Path)
+    for name in ('parameters', 'output'):
         make.add_argument('--' + name, type=Path, required=True)
     job = sub.add_parser('render')
     for name in ('image', 'project-id', 'name'):

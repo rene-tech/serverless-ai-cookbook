@@ -1,0 +1,372 @@
+"""Persistent native WSS transport with replaceable browser peers.
+
+This CPU component accepts only an already-admitted native ID/claim. It never
+admits, retries, allocates GPUs, extends deadlines or releases native resources.
+One replica owns each connection; restart ends that connection explicitly.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import base64
+import contextlib
+import hashlib
+import hmac
+import json
+import secrets
+import ssl
+import time
+from pathlib import Path
+from urllib.parse import urlsplit
+
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Route, WebSocketRoute
+from websockets.asyncio.client import connect
+
+from .contract import SESSION
+
+
+class NoRedirectConnect(connect):
+    def process_redirect(self, exc):
+        return exc
+
+
+class Tunnel:
+    def __init__(self, value, endpoint, *, connect_factory=NoRedirectConnect):
+        self.value, self.endpoint, self.connect_factory = (
+            value,
+            endpoint,
+            connect_factory,
+        )
+        self.state, self.upstream, self.viewer = "connecting", None, None
+        self.ready = asyncio.Event()
+        self.peer_lock = asyncio.Lock()
+        self.error = None
+        self.peer_id = None
+        self.media = None
+        self.updated_at = time.time()
+        self.consumed = set()
+        self.task = None
+
+    async def run(self):
+        try:
+            async with self.connect_factory(
+                self.endpoint,
+                additional_headers={"x-serverless2-session-claim": self.value["claim"]},
+                subprotocols=["x-nv-sessionid." + self.value["session_id"]],
+                ssl=ssl.create_default_context(),
+                proxy=None,
+                open_timeout=self.value["startup_timeout_s"],
+                max_size=1024 * 1024,
+                max_queue=2,
+                close_timeout=5,
+            ) as upstream:
+                self.upstream = upstream
+                await upstream.send(json.dumps(self.value["start"]))
+                raw = await asyncio.wait_for(
+                    upstream.recv(), self.value["startup_timeout_s"]
+                )
+                ready = json.loads(raw)
+                if (
+                    ready.get("type") != "isaac.session.signaling_ready"
+                    or ready.get("session_id") != self.value["session_id"]
+                ):
+                    raise ValueError("native signaling readiness identity differs")
+                self.state = "ready"
+                self.updated_at = time.time()
+                self.ready.set()
+                async with asyncio.timeout(
+                    max(0.01, self.value["deadline_at"] - time.time())
+                ):
+                    async for raw in upstream:
+                        frame = json.loads(raw)
+                        if frame.get("type") not in {
+                            "viewer.attached",
+                            "viewer.data",
+                            "viewer.error",
+                            "session.keepalive",
+                        }:
+                            raise ValueError("invalid native transport envelope")
+                        if (
+                            self.viewer is not None
+                            and frame.get("peer_id") == self.peer_id
+                        ):
+                            await self.viewer.put(frame)
+        except asyncio.CancelledError:
+            self.error = "bridge_shutdown"
+            raise
+        except Exception:
+            self.error = "native_transport_ended"
+        finally:
+            self.state = "ended"
+            self.ready.set()
+            if self.viewer is not None:
+                # A full queue cannot block cleanup of the native socket.
+                with contextlib.suppress(asyncio.QueueFull):
+                    self.viewer.put_nowait(
+                        {"type": "viewer.error", "code": "native_transport_ended"}
+                    )
+            self.upstream = None
+            # Drop the single-use claim after the connection lifetime.
+            self.value.pop("claim", None)
+
+    async def attach(self, socket):
+        if self.peer_lock.locked():
+            await socket.close(code=1013)
+            return
+        async with self.peer_lock:
+            await self.ready.wait()
+            if self.state != "ready":
+                await socket.close(code=1011)
+                return
+            queue = asyncio.Queue(maxsize=2)
+            self.viewer = queue
+            self.peer_id = secrets.token_hex(16)
+            self.media = None
+            pumps = []
+            try:
+                await self.upstream.send(
+                    json.dumps({"type": "viewer.attach", "peer_id": self.peer_id})
+                )
+                ack = await asyncio.wait_for(
+                    queue.get(), self.value["startup_timeout_s"]
+                )
+                if ack.get("type") != "viewer.attached":
+                    raise ValueError("viewer attachment failed")
+                await socket.accept(
+                    subprotocol="x-nv-sessionid." + self.value["session_id"]
+                )
+
+                async def inbound():
+                    while True:
+                        event = await socket.receive()
+                        if event["type"] == "websocket.disconnect":
+                            return
+                        binary = event.get("bytes") is not None
+                        data = (
+                            base64.b64encode(event["bytes"]).decode()
+                            if binary
+                            else event["text"]
+                        )
+                        await self.upstream.send(
+                            json.dumps(
+                                {
+                                    "type": "viewer.data",
+                                    "peer_id": self.peer_id,
+                                    "binary": binary,
+                                    "data": data,
+                                }
+                            )
+                        )
+
+                async def outbound():
+                    while True:
+                        frame = await queue.get()
+                        if frame.get("type") == "viewer.error":
+                            return
+                        if frame.get("type") != "viewer.data":
+                            continue
+                        await (
+                            socket.send_bytes(
+                                base64.b64decode(frame["data"], validate=True)
+                            )
+                            if frame["binary"]
+                            else socket.send_text(frame["data"])
+                        )
+
+                pumps = [
+                    asyncio.create_task(inbound()),
+                    asyncio.create_task(outbound()),
+                ]
+                done, _ = await asyncio.wait(pumps, return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    task.result()
+            finally:
+                for task in pumps:
+                    task.cancel()
+                await asyncio.gather(*pumps, return_exceptions=True)
+                self.viewer = None
+                self.media = None
+                if self.upstream is not None:
+                    await self.upstream.send(
+                        json.dumps({"type": "viewer.detach", "peer_id": self.peer_id})
+                    )
+                # Deliberately keep the native tunnel and Kit process alive.
+
+
+def application(
+    *,
+    service_token,
+    native_endpoint,
+    expected_image,
+    runtime_revision,
+    connect_factory=NoRedirectConnect,
+):
+    u = urlsplit(native_endpoint)
+    if u.scheme != "wss" or not u.hostname or u.query or u.fragment or u.username:
+        raise ValueError("exact operator-bound native WSS endpoint required")
+    if len(service_token) < 32:
+        raise ValueError("operator service credential required")
+    tunnels = {}
+
+    def auth(request):
+        if request.query_params or not hmac.compare_digest(
+            request.headers.get("authorization", ""), "Bearer " + service_token
+        ):
+            raise PermissionError("private transport caller required")
+
+    async def create(request):
+        try:
+            auth(request)
+        except PermissionError:
+            return JSONResponse({"error": "unauthorized"}, status_code=403)
+        raw = await request.body()
+        if len(raw) > 1024 * 1024:
+            return JSONResponse({"error": "invalid_start"}, status_code=400)
+        value = json.loads(raw)
+        sid = value.get("session_id", "")
+        if (
+            not SESSION.fullmatch(sid)
+            or value.get("start", {}).get("session_id") != sid
+            or value.get("start", {}).get("image") != expected_image
+            or value.get("start", {}).get("runtime_revision") != runtime_revision
+        ):
+            return JSONResponse({"error": "identity_mismatch"}, status_code=409)
+        if (
+            value.get("deadline_at", 0) <= time.time()
+            or value.get("startup_timeout_s", 0) <= 0
+        ):
+            return JSONResponse(
+                {"error": "expired_or_unbounded_session"}, status_code=409
+            )
+        # A duplicate never sends another claim or creates another native socket.
+        digest = hashlib.sha256(raw).hexdigest()
+        if sid in tunnels:
+            prior = tunnels[sid]
+            return JSONResponse(
+                {
+                    "session_id": sid,
+                    "state": prior.state,
+                    "same_request": prior.digest == digest,
+                },
+                status_code=200 if prior.digest == digest else 409,
+            )
+        tunnel = Tunnel(value, native_endpoint, connect_factory=connect_factory)
+        tunnel.digest = digest
+        tunnels[sid] = tunnel
+        tunnel.task = asyncio.create_task(tunnel.run())
+        return JSONResponse({"session_id": sid, "state": "connecting"}, status_code=202)
+
+    async def status(request):
+        try:
+            auth(request)
+        except PermissionError:
+            return JSONResponse({"error": "unauthorized"}, status_code=403)
+        item = tunnels.get(request.path_params["sid"])
+        if item is None:
+            return JSONResponse({"error": "transport_not_found"}, status_code=404)
+        return JSONResponse(
+            {
+                "session_id": request.path_params["sid"],
+                "state": item.state,
+                "viewer_attached": item.peer_lock.locked(),
+                "media_ready": True if item.media is not None else None,
+                "media_evidence": item.media,
+                "observed_at": time.time(),
+            }
+        )
+
+    async def media(request):
+        try:
+            auth(request)
+        except PermissionError:
+            return JSONResponse({"error": "unauthorized"}, status_code=403)
+        item = tunnels.get(request.path_params["sid"])
+        if item is None or not item.peer_lock.locked():
+            return JSONResponse({"error": "viewer_not_attached"}, status_code=409)
+        body = await request.json()
+        if (
+            not isinstance(body, dict)
+            or set(body) != {"width", "height"}
+            or any(type(body[x]) is not int or not 0 < body[x] <= 4096 for x in body)
+        ):
+            return JSONResponse({"error": "invalid_frame_measurement"}, status_code=400)
+        item.media = {
+            **body,
+            "reported_at": time.time(),
+            "source": "owner-browser-decoded-frame",
+        }
+        return JSONResponse({"recorded": True})
+
+    async def attach(socket):
+        try:
+            auth(socket)
+        except PermissionError:
+            await socket.close(code=1008)
+            return
+        item = tunnels.get(socket.path_params["sid"])
+        if item is None:
+            await socket.close(code=1008)
+            return
+        nonce = socket.headers.get("x-isaac-attach-nonce", "")
+        if not SESSION.fullmatch(nonce) or nonce in item.consumed:
+            await socket.close(code=1008)
+            return
+        # A customer cannot reset this guard by deleting a bucket receipt. Its
+        # lifetime is exactly this native connection; restart creates no tunnel.
+        item.consumed.add(nonce)
+        await item.attach(socket)
+
+    @contextlib.asynccontextmanager
+    async def lifespan(_):
+        yield
+        for tunnel in tunnels.values():
+            tunnel.task.cancel()
+        await asyncio.gather(
+            *(t.task for t in tunnels.values()), return_exceptions=True
+        )
+
+    return Starlette(
+        routes=[
+            Route("/sessions", create, methods=["POST"]),
+            Route("/sessions/{sid}", status),
+            Route("/sessions/{sid}/media", media, methods=["POST"]),
+            WebSocketRoute("/sessions/{sid}/attach", attach),
+        ],
+        lifespan=lifespan,
+    )
+
+
+def main():
+    import uvicorn
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--token-file", type=Path, required=True)
+    parser.add_argument("--tls-cert", required=True)
+    parser.add_argument("--tls-key", required=True)
+    args = parser.parse_args()
+    config = json.loads(args.config.read_text())
+    app = application(
+        service_token=args.token_file.read_text().strip(),
+        native_endpoint=config["native_endpoint"],
+        expected_image=config["image"],
+        runtime_revision=config["runtime_revision"],
+    )
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=config["port"],
+        ssl_certfile=args.tls_cert,
+        ssl_keyfile=args.tls_key,
+        access_log=False,
+        log_level="warning",
+        ws_max_size=1024 * 1024,
+        ws_max_queue=2,
+    )
+
+
+if __name__ == "__main__":
+    main()

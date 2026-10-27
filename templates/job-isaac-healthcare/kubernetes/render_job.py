@@ -7,6 +7,10 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--image", required=True, help="Your registry image pinned by sha256 manifest digest")
+parser.add_argument("--operation", required=True, choices=("inspect", "lint", "simulate", "replay", "train", "evaluate", "export", "dataset-inspect", "dataset-convert"))
+parser.add_argument("--scenarios", default="scenarios.json", help="Relative input PVC path; use an empty string for project-only inputs")
+parser.add_argument("--project", help="Relative project TAR path on the input PVC")
+parser.add_argument("--parameters", default="parameters.json", help="Relative parameter JSON path on the input PVC")
 parser.add_argument("--name", default="isaac-healthcare-run-001")
 parser.add_argument("--namespace", default="default")
 parser.add_argument("--input-pvc", default="isaac-inputs")
@@ -39,7 +43,22 @@ if args.image_pull_secret:
     pod["imagePullSecrets"] = [{"name": args.image_pull_secret}]
 container = pod["containers"][0]
 container["image"] = args.image
-container["args"][-1] = "/output/" + args.name
+from pathlib import PurePosixPath
+
+def input_path(value):
+    path = PurePosixPath(value)
+    if not value or path.is_absolute() or ".." in path.parts or "\\" in value:
+        parser.error("Input PVC paths must be nonempty relative POSIX paths without parent traversal")
+    return "/inputs/" + path.as_posix()
+
+if not args.scenarios and not args.project and args.operation != "inspect":
+    parser.error("Provide scenarios or a project archive")
+container["args"] = ["/opt/isaac-healthcare/scripts/run_serverless.py", "--operation", args.operation,
+                     "--parameters", input_path(args.parameters), "--output-prefix", "/output/" + args.name]
+if args.scenarios:
+    container["args"].extend(["--input", input_path(args.scenarios)])
+if args.project:
+    container["args"].extend(["--project", input_path(args.project)])
 for variable in container["env"]:
     if variable["value"] == "${ACCEPT_EULA}":
         variable["value"] = "Y"

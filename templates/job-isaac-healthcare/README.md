@@ -1,237 +1,257 @@
-# Isaac for Healthcare headless simulation
+# Isaac for Healthcare projects
 
-Run the actual **i4h v0.9.0 scissor pick-and-place** graph with an SO-ARM 101,
-surgical scissors, tray, PhysX dynamics, room/wrist RGB cameras and HDF5
-trajectories. The finite job records task success, failed attempts, exact
-configuration, initial states, task segments, workflow logs and preview frames.
+This recipe exposes the pinned Isaac for Healthcare framework: discover and lint
+workflows, execute finite simulations, record demonstrations, replay recordings,
+and dispatch upstream RL and dataset operations. A project archive can add or
+replace Scene, Task and Workflow source, manifests, configuration and assets.
+Workflow names and modes are discovered from the project, not an example list.
+The portable package has no private Scientific AI dependency or platform token.
 
-**Qualification status (27 October 2026):** the portable runtime passed real
-default 600-step-cap runs on L40S and RTX PRO 6000, including rendered RGB and
-successful pick-and-place outcomes. A different seed/name with cameras explicitly
-disabled also passed on L40S. These runs blocked network access for the simulator.
-Two ordinary hosted REST/MCP cohorts using the same portable runtime passed
-scientific and full artifact/custom/default-bucket checksum checks. These covered
-two default rendered tasks, a different seed/name with cameras disabled, and an
-explicit 73-step run that correctly recorded `task_complete=false`. Separate
-malformed-JSON requests through REST and MCP preserved the native parser error
-on both status/result surfaces without advertising successful output. One
-camera-off case retained complete scientific outputs but missed capture of its
-full raw operator log after main termination; that diagnostic gap remains
-recorded. A separate 28-check Isaac audit passed same-request replay,
-changed-parameter/destination conflicts and foreign status/result/artifact/cancel
-denial between two principals in one tenant (84 controls across all three Apps).
-Shared capacity, owner cancellation/recovery, cross-tenant isolation, client
-integration and native regional fallback remain unqualified.
-CPU source/import/asset checks passed as non-root UIDs 10001 and 65532. Provider
-Serverless also passed one default 600-step-cap/cameras-on run on L40S using a
-short full-digest image reference: successful task completion, 533 samples,
-dual RGB streams and full requested-bucket/independent CPU checks. Its initial
-VM scheduling capacity failure remains retained. See the provider recipe for
-the exact measured allocation and diagnostic networking.
-This recipe covers one rule-based simulation workflow. Other
-i4h policies, ultrasound, training, interactive WebRTC and physical robot/device
-integration have separate runtime requirements.
+**Generalization status:** this v2 source is under qualification. CPU tests have
+exercised actual upstream discovery/lint with unseen authored workflows and
+modified package source. A new immutable image and real multi-workflow GPU,
+training, dataset and interactive qualification are still required. The earlier
+published scissor image does **not** implement this v2 interface. Its retained
+L40S/RTX, REST/MCP and provider passes apply only to that earlier finite workflow.
+See [capabilities and owning entrypoints](docs/capabilities.md),
+[training and datasets](training/README.md), and [interactive sessions](interactive/README.md).
 
 ## Runtime and licenses
 
-- i4h `5b430a6d8d8c9cccc547b05b5e079d22b08ade9e` (v0.9.0), Isaac Sim
-  `6.0.1.0`, and the upstream `arena/uv.lock`; x86-64 Linux image.
-- RTX-capable GPU: L40S and RTX PRO 6000 were exercised with driver `580.173.02`;
-  i4h lists 16 GB minimum and 48 GB recommended device memory. Verify the driver
-  requirements of the pinned simulator release on your host. Headless rendering
-  still needs RT cores; H100/H200 are unsuitable for this workflow.
-- Plan at least 100 GB for build/cache and 250 GB local job disk initially.
-  Recorded output grows with scenarios × episodes × attempts × steps; measure
-  the actual workload before reducing disk. No duration or camera reduction is
-  applied implicitly.
-- The workflow code is Apache-2.0. NVIDIA Isaac Sim and its components/assets
-  have their own terms. Review the [Isaac license](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
-  and the bundled Omniverse Kit terms before setting the three EULA variables
-  below. `OMNI_KIT_ACCEPT_EULA=Y` is independently required by Kit in Isaac Sim 6.0.1 startup.
-  This source recipe grants
-  no simulator/asset redistribution rights. Publish a derived image only to a
-  registry where your license permits it; there is no public prebuilt image.
+The base is upstream commit `5b430a6d8d8c9cccc547b05b5e079d22b08ade9e`
+(v0.9.0), Isaac Sim 6.0.1, and the pinned Arena dependency lock. Core simulation
+uses Python 3.12. GR00T, OpenPI and dataset tools have separate dependency
+environments; the runtime never silently installs packages or downloads weights
+inside a customer invocation. Build the environments and local assets your
+workflow needs, and supply owned checkpoints/data in the project archive.
 
-The exact [Isaac Sim 6.0.1 license FAQ](https://docs.isaacsim.omniverse.nvidia.com/6.0.1/common/license-faq.html)
-permits internal R&D without an Enterprise license, but requires NVIDIA AI
-Enterprise licensing for third-party hosted service delivery or turnkey
-redistribution of Isaac Sim with Kit. Supplying source instructions for a
-customer's own environment and selling only internally generated outputs are
-distinct cases in that FAQ. Confirm the applicable entitlement before offering
-this as a hosted customer service; setting an EULA environment variable does
-not establish that entitlement.
+Rendering requires an RTX-capable GPU and the graphics/Vulkan driver libraries.
+The previous image ran on L40S and RTX PRO 6000 with driver 580.173.02. H100/H200
+lack the RT cores required by the renderer; pure training/data compatibility is
+a separate question. Those observations are not qualification of every scene or
+future driver. Check the pinned simulator's host requirements. Allocate disk for
+the simulator, assets, checkpoints and complete recordings; recording cost grows
+with the actual scenes, sensors, dimensions, episodes and attempts.
 
-The exact twelve source assets, including tray textures and the default Isaac 6.0
-ground environment with its textures, are
-pinned in `asset-sources.json` and baked into the image. Build-time USD rewriting
-only localizes asset references and the IsaacLab asset-root settings; source and
-materialized hashes are retained in
-`/opt/i4h-assets/v0.9.0-7cf86a1/manifest.json`. Workflow physics/control code is
-unchanged. A reviewed five-line upstream patch makes explicit `cameras=false`
-disable both SOARM camera construction and image observation terms; the default
-camera path is unchanged. Exact patch and source hashes are recorded in
-`upstream-patches.json` and included in every scientific archive. The selected
-rule-based workflow has no policy weights. The CPU gate
-checks the complete identified USD reference closure and packaged MDL material.
-The measured runs completed with simulator network sockets blocked; repeat the
-offline check for your own built image and installation.
+The workflow source is Apache-2.0. Isaac Sim, Kit, robot assets, checkpoints and
+other components retain their respective terms. Review the
+[Isaac Sim 6.0.1 licensing FAQ](https://docs.isaacsim.omniverse.nvidia.com/6.0.1/common/license-faq.html)
+and your entitlement before building, redistributing or hosting derived images.
+Hosted/turnkey delivery has additional NVIDIA AI Enterprise requirements.
+Setting acceptance variables does not establish entitlement. This source recipe
+does not grant redistribution rights or provide a public simulator image.
 
-## Build and run on premises
+## Build and inspect
 
-From this directory, with Docker and the NVIDIA Container Toolkit installed:
+From this directory, build into your own authorized registry. Training and
+interactive build additions are documented in their owning directories; use the
+combined qualified Dockerfile for the operations you need.
 
 ```bash
 docker build --platform linux/amd64 -t isaac-healthcare:local .
-mkdir -p output/run-001
-docker run --rm --gpus all --shm-size 16g \
-  --memory=48g --memory-reservation=32g \
-  --user "$(id -u):$(id -g)" \
-  -e ACCEPT_EULA=Y -e ISAACSIM_ACCEPT_EULA=Y -e OMNI_KIT_ACCEPT_EULA=Y \
-  -v "$PWD/examples:/inputs:ro" -v "$PWD/output/run-001:/output" \
-  isaac-healthcare:local \
-  --input /inputs/scenarios.json --parameters-json '{}' --output-dir /output
+mkdir -p output/catalog
+docker run --rm --network none --user "$(id -u):$(id -g)" \
+  -v "$PWD/output/catalog:/output" isaac-healthcare:local \
+  --operation inspect --parameters-json '{}' --output-dir /output
 ```
 
-The same portable Python package is the Scientific AI worker's execution path;
-it has no private `scientific_ai` imports or platform-token requirement.
-Inspect `output/run-001/result.json`, then extract `simulation.tar` for HDF5,
-configuration, workflow outcome logs and PNG previews. Full simulator/device
-diagnostics remain in process stdout and the local `.operator/` directory;
-they are excluded from the public result archive. Each execution must use an empty output
-directory; concurrent jobs have independent directories and simulator processes.
-Kit uses its supported `--portable-root` under each scenario’s private scratch,
-so arbitrary non-root UIDs never write caches into the installed simulator.
-The container exposes no network listener. Stop the exact container to cancel;
-its termination signal is forwarded to the simulator process group.
+`inspect` lists the actual registry without starting Isaac or a policy backend.
+A selected workflow also reports its authored modes, scene/mode cap, cameras,
+control cadence, controller-source hashes, lint issues and graph-declared policy
+environments. Missing backend environments are reported as missing dependencies,
+not as unsupported workflow names. Discovery is not scientific execution proof.
+`lint` resolves the selected graph and fails on upstream lint errors. It requires
+an input artifact (scenarios or project), as do execution operations.
 
-## Inputs and outcomes
+## Run a built-in workflow
 
-`examples/scenarios.json` is a JSON document with schema
-`isaac-healthcare-scenarios/v1` and a nonempty `scenarios` array. Each row has a
-unique arbitrary `name` and optional nonnegative 32-bit `seed`; null keeps
-upstream random initialization. Labels are never filesystem paths. Add scenarios
-or change seeds without changing eligibility or execution defaults.
-A supplied seed is applied before the first recorded reset and scissors/tray
-randomization; later episodes/attempts continue the RNG stream. Upstream scene
-construction happens earlier and can warn that its configuration seed is unset.
-The seed does not promise deterministic construction or identical trajectories
-across GPU architectures.
-
-`parameters.schema.json` defines the typed controls: workflow, positive
-`episodes` and `attempts`, optional `episode_steps`, `physics`, and `cameras`.
-The default scene cap is **600 steps at 60 Hz**, taken from upstream
-`arena/i4h_arena/scenes/manifest/soarm_scissors.yaml`. An explicit lower step cap
-is preserved and may yield an unfinished task. This runtime exposes the scene's
-supported PhysX backend; no silent Newton substitution occurs.
-
-`task_complete` means the upstream success predicate was met for every requested
-episode. `scientific_validation=passed` means recordings and terminal summaries
-are structurally consistent; it does not turn a timeout/failed grasp into
-success. Malformed input, simulator crashes, missing samples, mismatched counts,
-non-finite trajectories and empty camera images fail the job with an explanation.
-The HDF5 v1 format intentionally omits the terminating reset sample, so the last
-frame alone cannot establish the terminal task outcome.
-
-## Kubernetes on premises
-
-Use the standalone Job template in `kubernetes/`; it creates no Scientific AI
-account, service or platform dependency. Your cluster needs the NVIDIA device
-plugin/runtime with graphics driver libraries available and an RTX-capable node.
-Provision your own input/output PVCs first. Put `scenarios.json` and
-`parameters.json` at the input PVC root; ensure the output PVC permits the chosen
-UID/GID. Use existing image-pull credentials for your authorized registry.
+The upstream default mode is normally `idle`. Select a controller explicitly
+when desired; the runtime does not replace an unspecified mode with rule-based.
 
 ```bash
-export ISAAC_IMAGE='your-registry/isaac-healthcare@sha256:YOUR_BUILT_DIGEST'
-python kubernetes/render_job.py \
-  --image "$ISAAC_IMAGE" --name isaac-healthcare-run-001 --namespace simulations \
-  --input-pvc isaac-inputs --output-pvc isaac-results \
-  --gpu-node-selector nvidia.com/gpu.product=NVIDIA-L40S \
-  --image-pull-secret your-existing-registry-secret --accept-eula > isaac-job.json
-kubectl create --dry-run=server -f isaac-job.json
-kubectl create -f isaac-job.json
-kubectl -n simulations logs -f job/isaac-healthcare-run-001
-kubectl -n simulations get job isaac-healthcare-run-001
+mkdir -p output/run-001
+docker run --rm --gpus all --network none --shm-size 16g \
+  --memory=48g --memory-reservation=32g --user "$(id -u):$(id -g)" \
+  -e ACCEPT_EULA=Y -e ISAACSIM_ACCEPT_EULA=Y -e OMNI_KIT_ACCEPT_EULA=YES \
+  -v "$PWD/examples:/inputs:ro" -v "$PWD/output/run-001:/output" \
+  isaac-healthcare:local --operation simulate --input /inputs/scenarios.json \
+  --parameters-json '{"workflow":"ultrasound_liver_scan","mode":"rule-based"}' \
+  --output-dir /output
 ```
 
-The renderer requires a manifest digest and explicit license acceptance. Change
-the GPU label/value to your cluster's compatible RTX nodes, for example its RTX
-PRO 6000 labels; this selector is placement configuration, not an exclusive
-hardware support claim. The initial envelope is one GPU, CPU request 8/limit 24,
-RAM request 32 GiB/limit 48 GiB, 128 GiB local scratch and 16 GiB shared memory.
-It is an allocation, not measured capacity. Review available node disk/memory
-and expected output size before scheduling. The default deadline is two hours;
-`--deadline-seconds` preserves an explicit operator choice.
+This is an example invocation, not a claimed new GPU pass. Choose memory/disk for
+the real workload; the shown envelope comes from the prior scissor baseline.
+Explicit physics (`physx` or `newton`), environment count, camera choice, attempts
+and duration are preserved. Null settings retain upstream scene defaults. An
+explicit `episode_steps` can only lower that **scene/mode's authored cap**; there
+is no global 600-step ceiling. A project author controls its own scene manifest.
 
-The Job runs as non-root with a read-only root filesystem, no added capabilities
-or API token, read-only inputs, writable local scratch and persistent outputs.
-The device plugin selects the allocated GPU; the manifest does not force device
-IDs. Files appear under `isaac-healthcare-run-001/` on the output PVC, with
-`completion.json` only after checksum-verified delivery. The initial finite
-workflow's result can honestly report `task_complete=false` even when the Job
-completed. Export logs/results before deleting only this Job; PVC outputs remain.
-Use a new Job name/output prefix for another run. Local scratch is removed with
-the Pod. For the Docker offline-asset check, add `--network none` to the Docker
-command and retain its actual invocation and outputs.
+## Author a project
 
-## Nebius provider Serverless Job
+A TAR archive contains an optional `project.json`, an `overlay/` SDK-layout tree,
+and arbitrary local data. It may contain only regular files/directories: absolute
+paths, traversal, links, duplicate paths and special files are rejected. Project
+Python is executable customer code and must run within the job's tenant/process
+isolation; archive validation is not a Python sandbox.
 
-Use the [scoped-transfer provider recipe](provider/README.md). It prepares a
-finite Job using your own project, immutable image, existing object-storage
-credentials and arbitrary supported scenario/parameter files. It invokes the
-same portable launcher, with local POSIX scratch, simulator network blocking,
-full input/output SHA checks and independent scientific validation. No private
-Scientific AI account, package or token is required.
+```text
+project.json
+overlay/workflows/i4h_workflows/my_specialty/my_workflow.py
+overlay/arena/i4h_arena/scenes/my_scene.py
+overlay/arena/i4h_arena/scenes/manifest/my_scene.yaml
+overlay/tasks/my_tasks/i4h_tasks/my_tasks/manifest/my_task.yaml
+overlay/tasks/my_tasks/i4h_tasks/my_tasks/controller.py
+data/recording.hdf5
+data/checkpoint.pt
+```
 
-A short repository name with the **complete immutable digest** passed the
-provider's image-label validation; the earlier long-reference failure remains
-recorded. One actual Job used the same portable manifest and unchanged default
-600-step-cap/seed-17/cameras-on request on L40S, 16 vCPU and 96 GiB RAM. It
-completed the task at step 534, recording 533 samples and both 640×480 cameras.
-Actual container image/GPU/driver identity, the offline simulator filter, all
-eight delivered file hashes and independent CPU science validation passed.
-The first VM attempt failed capacity scheduling, then the provider progressed
-the same accepted Job without a manual restart or duplicate scientific request.
-The [provider README](provider/README.md) preserves this measured scope, including
-the opt-in public-IP/SSH diagnostics used for actual image verification.
+`project.json` uses `isaac-healthcare-project/v2`, with optional
+`default_workflow`, `default_mode`, `python_paths` and `asset_root`. Extra Python
+paths and asset_root are relative to the extracted archive. The runtime merges
+SDK overlay directories with the pinned base, prepends their import paths even
+under Python `-I`, and sets `I4H_WORKFLOWS` to that invocation's effective root.
+`I4H_PROJECT_ROOT` points to the extracted archive for custom code reading data.
+It does not modify the installed SDK. Request parameters override project
+workflow/mode defaults. `workflow_args` passes JSON kwargs to the authored mode
+builder. They may override upstream defaults such as teleop sensitivity or port.
+Conflicts with outer-owned inputs and controls (including dataset, replay indices
+and idle_seconds) fail clearly instead of changing the outer request.
 
-The supported recipe transfers closed archives with scoped HTTPS capabilities.
-Provider bucket mounts, an always-running Endpoint and WebRTC networking have
-not been qualified by this path. Export all outputs and diagnostics before
-cleaning only your returned Job and its verified dependent VM/disk/IP resources.
+The included project demonstrates a separately named ultrasound scene, a custom
+registered task and an `observe` mode, reusing upstream geometry/physics. Its
+1,200-step authored cap illustrates that longer projects are not blocked by the
+old example's cap. The observation task does not claim clinical success.
 
-## Verification
+```bash
+tar -C examples/project -cf examples/project.tar .
+mkdir -p output/project-lint
+docker run --rm --network none --user "$(id -u):$(id -g)" \
+  -v "$PWD/examples:/inputs:ro" -v "$PWD/output/project-lint:/output" \
+  isaac-healthcare:local --operation lint --project /inputs/project.tar \
+  --parameters-json '{"episode_steps":1000,"workflow_args":{"seconds":5.0}}' \
+  --output-dir /output
+```
+
+Use `--operation simulate` and the GPU/license flags above for actual execution.
+Optional scenarios JSON accepts schema `isaac-healthcare-scenarios/v1` or `/v2`,
+with unique arbitrary labels and optional seeds. An omitted case seed uses
+`parameters.seed`; an explicit null preserves upstream random initialization.
+Labels are never paths. With
+only a project, one default case uses `parameters.seed`. Each case has independent
+scratch and a fresh simulator process. A supplied seed reaches the upstream
+recorded-reset/randomization scope; it does not guarantee deterministic scene
+construction or identical trajectories across GPU architectures.
+
+## Replay and policy execution
+
+Set `--operation replay`, include the original HDF5 under project `data/`, and
+set `dataset` to its relative path. `replay_episodes` defaults to `[0]`. Batch
+execution retains separate results for every requested index. Interactive replay
+selects each index in order within one Kit session, retaining `episodes`
+repetitions and the requested attempt budget for each index. This corrects the
+pinned CLI's first-index-only comma parsing. Upstream reads the recorded initial
+state/actions and owns stepping; `replay-sequence.json` records sequence outcomes.
+Replay does not infer a new task-success predicate. Real replay rendering remains
+part of the new image's qualification.
+An explicit replay operation selects replay even when the project's default mode
+is different; an explicitly conflicting request mode fails. Custom teleop kwargs
+use the same authored workflow construction as batch modes. CPU tests cover that
+construction and replay sequencing, not interactive device or rendering quality.
+
+Policy modes resolve graph-declared backends. Each backend runs its own installed
+`.venv` and imports the effective project source. Checkpoints are project-relative
+paths; the simulator and backends communicate through a private Unix Zenoh
+transport. No Internet socket or unauthenticated network listener is required
+for this IPC. Startup retains upstream's 600-second **backend readiness** budget,
+which is distinct from simulation steps; missing environments or checkpoints
+produce actionable failures. Remote backends are joined on termination.
+
+## Outputs and scientific meaning
+
+Every successful operation produces `result.json` (`isaac-healthcare-result/v2`)
+and `simulation.tar`. The result binds raw input/project SHA-256, normalized
+parameters, base revision, project/selected-controller source inventory, scene
+caps/cadence, and all archive file hashes. Simulation/replay includes HDF5,
+per-case workflow outcomes and dynamic sensor previews. No joint count, camera
+name, resolution or workflow name is hardcoded in validation.
+The archive retains supplied scenarios byte-for-byte at `request/scenarios.json`.
+This lets a completed-output audit reconstruct all cases and replay indices from
+the original input SHA, including after the input files are no longer present.
+The project SHA stays bound to the request; the complete project is not duplicated
+into the results. Restoring completed outputs does not execute project code.
+
+`scientific_validation=passed` means structural integrity and terminal evidence
+agree; it does not turn an unfinished task into success or establish physical
+accuracy. `task_complete` preserves upstream outcome and can be false for a valid
+finite job. Inspect/lint report `not_applicable` and null task completion. The
+upstream recorder captures environment 0 of vectorized batches and omits the
+termination/reset sample; empty immediate attempts can be absent from HDF5.
+Diagnostics with absent per-frame measurements retain their NaN counts.
+
+Full simulator/device/error logs remain on stdout and in `.operator/`, outside
+the public scientific archive. Preserve them for diagnosis. Use a fresh output
+directory for every run. Signals are forwarded to task-owned child processes;
+installed source, other jobs and previous results are untouched.
+
+## Kubernetes and provider Serverless
+
+`kubernetes/render_job.py` renders a standalone Job against your own PVCs and
+immutable image. It does not create resources or depend on Scientific AI. The
+project and scenarios paths are configurable relative to the input PVC:
+
+```bash
+python kubernetes/render_job.py --operation simulate \
+  --image 'your-registry/ih@sha256:YOUR_COMPLETE_64_HEX_DIGEST' \
+  --name isaac-project-001 --namespace simulations \
+  --input-pvc isaac-inputs --output-pvc isaac-results \
+  --project project.tar --scenarios '' --parameters project-parameters.json \
+  --gpu-node-selector nvidia.com/gpu.product=NVIDIA-L40S --accept-eula > job.json
+kubectl create --dry-run=server -f job.json
+kubectl create -f job.json
+```
+
+The template supplies non-root execution, read-only inputs/root filesystem,
+local scratch/shared memory and persistent outputs. Resource requests are a
+starting envelope, not measured general-framework capacity. Export result and
+operator logs before deleting only the owned Job; PVCs remain.
+
+The [provider recipe](provider/README.md) uses your project, registry, existing
+object storage and scoped HTTPS transfers around the same portable launcher.
+A short repository with the full immutable digest avoids an observed provider
+image-derived-label failure; do not truncate digests or use mutable tags. The
+prior provider pass used the old scissor image, L40S/16 vCPU/96 GiB, full object
+hashes and actual host/container identity. Its initial capacity failure is
+retained. The new generalized provider path requires its own qualification.
+Provider bucket mounts and persistent interactive endpoints are separate paths.
+GUI/teleoperation requires authenticated signaling/media and owned session
+lifecycle; see `interactive/`, not an exposed raw Kit port.
+
+## CPU verification
 
 ```bash
 PYTHONPATH=src python -m pytest tests
-docker run --rm --entrypoint /opt/i4h/arena/.venv/bin/python \
-  isaac-healthcare:local /opt/isaac-healthcare/scripts/verify_runtime.py
+# Inside your built image:
+/opt/i4h/arena/.venv/bin/python -I /opt/isaac-healthcare/scripts/verify_runtime.py
+/opt/i4h/arena/.venv/bin/python -I -m isaac_healthcare_runtime.audit \
+  --operation simulate --input scenarios.json --parameters parameters.json \
+  --result result.json --archive simulation.tar --output validation.json
 ```
 
-CPU checks establish source/import/schema and output-validation behavior only.
-The measured portable manifest was
-`sha256:4f2df56ae870971063dc84b6d699630f55bdc0a9d2d7b4213c741f0f5e6df60c`;
-builds in your registry need their own immutable digest and installation checks.
-Its default runs recorded 549 samples on L40S and 533 on RTX, with both 640×480
-camera streams and successful task outcomes. The camera-off seed-731 case recorded
-533 samples and no images. The common allocation was 32 GiB requested / 48 GiB
-limited RAM; sampled cgroup high-water values were 13.50 and 16.24 GiB for the
-two rendered baselines. These are workload observations, not final peak or
-shared-capacity guarantees; no memory sample was captured for the camera-off run.
+Add `--project project.tar` to the audit for project-backed requests. CPU checks
+cannot substitute for real scene, policy, training or interactive execution on
+the exact resulting image.
+For output-only recovery, `--input-identity identity.json` accepts the trusted
+original `input_sha256` and `project_sha256` (each a full SHA-256 or null). Obtain
+these from the authorized request, not the result being audited. The Scientific AI
+collector invokes this audit in the Arena interpreter; its logs and report remain
+operator-only, and repeated collection leaves both delivered artifacts unchanged.
 
-The unchanged upstream scene emits physics warnings: its tray mass override and
-robot collision overrides do not apply, its nonuniform tray scale triggers an
-unsupported ScaleOrientation warning, and its TGS/external-force setting may
-produce noisy velocities. Rendered runs also warn about Fabric geometry
-streaming and mute some USD diagnostics. Successful rendering and offline task
-completion do not establish warning-free USD composition or quantitative
-physical accuracy. Full warnings remain in operator stdout/logs.
+### Verified asset cache for overlay builds
 
-For your own installation, repeat the short unfinished-task and malformed-input
-checks and qualify cancellation; inspect rendered RGB and recorded task outcomes. Measure startup, elapsed simulation time, memory, output size and
-failures on each GPU/region before advertising throughput or shared capacity.
-Interactive WebRTC additionally needs its signaling/media transport; managed
-HTTPS alone does not qualify it.
-
-Upstream references: [i4h v0.9.0](https://github.com/isaac-for-healthcare/i4h-workflows/tree/v0.9.0),
-[Isaac container setup](https://docs.isaacsim.omniverse.nvidia.com/6.0.1/installation/install_container.html).
+`Dockerfile.general-overlay` normally downloads the pinned public asset URLs.
+Operators may put the complete raw manifest tree in `.asset-cache/` in the build
+context and use `--build-arg USE_VERIFIED_ASSET_CACHE=1`. The build mount is
+read-only and is not retained; every source file still must match its recorded
+size and SHA256 before localization/composition. This changes transport only,
+not workflow eligibility or runtime assets. Do not substitute a localized tree
+for the original pinned source bytes.

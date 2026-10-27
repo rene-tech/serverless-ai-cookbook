@@ -1,0 +1,31 @@
+{
+  "model_id": "isaac-healthcare-interactive",
+  "image_env": "I4H_EXPECTED_IMAGE",
+  "runtime_revision": "REPLACE_WITH_QUALIFIED_REVISION",
+  "native_origin": "https://native.example",
+  "pod_token_file": "/var/run/secrets/serverless2/token",
+  "start_key_env": "I4H_MODEL_START_KEY_HEX",
+  "work_root": "/work/sessions",
+  "ipc_root": "/work/b",
+  "base_root": "/opt/i4h",
+  "runtime_roots": ["/opt/i4h", "/opt/python", "/opt/isaac-healthcare", "/opt/i4h-assets"],
+  "runtime_environment": {
+    "NVIDIA_DRIVER_CAPABILITIES": "compute,utility,graphics,video,display",
+    "VK_DRIVER_FILES": "/etc/vulkan/icd.d/nvidia_icd.json",
+    "ACCEPT_EULA": "Y"
+  },
+  "require_output_delivery": true,
+  "poll_seconds": 2,
+  "port": 8080,
+  "session": {
+    "browser_origin": "https://app.example",
+    "media_host": "POD_IP",
+    "signal_port": 49100,
+    "media_port": 47998,
+    "proxy_port": 8080,
+    "startup_timeout_seconds": 600,
+    "stop_grace_seconds": 30,
+    "network_mode": "turn-relay",
+    "turn_url": "turns:turn.example:443?transport=tcp"
+  }
+}

@@ -1,1 +1,9 @@
-{"workflow":"scissor_pick_and_place","episodes":1,"attempts":1,"episode_steps":null,"physics":null,"cameras":true}
+{
+  "workflow": "scissor_pick_and_place",
+  "episodes": 1,
+  "attempts": 1,
+  "episode_steps": null,
+  "physics": null,
+  "cameras": true,
+  "mode": "rule-based"
+}

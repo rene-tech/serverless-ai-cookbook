@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Isaac for Healthcare dataset options",
+  "type": "object",
+  "additionalProperties": false,
+  "default": {},
+  "properties": {
+    "robot": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Upstream or project-authored robot descriptor name; required for conversion."
+    },
+    "repo_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "LeRobot dataset identifier written locally; this operation does not publish it."
+    },
+    "fps": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 30
+    },
+    "video_codec": {
+      "enum": [
+        "h264",
+        "hevc",
+        "libsvtav1"
+      ],
+      "default": "h264"
+    },
+    "skip_frames": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "successful_only": {
+      "type": "boolean",
+      "default": false
+    },
+    "task": {
+      "type": "string",
+      "default": ""
+    },
+    "g1_wbc_policy_actions": {
+      "type": "boolean",
+      "default": false
+    },
+    "segments": {
+      "type": "boolean",
+      "default": false
+    },
+    "actions": {
+      "type": "boolean",
+      "default": false
+    },
+    "action_threshold": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0.05
+    }
+  }
+}

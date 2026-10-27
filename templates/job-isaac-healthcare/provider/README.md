@@ -4,7 +4,10 @@ This runs the same portable Isaac launcher as Docker and Kubernetes, using your
 project, image registry and object storage. It needs no Scientific AI account,
 token or private Python package. The simulator uses local POSIX scratch; a
 separate parent downloads an input archive and uploads the closed result archive.
-The simulator child blocks Internet sockets, so it must use the image's assets.
+The simulator child blocks Internet sockets, so it uses packaged or project-owned
+assets. Graph policy services use private Unix IPC. This v2 source supports
+general project bundles; its new image and provider execution still require
+qualification. The historical measurements below belong to the earlier scissor image.
 
 **Qualification status (27 October 2026):** one real provider Job passed the
 unchanged default 600-step-cap, seed-17, cameras-on workflow on L40S using the
@@ -59,16 +62,18 @@ docker run --rm --network none \
   "$ISAAC_IMAGE" -I /run/provider/inspect_installation.py \
   --image "$ISAAC_IMAGE" > provider-run/installation.json
 
-python provider/prepare_job.py bundle \
+python provider/prepare_job.py bundle --operation simulate \
   --scenarios examples/scenarios.json --parameters examples/parameters.json \
   --output provider-run/input.tar
 ```
 
-Use your own scenario and parameter file paths. The archive preserves their
-bytes under the runtime's `scenarios.json` and `parameters.json` names. Add
+Use your own scenario and parameter file paths. Add `--project path/to/project.tar`
+for authored SDK code/assets/data, or omit scenarios for a project-only request.
+The archive preserves their bytes under standard input names and records the
+explicit operation in `request.json`; filenames are not execution eligibility. Add
 scenarios, change names/seeds or request supported physics, camera, episode and
-attempt settings normally. The default episode cap remains 600; an explicit
-shorter cap can produce `task_complete=false`. Large scenario documents travel
+attempt settings normally. The selected scene/mode owns its cap; there is no global 600-step ceiling. An
+explicit lower cap can produce `task_complete=false`. Large scenario documents travel
 in the archive and are not subject to the provider's injected-file size limit.
 
 ## Scoped object capabilities
@@ -254,7 +259,7 @@ docker run --rm --network none \
   --entrypoint /opt/i4h/arena/.venv/bin/python \
   --user "$(id -u):$(id -g)" \
   -v "$PWD/provider:/run/provider:ro" -v "$PWD/provider-run:/case" \
-  "$ISAAC_IMAGE" -I /run/provider/validate_artifacts.py \
+  "$ISAAC_IMAGE" -I /run/provider/validate_artifacts.py --operation simulate \
   --input /case/input/scenarios.json --parameters /case/input/parameters.json \
   --result /case/delivered/science/result.json \
   --archive /case/delivered/science/simulation.tar \

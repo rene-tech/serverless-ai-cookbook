@@ -1,0 +1,6 @@
+{
+  "schema": "isaac-healthcare-project/v2",
+  "default_workflow": "probe_calibration",
+  "default_mode": "observe",
+  "description": "User-authored scene, task and workflow extending the upstream Panda ultrasound workspace; not a clinical validation."
+}

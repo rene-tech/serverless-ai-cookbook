@@ -1,0 +1,58 @@
+{
+  "schema": "isaac-healthcare-training-qualification/v1",
+  "date": "2026-10-27",
+  "upstream_revision": "5b430a6d8d8c9cccc547b05b5e079d22b08ade9e",
+  "status": "cpu-dataset-qualified-gpu-training-pending",
+  "operations": {
+    "train": "cpu-profile-preflight-and-checkpoint-validator-passed-gpu-execution-pending",
+    "evaluate": "cpu-profile-preflight-and-outcome-validator-passed-gpu-execution-pending",
+    "export": "implemented-upstream-export-gpu-execution-pending",
+    "dataset-inspect": "actual-upstream-cpu-inspection-passed",
+    "dataset-convert": "actual-upstream-cpu-conversion-passed"
+  },
+  "dataset_environment": {
+    "python": "3.11.15",
+    "numpy": "1.26.4",
+    "torch": "2.13.0",
+    "lerobot_revision": "483be9aac217c2d8ef16982490f22b2ad091ab46",
+    "av": "18.0.0",
+    "pyarrow": "25.0.0",
+    "upstream_lock_sha256": "fde4bd2f92c67ac7d3ce88e384f076fd15ace8ee4da48a7eff2c4c1edd15980d",
+    "installed_distributions": 130,
+    "installed_record_hashes_verified": 31714,
+    "arena_environment_modified": false
+  },
+  "actual_conversion": {
+    "independently_authored_robot_descriptor": true,
+    "default_episodes": 2,
+    "default_frames": 40,
+    "default_fps": 30,
+    "default_decoded_videos": 4,
+    "ordinary_variation": {
+      "renamed_input": true,
+      "fps": 24,
+      "skip_frames": 3,
+      "successful_only": true,
+      "episodes": 1,
+      "frames": 14,
+      "decoded_videos": 2
+    },
+    "checks": [
+      "exact-Parquet-action-and-state-values",
+      "episode-and-frame-order",
+      "timestamps-and-selected-fps",
+      "fully-decoded-video-dimensions-and-frame-counts",
+      "complete-reported-artifact-SHA256-inventory",
+      "unsuccessful-source-episode-retained-unless-explicitly-filtered",
+      "nonfinite-action-error-without-success-result-or-converted-artifacts"
+    ]
+  },
+  "remaining_gates": [
+    "final-container-installed-imports-and-source-provenance",
+    "real-GPU-train-evaluate-export-on-user-projects",
+    "external-RLinf-and-policy-environment-qualification",
+    "expanded-native-REST-and-MCP-delivery",
+    "owner-cancellation-and-recovery",
+    "GPU-fallback-and-sustained-capacity"
+  ]
+}

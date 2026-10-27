@@ -10,6 +10,8 @@ import tarfile
 import tempfile
 from pathlib import Path, PurePosixPath
 
+from isaac_healthcare_runtime.contract import OPERATIONS, json_loads
+
 PYTHON = "/opt/i4h/arena/.venv/bin/python"
 CODE = Path("/opt/isaac-task")
 
@@ -56,11 +58,32 @@ def run():
                     raise ValueError("Bundle must contain unique regular files")
                 names.add(member.name)
             archive.extractall(root, filter="data")
-        source = root / "scenarios.json"
+        request = json_loads((root / "request.json").read_bytes())
+        if (request.get('schema') != 'isaac-healthcare-bundle/v2'
+                or set(request) != {'schema', 'operation', 'scenarios', 'project'}
+                or request['operation'] not in OPERATIONS
+                or not isinstance(request['scenarios'], bool)
+                or not isinstance(request['project'], bool)):
+            raise ValueError('Invalid general Isaac bundle request')
+        expected_names = {'request.json', 'parameters.json'}
+        if request['scenarios']:
+            expected_names.add('scenarios.json')
+        if request['project']:
+            expected_names.add('project.tar')
+        if names != expected_names:
+            raise ValueError('Bundle inputs differ from their explicit request')
+        source = root / "scenarios.json" if request['scenarios'] else None
+        project = root / "project.tar" if request['project'] else None
         parameters = root / "parameters.json"
         command = [PYTHON, "-I", "/opt/isaac-healthcare/scripts/run_serverless.py",
-                   "--input", str(source), "--parameters", str(parameters),
+                   "--operation", request['operation'], "--parameters", str(parameters),
                    "--output-prefix", str(output / "science")]
+        input_args = []
+        if source is not None:
+            input_args.extend(['--input', str(source)])
+        if project is not None:
+            input_args.extend(['--project', str(project)])
+        command.extend(input_args)
         # The transfer parent retains network access. Only this fresh child and
         # the normal simulator descendants inherit the additional kernel filter.
         result = subprocess.run([PYTHON, "-I", str(CODE / "offline_exec.py"),
@@ -69,7 +92,7 @@ def run():
         if result.returncode:
             return result.returncode
         subprocess.run([PYTHON, "-I", str(CODE / "validate_artifacts.py"),
-                        "--input", str(source), "--parameters", str(parameters),
+                        '--operation', request['operation'], *input_args, "--parameters", str(parameters),
                         "--result", str(output / "science/result.json"),
                         "--archive", str(output / "science/simulation.tar"),
                         "--output", str(output / "semantic-validation.json")], check=True)

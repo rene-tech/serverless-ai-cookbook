@@ -1,0 +1,2 @@
+summary: Hold the scene for a user-selected observation period.
+impl: i4h_tasks.probe_tools.hold:ObserveProbe

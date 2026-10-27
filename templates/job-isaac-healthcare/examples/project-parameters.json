@@ -1,0 +1,6 @@
+{
+  "workflow_args": {"seconds": 5.0},
+  "episode_steps": 1000,
+  "seed": 2039,
+  "cameras": true
+}

@@ -1,0 +1,270 @@
+{
+  "schema": "isaac-healthcare-capability-audit/v2",
+  "source_revision": "5b430a6d8d8c9cccc547b05b5e079d22b08ade9e",
+  "scope": "Source/runtime audit; this is not a production workflow allowlist or a claim that all modes are qualified.",
+  "workflows": [
+    {
+      "workflow": "assemble_trocar",
+      "scene": "g1_trocar",
+      "modes": [
+        "idle",
+        "policy",
+        "replay"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 250,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/g1_trocar.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "endoluminal_navigation",
+      "scene": "endoluminal_navigation",
+      "modes": [
+        "demo",
+        "idle",
+        "policy_n17",
+        "replay",
+        "teleop",
+        "validate_fluoroscopy"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 600,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/endoluminal_navigation.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "endoluminal_navigation_arm",
+      "scene": "endoluminal_navigation_arm",
+      "modes": [
+        "demo",
+        "idle",
+        "policy_n17",
+        "replay",
+        "teleop"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 600,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/endoluminal_navigation_arm.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "locomanip_push_cart",
+      "scene": "g1_cart",
+      "modes": [
+        "idle",
+        "policy",
+        "replay",
+        "teleop"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 1800,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/g1_cart.yaml",
+      "mode_overrides": {
+        "teleop": {
+          "dof": 23
+        }
+      },
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "locomanip_tray_pick_and_place",
+      "scene": "g1_tray",
+      "modes": [
+        "idle",
+        "policy",
+        "replay",
+        "teleop"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 1500,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/g1_tray.yaml",
+      "mode_overrides": {
+        "teleop": {
+          "dof": 23
+        }
+      },
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "scissor_pick_and_place",
+      "scene": "soarm_scissors",
+      "modes": [
+        "idle",
+        "policy",
+        "policy_n17",
+        "replay",
+        "rule-based",
+        "teleop"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 600,
+      "control_hz": 60.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/soarm_scissors.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "spread_tablecloth_g1",
+      "scene": "g1_tablecloth",
+      "modes": [
+        "idle",
+        "replay",
+        "teleop"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 3600,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/g1_tablecloth.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "spread_tablecloth_h2",
+      "scene": "h2_tablecloth",
+      "modes": [
+        "idle",
+        "replay",
+        "teleop"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 9000,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/h2_tablecloth.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "surgical_lift_block",
+      "scene": "psm_block",
+      "modes": [
+        "idle",
+        "replay",
+        "rule-based"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 250,
+      "control_hz": 50.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/psm_block.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "surgical_lift_needle",
+      "scene": "psm_needle",
+      "modes": [
+        "idle",
+        "replay",
+        "rule-based"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 250,
+      "control_hz": 50.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/psm_needle.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "surgical_lift_needle_organs",
+      "scene": "psm_needle_organs",
+      "modes": [
+        "idle",
+        "replay",
+        "rule-based"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 250,
+      "control_hz": 50.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/psm_needle_organs.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "surgical_reach_dual_psm",
+      "scene": "dual_psm_reach",
+      "modes": [
+        "idle",
+        "replay",
+        "rule-based"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 150,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/dual_psm_reach.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "surgical_reach_psm",
+      "scene": "psm_reach",
+      "modes": [
+        "idle",
+        "replay",
+        "rule-based"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 150,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/psm_reach.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "surgical_reach_star",
+      "scene": "star_reach",
+      "modes": [
+        "idle",
+        "replay",
+        "rule-based"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 150,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/star_reach.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "ultrasound_liver_scan",
+      "scene": "panda_phantom",
+      "modes": [
+        "idle",
+        "policy",
+        "replay",
+        "rule-based",
+        "teleop"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 250,
+      "control_hz": 30.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/panda_phantom.yaml",
+      "mode_overrides": {},
+      "new_runtime_gpu_qualification": "pending"
+    },
+    {
+      "workflow": "ultrasound_probe_reach",
+      "scene": "ultrasound_probe_reach",
+      "modes": [
+        "idle",
+        "policy"
+      ],
+      "default_mode": "idle",
+      "scene_max_steps": 250,
+      "control_hz": 50.0,
+      "scene_manifest": "arena/i4h_arena/scenes/manifest/ultrasound_probe_reach.yaml",
+      "mode_overrides": {
+        "policy": {
+          "cameras": []
+        }
+      },
+      "new_runtime_gpu_qualification": "pending"
+    }
+  ]
+}

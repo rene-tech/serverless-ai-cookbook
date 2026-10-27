@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Isaac for Healthcare training/dataset result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "operation",
+    "workflow",
+    "engine_exit_code",
+    "elapsed_seconds",
+    "validation",
+    "files",
+    "scientific_execution",
+    "operator_diagnostics"
+  ],
+  "properties": {
+    "schema": {
+      "const": "isaac-healthcare-training-result/v1"
+    },
+    "status": {
+      "enum": [
+        "prepared",
+        "succeeded"
+      ]
+    },
+    "operation": {
+      "enum": [
+        "train",
+        "evaluate",
+        "export",
+        "dataset-inspect",
+        "dataset-convert"
+      ]
+    },
+    "workflow": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "engine_exit_code": {
+      "const": 0
+    },
+    "elapsed_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "status",
+        "engine"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "preflight_pass",
+            "validated"
+          ]
+        },
+        "engine": {
+          "enum": [
+            "i4h_rl",
+            "i4h_tools.dataset"
+          ]
+        },
+        "backend": {
+          "enum": [
+            "rsl_rl",
+            "rlinf"
+          ]
+        },
+        "evaluation": {
+          "type": "object"
+        },
+        "checkpoint": {
+          "type": "object"
+        },
+        "policy": {
+          "type": "object"
+        },
+        "recordings": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "converted_dataset": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sha256",
+          "size_bytes"
+        ],
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "scientific_execution": {
+      "type": "boolean"
+    },
+    "operator_diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Retained operator-only paths; parent excludes these from customer scientific archives."
+    }
+  }
+}

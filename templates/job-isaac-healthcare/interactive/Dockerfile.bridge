@@ -1,0 +1,12 @@
+ARG CPU_BASE
+FROM ${CPU_BASE}
+ARG CPU_BASE
+RUN case "$CPU_BASE" in *@sha256:*) ;; *) exit 2 ;; esac
+WORKDIR /opt/interactive
+COPY requirements.lock build-requirements.lock ./
+RUN python -m pip install --no-cache-dir --require-hashes -r requirements.lock -r build-requirements.lock
+COPY pyproject.toml ./
+COPY src ./src
+RUN python -m pip install --no-cache-dir --no-deps --no-build-isolation .
+USER 65532:65532
+ENTRYPOINT ["python", "-I", "-B", "-m", "i4h_interactive.bridge"]

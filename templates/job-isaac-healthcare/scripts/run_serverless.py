@@ -6,13 +6,15 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from isaac_healthcare_runtime.contract import digest
+from isaac_healthcare_runtime.contract import OPERATIONS, digest, json_loads
 from isaac_healthcare_runtime.runtime import run
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--operation", required=True, choices=OPERATIONS)
+    parser.add_argument("--input", type=Path)
+    parser.add_argument("--project", type=Path)
     parser.add_argument("--parameters", type=Path, required=True)
     parser.add_argument("--output-prefix", type=Path, required=True)
     args = parser.parse_args()
@@ -22,7 +24,8 @@ def main():
         )
     with tempfile.TemporaryDirectory(prefix="isaac-healthcare-") as scratch:
         output = Path(scratch)
-        run(args.input, json.loads(args.parameters.read_bytes()), output)
+        run(args.input, json_loads(args.parameters.read_bytes()), output,
+            operation=args.operation, project_path=args.project)
         args.output_prefix.mkdir(parents=True, exist_ok=False)
         manifest = {}
         for name in ("result.json", "simulation.tar"):

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from copy import deepcopy
 from importlib.resources import files
 
 from jsonschema import Draft202012Validator
@@ -9,7 +10,21 @@ from jsonschema import Draft202012Validator
 SOURCE = "5b430a6d8d8c9cccc547b05b5e079d22b08ade9e"
 ASSET_GENERATION = "v0.9.0/7cf86a1"
 MODEL_ID = "isaac-healthcare"
-OPERATION = "simulate"
+OPERATIONS = ("inspect", "lint", "simulate", "replay", "train", "evaluate", "export", "dataset-inspect", "dataset-convert")
+
+
+def json_loads(value):
+    """Reject duplicate keys rather than silently accepting a different request."""
+    def pairs(items):
+        result = {}
+        for key, item in items:
+            if key in result:
+                raise ValueError(f"Duplicate JSON key: {key}")
+            result[key] = item
+        return result
+
+    return json.loads(value, object_pairs_hook=pairs,
+                      parse_constant=lambda token: (_ for _ in ()).throw(ValueError(f"Invalid JSON number: {token}")))
 
 
 def schema(name):
@@ -31,16 +46,23 @@ def checked(value, contract, label):
 def parameters(value):
     contract = schema("parameters")
     checked(value, contract, "parameters")
-    result = {name: spec["default"] for name, spec in contract["properties"].items()}
-    result.update(value)
+    result = {name: deepcopy(spec["default"]) for name, spec in contract["properties"].items() if "default" in spec}
+    result.update(deepcopy(value))
     # JSON Schema integer includes 1.0; argparse's integer options require "1".
-    for name in ("episodes", "attempts", "episode_steps"):
+    for name in ("episodes", "attempts", "episode_steps", "envs", "seed"):
         if result[name] is not None:
             result[name] = int(result[name])
+    result["replay_episodes"] = [int(value) for value in result["replay_episodes"]]
+    for group in ("training", "dataset_options"):
+        if group in result:
+            for key, value in result[group].items():
+                types = contract["properties"][group]["properties"][key].get("type", [])
+                if "integer" in types and value is not None:
+                    result[group][key] = int(value)
     return result
 
 
-def scenarios(value):
+def scenarios(value, default_seed=None):
     checked(value, schema("scenarios"), "scenarios")
     names = [row["name"] for row in value["scenarios"]]
     if len(set(names)) != len(names):
@@ -48,7 +70,7 @@ def scenarios(value):
     return [
         {
             "name": row["name"],
-            "seed": int(row["seed"]) if row.get("seed") is not None else None,
+            "seed": (int(row["seed"]) if row["seed"] is not None else None) if "seed" in row else default_seed,
         }
         for row in value["scenarios"]
     ]
