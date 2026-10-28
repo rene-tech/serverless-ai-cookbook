@@ -93,10 +93,13 @@ def authenticate(headers, config, token):
         for x in headers.get("sec-websocket-protocol", "").split(",")
         if x.strip()
     ]
+    # SDK 6.7 builds these names with Headers.entries(), which lowercases
+    # header names. Normalize only that prefix; capability bytes stay exact.
+    auth_prefix = "authorization.bearer."
     wire_auth = [
-        x.removeprefix("Authorization.Bearer.")
+        x[len(auth_prefix) :]
         for x in protocols
-        if x.startswith("Authorization.Bearer.")
+        if x.lower().startswith(auth_prefix)
     ]
     wire_sid = [
         x.removeprefix("x-nv-sessionid.")
@@ -122,7 +125,7 @@ def authenticate(headers, config, token):
         raise PermissionError("session capability rejected")
     if wire_sid and wire_sid != [config["session_id"]]:
         raise PermissionError("another session was requested")
-    return [x for x in protocols if not x.startswith("Authorization.Bearer.")]
+    return [x for x in protocols if not x.lower().startswith(auth_prefix)]
 
 
 def turn_credentials(secret: bytes, session_id: str, deadline_at: float, url: str):
