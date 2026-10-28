@@ -15,6 +15,7 @@ import secrets
 import stat
 import shutil
 import fcntl
+import sys
 from pathlib import Path
 
 LIBC = ctypes.CDLL(None, use_errno=True)
@@ -432,11 +433,38 @@ def run(policy):
     os.execve(policy["command"][0], policy["command"], policy["environment"])
 
 
+def read_workflow_readiness(path):
+    """Bounded, nonblocking read under the owning project's existing identity."""
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except FileNotFoundError:
+        return None
+    with os.fdopen(fd, "rb") as stream:
+        meta = os.fstat(stream.fileno())
+        if not stat.S_ISREG(meta.st_mode) or meta.st_size > 4096:
+            raise RuntimeError("workflow readiness record is not a bounded regular file")
+        raw = stream.read(4097)
+        if len(raw) > 4096:
+            raise RuntimeError("workflow readiness record exceeded its byte bound")
+        return raw
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--policy-fd", type=int)
     parser.add_argument("--cleanup-ipc", type=int)
+    parser.add_argument("--read-workflow-ready", type=Path)
+    parser.add_argument("--read-workflow-uid", type=int)
     args = parser.parse_args()
+    if args.read_workflow_ready is not None:
+        if (args.read_workflow_uid is None or args.read_workflow_uid <= 0
+                or os.geteuid() != args.read_workflow_uid or os.getegid() != args.read_workflow_uid):
+            raise RuntimeError("readiness must be read under its owning project identity")
+        raw = read_workflow_readiness(args.read_workflow_ready)
+        if raw is None:
+            raise SystemExit(3)
+        sys.stdout.buffer.write(raw)
+        return
     if args.cleanup_ipc is not None:
         return remove_ipc(args.cleanup_ipc)
     if args.policy_fd is None:

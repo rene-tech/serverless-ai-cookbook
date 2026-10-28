@@ -8,8 +8,8 @@ from pathlib import Path
 
 SOURCE = "arena/i4h_arena/runner.py"
 BEFORE = "d3b87fac3efd8b8bf9273ed84d3105981727be5275995bfea8c6a46e8ea5d382"
-AFTER = "ca11fedeef0d880561f0a622842d6f219ed9d1890c1c6b83dcc7b0fbb4ae53a0"
-PATCH = "63550c0c41fbdc24900c63dc2253edd23c8080b4cb507c1553ebab189eca56e6"
+AFTER = "eb34d743c16de139333cc42106db4659fb25d386fcbc2d8e6afe326304c38ac2"
+PATCH = "ddc877f74cebc196a86bf5a3d4dbe00ddee8fc5cbaf453bfc7272724cee2cd68"
 
 
 def sha(path):

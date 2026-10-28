@@ -44,6 +44,10 @@ def validate(config):
         raise ValueError("the installed executable must be absolute")
     if not Path(config.get("work_dir", "")).is_absolute():
         raise ValueError("an isolated absolute work directory is required")
+    if config.get("startup_readiness_file") is not None:
+        ready = Path(config["startup_readiness_file"])
+        if not ready.is_absolute() or ready.parent != Path(config["work_dir"]):
+            raise ValueError("workflow readiness belongs to this process work directory")
     origin = urlsplit(config.get("browser_origin", ""))
     if (
         origin.scheme != "https"

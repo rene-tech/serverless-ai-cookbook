@@ -28,6 +28,7 @@ def prepare(config, context, workflow_argv, output, *, python):
     context_path.write_text(json.dumps(context, indent=2) + "\n")
     config = {
         **config,
+        "startup_readiness_file": str(Path(config["work_dir"]) / "startup-ready.json"),
         "command": [
             str(Path(python).resolve()),
             "-I",

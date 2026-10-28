@@ -328,6 +328,9 @@ def application(
                         "type": "isaac.session.signaling_ready",
                         "session_id": sid,
                         "media_ready": None,
+                        "startup_ready": True,
+                        "startup_readiness_source": "workflow_started" if config.get("startup_readiness_file") else "signaling_socket",
+                        "deadline_at": deadline,
                     }
                 )
                 kit, forward, peer_id = None, None, None

@@ -90,6 +90,68 @@ class SessionProcess:
         self.cleanup_witness = "not_requested"
         self._reaped_adopted_zombies = []
 
+    @property
+    def startup_readiness_source(self):
+        if self.state in {"created", "starting"}:
+            return "pending"
+        return "workflow_started" if self.config.get("startup_readiness_file") else "signaling_socket"
+
+    async def workflow_ready(self):
+        """Read an optional typed lifecycle event from this invocation only."""
+        path = self.config.get("startup_readiness_file")
+        if path is None:
+            return True  # Direct custom commands retain their socket contract.
+        sandbox = self.config.get("isolation")
+        if sandbox:
+            # Root intentionally has no DAC override. Read only this bounded
+            # record in a child with the already-reserved project identity.
+            reader = await asyncio.create_subprocess_exec(
+                sys.executable, "-I", "-B", str(Path(isolation.__file__)),
+                "--read-workflow-ready", path, "--read-workflow-uid", str(sandbox["uid"]),
+                user=sandbox["uid"], group=sandbox["uid"], extra_groups=[],
+                env={"PYTHONDONTWRITEBYTECODE": "1"}, cwd="/",
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            )
+            try:
+                raw, _ = await asyncio.wait_for(reader.communicate(), max(0.01, min(5, self.config["deadline_at"] - time.time())))
+                if reader.returncode == 3:
+                    return False
+                if reader.returncode != 0:
+                    raise RuntimeError("owned workflow readiness reader failed")
+            finally:
+                if reader.returncode is None:
+                    try:
+                        reader.kill()
+                    except ProcessLookupError:
+                        pass
+                await reader.wait()
+        else:
+            raw = isolation.read_workflow_readiness(path)
+        if raw is None:
+            return False
+        value = json.loads(raw)
+        if (not isinstance(value, dict)
+                or set(value) != {"schema", "session_id", "event", "pid", "start_ticks"}
+                or value["schema"] != "isaac-workflow-readiness/v1"
+                or value["session_id"] != self.config["session_id"]
+                or value["event"] != "workflow_started"
+                or type(value["pid"]) is not int or value["pid"] <= 0
+                or type(value["start_ticks"]) is not int):
+            raise RuntimeError("workflow readiness identity differs")
+        current = _process_identity(value["pid"])
+        if current["start_ticks"] != value["start_ticks"] or current["state"] == "Z":
+            raise RuntimeError("workflow readiness process changed")
+        if self.config.get("isolation") and current["uids"] != (self.config["isolation"]["uid"],) * 4:
+            raise RuntimeError("workflow readiness project identity differs")
+        # The signal cannot be inherited from an unrelated live process.
+        seen = set()
+        while current["pid"] != self.child.pid:
+            if current["pid"] in seen or current["parent"] <= 0:
+                raise RuntimeError("workflow readiness is outside the owned process tree")
+            seen.add(current["pid"])
+            current = _process_identity(current["parent"])
+        return True
+
     async def start(self):
         async with self._lock:
             if self.state != "created":
@@ -104,6 +166,11 @@ class SessionProcess:
             if self.config.get("pid_namespace_guard"):
                 self._baseline = processes()
             env = isolation.clean_environment(work, self.config.get("environment"))
+            if ready_file := self.config.get("startup_readiness_file"):
+                # These noncredential values are set by the process owner, not
+                # accepted as arbitrary inherited project environment variables.
+                env["I4H_WORKFLOW_READY_FILE"] = ready_file
+                env["I4H_WORKFLOW_READY_SESSION"] = self.config["session_id"]
             sandbox = self.config.get("isolation")
             for name in (
                 "HOME",
@@ -190,13 +257,18 @@ class SessionProcess:
                 )
                 writer.close()
                 await writer.wait_closed()
-                self.state = "signaling"
-                return
+                if await asyncio.wait_for(self.workflow_ready(), max(0.01, until - time.time())):
+                    self.state = "signaling"
+                    return
+                await asyncio.sleep(0.2)
             except OSError:
                 await asyncio.sleep(0.2)
         raise TimeoutError("Isaac signaling startup deadline exceeded")
 
     def status(self):
+        terminal = (self.state in {"stopping", "stopped", "failed", "cleanup_unknown"}
+                    or time.time() >= self.config["deadline_at"]
+                    or (self.child is not None and self.child.returncode is not None))
         return {
             "session_id": self.config["session_id"],
             "state": self.state,
@@ -204,6 +276,10 @@ class SessionProcess:
             "signaling_connected": self.active_connection,
             "media_ready": None,
             "media_readiness_source": "requires actual browser decoded-frame evidence",
+            "startup_ready": self.state == "signaling" and not terminal,
+            "startup_readiness_source": self.startup_readiness_source,
+            "terminal": terminal,
+            "deadline_at": self.config["deadline_at"],
             "stop_reason": self.stop_reason,
             "workflow_cleanup_witness": self.cleanup_witness,
         }

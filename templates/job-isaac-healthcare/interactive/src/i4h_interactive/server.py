@@ -37,7 +37,7 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
     peer = SignalingPeer(config["session_id"], config["deadline_at"],
                          config.get("startup_timeout_seconds", config["deadline_at"] - time.time()))
 
-    def authorized(request, *, signaling=False):
+    def authorized(request, *, signaling=False, terminal_read=False):
         if signaling:
             parse_signaling_query(request.query_params.multi_items(), config["session_id"])
         elif request.query_params:
@@ -45,7 +45,7 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                 "credentials and controls do not belong in query strings"
             )
         authenticate(request.headers, config, token)
-        if time.time() >= config["deadline_at"]:
+        if not terminal_read and time.time() >= config["deadline_at"]:
             raise PermissionError("native session deadline has elapsed")
 
     async def health(request: Request):
@@ -74,7 +74,7 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
 
     async def descriptor(request: Request):
         try:
-            authorized(request)
+            authorized(request, terminal_read=True)
         except PermissionError:
             return JSONResponse(
                 {"error": "session_authorization_required"}, status_code=403
@@ -85,6 +85,10 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
             ice = turn_credentials(
                 secret, config["session_id"], config["deadline_at"], config["turn_url"]
             )
+        child = getattr(process, "child", None)
+        terminal = (process.state in {"stopping", "stopped", "failed", "cleanup_unknown"}
+                    or time.time() >= config["deadline_at"]
+                    or (child is not None and child.returncode is not None))
         return JSONResponse(
             {
                 "mode": "portable",
@@ -95,6 +99,10 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                 "media_host": config["media_host"],
                 "media_port": config["media_port"],
                 "startup_timeout_s": config["startup_timeout_seconds"],
+                "startup_ready": process.state == "signaling" and not terminal,
+                "startup_readiness_source": "pending" if process.state in {"created", "starting"} else "workflow_started" if config.get("startup_readiness_file") else "signaling_socket",
+                "terminal": terminal,
+                "deadline_at": config["deadline_at"],
             },
             headers={"Cache-Control": "no-store"},
         )

@@ -155,6 +155,7 @@ def preparer(settings):
             "session_id": sid,
             "deadline_at": deadline,
             "work_dir": str(project_root / "process"),
+            "startup_readiness_file": str(project_root / "process" / "startup-ready.json"),
             "log_file": str(root / "execution.log"),
             "closeout_file": str(root / "process-closeout.json"),
             "cleanup_witness": str(project_root / "workflow-closeout.json"),

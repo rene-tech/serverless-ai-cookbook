@@ -250,7 +250,9 @@ def test_real_bridge_tunnel_receives_bound_terminal_frame(tmp_path, ready):
     )
     envelope = deepcopy(bridge.starts[0])
     messages = (
-        [{"type": "isaac.session.signaling_ready", "session_id": native.value["id"]}]
+        [{"type": "isaac.session.signaling_ready", "session_id": native.value["id"],
+          "startup_ready": True, "startup_readiness_source": "signaling_socket",
+          "deadline_at": envelope["deadline_at"]}]
         if ready
         else []
     ) + [evidence]

@@ -60,6 +60,7 @@ class Tunnel:
         self.updated_at = time.time()
         self.consumed = set()
         self.task = None
+        self.startup_readiness_source = "pending"
 
     def record_execution(self, frame):
         start = {k: v for k, v in self.value["start"].items() if k != "start_signature"}
@@ -108,6 +109,12 @@ class Tunnel:
                     or ready.get("session_id") != self.value["session_id"]
                 ):
                     raise ValueError("native signaling readiness identity differs")
+                source = ready.get("startup_readiness_source")
+                if (ready.get("startup_ready") is not True
+                        or source not in {"workflow_started", "signaling_socket"}
+                        or ready.get("deadline_at") != self.value["deadline_at"]):
+                    raise ValueError("native startup readiness contract differs")
+                self.startup_readiness_source = source
                 self.state = "ready"
                 self.updated_at = time.time()
                 self.ready.set()
@@ -434,6 +441,10 @@ def application(
             {
                 "session_id": request.path_params["sid"],
                 "state": item.state,
+                "startup_ready": item.state == "ready" and time.time() < item.value["deadline_at"],
+                "startup_readiness_source": item.startup_readiness_source,
+                "terminal": item.state == "ended" or time.time() >= item.value["deadline_at"],
+                "deadline_at": item.value["deadline_at"],
                 "viewer_attached": item.viewer_attached(),
                 "media_ready": True if item.media is not None else None,
                 "media_evidence": item.media,
