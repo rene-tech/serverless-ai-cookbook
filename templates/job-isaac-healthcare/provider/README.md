@@ -169,6 +169,22 @@ provider-run/client-env/bin/python provider/submit_job.py \
   --output provider-run/dry-run
 ```
 
+The renderer gzip-packs support scripts and installation inventories. A small
+bootstrap verifies the archive and every restored file's SHA, size and mode,
+creates a new private directory under `/tmp` as the image's existing user, then
+executes the unchanged transfer parent. It never writes into the provider's
+injected-file mount or changes simulator parameters. Scoped capabilities remain
+in the separate private `transfer.json`; scientific data stays in object storage.
+The render receipt records both compressed and restored sizes and file hashes.
+
+An earlier uncompressed request passed dry-run but create failed with a KMS
+plaintext-size error. Every individual file was below the SDK's documented
+64 KiB injected-file bound; the combined payload exceeded 64 KiB. The precise
+backend aggregation boundary was not established. Compression reduces the
+transport envelope; a dry-run still does not prove successful resource creation.
+Retain a rejected or uncertain create and reconcile its exact project/name
+before preparing a distinct request. Never repeat the original create journal.
+
 Review the actual dry-run response and the full request before the separate
 billable create command. The helper requires the exact successful dry-run
 request; it makes one SDK create attempt and retains uncertain outcomes. It has

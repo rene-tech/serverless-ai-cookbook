@@ -1,6 +1,7 @@
 """Prepare a portable input archive or private provider request; no network calls."""
 import argparse
 import base64
+import gzip
 import hashlib
 import io
 import json
@@ -68,6 +69,37 @@ def url_file(path):
     return value
 
 
+def pack_support(contents):
+    """Pack exact helpers/inventories independently of scientific input or settings."""
+    original = dict(contents)
+    if any(not re.fullmatch(r"[A-Za-z0-9_.-]+", name) or name in (".", "..") for name in original):
+        raise ValueError('Support files require plain relative names')
+    identity = hashlib.sha256(json.dumps({name: hashlib.sha256(value).hexdigest()
+        for name, value in sorted(original.items())}, sort_keys=True).encode()).hexdigest()
+    root = '/tmp/isaac-provider-code-' + identity
+    command = json.loads(original['command.json'])
+    if not isinstance(command, list) or not command or any(not isinstance(v, str) or '\0' in v for v in command):
+        raise ValueError('Support command must be a nonempty argv array')
+    # Only exact support-file argv elements move; all ordinary CLI options stay exact.
+    replacements = {'/opt/isaac-task/' + name: root + '/' + name for name in original}
+    contents = dict(original)
+    contents['command.json'] = (json.dumps([replacements.get(v, v) for v in command], indent=2) + '\n').encode()
+    stream = io.BytesIO()
+    files = {}
+    with tarfile.open(fileobj=stream, mode='w:', format=tarfile.USTAR_FORMAT) as archive:
+        for name, value in sorted(contents.items()):
+            member = tarfile.TarInfo(name)
+            member.size, member.mode, member.mtime = len(value), 0o600, 0
+            archive.addfile(member, io.BytesIO(value))
+            files[name] = {'size_bytes': len(value), 'sha256': hashlib.sha256(value).hexdigest(), 'mode': 0o600}
+    raw = stream.getvalue()
+    packed = gzip.compress(raw, mtime=0)
+    manifest = {'schema': 'isaac-provider-support/v1', 'root': root, 'source_identity': identity,
+        'files': files, 'archive': {'sha256': hashlib.sha256(raw).hexdigest(), 'size_bytes': len(raw)},
+        'compressed': {'sha256': hashlib.sha256(packed).hexdigest(), 'size_bytes': len(packed)}}
+    return contents, packed, manifest
+
+
 def render(args):
     if not args.accept_eula:
         raise ValueError('Review the simulator/Kit terms and pass --accept-eula')
@@ -95,19 +127,23 @@ def render(args):
                 ('transfer.py', 'run_bundle.py', 'offline_exec.py', 'validate_artifacts.py', 'command.json')}
     contents['runtime-sources.json'] = (json.dumps(inventory['runtime_sources'], sort_keys=True) + '\n').encode()
     contents['distributions.json'] = (json.dumps(inventory['distributions'], sort_keys=True) + '\n').encode()
-    contents['transfer.json'] = (json.dumps(transfer, sort_keys=True) + '\n').encode()
-    for name, content in contents.items():
+    restored, packed, manifest = pack_support(contents)
+    transfer['command_sha256'] = manifest['files']['command.json']['sha256']
+    injected = {'bootstrap.py': (HERE / 'bootstrap.py').read_bytes(), 'payload.tar.gz': packed,
+                'payload.json': (json.dumps(manifest, sort_keys=True) + '\n').encode(),
+                'transfer.json': (json.dumps(transfer, sort_keys=True) + '\n').encode()}
+    for name, content in injected.items():
         if not 0 < len(content) <= 65536:
             raise ValueError('Provider injected file exceeds its 64KiB API limit: ' + name)
     spec = {'image': args.image, 'containerCommand': '/opt/i4h/arena/.venv/bin/python',
-        'args': '-I /opt/isaac-task/transfer.py --config /opt/isaac-task/transfer.json --command /opt/isaac-task/command.json',
+        'args': '-I /opt/isaac-task/bootstrap.py --manifest /opt/isaac-task/payload.json --payload /opt/isaac-task/payload.tar.gz --transfer /opt/isaac-task/transfer.json',
         'environmentVariables': [{'name': name, 'value': 'Y'} for name in
             ('ACCEPT_EULA', 'ISAACSIM_ACCEPT_EULA', 'OMNI_KIT_ACCEPT_EULA')],
         'platform': args.platform, 'preset': args.preset, 'shmSizeBytes': str(args.shm_gib * 1024**3),
         'disk': {'type': 'NETWORK_SSD', 'sizeBytes': str(args.disk_gib * 1024**3)},
         'pricingModel': {'onDemand': {}}, 'timeout': str(args.timeout_seconds) + 's', 'restartAttempts': 0,
         'injectedFiles': [{'containerPath': '/opt/isaac-task/' + name,
-                          'content': base64.b64encode(content).decode()} for name, content in sorted(contents.items())]}
+                          'content': base64.b64encode(content).decode()} for name, content in sorted(injected.items())]}
     if args.diagnostics_public_ip:
         spec['publicIp'] = True
         spec['sshAuthorizedKeys'] = [args.ssh_public_key.read_text().strip()]
@@ -120,7 +156,10 @@ def render(args):
         'input_size_bytes': args.input.stat().st_size, 'installation_sha256': sha(args.installation),
         'command_sha256': transfer['command_sha256'], 'request_sha256': sha(args.output / 'job-create.private.json'),
         'dry_run_sha256': sha(args.output / 'job-dry-run.private.json'),
-        'injected_file_sha256': {name: hashlib.sha256(content).hexdigest() for name, content in contents.items()},
+        'injected_file_sha256': {name: hashlib.sha256(content).hexdigest() for name, content in injected.items()},
+        'restored_support_files': manifest['files'], 'support_source_identity': manifest['source_identity'],
+        'injected_decoded_bytes': sum(map(len, injected.values())),
+        'restored_support_bytes': sum(map(len, restored.values())),
         'restart_attempts': 0, 'provider_calls': 0, 'credentials_in_request': 'Scoped URLs only; keep both request files private'})
     print(json.dumps({'request_directory': str(args.output), 'provider_calls': 0,
                       'receipt_sha256': sha(args.output / 'receipt.json')}))

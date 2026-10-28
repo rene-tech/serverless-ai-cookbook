@@ -13,12 +13,13 @@ from pathlib import Path, PurePosixPath
 from isaac_healthcare_runtime.contract import OPERATIONS, json_loads
 
 PYTHON = "/opt/i4h/arena/.venv/bin/python"
-CODE = Path("/opt/isaac-task")
+CODE = Path(__file__).resolve().parent
 
 
-def verify_installation(output):
+def verify_installation(output, *, code=None):
     """Check the exact installed source/dependencies before any scientific work."""
-    expected = json.loads((CODE / "runtime-sources.json").read_bytes())
+    code = CODE if code is None else Path(code)
+    expected = json.loads((code / "runtime-sources.json").read_bytes())
     if expected.get("schema") != "isaac-healthcare-runtime-source-contract/v1":
         raise RuntimeError("Required execution-source ownership contract is missing")
     for name, row in expected["files"].items():
@@ -31,7 +32,7 @@ def verify_installation(output):
             raise RuntimeError("Required runtime source is unavailable (" + row["owner"] + "): " + name) from error
         if observed != row["sha256"]:
             raise RuntimeError("Installed runtime source differs (" + row["owner"] + "): " + name)
-    distributions = json.loads((CODE / "distributions.json").read_bytes())
+    distributions = json.loads((code / "distributions.json").read_bytes())
     actual = {d.metadata["Name"].lower().replace("_", "-"): d.version
               for d in importlib.metadata.distributions()}
     if actual != {name: row["version"] for name, row in distributions["distributions"].items()}:
