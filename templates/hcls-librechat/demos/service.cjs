@@ -78,7 +78,11 @@ function normalizedOperation(envelope, expectedId) {
     throw failure('Platform returned a mismatched operation.', 502);
   }
   // Status envelopes may be nested; every identity must name the same native execution.
-  return customerOperation({ ...envelope, ...nested, id: ids[0], operation_id: ids[0] });
+  const operation = customerOperation({ ...envelope, ...nested, id: ids[0], operation_id: ids[0] });
+  if (typeof operation.status !== 'string' || !operation.status.trim()) {
+    throw failure('Platform returned an invalid operation status.', 502);
+  }
+  return operation;
 }
 function customerCatalogItem(value) {
   return pickFields(value, ['id', 'model_id', 'display_name', 'description', 'enabled', 'capabilities', 'protocols',
