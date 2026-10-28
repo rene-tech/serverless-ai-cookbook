@@ -81,15 +81,6 @@ if (process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY !== 'user_provided'
     const catalog = await response.json();
     const ids = new Set(catalog.data.map((item) => item.id));
     discoveredPublicTokenIds = ids;
-    if (providerRouting && providerRouting.primary !== catalogBaseURL) {
-      const primary = await fetch(providerRouting.primary + '/models', {
-        headers: { Authorization: `Bearer ${process.env.NEBIUS_API_KEY}` }, signal: AbortSignal.timeout(10000),
-      });
-      if (!primary.ok) throw new Error('Primary model discovery unavailable');
-      const primaryCatalog = await primary.json();
-      if (!primaryCatalog.data.some((item) => item.id === configuredChatModel)) throw new Error('Primary model absent');
-      ids.add(configuredChatModel);
-    }
     const available = publicTokenFactoryModels.filter(([id]) => ids.has(id));
     availablePublicTokenModels = available;
   } catch {
@@ -97,15 +88,16 @@ if (process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY !== 'user_provided'
   }
 }
 
-// A positively discovered, explicitly configured planning model need not have
-// existed when the curated display-name list was written. Preserve validation:
-// never silently replace the selected model or admit an unknown fallback.
+// Explicit regional model/base pairs are authoritative: private models need
+// not appear in the public catalog, and discovery outages must not disable
+// fallback. Requests still surface 404s. Public-only deployments retain their
+// authenticated catalog validation.
 if (configuredChatModel) {
-  if (discoveredPublicTokenIds && !discoveredPublicTokenIds.has(configuredChatModel)) {
+  if (!providerRouting && discoveredPublicTokenIds && !discoveredPublicTokenIds.has(configuredChatModel)) {
     throw new Error(`Configured chat model ${configuredChatModel} is absent from the authenticated Token Factory catalog`);
   }
   if (!availablePublicTokenModels.some(([id]) => id === configuredChatModel)) {
-    if (!discoveredPublicTokenIds?.has(configuredChatModel)) {
+    if (!providerRouting && !discoveredPublicTokenIds?.has(configuredChatModel)) {
       throw new Error('The configured chat model is not in the curated catalog and live discovery could not verify it');
     }
     availablePublicTokenModels = [...availablePublicTokenModels,

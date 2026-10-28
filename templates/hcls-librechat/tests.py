@@ -43,7 +43,8 @@ def test_explicit_chat_model_is_admitted_only_after_live_catalog_verification(tm
 
 def test_explicit_regional_routing_preserves_public_selections_and_context(tmp_path):
     model = 'provider/regional-planning-model'
-    config, _ = render_config(tmp_path, catalog={'data': [{'id': model}, {'id': DEFAULT_CHAT_MODEL}]},
+    # A private regional model may be absent from the public catalog.
+    config, _ = render_config(tmp_path, catalog={'data': [{'id': DEFAULT_CHAT_MODEL}]},
                              SCIENTIFIC_CHAT_MODEL=model,
                              SCIENTIFIC_CHAT_MODEL_LABEL='Regional planning model',
                              SCIENTIFIC_CHAT_BASE_URL='https://regional.example/v1',

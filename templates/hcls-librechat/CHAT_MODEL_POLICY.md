@@ -33,6 +33,10 @@ Public model selections continue through `SCIENTIFIC_CHAT_CATALOG_BASE_URL`
 (default public Token Factory); only the selected primary model has fallback.
 `SCIENTIFIC_CHAT_MODEL_LABEL` optionally sets the primary model's display name;
 regional models are grouped as Token Factory rather than labeled public.
+An explicit regional model/base pair is retained independently of public model
+discovery, including at cold startup during an outage. Qualify that deployment
+with real requests; request-time authentication and model-not-found errors still
+propagate without fallback. Public-only configuration retains catalog validation.
 Both providers use the deployment's secret-backed provider credential. Operator
 JSON logs record provider choice, fallback reason, HTTP status and elapsed time,
 without prompts, tool results or credentials. HTTP 408/429/500/502/503/504,
