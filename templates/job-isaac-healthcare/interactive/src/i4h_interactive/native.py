@@ -27,6 +27,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocketDisconnect
 from websockets.asyncio.client import connect
+from websockets.exceptions import ConnectionClosed
 
 from .contract import SESSION
 from .process import SessionProcess
@@ -69,6 +70,15 @@ def _kit_close_diagnostic(peer, error, phase):
         "sent": frame(getattr(error, "sent", None)),
         "final_close_code": code(getattr(peer, "close_code", None)),
     }
+
+
+def _log_kit_close(peer, error, phase):
+    # Diagnostics must not alter the transport's control flow.
+    with contextlib.suppress(Exception):
+        logging.getLogger(__name__).warning(
+            "Kit viewer transport ended: %s",
+            json.dumps(_kit_close_diagnostic(peer, error, phase), sort_keys=True),
+        )
 
 
 def epoch(value):
@@ -325,17 +335,31 @@ def application(
 
                 async def detach(close_code=1000):
                     nonlocal kit, forward
+                    failure = None
                     if forward is not None:
                         forward.cancel()
                         await asyncio.gather(forward, return_exceptions=True)
                         forward = None
                     if kit is not None:
-                        if close_code == HANDOFF_CLOSE_CODE:
-                            await kit.close(code=HANDOFF_CLOSE_CODE)
-                        else:
-                            await kit.close()
-                        kit = None
+                        previous, kit = kit, None
+                        try:
+                            if close_code == HANDOFF_CLOSE_CODE:
+                                await previous.close(code=HANDOFF_CLOSE_CODE)
+                            else:
+                                await previous.close()
+                        except (ConnectionClosed, OSError, TimeoutError) as error:
+                            _log_kit_close(previous, error, "kit_close")
+                            failure, close_code = error, 1000
                     peer_state.closed(close_code)
+                    return failure
+
+                async def viewer_failed(error, phase):
+                    _log_kit_close(kit, error, phase)
+                    await detach()
+                    await socket.send_json(
+                        {"type": "viewer.error", "peer_id": peer_id,
+                         "code": "kit_viewer_closed"}
+                    )
 
                 async def outbound(peer, identity):
                     cancelled = False
@@ -367,11 +391,7 @@ def application(
                         if not cancelled:
                             # Operator logs only; the viewer envelope, lease and
                             # Kit connection/heartbeat policy remain unchanged.
-                            with contextlib.suppress(Exception):
-                                logging.getLogger(__name__).warning(
-                                    "Kit viewer transport ended: %s",
-                                    json.dumps(_kit_close_diagnostic(peer, failure, failure_phase), sort_keys=True),
-                                )
+                            _log_kit_close(peer, failure, failure_phase)
                             await socket.send_json(
                                 {"type": "viewer.error", "peer_id": identity,
                                  "code": "kit_viewer_closed"}
@@ -404,19 +424,23 @@ def application(
                             peer_state.begin(signaling)
                             if not reconnect:
                                 peer_id = frame["peer_id"]
-                            kit = await connect_factory(
-                                f"ws://127.0.0.1:{config['signal_port']}"
-                                + kit_signaling_path(signaling, sid),
-                                subprotocols=[f"x-nv-sessionid.{sid}"],
-                                proxy=None,
-                                # Match the browser SDK's Kit connection: do
-                                # not add a shorter Ping/Pong startup deadline.
-                                # Native watch still enforces cancel/expiry.
-                                ping_interval=None,
-                                max_size=1024 * 1024,
-                                max_queue=2,
-                                open_timeout=10,
-                            )
+                            try:
+                                kit = await connect_factory(
+                                    f"ws://127.0.0.1:{config['signal_port']}"
+                                    + kit_signaling_path(signaling, sid),
+                                    subprotocols=[f"x-nv-sessionid.{sid}"],
+                                    proxy=None,
+                                    # Match the browser SDK's Kit connection: do
+                                    # not add a shorter Ping/Pong startup deadline.
+                                    # Native watch still enforces cancel/expiry.
+                                    ping_interval=None,
+                                    max_size=1024 * 1024,
+                                    max_queue=2,
+                                    open_timeout=10,
+                                )
+                            except (ConnectionClosed, OSError, TimeoutError) as error:
+                                await viewer_failed(error, "kit_connect")
+                                continue
                             peer_state.connected()
                             await socket.send_json(
                                 {"type": "viewer.attached", "peer_id": peer_id}
@@ -430,18 +454,35 @@ def application(
                             close_code = frame.get("close_code", 1000)
                             if type(close_code) is not int or close_code not in (1000, HANDOFF_CLOSE_CODE):
                                 raise ValueError("invalid viewer close code")
-                            await detach(close_code)
+                            failed = await detach(close_code)
+                            if failed is not None:
+                                await socket.send_json(
+                                    {"type": "viewer.error", "peer_id": peer_id,
+                                     "code": "kit_viewer_closed"}
+                                )
                             # Keep the same Kit process and native lease alive.
                         elif (
                             kind == "viewer.data"
-                            and kit is not None
+                            and peer_id is not None
                             and frame.get("peer_id") == peer_id
                         ):
-                            await kit.send(
+                            if (set(frame) != {"type", "peer_id", "binary", "data"}
+                                    or type(frame["binary"]) is not bool
+                                    or not isinstance(frame["data"], str)):
+                                raise ValueError("invalid native viewer data")
+                            data = (
                                 base64.b64decode(frame["data"], validate=True)
                                 if frame.get("binary")
                                 else frame["data"]
                             )
+                            if kit is None:
+                                # Valid frames already buffered for this exact
+                                # detached peer carry no new viewer authority.
+                                continue
+                            try:
+                                await kit.send(data)
+                            except (ConnectionClosed, OSError, TimeoutError) as error:
+                                await viewer_failed(error, "kit_send")
                         elif kind == "session.keepalive":
                             await socket.send_json(
                                 {"type": "session.keepalive", "deadline_at": deadline}
