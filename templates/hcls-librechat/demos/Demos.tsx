@@ -9,9 +9,6 @@ import type { WorkshopRun as Run } from './scientific-comparison';
 import { runDisplay, studyDisplay, scientificProgressDisplay } from './scientific-run-display';
 import type { ScientificProgress } from './scientific-run-display';
 import GettingStarted from './ScientificGettingStarted';
-import ScientificResult from './ScientificResult';
-import ScientificArtifactViewer from './ScientificArtifactViewer';
-import ScientificAppForm, { guidedApps } from './ScientificAppForm';
 
 type Job = { id: string; status: string; created_at: string; error?: string; files: string[] };
 type Catalog = { catalog: { judge_model: string; data: { id: string; clinician_eligible: boolean; patient_eligible: boolean }[] };
@@ -124,7 +121,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
   const [busy, setBusy] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [operationId, setOperationId] = useState('');
-  const [inspection, setInspection] = useState<{ id: string; view: 'Details' | 'Result'; loading: boolean; data?: unknown; error?: string } | null>(null);
+  const [inspection, setInspection] = useState<{ id: string; view: 'Details' | 'Result'; loading: boolean; data?: string; error?: string } | null>(null);
   const inspectionPanel = useRef<HTMLElement>(null);
   useEffect(() => {
     if (tab !== 'runs' || !inspection) return;
@@ -155,7 +152,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
     setInspection({ id, view, loading: true });
     try {
       const value = await request.get(`${BASE}/runs/${id}${view === 'Result' ? '/result' : ''}`);
-      setInspection({ id, view, loading: false, data: value });
+      setInspection({ id, view, loading: false, data: JSON.stringify(value, null, 2) });
     } catch (problem) {
       setInspection({ id, view, loading: false, error: errorText(problem as Error) });
     } finally {
@@ -180,7 +177,6 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
     </details>
     {Boolean(error || sessionError) && <p role="alert" className="mb-4 rounded border border-border-medium p-3">{error || errorText(sessionError as Error)}</p>}
     {tab === 'apps' && <section>
-      {guidedApps.includes(params.get('app') || '') && params.get('request') && <ScientificAppForm key={params.get('request')} model={params.get('app')!} requestId={params.get('request')!} />}
       <h2 className="text-xl font-semibold">Apps you can use</h2><p className="my-2 text-sm text-text-secondary">Live, caller-scoped discovery. Scaled-to-zero Apps remain listed when your key may start them.</p>
       <div className="grid gap-3 md:grid-cols-2">{(apps.data?.data || []).map((app) => {
         const title = app.scientific?.display_name || app.native?.display_name || app.id;
@@ -193,8 +189,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
           <div className="mt-3 flex gap-2"><Button size="sm" variant="outline" onClick={async () => {
             const prompt = `I want to use the Scientific AI App ${app.id}. Discover its live schema, explain the required input and evaluation limits, and do not submit compute until I confirm.`;
             await navigator.clipboard.writeText(prompt); setCopied(app.id);
-          }}>{copied === app.id ? 'Prompt copied' : 'Copy chat prompt'}</Button>
-            {guidedApps.includes(app.id) && <Button size="sm" onClick={() => setParams({ tab: 'apps', app: app.id, request: crypto.randomUUID() })}>Prepare request</Button>}</div>
+          }}>{copied === app.id ? 'Prompt copied' : 'Copy chat prompt'}</Button></div>
         </article>;
       })}</div>
       {enabled && !apps.isLoading && !(apps.data?.data.length) && <p role="status">This key currently has no authorized Apps.</p>}
@@ -239,7 +234,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
           <td className="pr-3">{elapsed(run.accepted_at, run.completed_at, !display.terminal)}{display.showComputeTiming && <><p className="text-xs text-text-secondary">Wait {elapsed(run.accepted_at, run.started_at, !display.terminal && !run.started_at)}</p>{run.operation?.cold_start_seconds !== undefined && run.operation.cold_start_seconds !== null && <p className="text-xs text-text-secondary">{display.readyTimingLabel} {run.operation.cold_start_seconds.toFixed(1)}s</p>}</>}</td>
           <td className="pr-3">{run.accepted_at ? new Date(run.accepted_at).toLocaleString() : 'Unknown'}</td><td><div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" disabled={busy} onClick={() => void inspectRun(run.id, 'Details')}>Details</Button>
-            {(display.showResult || run.operation?.result_available) && <Button size="sm" variant="outline" disabled={busy} onClick={() => void inspectRun(run.id, 'Result')}>Result</Button>}
+            {display.showResult && <Button size="sm" variant="outline" disabled={busy} onClick={() => void inspectRun(run.id, 'Result')}>Result</Button>}
             {!display.terminal && <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { await request.post(`${BASE}/runs/${run.id}/cancel`); })}>Cancel</Button>}
           </div></td></tr>;
       })}</tbody></table></div>
@@ -249,7 +244,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
         <h3 id="run-inspection-title" className="font-semibold">{inspection.view} · {inspection.id}</h3>
         {inspection.loading && <p role="status">Loading {inspection.view.toLowerCase()}…</p>}
         {inspection.error && <p role="alert">{inspection.error}</p>}
-        {inspection.data !== undefined && (inspection.view === 'Result' ? <ScientificResult value={inspection.data} /> : <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(inspection.data, null, 2)}</pre>)}
+        {inspection.data && <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">{inspection.data}</pre>}
       </section>}
     </section>}
     {tab === 'workspace' && <section>
@@ -257,7 +252,6 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       {workspace.data && <p className="mb-3 text-xs">Bucket: <strong>{String(workspace.data.info.team_bucket_name || workspace.data.info.bucket_name || 'configured by platform')}</strong> · {String(workspace.data.info.mode || 'mounted')} storage</p>}
       {selectedWorkspaceFile && <div className="mb-4 rounded-xl border border-border-medium p-4">
         <p className="mb-2 text-sm">Selected file: <code>{selectedWorkspaceFile}</code></p>
-        {selectedEntry && <ScientificArtifactViewer key={selectedEntry.path} path={selectedEntry.path} />}
         {selectedEntry ? <Button disabled={busy} onClick={() => void downloadWorkspaceFile(selectedEntry)}>Download selected file</Button>
           : !workspace.isLoading && workspace.data && <p role="status">This file was not found in the selected folder. No download was started.</p>}
       </div>}

@@ -41,18 +41,6 @@ router.get('/apps', wrap(async (req, res) => {
   const ids = [...new Set([...native.keys(), ...batches.keys()])].sort();
   res.json({ data: ids.map((id) => ({ id, native: native.get(id), scientific: batches.get(id) })) });
 }));
-router.get('/apps/:id/contract', wrap(async (req, res) => res.json(await service.appRequest(await key(req), req.params.id, 'contract'))));
-router.get('/apps/:id/draft', wrap(async (req, res) => res.json(await service.appRequest(await key(req), req.params.id, 'draft', { request_id: req.query.request_id }))));
-router.post('/apps/:id/preflight', wrap(async (req, res) => res.json(await service.appRequest(await key(req), req.params.id, 'preflight', req.body))));
-router.post('/apps/:id/submit', wrap(async (req, res) => res.status(202).json(await service.appRequest(await key(req), req.params.id, 'submit', req.body))));
-router.post('/apps/:id/preview', wrap(async (req, res) => res.json(await service.appRequest(await key(req), req.params.id, 'preview', req.body))));
-router.get('/apps/:id/media', wrap(async (req, res) => {
-  const credential = await key(req);
-  const preview = await service.appRequest(credential, req.params.id, 'preview', { path: '/workspace/' + req.query.path });
-  if (preview.kind !== 'video') throw service.failure('Select a recorded video artifact.');
-  const bytes = await service.workspacePreview(credential, preview.path, 32 * 1024 * 1024);
-  res.set('X-Content-Type-Options', 'nosniff').type('video/mp4').send(bytes);
-}));
 router.get('/runs', wrap(async (req, res) => res.json(await service.runs(req.user.id, await key(req), {
   cursor: req.query.cursor, limit: req.query.limit === undefined ? 50 : Number(req.query.limit),
 }))));
@@ -60,7 +48,6 @@ router.post('/runs', wrap(async (req, res) => res.status(201).json(await service
   label: req.body?.label, model_id: req.body?.model_id, source: 'panel',
 }))));
 router.get('/runs/:id', wrap(async (req, res) => res.json(await service.track(req.user.id, await key(req), req.params.id, { source: 'panel' }))));
-router.get('/runs/:id/artifacts/:index', wrap(async (req, res) => res.json(await service.operationArtifact(await key(req), req.params.id, Number(req.params.index)))));
 router.get('/runs/:id/result', wrap(async (req, res) => res.json(await service.operationResult(await key(req), req.params.id))));
 router.post('/runs/:id/cancel', wrap(async (req, res) => res.json(await service.platform(await key(req), 'POST', `/v1/operations/${req.params.id}:cancel`))));
 router.get('/studies', wrap(async (req, res) => res.json(await service.studies(await key(req)))));

@@ -12,14 +12,14 @@ function render(query, entries) {
     requests.push(url); return { data: 'exact bytes', headers: { 'content-type': 'text/plain' } };
   } };
   const dependencies = {
-    react: { useState: (value) => [typeof value === 'function' ? value() : value, () => {}], useEffect: () => {}, useRef: () => ({ current: null }) },
+    react: { useState: (value) => [typeof value === 'function' ? value() : value, () => {}], useEffect: () => {} },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'fragment' },
     axios: {}, 'react-router-dom': { Link: 'Link', useSearchParams: () => [params, (value) => navigation.push(value)] },
     '@tanstack/react-query': { useQueryClient: () => ({ invalidateQueries: async () => {} }),
       useQuery: (key) => ({ isLoading: false, data: key[1] === 'settings' ? { configured: true }
         : key[1] === 'workspace' ? { info: { team_bucket_name: 'fixture' }, data: entries } : {} }) },
     '@librechat/client': { Button: 'Button', Input: 'Input' }, 'librechat-data-provider': { request },
-    './ScientificArtifactViewer': { default: () => null }, './ScientificAppForm': { guidedApps: [] }, './scientific-comparison': {}, './scientific-run-display': {},
+    './scientific-comparison': {}, './scientific-run-display': {},
   };
   const module = { exports: {} };
   const source = ts.transpileModule(fs.readFileSync(`${__dirname}/Demos.tsx`, 'utf8'), {

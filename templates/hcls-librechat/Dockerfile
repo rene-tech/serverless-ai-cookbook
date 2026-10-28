@@ -23,9 +23,6 @@ RUN node /tmp/patch-client.mjs
 COPY templates/hcls-librechat/ScientificExecutionOutput.tsx /app/client/src/components/Chat/Messages/Content/ScientificExecutionOutput.tsx
 COPY templates/hcls-librechat/patch-execution-ui.mjs /tmp/patch-execution-ui.mjs
 RUN node /tmp/patch-execution-ui.mjs
-COPY templates/hcls-librechat/demos/ScientificAppForm.tsx /app/client/src/components/ScientificAppForm.tsx
-COPY templates/hcls-librechat/demos/ScientificResult.tsx /app/client/src/components/ScientificResult.tsx
-COPY templates/hcls-librechat/demos/ScientificArtifactViewer.tsx /app/client/src/components/ScientificArtifactViewer.tsx
 COPY templates/hcls-librechat/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx
 COPY templates/hcls-librechat/demos/comparison.ts /app/client/src/components/scientific-comparison.ts
 COPY templates/hcls-librechat/demos/run-display.ts /app/client/src/components/scientific-run-display.ts
@@ -149,8 +146,6 @@ COPY templates/hcls-librechat/ace-step-music.py /opt/bionemo/ace-step-music.py
 COPY templates/hcls-librechat/report-assembly.py /opt/bionemo/report-assembly.py
 COPY templates/hcls-librechat/aging-analysis.py /opt/bionemo/aging-analysis.py
 COPY templates/hcls-librechat/scientific_study.py templates/hcls-librechat/scientific_study_schema.py templates/hcls-librechat/scientific_workflow_draft.py templates/hcls-librechat/scientific_preparation.py templates/hcls-librechat/scientific_protein_preparation.py templates/hcls-librechat/scientific_clinical.py templates/hcls-librechat/scientific-study-worker.py /opt/bionemo/
-COPY templates/hcls-librechat/scientific_app.py /opt/bionemo/scientific_app.py
-COPY templates/hcls-librechat/scientific_preview.py /opt/bionemo/scientific_preview.py
 COPY templates/hcls-librechat/scientific_workflow_view.py /opt/bionemo/scientific_workflow_view.py
 COPY templates/hcls-librechat/scripts/qualification/evaluators.py /opt/bionemo/qualification_evaluators.py
 COPY --from=aging-reference /opt/aging-reference /opt/bionemo/aging-reference
