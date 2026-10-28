@@ -142,5 +142,21 @@ test('run inspection reveals loading, responses, repeat selections and errors in
     await page.evaluate(() => pending.shift().resolve({ operation: { id: 'op-fixture', status: 'running' } }));
     await panel.getByRole('button', { name: 'Refresh operation' }).waitFor();
     assert.equal((await page.evaluate(() => calls)).at(-1), '/api/scientific-demos/runs/op-fixture');
+    await page.evaluate(() => {
+      dependencies['librechat-data-provider'].request.put = async () => ({ configured: true });
+      dependencies['librechat-data-provider'].request.post = async () => ({});
+      dependencies['@tanstack/react-query'].useQueryClient = () => ({
+        invalidateQueries: async () => {},
+        resetQueries: async () => { window.scopeReset = true; },
+      });
+      root.render(React.createElement(dependencies.Demos.default));
+    });
+    await page.getByText('Platform connection · key configured for your account', { exact: true }).click();
+    await page.getByRole('textbox', { name: 'Scientific AI API key' }).fill('another-fixture-key');
+    await page.getByRole('button', { name: 'Save key', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('input[type="password"]').value === '');
+    assert.equal(await page.getByRole('region', { name: 'Details · op-fixture' }).count(), 0,
+      'changing keys must discard the previous key’s operation details');
+    assert.equal(await page.evaluate(() => window.scopeReset), true, 'cached caller data must be reset');
   } finally { await page.close(); }
 });
