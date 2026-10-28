@@ -24,6 +24,7 @@ from urllib.parse import urlsplit
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
+from starlette.websockets import WebSocketDisconnect
 from websockets.asyncio.client import connect
 
 from .contract import SESSION
@@ -215,6 +216,7 @@ class Tunnel:
                         }))
 
                 async def outbound():
+                    downstream_disconnected = False
                     while True:
                         frame = await queue.get()
                         if frame.get("type") == "viewer.error":
@@ -222,11 +224,24 @@ class Tunnel:
                             return
                         if frame.get("type") != "viewer.data":
                             continue
-                        await (socket.send_bytes(base64.b64decode(frame["data"], validate=True))
-                               if frame["binary"] else socket.send_text(frame["data"]))
+                        if downstream_disconnected:
+                            continue
+                        try:
+                            await (socket.send_bytes(base64.b64decode(frame["data"], validate=True))
+                                   if frame["binary"] else socket.send_text(frame["data"]))
+                        except WebSocketDisconnect:
+                            # The browser's close can race an already queued
+                            # Native frame. Keep watching Native while inbound
+                            # reads the actual close code; never infer4001.
+                            downstream_disconnected = True
 
                 pumps = [asyncio.create_task(inbound()), asyncio.create_task(outbound())]
-                done, _ = await asyncio.wait(pumps, return_when=asyncio.FIRST_COMPLETED)
+                done, _ = await asyncio.wait(
+                    pumps, return_when=asyncio.FIRST_COMPLETED,
+                    timeout=max(0, self.value["deadline_at"] - time.time()),
+                )
+                if not done:
+                    raise TimeoutError("session deadline reached during viewer close")
                 # A Kit failure concurrent with a browser close is a failed
                 # transport, never authority to retain a handoff.
                 if pumps[1] in done:

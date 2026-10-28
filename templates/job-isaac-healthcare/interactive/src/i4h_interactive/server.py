@@ -13,7 +13,7 @@ from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Route, WebSocketRoute
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocket, WebSocketDisconnect
 from websockets.asyncio.client import connect
 
 from .contract import authenticate, turn_credentials
@@ -168,12 +168,21 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                         )
 
                 async def kit_to_browser():
+                    downstream_disconnected = False
                     async for data in upstream:
-                        await (
-                            socket.send_bytes(data)
-                            if isinstance(data, bytes)
-                            else socket.send_text(data)
-                        )
+                        if downstream_disconnected:
+                            continue
+                        try:
+                            await (
+                                socket.send_bytes(data)
+                                if isinstance(data, bytes)
+                                else socket.send_text(data)
+                            )
+                        except WebSocketDisconnect:
+                            # A downstream send can notice the same browser
+                            # close first. Keep watching Kit until the actual
+                            # inbound close or unchanged session deadline.
+                            downstream_disconnected = True
 
                 tasks = [
                     asyncio.create_task(browser_to_kit()),
@@ -181,8 +190,11 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                 ]
                 try:
                     done, _ = await asyncio.wait(
-                        tasks, return_when=asyncio.FIRST_COMPLETED
+                        tasks, return_when=asyncio.FIRST_COMPLETED,
+                        timeout=max(0, config["deadline_at"] - time.time()),
                     )
+                    if not done:
+                        raise TimeoutError("session deadline reached during viewer close")
                     if tasks[1] in done:
                         # An independently completed Kit reader is a genuine
                         # transport end, not the browser's handoff authority.
