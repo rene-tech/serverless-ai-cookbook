@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test ../brand-client.test.mjs contrast.test.mjs"
+    "test": "node --test ../brand-client.test.mjs contrast.test.mjs run-inspection.test.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",

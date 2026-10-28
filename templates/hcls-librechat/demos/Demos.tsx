@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -121,8 +121,13 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
   const [busy, setBusy] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [operationId, setOperationId] = useState('');
-  const [selectedRun, setSelectedRun] = useState('');
-  const [runResult, setRunResult] = useState('');
+  const [inspection, setInspection] = useState<{ id: string; view: 'Details' | 'Result'; loading: boolean; data?: string; error?: string } | null>(null);
+  const inspectionPanel = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (tab !== 'runs' || !inspection) return;
+    inspectionPanel.current?.focus({ preventScroll: true });
+    inspectionPanel.current?.scrollIntoView({ block: 'start' });
+  }, [tab, inspection]);
   const [runPages, setRunPages] = useState<string[]>(['']);
   const { directory: workspacePath, file: selectedWorkspaceFile } = workspaceSelection(params);
   const setWorkspacePath = (next: string) => setParams({ tab: 'workspace', ...(next ? { path: next } : {}) });
@@ -141,6 +146,18 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
     try { await work(); await cache.invalidateQueries(['scientific-demos']); }
     catch (problem) { setError(errorText(problem as Error)); }
     finally { setBusy(false); }
+  }
+  async function inspectRun(id: string, view: 'Details' | 'Result') {
+    setBusy(true);
+    setInspection({ id, view, loading: true });
+    try {
+      const value = await request.get(`${BASE}/runs/${id}${view === 'Result' ? '/result' : ''}`);
+      setInspection({ id, view, loading: false, data: JSON.stringify(value, null, 2) });
+    } catch (problem) {
+      setInspection({ id, view, loading: false, error: errorText(problem as Error) });
+    } finally {
+      setBusy(false);
+    }
   }
   const selectedEntry = workspace.data?.data.find((entry) => entry.kind === 'file' && entry.path === selectedWorkspaceFile);
   const downloadWorkspaceFile = (entry: WorkspaceEntry) => act(async () => {
@@ -208,7 +225,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       </section>
       {runs.data?.history_notice && <p role="status" className="my-3 rounded border border-border-medium p-3 text-sm">{runs.data.history_notice}</p>}
       <form className="mb-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); void act(async () => {
-        const value = await request.post<RunRow>(`${BASE}/runs`, { operation_id: operationId }); setSelectedRun(value.id); setOperationId('');
+        await request.post<RunRow>(`${BASE}/runs`, { operation_id: operationId }); setOperationId('');
       }); }}><Input aria-label="Operation ID" placeholder="op-… (Serverless job ID)" value={operationId} onChange={(event) => setOperationId(event.target.value)} /><Button type="submit" disabled={!enabled || !operationId || busy}>Add run</Button></form>
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>App / run</th><th>Status</th><th>Elapsed</th><th>Submitted</th><th>Actions</th></tr></thead><tbody>{(runs.data?.data || []).map((run) => {
         const display = runDisplay(run);
@@ -216,14 +233,19 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
           <td className="pr-3">{display.status}{display.description && <p className="text-xs text-text-secondary">{display.description}</p>}{run.operation?.error_code && <p className="max-w-xs text-xs">{run.operation.error_code}: {run.operation.error_detail || 'See details'}</p>}{(run.operation?.attempt || 0) > 1 && <p className="text-xs">Attempt {run.operation?.attempt} / {run.operation?.max_attempts || '—'}</p>}<ScientificProgressView progress={run.operation?.progress} /></td>
           <td className="pr-3">{elapsed(run.accepted_at, run.completed_at, !display.terminal)}{display.showComputeTiming && <><p className="text-xs text-text-secondary">Wait {elapsed(run.accepted_at, run.started_at, !display.terminal && !run.started_at)}</p>{run.operation?.cold_start_seconds !== undefined && run.operation.cold_start_seconds !== null && <p className="text-xs text-text-secondary">{display.readyTimingLabel} {run.operation.cold_start_seconds.toFixed(1)}s</p>}</>}</td>
           <td className="pr-3">{run.accepted_at ? new Date(run.accepted_at).toLocaleString() : 'Unknown'}</td><td><div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { const value = await request.get(`${BASE}/runs/${run.id}`); setSelectedRun(run.id); setRunResult(JSON.stringify(value, null, 2)); })}>Details</Button>
-            {display.showResult && <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { const value = await request.get(`${BASE}/runs/${run.id}/result`); setSelectedRun(run.id); setRunResult(JSON.stringify(value, null, 2)); })}>Result</Button>}
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => void inspectRun(run.id, 'Details')}>Details</Button>
+            {display.showResult && <Button size="sm" variant="outline" disabled={busy} onClick={() => void inspectRun(run.id, 'Result')}>Result</Button>}
             {!display.terminal && <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { await request.post(`${BASE}/runs/${run.id}/cancel`); })}>Cancel</Button>}
           </div></td></tr>;
       })}</tbody></table></div>
       {enabled && !runs.isLoading && !runs.error && !(runs.data?.data.length) && <p role="status" className="my-4">No runs on this page yet.</p>}
       <div className="mt-4 flex gap-2"><Button variant="outline" disabled={runPages.length < 2} onClick={() => setRunPages((pages) => pages.slice(0, -1))}>Newer runs</Button><Button variant="outline" disabled={!runs.data?.next_cursor} onClick={() => { if (runs.data?.next_cursor) setRunPages((pages) => [...pages, runs.data!.next_cursor!]); }}>Older runs</Button></div>
-      {selectedRun && runResult && <section className="mt-4 rounded-xl border border-border-medium p-4"><h3 className="font-semibold">Result · {selectedRun}</h3><pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap text-xs">{runResult}</pre></section>}
+      {inspection && <section ref={inspectionPanel} tabIndex={-1} aria-labelledby="run-inspection-title" aria-busy={inspection.loading} className="mt-4 rounded-xl border border-border-medium p-4">
+        <h3 id="run-inspection-title" className="font-semibold">{inspection.view} · {inspection.id}</h3>
+        {inspection.loading && <p role="status">Loading {inspection.view.toLowerCase()}…</p>}
+        {inspection.error && <p role="alert">{inspection.error}</p>}
+        {inspection.data && <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">{inspection.data}</pre>}
+      </section>}
     </section>}
     {tab === 'workspace' && <section>
       <h2 className="text-xl font-semibold">Workspace</h2><p className="my-2 text-sm text-text-secondary">Files in the bucket mounted for this deployment. Model inputs should be uploaded as immutable platform artifacts before a run.</p>
