@@ -45,6 +45,23 @@ test('reopening during a status outage retains receipt identity and time without
   } finally { global.fetch = original; }
 });
 
+test('malformed status cannot overwrite the last valid observation', async () => {
+  const service = await setup, original = global.fetch;
+  const id = 'op-malformed-status';
+  try {
+    global.fetch = async () => Response.json({ id, status: 'running' });
+    const first = await service.track('status-owner', 'status-key', id);
+    for (const status of [undefined, null, '', {}, 0]) {
+      global.fetch = async () => Response.json({ id, status });
+      await assert.rejects(service.track('status-owner', 'status-key', id), error => error.status === 502);
+      global.fetch = async () => { throw new Error('offline'); };
+      const saved = await service.track('status-owner', 'status-key', id, { source: 'panel' });
+      assert.equal(saved.status, 'running');
+      assert.equal(saved.updated_at, first.updated_at);
+    }
+  } finally { global.fetch = original; }
+});
+
 test('batch result retrieval retries independently and binds named downloads to the verified manifest', async () => {
   const service = await setup, original = global.fetch, calls = [];
   const id = 'op-flow-results', manifestId = crypto.randomUUID(), resultId = crypto.randomUUID(), maskId = crypto.randomUUID();
