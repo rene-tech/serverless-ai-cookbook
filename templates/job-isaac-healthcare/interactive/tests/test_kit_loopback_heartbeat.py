@@ -105,7 +105,8 @@ def test_fixed_kit_connection_does_not_timeout_a_non_pong_peer(role):
     asyncio.run(run())
 
 
-def test_native_deadline_still_stops_and_releases_the_same_process(monkeypatch):
+@pytest.mark.parametrize("stop", ["deadline", "cancel"])
+def test_native_lifecycle_still_stops_and_releases_the_same_process(monkeypatch, stop):
     app, _, payload, state = chain()
     with TestClient(app) as client:
         with client.websocket_connect(
@@ -118,7 +119,10 @@ def test_native_deadline_still_stops_and_releases_the_same_process(monkeypatch):
             socket.send_json({"type": "viewer.attach", "peer_id": "private-peer", "signaling": signaling()})
             assert socket.receive_json()["type"] == "viewer.attached"
             assert state.kit_connections[0][1]["ping_interval"] is None
-            monkeypatch.setattr(native, "time", SimpleNamespace(time=lambda: payload["deadline_at"] + 1))
+            if stop == "deadline":
+                monkeypatch.setattr(native, "time", SimpleNamespace(time=lambda: payload["deadline_at"] + 1))
+            else:
+                state.cancel_requested = True
             receipt = socket.receive_json()
             assert receipt["type"] == "isaac.session.execution" and receipt["code"] == "session_cancelled"
             end = time.monotonic() + 2
