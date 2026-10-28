@@ -195,6 +195,9 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       <p className="my-2 text-sm text-text-secondary">Use your ordinary Scientific AI key. It controls which Apps and runs this account can access.</p>
       <form onSubmit={(event) => { event.preventDefault(); void act(async () => {
         await request.put(`${BASE}/settings`, { api_key: apiKey }); setApiKey('');
+        inspectionRequest.current += 1;
+        setInspection(null); setRunPages(['']); setParams({ tab });
+        await cache.resetQueries(['scientific-demos']);
         await request.post('/api/mcp/scientific-demos/reinitialize').catch(() => undefined);
       }); }} className="flex gap-2"><Input aria-label="Scientific AI API key" type="password" autoComplete="off" value={apiKey} onChange={(event) => setApiKey(event.target.value)} /><Button type="submit" disabled={busy || !apiKey}>Save key</Button></form>
     </details>
