@@ -11,14 +11,19 @@ from pathlib import Path
 
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import JSONResponse, FileResponse
+from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket
 from websockets.asyncio.client import connect
 
 from .contract import authenticate, turn_credentials
 from .process import SessionProcess
-from .signaling import kit_signaling_path, parse_signaling_query
+from .signaling import (
+    HANDOFF_CLOSE_CODE,
+    SignalingPeer,
+    kit_signaling_path,
+    parse_signaling_query,
+)
 
 
 class NoRedirectConnect(connect):
@@ -28,6 +33,9 @@ class NoRedirectConnect(connect):
 
 def application(config, token, *, process=None, connect_factory=NoRedirectConnect):
     process = process or SessionProcess(config)
+    peer_lock = asyncio.Lock()
+    peer = SignalingPeer(config["session_id"], config["deadline_at"],
+                         config.get("startup_timeout_seconds", config["deadline_at"] - time.time()))
 
     def authorized(request, *, signaling=False):
         if signaling:
@@ -47,6 +55,7 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
             return JSONResponse(
                 {"error": "session_authorization_required"}, status_code=403
             )
+        process.active_connection = peer.attached
         return JSONResponse(process.status(), headers={"Cache-Control": "no-store"})
 
     async def stop(request: Request):
@@ -57,6 +66,8 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                 {"error": "session_authorization_required"}, status_code=403
             )
         await process.stop("owner_stop")
+        peer.clear()
+        process.active_connection = False
         # This is a process witness only. The native lease owner releases after
         # independently observing cleanup; this endpoint grants no release.
         return JSONResponse(process.status(), headers={"Cache-Control": "no-store"})
@@ -109,11 +120,26 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
         except PermissionError:
             await socket.close(code=1008)
             return
-        if process.active_connection or process.state != "signaling":
+        reconnect = handshake.get("reconnect") == "1"
+        if process.state != "signaling" or (peer_lock.locked() and not (reconnect and peer.matches(handshake))):
             await socket.close(code=1013)
             return
-        process.active_connection = True
         try:
+            async with asyncio.timeout(max(0, min(peer.startup_timeout_s, config["deadline_at"] - time.time()))):
+                await peer_lock.acquire()
+        except TimeoutError:
+            await socket.close(code=1013)
+            return
+        close_code = 1000
+        begun = False
+        try:
+            try:
+                peer.begin(handshake)
+            except PermissionError:
+                await socket.close(code=1008)
+                return
+            begun = True
+            process.active_connection = True
             # Fixed loopback target, no redirect, URL input, arbitrary path or
             # credential forwarding to Kit. Video remains real WebRTC media.
             async with connect_factory(
@@ -124,12 +150,16 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                 max_queue=2,
                 open_timeout=10,
             ) as upstream:
+                peer.connected()
                 await socket.accept(subprotocol=upstream.subprotocol)
 
                 async def browser_to_kit():
+                    nonlocal close_code
                     while True:
                         event = await socket.receive()
                         if event["type"] == "websocket.disconnect":
+                            if event.get("code") == HANDOFF_CLOSE_CODE:
+                                close_code = HANDOFF_CLOSE_CODE
                             return
                         await upstream.send(
                             event.get("bytes")
@@ -153,14 +183,28 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                     done, _ = await asyncio.wait(
                         tasks, return_when=asyncio.FIRST_COMPLETED
                     )
+                    if tasks[1] in done:
+                        # An independently completed Kit reader is a genuine
+                        # transport end, not the browser's handoff authority.
+                        close_code = 1000
                     for task in done:
                         task.result()
                 finally:
                     for task in tasks:
                         task.cancel()
                     await asyncio.gather(*tasks, return_exceptions=True)
+                if close_code == HANDOFF_CLOSE_CODE:
+                    # Join the reader before private4001 makes it raise. Only
+                    # the actual browser close selected this handoff path.
+                    await upstream.close(code=HANDOFF_CLOSE_CODE)
+        except BaseException:
+            close_code = 1000
+            raise
         finally:
-            process.active_connection = False
+            if begun:
+                peer.closed(close_code)
+            process.active_connection = peer.attached
+            peer_lock.release()
             # A new authenticated viewer reuses this same process/session.
             # Explicit stop or the existing native deadline ends the process.
 

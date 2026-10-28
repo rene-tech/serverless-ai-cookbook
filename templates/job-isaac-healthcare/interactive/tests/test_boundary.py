@@ -145,7 +145,7 @@ def test_viewer_disconnect_keeps_same_native_tunnel_for_reconnect():
         signaling = {"peer_id": "ordinary-sdk-peer", "version": "2", "peer_role": "1",
                      "pairing_id": "ses-0123456789abcdef"}
         t = Tunnel(
-            {"session_id": "ses-0123456789abcdef", "startup_timeout_s": 1},
+            {"session_id": "ses-0123456789abcdef", "startup_timeout_s": 1, "deadline_at": time.time() + 60},
             "wss://native.test",
         )
         t.upstream = Upstream()
@@ -308,7 +308,7 @@ def test_actual_native_protocol_reconnect_then_owner_cancel_joins_before_release
             )
             assert ws.receive_json()["data"] == "ordinary-signaling"
             ws.send_json({"type": "viewer.detach", "peer_id": "first"})
-            assert ws.receive_json()["peer_id"] == "first"
+            # Cancelling our own reader is no longer emitted as a Kit failure.
             ws.send_json({"type": "viewer.attach", "peer_id": "second", "signaling": {
                 "peer_id": "sdk-second", "version": "2", "peer_role": "1", "pairing_id": sid}})
             assert ws.receive_json() == {"type": "viewer.attached", "peer_id": "second"}

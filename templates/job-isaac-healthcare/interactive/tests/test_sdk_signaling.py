@@ -31,12 +31,16 @@ class Echo:
     def __init__(self, protocol):
         self.subprotocol = protocol
         self.queue = asyncio.Queue()
+        self.close_codes = []
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, *args):
         pass
+
+    async def close(self, code=1000):
+        self.close_codes.append(code)
 
     async def send(self, data):
         await self.queue.put(data)
@@ -45,16 +49,22 @@ class Echo:
         return self
 
     async def __anext__(self):
-        return await self.queue.get()
+        value = await self.queue.get()
+        if isinstance(value, BaseException):
+            raise value
+        return value
 
 
 class Factory:
     def __init__(self):
         self.calls = []
+        self.peers = []
 
     def __call__(self, url, **kwargs):
         self.calls.append((url, kwargs))
-        return Echo(kwargs["subprotocols"][0])
+        peer = Echo(kwargs["subprotocols"][0])
+        self.peers.append(peer)
+        return peer
 
 
 def portable_fixture():

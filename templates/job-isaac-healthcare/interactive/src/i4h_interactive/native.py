@@ -8,13 +8,13 @@ account before attach. A forged public header cannot attach a different Pod.
 from __future__ import annotations
 
 import asyncio
-import contextlib
-import os
 import base64
-import json
+import contextlib
 import hashlib
 import hmac
+import json
 import logging
+import os
 import threading
 import time
 from datetime import datetime
@@ -30,7 +30,12 @@ from websockets.asyncio.client import connect
 
 from .contract import SESSION
 from .process import SessionProcess
-from .signaling import kit_signaling_path, validate_signaling
+from .signaling import (
+    HANDOFF_CLOSE_CODE,
+    SignalingPeer,
+    kit_signaling_path,
+    validate_signaling,
+)
 
 
 class NoRedirectConnect(connect):
@@ -288,18 +293,24 @@ def application(
                     }
                 )
                 kit, forward, peer_id = None, None, None
+                peer_state = SignalingPeer(sid, deadline, config.get("startup_timeout_seconds", deadline - time.time()))
 
-                async def detach():
+                async def detach(close_code=1000):
                     nonlocal kit, forward
                     if forward is not None:
                         forward.cancel()
                         await asyncio.gather(forward, return_exceptions=True)
                         forward = None
                     if kit is not None:
-                        await kit.close()
+                        if close_code == HANDOFF_CLOSE_CODE:
+                            await kit.close(code=HANDOFF_CLOSE_CODE)
+                        else:
+                            await kit.close()
                         kit = None
+                    peer_state.closed(close_code)
 
                 async def outbound(peer, identity):
+                    cancelled = False
                     try:
                         async for data in peer:
                             binary = isinstance(data, bytes)
@@ -313,14 +324,17 @@ def application(
                                     else data,
                                 }
                             )
+                    except asyncio.CancelledError:
+                        cancelled = True
+                        raise
                     finally:
-                        await socket.send_json(
-                            {
-                                "type": "viewer.error",
-                                "peer_id": identity,
-                                "code": "kit_viewer_closed",
-                            }
-                        )
+                        # Our own transport handoff/drain cancels this reader.
+                        # It is not an independent Kit failure for the next peer.
+                        if not cancelled:
+                            await socket.send_json(
+                                {"type": "viewer.error", "peer_id": identity,
+                                 "code": "kit_viewer_closed"}
+                            )
 
                 try:
                     while True:
@@ -343,7 +357,12 @@ def application(
                                     }
                                 )
                                 continue
-                            peer_id = frame["peer_id"]
+                            reconnect = signaling.get("reconnect") == "1"
+                            if reconnect and frame["peer_id"] != peer_id:
+                                raise PermissionError("SDK handoff changed its private peer")
+                            peer_state.begin(signaling)
+                            if not reconnect:
+                                peer_id = frame["peer_id"]
                             kit = await connect_factory(
                                 f"ws://127.0.0.1:{config['signal_port']}"
                                 + kit_signaling_path(signaling, sid),
@@ -353,6 +372,7 @@ def application(
                                 max_queue=2,
                                 open_timeout=10,
                             )
+                            peer_state.connected()
                             await socket.send_json(
                                 {"type": "viewer.attached", "peer_id": peer_id}
                             )
@@ -360,7 +380,12 @@ def application(
                         elif (
                             kind == "viewer.detach" and frame.get("peer_id") == peer_id
                         ):
-                            await detach()
+                            if set(frame) not in ({"type", "peer_id"}, {"type", "peer_id", "close_code"}):
+                                raise ValueError("invalid viewer detach fields")
+                            close_code = frame.get("close_code", 1000)
+                            if type(close_code) is not int or close_code not in (1000, HANDOFF_CLOSE_CODE):
+                                raise ValueError("invalid viewer close code")
+                            await detach(close_code)
                             # Keep the same Kit process and native lease alive.
                         elif (
                             kind == "viewer.data"

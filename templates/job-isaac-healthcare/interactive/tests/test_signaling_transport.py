@@ -41,7 +41,7 @@ def chain():
     deadline = datetime.fromisoformat(stamp).timestamp()
     owner = {"tenant": "tenant-one", "owner": "owner-one", "model": model}
     target = {"cluster": "north", "variant": None, "id": model, "image": image, "gpu_class": None}
-    state = SimpleNamespace(native_connections=[], kit_connections=[], processes=[], attaches=[], releases=[], frames=[])
+    state = SimpleNamespace(native_connections=[], kit_connections=[], processes=[], attaches=[], releases=[], frames=[], kit_close_codes=[], cancel_requested=False, kit_peers=[])
 
     class API:
         # This boundary has no method for allocating/admitting another session.
@@ -52,7 +52,7 @@ def chain():
 
         async def watch(self, sid, actual_owner):
             assert sid == SID and actual_owner == owner
-            return {"deadline_at": stamp, "cancel_requested": False}
+            return {"deadline_at": stamp, "cancel_requested": state.cancel_requested}
 
         async def release(self, sid, connection, outcome):
             assert (sid, connection) == (SID, "existing-native-connection")
@@ -79,6 +79,7 @@ def chain():
     class Kit:
         def __init__(self):
             self.queue = asyncio.Queue()
+            state.kit_peers.append(self)
 
         def __aiter__(self):
             return self
@@ -92,7 +93,8 @@ def chain():
         async def send(self, data):
             await self.queue.put(data)
 
-        async def close(self):
+        async def close(self, code=1000):
+            state.kit_close_codes.append(code)
             await self.queue.put(None)
 
     async def kit_connect(uri, **options):

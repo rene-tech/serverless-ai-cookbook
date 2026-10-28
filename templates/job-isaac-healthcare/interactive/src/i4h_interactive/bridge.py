@@ -27,7 +27,13 @@ from starlette.routing import Route, WebSocketRoute
 from websockets.asyncio.client import connect
 
 from .contract import SESSION
-from .signaling import SIGNALING_HEADER, parse_signaling_header, validate_signaling
+from .signaling import (
+    HANDOFF_CLOSE_CODE,
+    SIGNALING_HEADER,
+    SignalingPeer,
+    parse_signaling_header,
+    validate_signaling,
+)
 
 
 class NoRedirectConnect(connect):
@@ -45,6 +51,7 @@ class Tunnel:
         self.state, self.upstream, self.viewer = "connecting", None, None
         self.ready = asyncio.Event()
         self.peer_lock = asyncio.Lock()
+        self.peer = SignalingPeer(value["session_id"], value["deadline_at"], value["startup_timeout_s"])
         self.error = None
         self.execution = None
         self.peer_id = None
@@ -138,93 +145,114 @@ class Tunnel:
                         {"type": "viewer.error", "code": "native_transport_ended"}
                     )
             self.upstream = None
+            self.peer.clear()
+            self.media = None
             # Drop the single-use claim after the connection lifetime.
             self.value.pop("claim", None)
 
+    def viewer_attached(self):
+        attached = self.peer.attached
+        if not attached:
+            self.media = None
+        return attached
+
     async def attach(self, socket, signaling):
         signaling = validate_signaling(signaling, self.value["session_id"])
-        if self.peer_lock.locked():
+        reconnect = signaling.get("reconnect") == "1"
+        # The SDK worker may connect before the first socket's 4001 has reached
+        # us. Only that exact logical peer can wait for its transport to drain.
+        if self.peer_lock.locked() and not (reconnect and self.peer.matches(signaling)):
             await socket.close(code=1013)
             return
-        async with self.peer_lock:
+        remaining = min(self.value["startup_timeout_s"], self.value["deadline_at"] - time.time())
+        try:
+            async with asyncio.timeout(max(0, remaining)):
+                await self.peer_lock.acquire()
+        except TimeoutError:
+            await socket.close(code=1013)
+            return
+        try:
             await self.ready.wait()
             if self.state != "ready":
                 await socket.close(code=1011)
                 return
+            try:
+                self.peer.begin(signaling)
+            except PermissionError:
+                await socket.close(code=1008)
+                return
             queue = asyncio.Queue(maxsize=2)
             self.viewer = queue
-            self.peer_id = secrets.token_hex(16)
-            self.media = None
+            if not reconnect:
+                self.peer_id = secrets.token_hex(16)
+                self.media = None
             pumps = []
+            close_code = 1000
             try:
                 await self.upstream.send(
                     json.dumps({"type": "viewer.attach", "peer_id": self.peer_id,
                                 "signaling": signaling})
                 )
-                ack = await asyncio.wait_for(
-                    queue.get(), self.value["startup_timeout_s"]
-                )
+                ack = await asyncio.wait_for(queue.get(), remaining)
                 if ack.get("type") != "viewer.attached":
                     raise ValueError("viewer attachment failed")
-                await socket.accept(
-                    subprotocol="x-nv-sessionid." + self.value["session_id"]
-                )
+                self.peer.connected()
+                await socket.accept(subprotocol="x-nv-sessionid." + self.value["session_id"])
 
                 async def inbound():
+                    nonlocal close_code
                     while True:
                         event = await socket.receive()
                         if event["type"] == "websocket.disconnect":
+                            if event.get("code") == HANDOFF_CLOSE_CODE:
+                                close_code = HANDOFF_CLOSE_CODE
                             return
                         binary = event.get("bytes") is not None
-                        data = (
-                            base64.b64encode(event["bytes"]).decode()
-                            if binary
-                            else event["text"]
-                        )
-                        await self.upstream.send(
-                            json.dumps(
-                                {
-                                    "type": "viewer.data",
-                                    "peer_id": self.peer_id,
-                                    "binary": binary,
-                                    "data": data,
-                                }
-                            )
-                        )
+                        data = base64.b64encode(event["bytes"]).decode() if binary else event["text"]
+                        await self.upstream.send(json.dumps({
+                            "type": "viewer.data", "peer_id": self.peer_id,
+                            "binary": binary, "data": data,
+                        }))
 
                 async def outbound():
                     while True:
                         frame = await queue.get()
                         if frame.get("type") == "viewer.error":
+                            await socket.close(code=1011)
                             return
                         if frame.get("type") != "viewer.data":
                             continue
-                        await (
-                            socket.send_bytes(
-                                base64.b64decode(frame["data"], validate=True)
-                            )
-                            if frame["binary"]
-                            else socket.send_text(frame["data"])
-                        )
+                        await (socket.send_bytes(base64.b64decode(frame["data"], validate=True))
+                               if frame["binary"] else socket.send_text(frame["data"]))
 
-                pumps = [
-                    asyncio.create_task(inbound()),
-                    asyncio.create_task(outbound()),
-                ]
+                pumps = [asyncio.create_task(inbound()), asyncio.create_task(outbound())]
                 done, _ = await asyncio.wait(pumps, return_when=asyncio.FIRST_COMPLETED)
+                # A Kit failure concurrent with a browser close is a failed
+                # transport, never authority to retain a handoff.
+                if pumps[1] in done:
+                    close_code = 1000
                 for task in done:
                     task.result()
+            except BaseException:
+                close_code = 1000
+                raise
             finally:
                 for task in pumps:
                     task.cancel()
                 await asyncio.gather(*pumps, return_exceptions=True)
                 self.viewer = None
-                self.media = None
+                self.peer.closed(close_code)
+                if not self.peer.attached:
+                    self.media = None
                 if self.upstream is not None:
-                    await self.upstream.send(
-                        json.dumps({"type": "viewer.detach", "peer_id": self.peer_id})
-                    )
-                # Deliberately keep the native tunnel and Kit process alive.
+                    await self.upstream.send(json.dumps({
+                        "type": "viewer.detach", "peer_id": self.peer_id,
+                        "close_code": close_code,
+                    }))
+                # The logical peer survives only the SDK's observed 4001
+                # handoff. Neither transport ever restarts Kit or its lease.
+        finally:
+            self.peer_lock.release()
 
 
 def application(
@@ -384,7 +412,7 @@ def application(
             {
                 "session_id": request.path_params["sid"],
                 "state": item.state,
-                "viewer_attached": item.peer_lock.locked(),
+                "viewer_attached": item.viewer_attached(),
                 "media_ready": True if item.media is not None else None,
                 "media_evidence": item.media,
                 "observed_at": time.time(),
@@ -399,7 +427,7 @@ def application(
         except PermissionError:
             return JSONResponse({"error": "unauthorized"}, status_code=403)
         item = tunnels.get(request.path_params["sid"])
-        if item is None or not item.peer_lock.locked():
+        if item is None or not item.viewer_attached():
             return JSONResponse({"error": "viewer_not_attached"}, status_code=409)
         body = await request.json()
         if (
