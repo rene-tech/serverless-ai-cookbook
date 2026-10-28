@@ -1,0 +1,72 @@
+--- a/arena/i4h_arena/runner.py
++++ b/arena/i4h_arena/runner.py
+@@ -15,6 +15,8 @@
+ from __future__ import annotations
+
+ import logging
++import signal
++import threading
+ import time
+ import uuid
+ from dataclasses import dataclass, field
+@@ -291,11 +293,23 @@
+             max_steps=self._engine_max_steps(),
+         )
+
++        # Native session shutdown signals the whole invocation process group.
++        # Defer the interrupt to the existing engine abort/recorder path: raising
++        # KeyboardInterrupt in env.step skips task teardown and end_episode.
++        self._stop_signal = None
++        handlers = {}
++        def request_stop(signum, _frame):
++            if self._stop_signal is None:
++                self._stop_signal = signum
++
++        if threading.current_thread() is threading.main_thread():
++            for signum in (signal.SIGINT, signal.SIGTERM):
++                handlers[signum] = signal.signal(signum, request_stop)
+         try:
+             episode = 0
+-            while episode < self.episodes and self.app.is_running():
++            while episode < self.episodes and self.app.is_running() and self._stop_signal is None:
+                 for attempt in range(1, self.attempts + 1):
+-                    if not self.app.is_running():
++                    if not self.app.is_running() or self._stop_signal is not None:
+                         break
+                     result = self._run_episode(engine, episode, attempt)
+                     summary.episodes.append(result)
+@@ -307,6 +321,8 @@
+             logger.info("%s", summary.render())
+             return summary
+         finally:
++            for signum, handler in handlers.items():
++                signal.signal(signum, handler)
+             for window in self._sensor_windows:
+                 window.close()
+             _ACTIVE_RUNNER = None
+@@ -357,7 +373,7 @@
+         reset_by: tuple[str, ...] | None = None
+         #: Cleared by such a reset: every later frame belongs to another episode.
+         recording = True
+-        while not engine.status.is_terminal and self.app.is_running():
++        while not engine.status.is_terminal and self.app.is_running() and getattr(self, "_stop_signal", None) is None:
+             engine.tick(ctx)
+             if ctx.consume_scene_reset():
+                 self._reset_active_scene(engine, ctx)
+@@ -438,11 +454,12 @@
+                 self.publisher.publish(self._view, node=active[0] if active else "", episode_index=episode)
+
+         if not engine.status.is_terminal:
+-            # Only a closed simulator stops the loop above with the workflow
+-            # still running. Finish it, so the attempt is reported and recorded
++            # A closed simulator or an owner signal stops an active workflow. Finish it, so the attempt is reported and recorded
+             # (``--record-failures``) as aborted rather than as still running.
+-            logger.info("Isaac Sim was closed during episode %s attempt %s; ending it", episode, attempt)
+-            engine.abort(ctx, detail="Isaac Sim was closed")
++            signum = getattr(self, "_stop_signal", None)
++            detail = f"received {signal.Signals(signum).name}" if signum is not None else "Isaac Sim was closed"
++            logger.info("%s during episode %s attempt %s; ending it", detail, episode, attempt)
++            engine.abort(ctx, detail=detail)
+         result = EpisodeResult(
+             index=episode,
+             attempt=attempt,

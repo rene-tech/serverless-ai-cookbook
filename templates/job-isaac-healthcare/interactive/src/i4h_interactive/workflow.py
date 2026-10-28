@@ -44,6 +44,7 @@ def run(spec):
         kit_arguments=spec["kit_arguments"],
     )
     entered = False
+    group_interrupted = False
     try:
         argv, env = manager.__enter__()
         entered = True
@@ -55,10 +56,18 @@ def run(spec):
         )
         exit_code = child.wait()
         return exit_code
+    except KeyboardInterrupt:
+        # The native process owner interrupts our entire process group. Kit has
+        # received the same SIGINT and must be allowed to close its writers;
+        # forwarding another signal here can interrupt that close halfway.
+        group_interrupted = True
+        exit_code = 130
+        return exit_code
     finally:
         if child is not None:
             if child.poll() is None:
-                child.send_signal(signal.SIGINT)
+                if not group_interrupted:
+                    child.send_signal(signal.SIGINT)
                 try:
                     child.wait(timeout=spec["stop_grace_seconds"])
                 except subprocess.TimeoutExpired:

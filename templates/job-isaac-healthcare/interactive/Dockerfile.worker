@@ -10,7 +10,12 @@ RUN uv venv --python /opt/i4h/arena/.venv/bin/python /opt/i4h/interactive/.venv 
     && uv pip install --python /opt/i4h/interactive/.venv/bin/python --require-hashes -r requirements.lock -r build-requirements.lock
 COPY pyproject.toml ./
 COPY src ./src
+COPY patches ./patches
+COPY scripts ./scripts
+RUN /opt/i4h/arena/.venv/bin/python -I -B /opt/interactive/scripts/apply_graceful_runtime.py
 RUN uv pip install --python /opt/i4h/interactive/.venv/bin/python --no-deps --no-build-isolation .
+RUN /opt/i4h/arena/.venv/bin/python -I -B /opt/interactive/scripts/verify_graceful_runtime.py \
+    && /opt/i4h/interactive/.venv/bin/python -I -B /opt/interactive/scripts/verify_graceful_runtime.py --transport
 COPY ${WORKER_CONFIG} /opt/interactive/worker.json
 USER 0:0
 # The trusted entrypoint self-drops capabilities to CHOWN/SETUID/SETGID/KILL,
