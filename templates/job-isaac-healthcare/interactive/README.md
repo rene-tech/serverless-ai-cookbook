@@ -31,6 +31,22 @@ The operator supplies a session JSON with `session_id`, `media_host`,
 (Unix seconds), `startup_timeout_seconds`, `stop_grace_seconds`, and
 `network_mode` (`authenticated-private-network` or `turn-relay`). TURN mode also
 requires `turn_url`, e.g. `turns:turn.example.org:443?transport=tcp`.
+Build the viewer from this same pinned recipe revision and retain its manifest:
+
+```sh
+python3 browser/build_artifact.py --output /work/isaac-viewer-artifact
+```
+
+This runs the locked npm install, TypeScript check and fresh Vite build, then
+creates a new artifact with complete source/file hashes. Mount its `dist/`
+read-only at `/opt/isaac-viewer` in the interactive container. Add
+`"viewer_dist": "/opt/isaac-viewer"` to the session settings before preparation;
+the generated configuration retains that value. The ordinary server uses these
+exact files for `/` and `/assets/`. Without `viewer_dist`, it exposes the
+authenticated transport endpoints but does not serve the browser. Use the
+matching interactive runtime containing `i4h_interactive.server`; the separate
+finite batch image does not contain this interactive extension.
+
 The final command is generated, not supplied by the browser:
 
 ```sh
@@ -83,8 +99,8 @@ the documented replacement for host networking.
 
 ## Browser and authenticated TURN
 
-`browser/` pins NVIDIA `@nvidia/ov-web-rtc` 6.7.0. Run `npm ci`, `npm run check`,
-and `npm run build`; serve `dist` only on the authenticated session's HTTPS
+`browser/` pins NVIDIA `@nvidia/ov-web-rtc` 6.7.0. The artifact command above runs
+`npm ci`, `npm run check`, and `npm run build`; serve its verified `dist` only on the authenticated session's HTTPS
 origin. A standalone viewer opened at `<session>/viewer/` reads its descriptor
 with the HttpOnly session cookie. An embedded viewer accepts a descriptor only
 from its same-origin opener/parent. Nothing stores API keys in browser storage.
