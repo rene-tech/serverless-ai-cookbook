@@ -423,18 +423,19 @@ async function operationResult(key, operationId) {
   if (resultOperation && typeof resultOperation === 'object') normalizedOperation(resultEnvelope, operationId);
   const result = resultOperation && typeof resultOperation === 'object' ? resultEnvelope.result : resultEnvelope;
   if (result?.schema !== 'fs2-serve.nebius.ai/operation-artifact-result/v1') {
-    const workspace_file = await retainResult(key, operationId, Buffer.from(JSON.stringify(result)));
-    if (result?.schema === 'fs2-serve.nebius.ai/scientific-run-result/v2' && result.output_manifest) {
+    if (result?.schema === 'fs2-serve.nebius.ai/scientific-run-result/v2') {
       const entries = await outputEntries(key, operationId, result);
       const reported = entries.find(item => item.name === 'result' && item.artifact?.media_type === 'application/json');
       const summary = reported && reported.artifact.compression === 'none' && reported.artifact.size_bytes <= 8 * 1024 * 1024
         ? summarizeResult(await verifiedJson(key, reported.artifact)) : summarizeResult(result);
+      const workspace_file = await retainResult(key, operationId, Buffer.from(JSON.stringify(result)));
       return { operation, result: { ...summarizeResult(result), summary }, workspace_file,
         artifacts: entries.filter(item => RUN_ID.test(item.artifact?.artifact_id || '')).map(item => ({
           name: item.name, size_bytes: item.artifact.size_bytes, media_type: item.artifact.media_type,
           download_url: `/api/scientific-demos/runs/${operationId}/artifacts/${item.artifact.artifact_id}`,
         })) };
     }
+    const workspace_file = await retainResult(key, operationId, Buffer.from(JSON.stringify(result)));
     return { operation, result: summarizeResult(result), workspace_file };
   }
   const artifact = result.artifact || {};

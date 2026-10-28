@@ -70,18 +70,27 @@ test('batch result retrieval retries independently and binds named downloads to 
     sha256: crypto.createHash('sha256').update(data).digest('hex'), compression: 'none', media_type });
   const manifest = Buffer.from(JSON.stringify({ schema: 'fs2-serve.nebius.ai/scientific-artifact-manifest/v1', manifest_id: id,
     entries: [{ name: 'result', artifact: reference(resultId, bytes) }, { name: 'segmentation', artifact: reference(maskId, Buffer.from('mask'), 'application/x-nifti') }] }));
-  let unavailable = true;
+  let unavailable = true, resultOperation = 'op-wrong-result', includeManifest = true;
   global.fetch = async (url, options) => {
     calls.push([String(url), options.method || 'GET']);
     if (String(url).endsWith('/result')) return Response.json({ schema: 'fs2-serve.nebius.ai/scientific-run-result/v2',
-      operation_id: id, terminal_status: 'succeeded', output_manifest: reference(manifestId, manifest) });
+      operation_id: resultOperation, terminal_status: 'succeeded', ...(includeManifest ? { output_manifest: reference(manifestId, manifest) } : {}) });
     if (String(url).includes(manifestId)) return new Response(manifest);
     if (String(url).includes(resultId)) { if (unavailable) throw new Error('download interrupted'); return new Response(bytes); }
     if (String(url).includes(maskId)) return new Response('mask');
     return Response.json({ id, status: 'succeeded', result_available: true });
   };
   try {
+    await assert.rejects(service.operationResult('flow-key', id), /another operation/);
+    await assert.rejects(fs.access(path.join(process.env.SCIENTIFIC_WORKSPACE, '.scientific-runs', id, 'result.json')),
+      error => error.code === 'ENOENT', 'rejected output must not occupy the saved result path');
+    resultOperation = id;
+    includeManifest = false;
+    await assert.rejects(service.operationResult('flow-key', id), /cannot be safely inspected/);
+    includeManifest = true;
     await assert.rejects(service.operationResult('flow-key', id), /download interrupted/i);
+    await assert.rejects(fs.access(path.join(process.env.SCIENTIFIC_WORKSPACE, '.scientific-runs', id, 'result.json')),
+      error => error.code === 'ENOENT');
     unavailable = false;
     const output = await service.operationResult('flow-key', id);
     assert.deepEqual(output.result.summary.validation.geometry.shape, [512, 512, 38]);
