@@ -295,10 +295,14 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
           {inspection.data.workspace_file?.workspace_url?.startsWith('/demos?') && <Link className="block underline" to={inspection.data.workspace_file.workspace_url}>Complete result JSON</Link>}
           {(inspection.data.artifacts || []).filter(artifact => artifact.download_url.startsWith(`${BASE}/runs/${encodeURIComponent(inspection.id)}/artifacts/`)).map(artifact =>
             <button key={artifact.download_url} className="block underline" disabled={busy} onClick={async () => {
+              const currentRequest = inspectionRequest.current;
               setBusy(true);
-              try { await downloadFile(artifact.download_url, artifact.name); setInspection(current => current && { ...current, error: undefined }); }
-              catch (problem) { setInspection(current => current && { ...current, error: errorText(problem as Error) }); }
-              finally { setBusy(false); }
+              try {
+                await downloadFile(artifact.download_url, artifact.name);
+                if (currentRequest === inspectionRequest.current) setInspection(current => current && { ...current, error: undefined });
+              } catch (problem) {
+                if (currentRequest === inspectionRequest.current) setInspection(current => current && { ...current, error: errorText(problem as Error) });
+              } finally { if (currentRequest === inspectionRequest.current) setBusy(false); }
             }}>{artifact.name} · {artifact.size_bytes.toLocaleString()} bytes</button>)}
           <details className="mt-3"><summary>Technical details · full response</summary><pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(inspection.data, null, 2)}</pre></details>
         </>}
