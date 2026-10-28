@@ -30,6 +30,8 @@ for name, target in {
     'patch-skill-result.mjs': '/opt/hcls-librechat/patch-skill-result.mjs',
     'scientific-tool-options.cjs': '/opt/hcls-librechat/scientific-tool-options.cjs',
     'render-config.mjs': '/opt/hcls-librechat/render-config.mjs',
+    'scientific-provider-routing.cjs': '/opt/hcls-librechat/scientific-provider-routing.cjs',
+    'entrypoint.sh': '/usr/local/bin/hcls-librechat-entrypoint',
     'native_md_report.py': '/opt/bionemo/report-native-md.py',
     'demos/service.cjs': '/opt/hcls-librechat/demos/service.cjs',
     'demos/analysis.cjs': '/opt/hcls-librechat/demos/analysis.cjs',

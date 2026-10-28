@@ -80,6 +80,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends zstd plink1.9 f
  && zstd --version && ffprobe -version \
  && rm -rf /var/lib/apt/lists/*
 COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
+COPY templates/hcls-librechat/scientific-provider-routing.cjs /opt/hcls-librechat/scientific-provider-routing.cjs
 COPY templates/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/scientific-tool-options.cjs
 COPY templates/hcls-librechat/scientific-completion.cjs /opt/hcls-librechat/scientific-completion.cjs
 COPY templates/hcls-librechat/scientific-study-admission.cjs /opt/hcls-librechat/scientific-study-admission.cjs

@@ -32,6 +32,8 @@
 !templates/hcls-librechat/seed-workbench.js
 !templates/hcls-librechat/scientific-tool-options.cjs
 !templates/hcls-librechat/render-config.mjs
+!templates/hcls-librechat/scientific-provider-routing.cjs
+!templates/hcls-librechat/entrypoint.sh
 !templates/hcls-librechat/profiles/
 !templates/hcls-librechat/profiles/cancer-immunology.md
 !templates/hcls-librechat/patch-report-preview.mjs

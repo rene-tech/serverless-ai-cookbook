@@ -1,4 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
+const providerRouting = process.env.SCIENTIFIC_CHAT_BASE_URL
+  ? (await import('./scientific-provider-routing.cjs')).default.settings(process.env) : null;
+const catalogBaseURL = providerRouting?.catalog || 'https://api.tokenfactory.nebius.com/v1';
 
 const outputPath = process.argv[2];
 if (!outputPath) throw new Error('Expected the output config path');
@@ -57,7 +60,8 @@ const tokenFactoryContext = new Map([
 ]);
 
 const makeTokenConfig = (models) => Object.fromEntries(models.map(([id]) => [id, {
-  prompt: 0, completion: 0, context: tokenFactoryContext.get(id) ?? 131072,
+  prompt: 0, completion: 0, context: (id === process.env.SCIENTIFIC_CHAT_MODEL && process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS)
+    ? Number(process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS) : tokenFactoryContext.get(id) ?? 131072,
 }]));
 
 let availablePublicTokenModels = publicTokenFactoryModels;
@@ -69,7 +73,7 @@ const configuredChatModel = process.env.SCIENTIFIC_CHAT_MODEL || 'moonshotai/Kim
 if (process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY !== 'user_provided'
     && process.env.SCIENTIFIC_DISCOVER_CHAT_MODELS !== 'false') {
   try {
-    const response = await fetch('https://api.tokenfactory.nebius.com/v1/models', {
+    const response = await fetch(catalogBaseURL + '/models', {
       headers: { Authorization: `Bearer ${process.env.NEBIUS_API_KEY}` },
       signal: AbortSignal.timeout(10000),
     });
@@ -77,6 +81,15 @@ if (process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY !== 'user_provided'
     const catalog = await response.json();
     const ids = new Set(catalog.data.map((item) => item.id));
     discoveredPublicTokenIds = ids;
+    if (providerRouting && providerRouting.primary !== catalogBaseURL) {
+      const primary = await fetch(providerRouting.primary + '/models', {
+        headers: { Authorization: `Bearer ${process.env.NEBIUS_API_KEY}` }, signal: AbortSignal.timeout(10000),
+      });
+      if (!primary.ok) throw new Error('Primary model discovery unavailable');
+      const primaryCatalog = await primary.json();
+      if (!primaryCatalog.data.some((item) => item.id === configuredChatModel)) throw new Error('Primary model absent');
+      ids.add(configuredChatModel);
+    }
     const available = publicTokenFactoryModels.filter(([id]) => ids.has(id));
     availablePublicTokenModels = available;
   } catch {
@@ -170,7 +183,7 @@ const config = {
       name: 'Nebius Token Factory',
       iconURL: '/assets/token-factory.svg',
       apiKey: process.env.NEBIUS_API_KEY ? '${NEBIUS_API_KEY}' : 'user_provided',
-      baseURL: 'https://api.tokenfactory.nebius.com/v1',
+      baseURL: providerRouting?.primary || catalogBaseURL,
       models: { default: availablePublicTokenModels.map(([id]) => id), fetch: false },
       tokenConfig: makeTokenConfig(availablePublicTokenModels),
       titleConvo: true, titleModel: configuredChatModel,

@@ -1,0 +1,9 @@
+# syntax=docker/dockerfile:1.7
+# Opt-in routing over the qualified workbench; defaults remain unchanged.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:90a385ca32b36d128135184245860baf77705a30b60846b7ff5aeaccea09d31d
+FROM ${WORKBENCH_BASE}
+USER root
+COPY templates/hcls-librechat/scientific-provider-routing.cjs templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/
+COPY --chmod=0755 templates/hcls-librechat/entrypoint.sh /usr/local/bin/hcls-librechat-entrypoint
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL ai.nebius.scientific.provider-routing.revision="${HCLS_IMAGE_REVISION}"

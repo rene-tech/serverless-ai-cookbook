@@ -32,6 +32,11 @@ set -a
 . "$RUNTIME_SECRETS"
 set +a
 
+if [ -n "${SCIENTIFIC_CHAT_BASE_URL:-}" ]; then
+  NODE_OPTIONS="${NODE_OPTIONS:-} --require=/opt/hcls-librechat/scientific-provider-routing.cjs"
+  export NODE_OPTIONS
+fi
+
 node /opt/hcls-librechat/render-config.mjs "$CONFIG_PATH"
 
 mongod \
