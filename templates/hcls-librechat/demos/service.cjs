@@ -133,7 +133,45 @@ async function platformBytes(key, resource) {
       headers: { Authorization: `Bearer ${key}` } });
   } catch { throw failure('Artifact download interrupted. Retry the same result lookup; do not resubmit compute.', 503); }
   if (!response.ok) throw failure(`Platform artifact returned HTTP ${response.status}`, response.status);
-  return Buffer.from(await response.arrayBuffer());
+  const chunks = []; let size = 0;
+  for await (const chunk of response.body) {
+    size += chunk.length;
+    if (size > 8 * 1024 * 1024) throw failure('Result metadata exceeds the 8 MiB inspection limit. Use the original artifact download.', 413);
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+async function verifiedJson(key, artifact) {
+  if (!RUN_ID.test(artifact?.artifact_id || '') || artifact.compression !== 'none'
+      || !Number.isSafeInteger(artifact.size_bytes) || artifact.size_bytes < 1 || artifact.size_bytes > 8 * 1024 * 1024
+      || !/^[a-f0-9]{64}$/.test(artifact.sha256 || '')) throw failure('Result metadata cannot be safely inspected. Retrieve the original outputs.', 422);
+  const bytes = await platformBytes(key, `/v1/artifacts/${artifact.artifact_id}/content`);
+  if (bytes.length !== artifact.size_bytes || hash(bytes) !== artifact.sha256) throw failure('Result artifact failed size or SHA-256 verification.', 502);
+  try { return JSON.parse(bytes.toString('utf8')); }
+  catch { throw failure('Result metadata is not valid JSON.', 502); }
+}
+
+async function outputEntries(key, operationId, result) {
+  if (result.operation_id !== operationId) throw failure('Result belongs to another operation.', 502);
+  const manifest = await verifiedJson(key, result.output_manifest);
+  if (manifest.schema !== 'fs2-serve.nebius.ai/scientific-artifact-manifest/v1' || !Array.isArray(manifest.entries)
+      || (manifest.manifest_id && manifest.manifest_id !== operationId)) {
+    throw failure('Output manifest is invalid.', 502);
+  }
+  return manifest.entries;
+}
+
+async function operationArtifact(key, operationId, artifactId) {
+  if (!OPERATION_ID.test(operationId) || !RUN_ID.test(artifactId)) throw failure('Invalid output identity.');
+  const result = await platform(key, 'GET', `/v1/operations/${operationId}/result`);
+  const entries = await outputEntries(key, operationId, result);
+  const entry = entries.find(item => item.artifact?.artifact_id === artifactId);
+  if (!entry) throw failure('This artifact is not in the operation output manifest.', 404);
+  const response = await fetch(`${PLATFORM}/v1/artifacts/${artifactId}/content`, { redirect: 'error',
+    headers: { Authorization: `Bearer ${privateKey(key)}` }, signal: AbortSignal.timeout(120000) });
+  if (!response.ok) throw failure('Output download failed. Retrieve outputs again; do not rerun compute.', response.status);
+  return { response, name: String(entry.name).replace(/[^A-Za-z0-9._-]/g, '_') };
 }
 
 const USE_CASE_ORDER = [
@@ -331,7 +369,9 @@ function summarizeResult(value, depth = 0) {
     return value.map((item) => summarizeResult(item, depth + 1));
   }
   if (typeof value === 'object') return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [key, summarizeResult(item, depth + 1)]),
+    Object.entries(value).map(([key, item]) => [key,
+      ['shape', 'spacing'].includes(key) && Array.isArray(item) && item.length <= 4 && item.every(Number.isFinite)
+        ? item : summarizeResult(item, depth + 1)]),
   );
   return String(value);
 }
@@ -380,6 +420,17 @@ async function operationResult(key, operationId) {
   const result = resultOperation && typeof resultOperation === 'object' ? resultEnvelope.result : resultEnvelope;
   if (result?.schema !== 'fs2-serve.nebius.ai/operation-artifact-result/v1') {
     const workspace_file = await retainResult(key, operationId, Buffer.from(JSON.stringify(result)));
+    if (result?.schema === 'fs2-serve.nebius.ai/scientific-run-result/v2' && result.output_manifest) {
+      const entries = await outputEntries(key, operationId, result);
+      const reported = entries.find(item => item.name === 'result' && item.artifact?.media_type === 'application/json');
+      const summary = reported && reported.artifact.compression === 'none' && reported.artifact.size_bytes <= 8 * 1024 * 1024
+        ? summarizeResult(await verifiedJson(key, reported.artifact)) : summarizeResult(result);
+      return { operation, result: { ...summarizeResult(result), summary }, workspace_file,
+        artifacts: entries.filter(item => RUN_ID.test(item.artifact?.artifact_id || '')).map(item => ({
+          name: item.name, size_bytes: item.artifact.size_bytes, media_type: item.artifact.media_type,
+          download_url: `/api/scientific-demos/runs/${operationId}/artifacts/${item.artifact.artifact_id}`,
+        })) };
+    }
     return { operation, result: summarizeResult(result), workspace_file };
   }
   const artifact = result.artifact || {};
@@ -442,9 +493,14 @@ function runEntry(operation, previous = {}, metadata = {}) {
 }
 async function track(owner, key, operationId, metadata = {}, timeoutMs = 45000) {
   if (!OPERATION_ID.test(operationId || '')) throw failure('Supply the native operation ID returned by submission.');
-  const current = await platform(key, 'GET', `/v1/operations/${operationId}`, undefined, undefined, timeoutMs);
-  const operation = normalizedOperation(current, operationId);
   const existing = await optionalRead(path.join(runDirectory(owner, key), operationId + '.json'), {});
+  let current;
+  try { current = await platform(key, 'GET', `/v1/operations/${operationId}`, undefined, undefined, timeoutMs); }
+  catch (error) {
+    if (error.status < 500 || !existing.id || metadata.source !== 'panel') throw error;
+    return { ...existing, refresh_error: error.message };
+  }
+  const operation = normalizedOperation(current, operationId);
   const entry = runEntry({ ...operation, ...(current.progress ? { progress: current.progress } : {}) }, existing, metadata);
   await saveRun(owner, key, entry);
   return entry;
@@ -480,14 +536,21 @@ async function runs(owner, key, { cursor, limit = 50 } = {}) {
     throw failure('Invalid operation history page.');
   }
   const existing = await tracked(owner, key);
-  const history = await platform(key, 'GET', `/v1/operations?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`);
+  let history;
+  try { history = await platform(key, 'GET', `/v1/operations?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`); }
+  catch (error) {
+    if (error.status < 500 || !existing.data.length) throw error;
+    return { data: existing.data.map(entry => ({ ...entry, refresh_error: error.message })),
+      history_available: false, history_notice: 'Status fetch failed. Showing saved operations, not a current history page. Compute may still be running; refresh status to reconnect.' };
+  }
   if (!Array.isArray(history.data)) throw failure('Platform operation history has an invalid response.', 502);
   const byId = new Map(existing.data.map((item) => [item.id, item]));
-  return { data: history.data.map((row) => {
+  const data = history.data.map((row) => {
     const operation = normalizedOperation(row);
     return runEntry(operation, byId.get(operation.id), { source: 'platform' });
-  }),
-    next_cursor: history.next_cursor || null, history_available: true };
+  });
+  await Promise.all(data.map(entry => saveRun(owner, key, entry)));
+  return { data, next_cursor: history.next_cursor || null, history_available: true };
 }
 async function studies(key, action = 'list', outputDirectory) {
   privateKey(key);
@@ -727,5 +790,5 @@ async function analyzeWorkspace(kind, key, args) {
     : kind === 'docking-batch' ? analysis.dockingBatch(key, args, { workspaceGet, retainWorkspaceBytes })
     : analysis.compare(kind, key, args, { workspaceGet, retainWorkspaceBytes });
 }
-module.exports = { platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
+module.exports = { platform, listApps, operationResult, operationArtifact, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
   workspacePut, workspaceGet, workspacePreview, save, read, failure, publicError, customerOperation, customerProgress, customerCatalogItem, FILES, REPORT_MODEL };

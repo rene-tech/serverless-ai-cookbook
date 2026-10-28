@@ -8,6 +8,23 @@ const source = ts.transpileModule(fs.readFileSync(`${__dirname}/run-display.ts`,
 }).outputText;
 const exported = {};
 vm.runInNewContext(source, { exports: exported });
+test('admission uncertainty outranks validation and never promises rejection or restart', () => {
+  assert.match(exported.studyNotice({ state: 'needs_attention', operation_admission: 'unknown',
+    failure: { type: 'SourcePreflightError' } }), /may be running.*do not submit again/);
+  assert.match(exported.studyNotice({ state: 'failed', failure: { type: 'SourcePreflightError' } }), /validation failed/);
+  assert.match(exported.studyNotice({ state: 'failed', failure: { message: 'Input selector is invalid; no upload was submitted.' } }), /validation failed/);
+  assert.equal(exported.runDisplay({ protocol: 'scientific-batch-v1', status: 'queued' }).description, 'Accepted; execution has not started');
+  assert.equal(exported.runDisplay({ status: 'failed', operation: { result_available: true } }).showResult, true);
+});
+test('reported dimensions, zero counts and false outcomes are readable without fabricated values', () => {
+  const facts = exported.resultFacts({ validation: { geometry: { shape: [512, 512, 38], spacing: [0.74, 0.74, 5] }, foreground_voxels: 0 },
+    task_complete: false, episodes: [{ outcome: { success: false } }], runtime_metrics: { frames_completed: 0 }, files: { secret: {} }, sha256: 'technical-only' });
+  assert.ok(facts.some(item => item.value === '512 × 512 × 38'));
+  assert.ok(facts.some(item => item.label === 'task complete' && item.value === 'false'));
+  assert.ok(facts.some(item => item.label.endsWith('foreground voxels') && item.value === '0'));
+  assert.ok(facts.some(item => item.label === 'episodes [1] · outcome · success' && item.value === 'false'));
+  assert.ok(!JSON.stringify(facts).includes('technical-only'));
+});
 test('artifact reservations are not displayed or cancelled as model jobs', () => {
   const ui = fs.readFileSync(`${__dirname}/Demos.tsx`, 'utf8');
   assert.doesNotMatch(ui, /Cancel upload|display\.upload/);
@@ -30,7 +47,8 @@ test('batch orchestration does not masquerade as admitted GPU execution', () => 
       assert.equal(terminal.status, status);
       assert.equal(terminal.terminal, true);
       assert.equal(terminal.showComputeTiming, false);
-      assert.equal(terminal.description, '');
+      if (status === 'failed') assert.match(terminal.description, /Execution failed.*diagnostic outputs/);
+      else assert.equal(terminal.description, '');
     }
   }
 });

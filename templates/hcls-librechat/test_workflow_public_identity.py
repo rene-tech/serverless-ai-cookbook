@@ -72,6 +72,17 @@ def test_native_jobs_are_same_ids_without_a_root_alias(mounted):
     assert record['id'] not in json.dumps(multiple)
 
 
+def test_admission_reason_preserves_backend_explanation_without_execution_internals(mounted):
+    record = studies.submit(plan(), mounted / 'waiting')
+    record.update(current_step='report', state='waiting_admission', steps={'report': {
+        'state': 'waiting_admission', 'error': {'code': 'capacity', 'message': 'Queue is full',
+            'retry_after_seconds': 30, 'durable_admission': False, 'private_backend': 'excluded'}}})
+    public = view.public_workflow(record)
+    assert public['admission_reason'] == {'code': 'capacity', 'message': 'Queue is full',
+        'retry_after_seconds': 30, 'durable_admission': False}
+    assert public['operations'] == [] and public['operation_admission'] == 'not_admitted'
+
+
 def test_existing_record_is_observed_without_rewriting_or_relaunching(mounted, monkeypatch):
     internal = studies.submit(plan(), mounted / 'run')
     path = studies.directory(internal['id']) / 'receipt.json'

@@ -3,6 +3,8 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('node:fs/promises');
 const os = require('node:os');
+const { Readable } = require('node:stream');
+const { pipeline } = require('node:stream/promises');
 const { requireJwtAuth } = require('~/server/middleware');
 const { getUserPluginAuthValue, updateUserPluginAuth } = require('~/server/services/PluginService');
 const service = require('/opt/hcls-librechat/demos/service.cjs');
@@ -49,6 +51,11 @@ router.post('/runs', wrap(async (req, res) => res.status(201).json(await service
 }))));
 router.get('/runs/:id', wrap(async (req, res) => res.json(await service.track(req.user.id, await key(req), req.params.id, { source: 'panel' }))));
 router.get('/runs/:id/result', wrap(async (req, res) => res.json(await service.operationResult(await key(req), req.params.id))));
+router.get('/runs/:id/artifacts/:artifact', wrap(async (req, res) => {
+  const { response, name } = await service.operationArtifact(await key(req), req.params.id, req.params.artifact);
+  res.set('X-Content-Type-Options', 'nosniff').type('application/octet-stream').attachment(name);
+  await pipeline(Readable.fromWeb(response.body), res);
+}));
 router.post('/runs/:id/cancel', wrap(async (req, res) => res.json(await service.platform(await key(req), 'POST', `/v1/operations/${req.params.id}:cancel`))));
 router.get('/studies', wrap(async (req, res) => res.json(await service.studies(await key(req)))));
 router.get('/studies/status', wrap(async (req, res) => res.json(await service.studies(await key(req), 'status', req.query.output_directory))));
@@ -98,7 +105,8 @@ router.post('/workshop/runs', wrap(async (req, res) => res.status(202).json(awai
 router.get('/workshop/runs/:id', wrap(async (req, res) => res.json(await service.platform(await key(req), 'GET', `/v1/workshop/runs/${req.params.id}`))));
 router.get('/workshop/runs/:id/report', wrap(async (req, res) => res.json(await service.platform(await key(req), 'GET', `/v1/workshop/runs/${req.params.id}/report`))));
 router.post('/workshop/runs/:id/interventions', wrap(async (req, res) => res.json(await service.platform(await key(req), 'POST', `/v1/workshop/runs/${req.params.id}/interventions`, req.body))));
-router.use((error, _req, res, _next) => {
+router.use((error, _req, res, next) => {
+  if (res.headersSent) return next(error);
   const status = error.code === 'LIMIT_FILE_SIZE' ? 413 : error.status || 500;
   res.status(status).json(service.publicError(Object.assign(error, { status })));
 });
