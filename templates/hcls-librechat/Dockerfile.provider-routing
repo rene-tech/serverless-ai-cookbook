@@ -3,7 +3,9 @@
 ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:90a385ca32b36d128135184245860baf77705a30b60846b7ff5aeaccea09d31d
 FROM ${WORKBENCH_BASE}
 USER root
-COPY templates/hcls-librechat/scientific-provider-routing.cjs templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/
-COPY --chmod=0755 templates/hcls-librechat/entrypoint.sh /usr/local/bin/hcls-librechat-entrypoint
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/routing,ro \
+    cp /tmp/routing/scientific-provider-routing.cjs /tmp/routing/render-config.mjs /opt/hcls-librechat/ \
+ && cp /tmp/routing/entrypoint.sh /usr/local/bin/hcls-librechat-entrypoint \
+ && chmod 0755 /usr/local/bin/hcls-librechat-entrypoint
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL ai.nebius.scientific.provider-routing.revision="${HCLS_IMAGE_REVISION}"
