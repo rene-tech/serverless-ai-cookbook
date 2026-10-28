@@ -108,14 +108,15 @@ if (configuredChatModel) {
     if (!discoveredPublicTokenIds?.has(configuredChatModel)) {
       throw new Error('The configured chat model is not in the curated catalog and live discovery could not verify it');
     }
-    availablePublicTokenModels = [...availablePublicTokenModels, [configuredChatModel, configuredChatModel]];
+    availablePublicTokenModels = [...availablePublicTokenModels,
+      [configuredChatModel, process.env.SCIENTIFIC_CHAT_MODEL_LABEL || configuredChatModel]];
   }
 }
 
 // The reusable client has no event-owned endpoints. A stale environment flag
 // must not resurrect retired model IDs when an existing instance is upgraded.
 const providerModels = [
-  { endpoint: 'Nebius Token Factory', group: 'Public Token Factory', models: availablePublicTokenModels },
+  { endpoint: 'Nebius Token Factory', group: providerRouting ? 'Token Factory' : 'Public Token Factory', models: availablePublicTokenModels },
   { endpoint: 'openAI', group: 'OpenAI', models: [
     ['gpt-6-astra', 'GPT-6 Astra'], ['gpt-5.6', 'GPT-5.6 Sol'],
     ['gpt-5.6-terra', 'GPT-5.6 Terra'], ['gpt-5.6-luna', 'GPT-5.6 Luna'],
@@ -133,7 +134,7 @@ const modelSpecs = providerModels.flatMap(({ endpoint, group, models }) => model
     iconURL: endpoint === 'anthropic' || endpoint === 'openAI' ? endpoint : '/assets/token-factory.svg',
     default: false, showOnLanding: false, showIconInHeader: true, hideBadgeRow: true,
     description: endpoint === 'Nebius Token Factory'
-        ? 'Public Token Factory · scientific tools and web research'
+        ? `${providerRouting ? 'Token Factory' : 'Public Token Factory'} · scientific tools and web research`
         : 'Scientific tools · connect your provider key',
     mcpServers: ['scientific-ai-apps', 'scientific-demos', 'tavily', 'structure-viewer', 'environment-execution'], skills: true, artifacts: true,
     preset: { endpoint, model, modelLabel: label, promptPrefix: instructions,
@@ -187,7 +188,7 @@ const config = {
       models: { default: availablePublicTokenModels.map(([id]) => id), fetch: false },
       tokenConfig: makeTokenConfig(availablePublicTokenModels),
       titleConvo: true, titleModel: configuredChatModel,
-      modelDisplayLabel: 'Nebius Public', dropParams: ['stop'],
+      modelDisplayLabel: providerRouting ? 'Nebius Token Factory' : 'Nebius Public', dropParams: ['stop'],
     }],
   },
   modelSpecs: { prioritize: true, enforce: false, list: modelSpecs },

@@ -45,6 +45,7 @@ def test_explicit_regional_routing_preserves_public_selections_and_context(tmp_p
     model = 'provider/regional-planning-model'
     config, _ = render_config(tmp_path, catalog={'data': [{'id': model}, {'id': DEFAULT_CHAT_MODEL}]},
                              SCIENTIFIC_CHAT_MODEL=model,
+                             SCIENTIFIC_CHAT_MODEL_LABEL='Regional planning model',
                              SCIENTIFIC_CHAT_BASE_URL='https://regional.example/v1',
                              SCIENTIFIC_CHAT_FALLBACK_MODEL=DEFAULT_CHAT_MODEL,
                              SCIENTIFIC_CHAT_FALLBACK_BASE_URL='https://public.example/v1',
@@ -53,6 +54,9 @@ def test_explicit_regional_routing_preserves_public_selections_and_context(tmp_p
     assert provider['baseURL'] == 'https://regional.example/v1'
     assert set(provider['models']['default']) == {model, DEFAULT_CHAT_MODEL}
     assert provider['tokenConfig'][model]['context'] == 1024000
+    selected = next(item for item in config['modelSpecs']['list'] if item.get('preset', {}).get('model') == model)
+    assert selected['label'] == 'Regional planning model'
+    assert selected['group'] == 'Token Factory'
     assert config['endpoints']['agents']['maxRecursionLimit'] == 50
 
 
