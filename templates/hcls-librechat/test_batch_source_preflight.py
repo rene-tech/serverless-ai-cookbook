@@ -235,3 +235,37 @@ def test_named_entries_use_the_explicit_role_and_preserve_parameters():
     args.semantic_type = 'wrong/v1'
     with pytest.raises(batch.SourcePreflightError, match='semantic_type must be'):
         batch.preflight_source(policy, parameters, args, 96)
+
+
+@pytest.mark.parametrize('raw', [b'{broken', b'{"scenarios":[]}', b'{"scenarios":[{"seed":-1}]}'])
+def test_published_json_source_errors_stop_before_upload(tmp_path, monkeypatch, raw):
+    args, calls = install_mock_context(tmp_path, monkeypatch, 'none')
+    args.entry_name, args.media_type, args.semantic_type = 'scenarios', 'application/json', 'scenario/v1'
+    args.source.write_bytes(raw)
+    policy = {'input_artifact_contract': {
+        'entries': [{'name': 'scenarios', 'media_type': 'application/json', 'compression': 'none', 'semantic_type': 'scenario/v1'}],
+        'scenarios_schema': {'type': 'object', 'required': ['scenarios'], 'properties': {
+            'scenarios': {'type': 'array', 'minItems': 1, 'items': {'type': 'object', 'required': ['name'],
+                'properties': {'name': {'type': 'string'}, 'seed': {'type': 'integer', 'minimum': 0}}}}}}}}
+    monkeypatch.setitem(globals(), 'contract', lambda *a: policy)
+    with pytest.raises(batch.SourcePreflightError):
+        asyncio.run(batch.run(args))
+    assert calls == ['get_model_schema']
+    assert args.source.read_bytes() == raw
+
+
+def test_json_preflight_resolves_contract_references_and_rejects_changed_files(tmp_path):
+    raw = b'{"name":"retained scenario"}'
+    path = tmp_path / 'scenario.json'
+    path.write_bytes(raw)
+    source = batch.FileSource(path)
+    policy = {'input_artifact_contract': {'entry': {'name': 'scenarios'},
+        '$defs': {'scenario': {'type': 'object', 'required': ['name']}},
+        'scenarios_schema': {'$ref': '#/$defs/scenario'}}}
+    args = argparse.Namespace(operation='simulate', entry_name='scenarios',
+        semantic_type='scenario/v1', media_type='application/json', compression='none')
+    batch.preflight_source(policy, {}, args, len(source), source)
+    assert path.read_bytes() == raw
+    path.write_bytes(b'{"name":"modified scenario"}')
+    with pytest.raises(batch.SourcePreflightError, match='Input changed'):
+        batch.preflight_source(policy, {}, args, len(source), source)

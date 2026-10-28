@@ -6,7 +6,7 @@ import { Button, Input } from '@librechat/client';
 import { request } from 'librechat-data-provider';
 import { compareBatch, comparisonCsv } from './scientific-comparison';
 import type { WorkshopRun as Run } from './scientific-comparison';
-import { runDisplay, studyDisplay, scientificProgressDisplay } from './scientific-run-display';
+import { runDisplay, studyDisplay, studyNotice, resultFacts, scientificProgressDisplay } from './scientific-run-display';
 import type { ScientificProgress } from './scientific-run-display';
 import GettingStarted from './ScientificGettingStarted';
 
@@ -18,16 +18,20 @@ type AppRow = { id: string; native?: { display_name?: string; enabled?: boolean;
   scientific?: { display_name?: string; operations?: string[]; service_classes?: string[]; mcp_tool_name?: string;
     mcp_tool_description?: string; runtime?: { state?: string } } };
 type RunRow = { id: string; model_id?: string; protocol?: string; status?: string; label?: string; source?: string;
-  first_seen_at: string; accepted_at?: string; started_at?: string; completed_at?: string; refresh_error?: string;
+  first_seen_at: string; updated_at?: string; accepted_at?: string; started_at?: string; completed_at?: string; refresh_error?: string;
   operation?: { protocol?: string; error_code?: string; error_detail?: string; result_available?: boolean; accepted_at?: string;
     activation_started_at?: string; ready_at?: string; started_at?: string; completed_at?: string;
     cold_start_seconds?: number; attempt?: number; max_attempts?: number; progress?: ScientificProgress } };
 type RunPage = { data: RunRow[]; next_cursor?: string; history_available?: boolean; history_notice?: string };
+type RunInspection = { operation?: { status?: string }; result?: { summary?: unknown };
+  refresh_error?: string; updated_at?: string; workspace_file?: { workspace_url?: string };
+  artifacts?: { name: string; download_url: string; size_bytes: number }[] };
 type Study = { output_directory: string; title: string; state: string; phase: string; current_step?: string;
   operation_admission?: string;
+  admission_reason?: { code?: string; message?: string; retry_after_seconds?: number };
   operations: { step_id: string; operation_id: string; state?: string }[];
   completed_steps: string[]; step_count: number; queue_blocked?: boolean;
-  created_at: number; finished_at?: number; failure?: { message: string };
+  created_at: number; updated_at?: number; finished_at?: number; failure?: { type?: string; message: string };
   artifacts?: { name: string; role: string; path: string; size_bytes: number; sha256: string; download_url: string }[];
   completion_summaries?: CompletionSummary[];
   model_progress?: { study_step_id: string; operation_id: string; progress: ScientificProgress }[] };
@@ -36,8 +40,9 @@ type CompletionSummary = { source_step: string; state: string; text?: string; no
 
 export function ScientificProgressView({ progress }: { progress?: ScientificProgress }) {
   const display = scientificProgressDisplay(progress);
-  if (!display) return null;
+  if (!display) return <p className="text-xs">Scientific progress is unavailable; this does not mean zero.</p>;
   return <section aria-label="Measured scientific progress" className="my-2 rounded border border-border-light p-2 text-xs">
+    <p>Current operation stage: {display.currentStep || 'unavailable'}</p>
     {!display.available && <p role="status">Scientific progress is not measured yet. Unknown does not mean zero.</p>}
     {display.rows.map((row, index) => <div key={`${row.id}-${index}`} className="my-2">
       <p><strong>{row.id}</strong> · {row.state}</p>
@@ -121,8 +126,10 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
   const [busy, setBusy] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [operationId, setOperationId] = useState('');
-  const [inspection, setInspection] = useState<{ id: string; view: 'Details' | 'Result'; loading: boolean; data?: string; error?: string } | null>(null);
+  const [inspection, setInspection] = useState<{ id: string; view: 'Details' | 'Result'; loading: boolean;
+    data?: RunInspection; error?: string; updatedAt?: number } | null>(null);
   const inspectionPanel = useRef<HTMLElement>(null);
+  const inspectionRequest = useRef(0);
   useEffect(() => {
     if (tab !== 'runs' || !inspection) return;
     inspectionPanel.current?.focus({ preventScroll: true });
@@ -136,6 +143,12 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
   const [copied, setCopied] = useState('');
   const settings = useQuery(['scientific-demos', 'settings'], () => request.get<{ configured: boolean }>(`${BASE}/settings`));
   const enabled = settings.data?.configured === true;
+  const selectedOperation = params.get('operation');
+  const selectedView = params.get('view') === 'result' ? 'Result' : 'Details';
+  useEffect(() => {
+    if (enabled && tab === 'runs' && selectedOperation &&
+        (inspection?.id !== selectedOperation || inspection?.view !== selectedView)) void inspectRun(selectedOperation, selectedView);
+  }, [enabled, tab, selectedOperation, selectedView]);
   const apps = useQuery(['scientific-demos', 'apps'], () => request.get<{ data: AppRow[] }>(`${BASE}/apps`), { enabled: enabled && tab === 'apps', retry: false });
   const runCursor = runPages[runPages.length - 1];
   const runs = useQuery(['scientific-demos', 'runs', runCursor], () => request.get<RunPage>(`${BASE}/runs${runCursor ? `?cursor=${encodeURIComponent(runCursor)}` : ''}`), { enabled: enabled && tab === 'runs', retry: false, refetchInterval: tab === 'runs' ? 5000 : false });
@@ -148,23 +161,33 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
     finally { setBusy(false); }
   }
   async function inspectRun(id: string, view: 'Details' | 'Result') {
+    const currentRequest = ++inspectionRequest.current;
     setBusy(true);
-    setInspection({ id, view, loading: true });
+    const previous = inspection?.id === id && inspection.view === view ? inspection : undefined;
+    setInspection({ ...previous, id, view, loading: true, error: undefined });
+    setParams({ tab: 'runs', operation: id, view: view.toLowerCase() });
     try {
-      const value = await request.get(`${BASE}/runs/${id}${view === 'Result' ? '/result' : ''}`);
-      setInspection({ id, view, loading: false, data: JSON.stringify(value, null, 2) });
+      const value = await request.get<RunInspection>(`${BASE}/runs/${encodeURIComponent(id)}${view === 'Result' ? '/result' : ''}`);
+      if (currentRequest !== inspectionRequest.current) return;
+      setInspection({ id, view, loading: false, data: value, error: value.refresh_error,
+        updatedAt: view === 'Details' && value.updated_at ? Date.parse(value.updated_at) : Date.now() });
     } catch (problem) {
-      setInspection({ id, view, loading: false, error: errorText(problem as Error) });
+      if (currentRequest === inspectionRequest.current) setInspection({ ...previous, id, view, loading: false, error: errorText(problem as Error) });
     } finally {
-      setBusy(false);
+      if (currentRequest === inspectionRequest.current) setBusy(false);
     }
+  }
+  async function downloadFile(url: string, name: string) {
+    const response = await request.getResponse<Blob>(url, { responseType: 'blob' });
+    download(name, response.data, response.headers['content-type'] || 'application/octet-stream');
   }
   const selectedEntry = workspace.data?.data.find((entry) => entry.kind === 'file' && entry.path === selectedWorkspaceFile);
   const downloadWorkspaceFile = (entry: WorkspaceEntry) => act(async () => {
-    const response = await request.getResponse<Blob>(`${BASE}/workspace/file?path=${encodeURIComponent(entry.path)}`, { responseType: 'blob' });
-    download(entry.name, response.data, response.headers['content-type'] || 'application/octet-stream');
+    try {
+      await downloadFile(`${BASE}/workspace/file?path=${encodeURIComponent(entry.path)}`, entry.name);
+    } catch (problem) { throw new Error(`Output retrieval failed. Download this file again; compute is unchanged. ${errorText(problem as Error)}`); }
   });
-  const sessionError = [settings.error, apps.error, runs.error, studies.error, workspace.error].find(Boolean);
+  const sessionError = [settings.error, apps.error, workspace.error].find(Boolean);
   return <main className="mx-auto h-full w-full max-w-6xl overflow-y-auto p-4 text-text-primary sm:p-8">
     <WorkbenchHeader tab={tab} choose={choose} />
     <details open={!enabled} className="mb-5 rounded-xl border border-border-medium p-4">
@@ -187,7 +210,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
           <p className="mt-3 text-sm">{app.scientific?.mcp_tool_description || 'Inspect the live schema before submitting data.'}</p>
           <p className="mt-2 text-xs text-text-secondary">{operations.length ? operations.join(' · ') : 'Native inference'}</p>
           <div className="mt-3 flex gap-2"><Button size="sm" variant="outline" onClick={async () => {
-            const prompt = `I want to use the Scientific AI App ${app.id}. Discover its live schema, explain the required input and evaluation limits, and do not submit compute until I confirm.`;
+            const prompt = `I want to use the Scientific AI App ${app.id}. Discover its live input and parameter contracts. Identify my input file, explain supported parameters and scientific limits, and validate before upload where possible. Preserve my settings. Do not submit compute until I confirm a new run. If a saved receipt exists, recover its operation before considering submission; keep unknown acknowledgement explicit.`;
             await navigator.clipboard.writeText(prompt); setCopied(app.id);
           }}>{copied === app.id ? 'Prompt copied' : 'Copy chat prompt'}</Button></div>
         </article>;
@@ -196,6 +219,16 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
     </section>}
     {tab === 'runs' && <section>
       <h2 className="text-xl font-semibold">Runs</h2><p className="my-2 text-sm text-text-secondary">Your model operations and input uploads from chat and API appear automatically. Reconnect to follow their actual status without submitting duplicate work.</p>
+      <Button variant="outline" disabled={runs.isFetching || studies.isFetching} onClick={() => { void runs.refetch(); void studies.refetch(); }}>Refresh status</Button>
+      <Link className="ml-4 underline" to="/demos?tab=apps">Prepare a new run</Link>
+      {[{ label: 'Operations', query: runs }, { label: 'Studies', query: studies }].map(({ label, query: status }) => {
+        const updatedAt = label === 'Operations' && runs.data?.history_available === false ? 0 : status.dataUpdatedAt;
+        return <div key={label} className="my-2 text-sm">
+          {status.error && <><p role="alert">{label} status fetch failed. Showing the last known state; compute may still be running. Refresh status to reconnect.</p>
+            <details><summary>Technical details</summary>{errorText(status.error as Error)}</details></>}
+          <p>Last successful {label.toLowerCase()} update: {updatedAt ? new Date(updatedAt).toLocaleString() : 'unavailable; see saved operation timestamps'}</p>
+        </div>;
+      })}
       <section aria-label="Whole studies" className="my-5 rounded-xl border border-border-medium p-4">
         <h3 className="font-semibold">Whole studies</h3>
         <p className="my-2 text-sm text-text-secondary">Saved preparation, model work, analysis and publication continue independently of chat. Completion means the declared files were verified, not clinical or scientific validation.</p>
@@ -204,15 +237,17 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
           const display = studyDisplay(study.state);
           return <article key={study.output_directory} className="border-t border-border-light py-3">
           <div className="flex flex-wrap items-start justify-between gap-2"><div><strong>{study.title}</strong><p className="text-sm" title={`Recorded state: ${study.state}`}>{display.status} · {study.phase}{study.current_step ? ` · ${study.current_step}` : ''} · {study.completed_steps.length}/{study.step_count} phases</p>
-            {study.operations.map(operation => <p key={`${operation.step_id}-${operation.operation_id}`} className="text-xs">{operation.step_id} · Serverless job <code>{operation.operation_id}</code></p>)}
+            {study.operations.map(operation => <p key={`${operation.step_id}-${operation.operation_id}`} className="text-xs">{operation.step_id} · Operation <Link className="underline" to={`/demos?tab=runs&operation=${encodeURIComponent(operation.operation_id)}`}><code>{operation.operation_id}</code></Link>{operation.state ? ` · Study step state: ${operation.state}` : ''}</p>)}
             {!study.operations.length && <p className="text-xs">{study.operation_admission === 'unknown'
               ? 'Platform admission is unconfirmed; do not resubmit.' : 'No Serverless job has been admitted.'}</p>}
           </div>
             {(!['completed', 'failed', 'cancelled', 'needs_attention'].includes(study.state) || study.queue_blocked) && <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(async () => { await request.post(`${BASE}/studies/cancel`, { output_directory: study.output_directory }); })}>Cancel remaining study</Button>}
           </div>
           {display.description && <p role="status" className="mt-2 text-sm">{display.description}</p>}
+          {studyNotice(study) && <p role="status" className="mt-2 text-sm">{studyNotice(study)}</p>}
+          <p className="text-xs">Last saved study update: {study.updated_at ? new Date(study.updated_at * 1000).toLocaleString() : 'unavailable'}</p>
           {study.queue_blocked && <p role="status" className="mt-2 text-sm">A previous admission needs inspection. Later studies are held to avoid duplicate or overlapping model work.</p>}
-          {study.failure && <p role="alert" className="mt-2 text-sm">{study.failure.message}</p>}
+          {study.failure && <details className="mt-2 text-sm"><summary>Failure reason and technical details</summary><p>{study.failure.message}</p></details>}
           {(study.model_progress || []).map((item) => <div key={`${item.study_step_id}-${item.operation_id}`}>
             <p className="mt-2 text-xs">Study phase: {item.study_step_id}</p>
             <ScientificProgressView progress={item.progress} />
@@ -225,12 +260,13 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       </section>
       {runs.data?.history_notice && <p role="status" className="my-3 rounded border border-border-medium p-3 text-sm">{runs.data.history_notice}</p>}
       <form className="mb-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); void act(async () => {
-        await request.post<RunRow>(`${BASE}/runs`, { operation_id: operationId }); setOperationId('');
-      }); }}><Input aria-label="Operation ID" placeholder="op-… (Serverless job ID)" value={operationId} onChange={(event) => setOperationId(event.target.value)} /><Button type="submit" disabled={!enabled || !operationId || busy}>Add run</Button></form>
+        const run = await request.post<RunRow>(`${BASE}/runs`, { operation_id: operationId });
+        setParams({ tab: 'runs', operation: run.id }); setOperationId('');
+      }); }}><Input aria-label="Operation ID" placeholder="op-… (Serverless job ID)" value={operationId} onChange={(event) => setOperationId(event.target.value)} /><Button type="submit" disabled={!enabled || !operationId || busy}>Reconnect</Button></form>
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>App / run</th><th>Status</th><th>Elapsed</th><th>Submitted</th><th>Actions</th></tr></thead><tbody>{(runs.data?.data || []).map((run) => {
         const display = runDisplay(run);
-        return <tr key={run.id} className="border-t border-border-light"><td className="max-w-sm py-3 pr-3"><strong>{run.model_id || 'Unknown App'}</strong>{run.label && <p className="text-xs">{run.label}</p>}<code className="text-xs">{run.id}</code>{run.refresh_error && <p className="text-xs">Refresh: {run.refresh_error}</p>}</td>
-          <td className="pr-3">{display.status}{display.description && <p className="text-xs text-text-secondary">{display.description}</p>}{run.operation?.error_code && <p className="max-w-xs text-xs">{run.operation.error_code}: {run.operation.error_detail || 'See details'}</p>}{(run.operation?.attempt || 0) > 1 && <p className="text-xs">Attempt {run.operation?.attempt} / {run.operation?.max_attempts || '—'}</p>}<ScientificProgressView progress={run.operation?.progress} /></td>
+        return <tr key={run.id} className="border-t border-border-light"><td className="max-w-sm py-3 pr-3"><strong>{run.model_id || 'Unknown App'}</strong>{run.label && <p className="text-xs">{run.label}</p>}<code className="text-xs">{run.id}</code><p className="text-xs">Last observed: {run.updated_at ? new Date(run.updated_at).toLocaleString() : 'unavailable'}</p>{run.refresh_error && <details><summary>Status refresh failed; saved state shown</summary>{run.refresh_error}</details>}</td>
+          <td className="pr-3">{display.status}{display.description && <p className="text-xs text-text-secondary">{display.description}</p>}{run.operation?.error_code && <details className="max-w-xs text-xs"><summary>Operation failure reason</summary>{run.operation.error_code}: {run.operation.error_detail || 'See details'}</details>}{(run.operation?.attempt || 0) > 1 && <p className="text-xs">Attempt {run.operation?.attempt} / {run.operation?.max_attempts || '—'}</p>}<ScientificProgressView progress={run.operation?.progress} /></td>
           <td className="pr-3">{elapsed(run.accepted_at, run.completed_at, !display.terminal)}{display.showComputeTiming && <><p className="text-xs text-text-secondary">Wait {elapsed(run.accepted_at, run.started_at, !display.terminal && !run.started_at)}</p>{run.operation?.cold_start_seconds !== undefined && run.operation.cold_start_seconds !== null && <p className="text-xs text-text-secondary">{display.readyTimingLabel} {run.operation.cold_start_seconds.toFixed(1)}s</p>}</>}</td>
           <td className="pr-3">{run.accepted_at ? new Date(run.accepted_at).toLocaleString() : 'Unknown'}</td><td><div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" disabled={busy} onClick={() => void inspectRun(run.id, 'Details')}>Details</Button>
@@ -243,8 +279,26 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       {inspection && <section ref={inspectionPanel} tabIndex={-1} aria-labelledby="run-inspection-title" aria-busy={inspection.loading} className="mt-4 rounded-xl border border-border-medium p-4">
         <h3 id="run-inspection-title" className="font-semibold">{inspection.view} · {inspection.id}</h3>
         {inspection.loading && <p role="status">Loading {inspection.view.toLowerCase()}…</p>}
-        {inspection.error && <p role="alert">{inspection.error}</p>}
-        {inspection.data && <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">{inspection.data}</pre>}
+        {inspection.updatedAt && <p className="text-xs">Last successful update: {new Date(inspection.updatedAt).toLocaleString()}</p>}
+        {inspection.error && <><p role="alert">{inspection.view === 'Result'
+          ? 'Output retrieval failed. Retrieve outputs or retry the artifact download; this does not rerun compute.'
+          : 'Status fetch failed. Last known state is retained; compute may still be running. Refresh this operation.'}</p>
+          <details><summary>Technical details</summary>{inspection.error}</details></>}
+        <Button variant="outline" disabled={busy} onClick={() => void inspectRun(inspection.id, inspection.view)}>{inspection.view === 'Result' ? 'Retrieve outputs' : 'Refresh operation'}</Button>
+        {inspection.data && <>
+          {inspection.view === 'Result' && <p>Processing state: {inspection.data.operation?.status || 'unavailable'}. Output availability is reported separately below.</p>}
+          <dl className="my-3 grid gap-x-4 gap-y-1 sm:grid-cols-2">{resultFacts(inspection.data.result?.summary || inspection.data.result || inspection.data.operation || inspection.data).map((item) =>
+            <div key={item.label}><dt className="text-xs text-text-secondary">{item.label}</dt><dd className="break-words text-sm">{item.value}</dd></div>)}</dl>
+          {inspection.data.workspace_file?.workspace_url?.startsWith('/demos?') && <Link className="block underline" to={inspection.data.workspace_file.workspace_url}>Complete result JSON</Link>}
+          {(inspection.data.artifacts || []).filter(artifact => artifact.download_url.startsWith(`${BASE}/runs/${encodeURIComponent(inspection.id)}/artifacts/`)).map(artifact =>
+            <button key={artifact.download_url} className="block underline" disabled={busy} onClick={async () => {
+              setBusy(true);
+              try { await downloadFile(artifact.download_url, artifact.name); setInspection(current => current && { ...current, error: undefined }); }
+              catch (problem) { setInspection(current => current && { ...current, error: errorText(problem as Error) }); }
+              finally { setBusy(false); }
+            }}>{artifact.name} · {artifact.size_bytes.toLocaleString()} bytes</button>)}
+          <details className="mt-3"><summary>Technical details · full response</summary><pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(inspection.data, null, 2)}</pre></details>
+        </>}
       </section>}
     </section>}
     {tab === 'workspace' && <section>

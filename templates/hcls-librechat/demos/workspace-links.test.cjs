@@ -12,7 +12,7 @@ function render(query, entries) {
     requests.push(url); return { data: 'exact bytes', headers: { 'content-type': 'text/plain' } };
   } };
   const dependencies = {
-    react: { useState: (value) => [typeof value === 'function' ? value() : value, () => {}], useEffect: () => {} },
+    react: { useState: (value) => [typeof value === 'function' ? value() : value, () => {}], useEffect: () => {}, useRef: () => ({ current: null }) },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'fragment' },
     axios: {}, 'react-router-dom': { Link: 'Link', useSearchParams: () => [params, (value) => navigation.push(value)] },
     '@tanstack/react-query': { useQueryClient: () => ({ invalidateQueries: async () => {} }),

@@ -612,7 +612,7 @@ def resolve_source_compression(contract: dict, parameters: dict, args, source: b
                       'source_signature': detected}
 
 
-def preflight_source(contract: dict, parameters: dict, args, size: int) -> None:
+def preflight_source(contract: dict, parameters: dict, args, size: int, data=None) -> None:
     """Validate a published semantic role before reserving or uploading bytes."""
     source, selection = selected_source_contract(contract, parameters, args)
     if source is None:
@@ -639,6 +639,24 @@ def preflight_source(contract: dict, parameters: dict, args, size: int) -> None:
                          '. The entry name is a semantic role, not the local filename. '
                          'The source media type describes the actual bytes, not the outer manifest. '
                          'No upload or inference was submitted.')
+    policy = contract.get('input_artifact_contract', {})
+    schema = policy.get(f'{source.get("name")}_schema')
+    if data is not None and isinstance(schema, dict) and args.media_type == 'application/json' and args.compression == 'none' and size <= 8 * 1024 * 1024:
+        if isinstance(data, FileSource):
+            with data.path.open('rb') as stream:
+                raw = stream.read(8 * 1024 * 1024 + 1)
+            if len(raw) != size or digest(raw) != data.sha256:
+                raise SourcePreflightError('Input changed during validation; no upload was submitted.')
+        else:
+            raw = data
+        try:
+            document = json.loads(raw)
+        except (ValueError, UnicodeDecodeError) as error:
+            raise SourcePreflightError('Input is not valid JSON; correct it before upload. No upload or inference was submitted.') from error
+        errors = list(Draft202012Validator(policy).evolve(schema=schema).iter_errors(document))
+        if errors:
+            details = '; '.join('/'.join(map(str, error.absolute_path)) + ': ' + error.message for error in errors[:8])
+            raise SourcePreflightError(f'Input {source["name"]} does not match its published schema: {details}. No upload or inference was submitted.')
 
 
 def source_reference(path: Path, data: bytes | FileSource, args) -> dict:
@@ -1088,7 +1106,7 @@ async def _run(args) -> dict:
                     contract = scientific_contract(discovery)
                     try:
                         args, compression = resolve_source_compression(contract, parameters, args, source)
-                        preflight_source(contract, parameters, args, len(source))
+                        preflight_source(contract, parameters, args, len(source), source)
                     except SourcePreflightError as error:
                         save(args.output / 'source-preflight-error.json', {
                             'code': 'invalid_source_metadata', 'message': str(error),

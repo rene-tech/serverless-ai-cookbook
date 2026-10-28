@@ -42,6 +42,10 @@ def public_workflow(value):
         'stopped' if result['state'] in {'failed', 'cancelled'} or value.get('cancellation_requested') else
         'blocked' if result['state'] == 'needs_attention' or value.get('queue_blocked') else 'registered')
     result['operations'] = []
+    admission = value.get('steps', {}).get(value.get('current_step'), {})
+    if admission.get('state') == 'waiting_admission' and isinstance(admission.get('error'), dict):
+        result['admission_reason'] = {key: admission['error'][key] for key in
+            ('code', 'message', 'retry_after_seconds', 'durable_admission') if key in admission['error']}
     unconfirmed_identity = False
     for step_id, step in value.get('steps', {}).items():
         candidates = ([{'operation_id': step['operation_id'], 'state': step.get('state')}]

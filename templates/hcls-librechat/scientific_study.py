@@ -858,7 +858,7 @@ async def run_model(step, record):
     consecutive = prior.get('consecutive_observation_errors', 0) + delta if observed.get('state') == 'observation_interrupted' else 0
     return {'state': state, 'files': files, 'observation_error_count': count,
             'consecutive_observation_errors': consecutive,
-            **{key: observed[key] for key in ('operation_id',) if key in observed}}
+            **{key: observed[key] for key in ('operation_id', 'error') if key in observed}}
 
 
 def publication_artifacts(plan, record):

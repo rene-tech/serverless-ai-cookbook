@@ -20,6 +20,62 @@ const setup = (async () => {
 })();
 const input = (id) => ({ filename: 'consultation.txt', bytes: Buffer.from('Synthetic consultation only.'),
   kind: 'transcript', language: 'de', idempotency_key: id });
+test('reopening during a status outage retains receipt identity and time without submitting', async () => {
+  const service = await setup, original = global.fetch, calls = [];
+  const id = 'op-flow-reconnect';
+  global.fetch = async (url, options) => {
+    calls.push(options.method);
+    return new Response(JSON.stringify({ data: [{ id, status: 'running' }] }));
+  };
+  try {
+    const first = (await service.runs('flow-owner', 'flow-key')).data[0];
+    global.fetch = async (url, options) => { calls.push(options.method); throw new Error('offline'); };
+    const reopened = await service.track('flow-owner', 'flow-key', id, { source: 'panel' });
+    assert.equal(reopened.status, 'running');
+    assert.equal(reopened.updated_at, first.updated_at);
+    assert.ok(reopened.refresh_error);
+    const history = await service.runs('flow-owner', 'flow-key');
+    assert.equal(history.history_available, false);
+    assert.equal(history.data[0].id, id);
+    assert.equal(history.data[0].updated_at, first.updated_at);
+    await assert.rejects(service.runs('other-owner', 'flow-key'));
+    global.fetch = async () => new Response('{}', { status: 403 });
+    await assert.rejects(service.track('flow-owner', 'flow-key', id, { source: 'panel' }), error => error.status === 403);
+    assert.ok(calls.every(method => method === 'GET'));
+  } finally { global.fetch = original; }
+});
+
+test('batch result retrieval retries independently and binds named downloads to the verified manifest', async () => {
+  const service = await setup, original = global.fetch, calls = [];
+  const id = 'op-flow-results', manifestId = crypto.randomUUID(), resultId = crypto.randomUUID(), maskId = crypto.randomUUID();
+  const bytes = Buffer.from(JSON.stringify({ validation: { geometry: { shape: [512, 512, 38], spacing: [0.74, 0.74, 5] }, foreground_voxels: 0 }, task_complete: false }));
+  const reference = (artifact_id, data, media_type = 'application/json') => ({ artifact_id, size_bytes: data.length,
+    sha256: crypto.createHash('sha256').update(data).digest('hex'), compression: 'none', media_type });
+  const manifest = Buffer.from(JSON.stringify({ schema: 'fs2-serve.nebius.ai/scientific-artifact-manifest/v1', manifest_id: id,
+    entries: [{ name: 'result', artifact: reference(resultId, bytes) }, { name: 'segmentation', artifact: reference(maskId, Buffer.from('mask'), 'application/x-nifti') }] }));
+  let unavailable = true;
+  global.fetch = async (url, options) => {
+    calls.push([String(url), options.method || 'GET']);
+    if (String(url).endsWith('/result')) return Response.json({ schema: 'fs2-serve.nebius.ai/scientific-run-result/v2',
+      operation_id: id, terminal_status: 'succeeded', output_manifest: reference(manifestId, manifest) });
+    if (String(url).includes(manifestId)) return new Response(manifest);
+    if (String(url).includes(resultId)) { if (unavailable) throw new Error('download interrupted'); return new Response(bytes); }
+    if (String(url).includes(maskId)) return new Response('mask');
+    return Response.json({ id, status: 'succeeded', result_available: true });
+  };
+  try {
+    await assert.rejects(service.operationResult('flow-key', id), /download interrupted/i);
+    unavailable = false;
+    const output = await service.operationResult('flow-key', id);
+    assert.deepEqual(output.result.summary.validation.geometry.shape, [512, 512, 38]);
+    assert.equal(output.result.summary.validation.foreground_voxels, 0);
+    assert.equal(output.result.summary.task_complete, false);
+    assert.equal(output.artifacts[1].download_url, `/api/scientific-demos/runs/${id}/artifacts/${maskId}`);
+    assert.equal(await (await service.operationArtifact('flow-key', id, maskId)).response.text(), 'mask');
+    await assert.rejects(service.operationArtifact('flow-key', id, crypto.randomUUID()), /not in the operation/);
+    assert.ok(calls.every(([, method]) => method === 'GET'));
+  } finally { global.fetch = original; }
+});
 async function complete(service, id) {
   for (let n = 0; n < 240; n++) {
     const value = await service.status('user-a', id);

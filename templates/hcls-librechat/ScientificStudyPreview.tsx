@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { request } from 'librechat-data-provider';
-import { scientificProgressDisplay, studyDisplay } from './scientific-run-display';
+import { scientificProgressDisplay, studyDisplay, studyNotice } from './scientific-run-display';
 import type { ScientificProgress } from './scientific-run-display';
 import WorkspaceReportPreview, { workspaceReportPath } from './WorkspaceReportPreview';
 import { workspaceCodeHref } from './WorkspaceInlineCode';
@@ -10,6 +10,8 @@ const TERMINAL = new Set(['completed', 'failed', 'cancelled', 'needs_attention']
 type Study = {
   output_directory: string; state: string; phase?: string; current_step?: string;
   operation_admission?: string;
+  admission_reason?: { code?: string; message?: string; retry_after_seconds?: number };
+  updated_at?: number; failure?: { type?: string; message?: string };
   operations?: { step_id: string; operation_id: string; state?: string }[];
   completed_steps?: string[]; step_count?: number; queue_blocked?: boolean;
   model_progress?: { study_step_id: string; operation_id: string; progress: ScientificProgress }[];
@@ -48,12 +50,13 @@ export default function ScientificStudyPreview({ href, children }: { href: strin
   return <span role="group" aria-label="Live scientific study" className="my-3 block rounded-xl border border-border-medium p-3">
     <strong className="block">{children || 'Live scientific run'}</strong>
     {(study?.operations || []).map(operation => <span key={`${operation.step_id}-${operation.operation_id}`} className="block text-xs">
-      {operation.step_id} · Serverless job <code>{operation.operation_id}</code>
+      {operation.step_id} · Operation <a className="underline" href={`/demos?tab=runs&operation=${encodeURIComponent(operation.operation_id)}`}><code>{operation.operation_id}</code></a>
+      {operation.state ? ` · Study step state: ${operation.state}` : ''}
     </span>)}
     {study && !study.operations?.length && <span className="block text-sm">{study.operation_admission === 'unknown'
       ? 'Platform admission is unconfirmed; do not resubmit.' : 'No Serverless job has been admitted.'}</span>}
     {status.error && <span role="status" className="my-2 block">
-      Live status is unavailable. Saved work is unchanged; do not submit another copy.
+      Live status is unavailable. Last known state is retained; compute may still be running. Refresh status; do not submit another copy.
     </span>}
     {!study && !status.error && <span role="status" className="block">Loading saved run status…</span>}
     {study && <>
@@ -62,10 +65,13 @@ export default function ScientificStudyPreview({ href, children }: { href: strin
         {Number.isSafeInteger(study.step_count) ? ` · ${study.completed_steps?.length ?? 0}/${study.step_count} phases` : ''}
       </span>
       {display?.description && <span className="block text-sm">{display.description}</span>}
+      {studyNotice(study) && <span className="block text-sm">{studyNotice(study)}</span>}
+      <span className="block text-xs">Last successful update: {status.dataUpdatedAt ? new Date(status.dataUpdatedAt).toLocaleString() : 'unavailable'}</span>
       {study.queue_blocked && <span role="status" className="block">Admission needs attention; the saved run has not been duplicated.</span>}
       {['failed', 'needs_attention'].includes(study.state) && <span role="alert" className="block">This study needs attention. Open Runs for its recorded failure and retained outputs.</span>}
       {!measurements.some(item => item.display?.rows.length) && <span className="block text-sm">Scientific progress and rate are not measured yet—not zero.</span>}
       {measurements.map(({ step, display: measured }, index) => <span key={`${step}-${index}`} className="block">
+        {measured?.currentStep && <span className="block text-xs">{step} · Current operation stage: {measured.currentStep}</span>}
         {measured?.rows.map((row, n) => <span key={`${row.id}-${n}`} aria-label="Measured scientific progress" className="my-2 block text-sm">
           <strong>{step} · {row.id}</strong>
           <span className="block">Completed: {row.completed} · Target: {row.target}</span>
