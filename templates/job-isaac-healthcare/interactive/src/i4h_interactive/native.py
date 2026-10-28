@@ -409,6 +409,10 @@ def application(
                                 + kit_signaling_path(signaling, sid),
                                 subprotocols=[f"x-nv-sessionid.{sid}"],
                                 proxy=None,
+                                # Match the browser SDK's Kit connection: do
+                                # not add a shorter Ping/Pong startup deadline.
+                                # Native watch still enforces cancel/expiry.
+                                ping_interval=None,
                                 max_size=1024 * 1024,
                                 max_queue=2,
                                 open_timeout=10,

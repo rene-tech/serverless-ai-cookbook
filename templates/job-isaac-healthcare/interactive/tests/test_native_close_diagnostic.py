@@ -55,7 +55,8 @@ def test_kit_close_diagnostic_preserves_viewer_error_and_native_lease(kind, monk
             assert len(state.attaches) == len(state.processes) == len(state.kit_connections) == 1
             assert state.releases == [] and state.processes[0].state == "running"
             assert state.processes[0].config["deadline_at"] == payload["deadline_at"]
-            assert not {"ping_interval", "ping_timeout", "close_timeout"} & state.kit_connections[0][1].keys()
+            assert state.kit_connections[0][1]["ping_interval"] is None
+            assert not {"ping_timeout", "close_timeout"} & state.kit_connections[0][1].keys()
             socket.close()
             end = time.monotonic() + 2
             while not state.releases and time.monotonic() < end:

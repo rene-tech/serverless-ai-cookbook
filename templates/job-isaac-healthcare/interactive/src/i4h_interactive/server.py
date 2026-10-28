@@ -146,6 +146,9 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                 f"ws://127.0.0.1:{config['signal_port']}" + kit_signaling_path(handshake, config["session_id"]),
                 subprotocols=protocols,
                 proxy=None,
+                # Browser SDK semantics on the fixed Kit loopback only;
+                # the existing session deadline still bounds both pumps.
+                ping_interval=None,
                 max_size=1024 * 1024,
                 max_queue=2,
                 open_timeout=10,
