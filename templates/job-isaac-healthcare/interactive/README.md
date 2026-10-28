@@ -342,9 +342,30 @@ key, controller process environment and prior session directories are excluded,
 even if a projected token is world-readable. Project execution inherits no
 customer API keys or native credentials. The shared-runtime hook honors
 `I4H_BUS_ROOT`; it keeps policy backend sockets in the private short directory.
+CUDA also needs to name current and future threads through procfs. The inherited
+policy grants only file-write and truncate rights on `/proc`, subject to the
+kernel's process-ownership checks. It permits kernel-authorized own-process
+controls, including memory and OOM adjustment; it does not grant another
+session's UID or the nondumpable controller's rights. Startup and child launch
+require `/proc/bus`, `/proc/fs`, `/proc/irq`, `/proc/sys` and
+`/proc/sysrq-trigger` to remain read-only. No process may create device nodes or
+remove this inherited boundary.
 The controller joins every owned process, checks the dedicated PID namespace,
 clears its POSIX/System-V shared memory, and seals retained files to controller
 ownership before reuse. Any unknown descendant or cleanup disables readiness.
+Already-exited adopted children are joined only after their UID, parent and
+process-start identity match; the managed leader and pre-existing processes
+remain excluded. Malformed identity metadata also quarantines the worker.
+
+Simulator construction errors retain a nonzero exit even when upstream teardown
+would otherwise exit successfully. A process that exits before signaling is
+ready is an initialization failure. The worker sends its terminal execution
+observation through the authenticated bridge, bound to the exact signed start,
+session, image and runtime revision. Scientific AI persists that observation
+when read and reports a sanitized cause through status and result. This is
+separate from Native lifecycle settlement and physical resource release. If the
+bridge disappears before observation, the cause may remain unknown; retrieval
+of the same session must not imply replaying its scientific work.
 
 Output publication sends exact Content-Length and X-FS2-Artifact-SHA256 headers
 for two write-once targets: the archive and its delivery receipt. An unknown PUT

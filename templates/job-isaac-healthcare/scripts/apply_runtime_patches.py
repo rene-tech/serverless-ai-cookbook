@@ -1,4 +1,4 @@
-"""Apply and verify reviewed camera-control fixes on fresh or inherited images."""
+"""Apply and verify reviewed upstream runtime fixes on fresh or inherited images."""
 
 import argparse
 import hashlib
@@ -18,6 +18,12 @@ PATCHES = (
         "patch": "arena-camera-control.patch",
         "reason": "Normalize explicit camera control before scene construction and AppLauncher selection",
         "files": ("arena/i4h_arena/cli.py",),
+    },
+    {
+        "id": "arena-launch-outcome-v1",
+        "patch": "arena-launch-outcome.patch",
+        "reason": "Preserve failed initialization status before simulator shutdown hooks run",
+        "files": ("arena/i4h_arena/app.py",),
     },
 )
 

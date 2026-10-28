@@ -237,6 +237,22 @@ def clean_environment(root, supplied=None):
     return env
 
 
+def proc_runtime_write_rule():
+    """Permit inherited own-process controls under the kernel's procfs checks.
+
+    CUDA opens each current/future thread's comm with O_CREAT|O_TRUNC. A rule
+    rooted at this process's PID cannot cover the ordinary exec descendants.
+    Both controller and child therefore grant only WRITE_FILE and TRUNCATE on
+    procfs. Child UID/capability separation and kernel procfs access checks still
+    apply; the standard container's global proc control mounts must stay read-only.
+    """
+    for name in ("bus", "fs", "irq", "sys", "sysrq-trigger"):
+        path = Path("/proc") / name
+        if not os.statvfs(path).f_flag & os.ST_RDONLY:
+            raise RuntimeError("global proc control mount is not read-only: " + str(path))
+    return {"path": "/proc", "proc_runtime_write": True}
+
+
 def runtime_rules(runtime_roots):
     paths = [
         "/usr",
@@ -279,7 +295,7 @@ def runtime_rules(runtime_roots):
         {"path": str(Path(p).resolve()), "write": False}
         for p in paths
         if Path(p).exists()
-    ]
+    ] + [proc_runtime_write_rule()]
 
 
 def restrict(rules):
@@ -301,6 +317,15 @@ def restrict(rules):
                 if not path.is_dir():
                     raise ValueError("enumeration-only rule requires a directory")
                 access = 1 << 3  # READ_DIR only; no file read, execute or IOCTL.
+            if item.get("proc_runtime_write"):
+                if (
+                    path != Path("/proc")
+                    or not path.is_dir()
+                    or any(item.get(key) for key in ("write", "directory_only", "device"))
+                ):
+                    raise ValueError("proc runtime rule requires only the exact procfs root")
+                proc_runtime_write_rule()  # Fail closed at each inherited boundary.
+                access = (1 << 1) | (1 << 14)  # WRITE_FILE and TRUNCATE only.
             if item.get("device"):
                 access = (1 << 1) | (1 << 2) | ((1 << 15) if version >= 5 else 0)
             if not path.is_dir():

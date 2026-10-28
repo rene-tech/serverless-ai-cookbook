@@ -29,6 +29,7 @@ patches = json.loads(Path("/opt/isaac-healthcare/upstream-patches.json").read_by
 expected_patches = {
     "soarm-camera-disable-v1": "soarm-camera-disable.patch",
     "arena-camera-control-v1": "arena-camera-control.patch",
+    "arena-launch-outcome-v1": "arena-launch-outcome.patch",
 }
 assert len(patches["patches"]) == len(expected_patches)
 assert {patch["id"]: patch["patch"] for patch in patches["patches"]} == expected_patches

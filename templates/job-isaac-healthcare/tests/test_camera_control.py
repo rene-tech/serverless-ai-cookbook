@@ -167,7 +167,8 @@ def test_inherited_patch_provenance_preserved_and_mutated_source_refused(tree):
     patches.apply(root, package)
     result = json.loads(manifest.read_bytes())
     assert result['patches'][0] == record
-    assert len(result['patches']) == 2
+    assert len(result['patches']) == len(patches.PATCHES)
+    assert {row['id'] for row in result['patches']} == {patch['id'] for patch in patches.PATCHES}
     for row in result['patches']:
         assert patches.sha(package / 'patches' / row['patch']) == row['patch_sha256']
         assert all(patches.sha(root / file['path']) == file['sha256'] for file in row['files'])

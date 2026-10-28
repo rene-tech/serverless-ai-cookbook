@@ -45,11 +45,32 @@ class Tunnel:
         self.ready = asyncio.Event()
         self.peer_lock = asyncio.Lock()
         self.error = None
+        self.execution = None
         self.peer_id = None
         self.media = None
         self.updated_at = time.time()
         self.consumed = set()
         self.task = None
+
+    def record_execution(self, frame):
+        start = {k: v for k, v in self.value["start"].items() if k != "start_signature"}
+        digest = hashlib.sha256(json.dumps(start, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
+        if (
+            not isinstance(frame, dict)
+            or set(frame) != {"type", "session_id", "start_sha256", "image", "runtime_revision",
+                              "phase", "outcome", "code", "signaling_ready", "exit_code", "cleanup", "message", "log_tail"}
+            or frame.get("type") != "isaac.session.execution"
+            or frame.get("session_id") != self.value["session_id"]
+            or frame.get("start_sha256") != digest
+            or frame.get("image") != start["image"]
+            or frame.get("runtime_revision") != start["runtime_revision"]
+            or self.execution is not None
+        ):
+            raise ValueError("native execution evidence identity differs")
+        # App validates the bounded outcome grammar and sanitizes diagnostics.
+        # This private observation never ends or releases the Native session.
+        self.execution = frame
+        self.updated_at = time.time()
 
     async def run(self):
         try:
@@ -70,6 +91,9 @@ class Tunnel:
                     upstream.recv(), self.value["startup_timeout_s"]
                 )
                 ready = json.loads(raw)
+                if ready.get("type") == "isaac.session.execution":
+                    self.record_execution(ready)
+                    return
                 if (
                     ready.get("type") != "isaac.session.signaling_ready"
                     or ready.get("session_id") != self.value["session_id"]
@@ -83,6 +107,9 @@ class Tunnel:
                 ):
                     async for raw in upstream:
                         frame = json.loads(raw)
+                        if frame.get("type") == "isaac.session.execution":
+                            self.record_execution(frame)
+                            return
                         if frame.get("type") not in {
                             "viewer.attached",
                             "viewer.data",
@@ -358,6 +385,8 @@ def application(
                 "media_ready": True if item.media is not None else None,
                 "media_evidence": item.media,
                 "observed_at": time.time(),
+                "execution": item.execution,
+                "error": item.error,
             }
         )
 

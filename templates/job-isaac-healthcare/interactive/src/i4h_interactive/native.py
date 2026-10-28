@@ -8,6 +8,8 @@ account before attach. A forged public header cannot attach a different Pod.
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import os
 import base64
 import json
 import hashlib
@@ -159,6 +161,9 @@ def application(
         await gate.acquire()
         health["active"] = True
         process, attached, watcher, finalize = None, False, None, None
+        signaling_ready = False
+        start_digest, config = None, None
+        phase, failure_message = "preparation", ""
         tasks = []
         outcome = "error"
         cancel_preparation = threading.Event()
@@ -189,14 +194,14 @@ def application(
                         and process.child is not None
                         and process.child.returncode is not None
                     ):
-                        outcome = "done" if process.child.returncode == 0 else "error"
+                        outcome = "done" if process.child.returncode == 0 and signaling_ready else "error"
                         return
                     await asyncio.sleep(poll_seconds)
 
             watcher = asyncio.create_task(watch())
 
             async def run():
-                nonlocal process, outcome, finalize
+                nonlocal process, outcome, finalize, signaling_ready, start_digest, phase, config
                 raw = await asyncio.wait_for(
                     socket.receive_text(), max(0.01, deadline - time.time())
                 )
@@ -225,6 +230,7 @@ def application(
                     )
                 ):
                     raise PermissionError("App session start signature differs")
+                start_digest = hashlib.sha256(authenticated).hexdigest()
                 # Joining preparation avoids abandoning a download/extraction
                 # thread while cancellation releases its native session.
                 prep = asyncio.create_task(
@@ -258,6 +264,7 @@ def application(
                     current["deadline_at"]
                 ):
                     raise RuntimeError("native_session_cancelled_or_expired")
+                phase = "initialization"
                 launch = asyncio.create_task(process.start())
                 try:
                     await asyncio.shield(launch)
@@ -265,6 +272,8 @@ def application(
                     await joined(launch)
                     raise
                 await process.wait_signaling()
+                signaling_ready = True
+                phase = "running"
                 await socket.send_json(
                     {
                         "type": "isaac.session.signaling_ready",
@@ -369,13 +378,19 @@ def application(
                 task.result()
         except WebSocketDisconnect:
             outcome = "disconnected"
-        except Exception:
-            await socket.close(code=1011, reason="native_interactive_session_failed")
+        except Exception as error:
+            # Private, owner-bound diagnostics are sanitized by the App before
+            # persistence/public projection. Never send an exception to a viewer.
+            failure_message = str(error)[:4000]
         finally:
             cancel_preparation.set()
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+            exit_code = (
+                process.child.returncode
+                if process is not None and process.child is not None else None
+            )
             if process is not None:
                 await joined(asyncio.create_task(process.stop("native_session_close")))
             settled = process is None or process.state == "stopped"
@@ -385,7 +400,9 @@ def application(
                 except Exception:
                     # Delivery failure is a failed result, never a successful
                     # scientific output. Physical GPU cleanup remains known.
-                    outcome = "error"
+                    if outcome != "error":
+                        outcome, phase = "error", "delivery"
+                        failure_message = "Output publication failed; retained session files require operator retrieval."
                     health["available"] = False
                     health["output_delivery"] = "failed"
                     health["output_retention"] = (
@@ -395,6 +412,57 @@ def application(
                         "Interactive output publication failed for %s; preserve its work_root directory for operator export; no replay",
                         sid,
                     )
+            if start_digest is not None:
+                code = {
+                    "done": "session_completed",
+                    "cancelled": "session_cancelled",
+                    "disconnected": "session_transport_disconnected",
+                }.get(outcome, {
+                    "preparation": "project_preparation_failed",
+                    "initialization": "initialization_failed",
+                    "running": "execution_failed",
+                    "delivery": "output_delivery_failed",
+                }[phase])
+                evidence = {
+                    "type": "isaac.session.execution",
+                    "session_id": sid,
+                    "start_sha256": start_digest,
+                    "image": expected_image,
+                    "runtime_revision": runtime_revision,
+                    "phase": phase,
+                    "outcome": outcome,
+                    "code": code,
+                    "signaling_ready": signaling_ready,
+                    "exit_code": exit_code,
+                    "cleanup": "settled" if settled else "unknown",
+                    "message": failure_message,
+                    "log_tail": "",
+                }
+                if config is not None and outcome == "error" and config.get("log_file"):
+                    with contextlib.suppress(OSError):
+                        with Path(config["log_file"]).open("rb") as log:
+                            log.seek(0, os.SEEK_END)
+                            log.seek(max(0, log.tell() - 16384))
+                            evidence["log_tail"] = log.read(16384).decode("utf-8", errors="replace")
+                # This trusted file preserves the observation for operator export;
+                # it is not a lease or a physical-release declaration.
+                if config is not None and config.get("closeout_file"):
+                    try:
+                        path = Path(config["closeout_file"]).with_name("execution-outcome.json")
+                        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+                        with os.fdopen(fd, "w") as stream:
+                            json.dump(evidence, stream, sort_keys=True)
+                            stream.write("\n")
+                            stream.flush()
+                            os.fsync(stream.fileno())
+                    except OSError:
+                        logging.getLogger(__name__).error("Session execution receipt could not be retained for %s", sid)
+                # A failed transport cannot turn observed execution into success
+                # or release a worker whose process cleanup is unknown.
+                with contextlib.suppress(Exception):
+                    await joined(asyncio.create_task(
+                        asyncio.wait_for(socket.send_json(evidence), timeout=5)
+                    ))
             if attached and settled:
                 try:
                     result = await joined(
@@ -406,6 +474,10 @@ def application(
                     health["available"], health["cleanup_unknown"] = False, True
             elif attached:
                 health["available"], health["cleanup_unknown"] = False, True
+            with contextlib.suppress(Exception):
+                await joined(asyncio.create_task(
+                    asyncio.wait_for(socket.close(code=1011 if outcome == "error" else 1000), timeout=5)
+                ))
             health["active"] = False
             gate.release()
 

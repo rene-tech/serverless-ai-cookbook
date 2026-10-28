@@ -29,6 +29,54 @@ def processes():
     return result
 
 
+def _process_identity(pid):
+    """Only fixed proc metadata; never argv, environment, memory or open files."""
+    root = Path("/proc") / str(pid)
+    try:
+        raw = (root / "stat").read_text()
+        fields = raw.rsplit(")", 1)[1].split()
+        status = dict(line.split(":", 1) for line in (root / "status").read_text().splitlines())
+        uids = tuple(map(int, status["Uid"].split()))
+        if len(uids) != 4 or int(status["Pid"].strip()) != pid:
+            raise RuntimeError("process identity is incomplete")
+        return {"pid": pid, "parent": int(fields[1]), "state": fields[0],
+                "start_ticks": int(fields[19]), "uids": uids}
+    except (ValueError, KeyError, IndexError) as exc:
+        raise RuntimeError("process identity metadata is malformed") from exc
+
+
+def reap_owned_adopted_zombies(uid, excluded):
+    """Join only this session's stable adopted zombies, never a global waitpid."""
+    if type(uid) is not int or uid <= 0 or uid == os.geteuid():
+        raise RuntimeError("a distinct reserved project identity is required")
+    reaped = []
+    for path in Path("/proc").iterdir():
+        if not path.name.isdigit() or int(path.name) in excluded:
+            continue
+        pid = int(path.name)
+        try:
+            first = _process_identity(pid)
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+        if (first["uids"] != (uid,) * 4 or first["parent"] != os.getpid()
+                or first["state"] != "Z"):
+            continue
+        try:
+            second = _process_identity(pid)
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+        if second != first:
+            raise RuntimeError("adopted zombie identity changed before join")
+        # A waitable zombie cannot reuse its PID until its parent reaps it.
+        # The managed Popen leader and every baseline PID are excluded, so this
+        # positive-PID wait cannot race their registered child watchers.
+        waited, status = os.waitpid(pid, os.WNOHANG)
+        if waited != pid:
+            raise RuntimeError("owned adopted zombie could not be joined")
+        reaped.append({**first, "wait_status": status})
+    return reaped
+
+
 class SessionProcess:
     def __init__(self, config):
         self.config = validate(config)
@@ -40,6 +88,7 @@ class SessionProcess:
         self._log = None
         self._baseline = None
         self.cleanup_witness = "not_requested"
+        self._reaped_adopted_zombies = []
 
     async def start(self):
         async with self._lock:
@@ -182,24 +231,42 @@ class SessionProcess:
                 except ProcessLookupError:
                     pass
                 await self.child.wait()
+            self.state = "stopped"
+            sandbox = self.config.get("isolation")
+            if self._baseline is not None:
+                # PID1 adopts double-forked children. Join only already-exited
+                # session-owned orphans; leave live/foreign/uncertain processes
+                # quarantined after the existing cleanup grace period.
+                excluded = set(self._baseline)
+                if self.child is not None:
+                    excluded.add(self.child.pid)
+                until = time.monotonic() + self.config["stop_grace_seconds"]
+                while True:
+                    if sandbox:
+                        try:
+                            self._reaped_adopted_zombies.extend(
+                                reap_owned_adopted_zombies(sandbox["uid"], excluded)
+                            )
+                        except (OSError, RuntimeError):
+                            self.state = "cleanup_unknown"
+                            break
+                    unexpected = any(
+                        self._baseline.get(pid) != stamp
+                        for pid, stamp in processes().items()
+                    )
+                    if not unexpected:
+                        break
+                    if not sandbox or time.monotonic() >= until:
+                        self.state = "cleanup_unknown"
+                        break
+                    await asyncio.sleep(0.02)
+            if self.child is not None:
                 try:
                     os.killpg(self.child.pid, 0)
                 except ProcessLookupError:
-                    self.state = "stopped"
+                    pass
                 else:
                     self.state = "cleanup_unknown"
-            else:
-                self.state = "stopped"
-            if self._baseline is not None:
-                # Authored projects can create detached descendants. A group
-                # close alone cannot prove those left; quarantine, never reuse
-                # this worker, if its isolated PID namespace has extra processes.
-                if any(
-                    self._baseline.get(pid) != stamp
-                    for pid, stamp in processes().items()
-                ):
-                    self.state = "cleanup_unknown"
-            sandbox = self.config.get("isolation")
             if sandbox and self.state == "stopped":
                 try:
                     cleanup = await asyncio.create_subprocess_exec(
@@ -259,7 +326,9 @@ class SessionProcess:
                 self.config.get("closeout_file", work / "process-closeout.json")
             )
             if closeout.parent.exists():
-                closeout.write_text(json.dumps(self.status(), sort_keys=True) + "\n")
+                closeout.write_text(
+                    json.dumps({**self.status(), "adopted_zombies_reaped": self._reaped_adopted_zombies}, sort_keys=True) + "\n"
+                )
 
     async def monitor(self):
         while self.state not in {"stopped", "failed", "cleanup_unknown"}:
