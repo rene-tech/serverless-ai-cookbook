@@ -168,8 +168,12 @@ async function outputEntries(key, operationId, result) {
 
 async function operationArtifact(key, operationId, artifactId) {
   if (!OPERATION_ID.test(operationId) || !RUN_ID.test(artifactId)) throw failure('Invalid output identity.');
-  const result = await platform(key, 'GET', `/v1/operations/${operationId}/result`);
-  const entries = await outputEntries(key, operationId, result);
+  const envelope = await platform(key, 'GET', `/v1/operations/${operationId}/result`);
+  const nested = envelope.operation && typeof envelope.operation === 'object';
+  if (nested) normalizedOperation(envelope, operationId);
+  const result = nested ? envelope.result : envelope;
+  const entries = result?.schema === 'fs2-serve.nebius.ai/operation-artifact-result/v1'
+    ? [{ name: 'result', artifact: result.artifact }] : await outputEntries(key, operationId, result);
   const entry = entries.find(item => item.artifact?.artifact_id === artifactId);
   if (!entry) throw failure('This artifact is not in the operation output manifest.', 404);
   const response = await fetch(`${PLATFORM}/v1/artifacts/${artifactId}/content`, { redirect: 'error',
@@ -438,11 +442,12 @@ async function operationResult(key, operationId) {
     return { operation, result: summarizeResult(result), workspace_file };
   }
   const artifact = result.artifact || {};
-  if (result.content_type !== 'application/json' || artifact.compression !== 'none'
-      || !RUN_ID.test(artifact.artifact_id || '') || !Number.isInteger(artifact.size_bytes)
-      || artifact.size_bytes < 0 || artifact.size_bytes > 8 * 1024 * 1024
-      || !/^[a-f0-9]{64}$/.test(artifact.sha256 || '')) {
-    return { operation, result: { ...result, resolution: 'Download in Runs; this artifact is not bounded JSON.' } };
+  const artifacts = RUN_ID.test(artifact.artifact_id || '') && Number.isSafeInteger(artifact.size_bytes) && artifact.size_bytes >= 0
+    ? [{ name: 'result', size_bytes: artifact.size_bytes, media_type: artifact.media_type,
+      download_url: `/api/scientific-demos/runs/${operationId}/artifacts/${artifact.artifact_id}` }] : [];
+  if (result.content_type !== 'application/json' || artifact.compression !== 'none' || !artifacts.length
+      || artifact.size_bytes > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/.test(artifact.sha256 || '')) {
+    return { operation, artifacts, result: { ...result, resolution: 'Download in Runs; this artifact is not bounded JSON.' } };
   }
   const bytes = await platformBytes(key, `/v1/artifacts/${artifact.artifact_id}/content`);
   if (bytes.length !== artifact.size_bytes || hash(bytes) !== artifact.sha256) throw failure('Result artifact failed size or SHA-256 verification.', 502);
@@ -451,7 +456,7 @@ async function operationResult(key, operationId) {
   catch { throw failure('Result artifact was declared as JSON but could not be decoded.', 502); }
   const summary = summarizeResult(parsed);
   const workspace_file = await retainResult(key, operationId, bytes);
-  return { operation, workspace_file, result: {
+  return { operation, workspace_file, artifacts, result: {
     schema: 'fs2-serve.nebius.ai/resolved-operation-result/v1', content_type: result.content_type,
     source_artifact: artifact, summary, evidence_guidance: evidenceGuidance(parsed, summary, artifact),
     resolution: 'Downloaded with caller credentials; size and SHA-256 verified; large arrays and strings summarized.',

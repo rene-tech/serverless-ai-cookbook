@@ -262,20 +262,23 @@ test('artifact-backed operation results are verified and compacted for the agent
   const service = await setup;
   const operationId = 'op-1111111111111111';
   const artifactId = '22222222-2222-4222-8222-222222222222';
-  const payload = Buffer.from(JSON.stringify({ confidence: 72.5, plddt: [70, 80, 90],
+  let payload = Buffer.from(JSON.stringify({ confidence: 72.5, plddt: [70, 80, 90],
     predicted_aligned_error: [[0.25, 1.5], [2.5, 0.25]], structure: 'ATOM '.repeat(1000) }));
   const artifact = { artifact_id: artifactId, compression: 'none', media_type: 'application/octet-stream',
     size_bytes: payload.length, sha256: crypto.createHash('sha256').update(payload).digest('hex') };
   const originalFetch = global.fetch;
   const calls = [];
-  global.fetch = async (url) => {
+  let nestedResult = false, returnedId = operationId;
+  global.fetch = async (url, options) => {
+    assert.equal(options.method || 'GET', 'GET');
     calls.push(String(url));
     if (String(url).endsWith(`/v1/operations/${operationId}`)) return new Response(JSON.stringify({
       id: operationId, status: 'succeeded', model_id: 'openfold2', operation: 'infer_openfold2',
     }), { status: 200, headers: { 'content-type': 'application/json' } });
-    if (String(url).endsWith(`/v1/operations/${operationId}/result`)) return new Response(JSON.stringify({
-      schema: 'fs2-serve.nebius.ai/operation-artifact-result/v1', content_type: 'application/json', artifact,
-    }), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (String(url).endsWith(`/v1/operations/${operationId}/result`)) {
+      const result = { schema: 'fs2-serve.nebius.ai/operation-artifact-result/v1', content_type: 'application/json', artifact };
+      return Response.json(nestedResult ? { operation: { id: returnedId, status: 'succeeded' }, result } : result);
+    }
     if (String(url).endsWith(`/v1/artifacts/${artifactId}/content`)) return new Response(payload, { status: 200 });
     return new Response('{}', { status: 404 });
   };
@@ -294,6 +297,19 @@ test('artifact-backed operation results are verified and compacted for the agent
     assert.equal(resolved.workspace_file.saved, true);
     assert.deepEqual(await fs.readFile(resolved.workspace_file.path), payload);
     assert.equal((await service.operationResult('fixture-key', operationId)).workspace_file.sha256, artifact.sha256);
+    payload = Buffer.from(JSON.stringify({ data: 'x'.repeat(8 * 1024 * 1024) }));
+    artifact.size_bytes = payload.length;
+    artifact.sha256 = crypto.createHash('sha256').update(payload).digest('hex');
+    const large = await service.operationResult('fixture-key', operationId);
+    assert.equal(large.artifacts?.[0]?.download_url, `/api/scientific-demos/runs/${operationId}/artifacts/${artifactId}`,
+      'results above the preview limit must still have a working download');
+    const download = await service.operationArtifact('fixture-key', operationId, artifactId);
+    assert.deepEqual(Buffer.from(await download.response.arrayBuffer()), payload);
+    await assert.rejects(service.operationArtifact('fixture-key', operationId, crypto.randomUUID()), /not in the operation/);
+    nestedResult = true;
+    assert.deepEqual(Buffer.from(await (await service.operationArtifact('fixture-key', operationId, artifactId)).response.arrayBuffer()), payload);
+    returnedId = 'op-another-run';
+    await assert.rejects(service.operationArtifact('fixture-key', operationId, artifactId), /mismatched operation/);
   } finally { global.fetch = originalFetch; }
 });
 test('compact discovery filters Apps and does not emit scientific input schemas', async () => {
