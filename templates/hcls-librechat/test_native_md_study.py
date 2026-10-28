@@ -18,8 +18,8 @@ def analysis_plan(manifest, expected=3):
         {'id': 'timings', 'kind': 'analysis', 'method': 'native-md-timing',
          'arguments': {'manifest_file': manifest, 'expected_repeats': expected}}],
         'deliverables': [
-            {'name': 'Native timing report', 'role': 'report',
-             'source': {'step': 'timings', 'file': 'native-timing-report.md'}},
+            {'name': 'Native MD HTML report', 'role': 'report',
+             'source': {'step': 'timings', 'file': 'native-md-report.html'}},
             {'name': 'Native timing rows', 'role': 'metrics',
              'source': {'step': 'timings', 'file': 'native-timings.csv'}},
             {'name': 'Native timing provenance', 'role': 'provenance',
@@ -51,7 +51,9 @@ def test_actual_native_helper_is_discoverable_and_hash_frozen(mounted):
     assert [row['performance_ns_per_day'] for row in data['timing_rows']] == [123.5] * 3
     with Path(files['native-timings.csv']['path']).open() as stream:
         assert len(list(csv.DictReader(stream))) == 3
-    assert len(value['artifacts']) == 3
+    assert len(value['artifacts']) == 4
+    assert value['completion_summaries'][0]['state'] == 'verified'
+    assert 'Observed scientific results' in Path(files['native-md-report.html']['path']).read_text()
     assert before == {str(p): p.read_bytes() for p in folder.rglob('*') if p.is_file()}
 
 

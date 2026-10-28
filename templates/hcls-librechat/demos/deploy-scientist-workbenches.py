@@ -85,7 +85,7 @@ def deploy(manifest: dict, person: dict, args: argparse.Namespace) -> dict:
     reasoning_effort = getattr(args, 'reasoning_effort', None) or (
         'high' if chat_model == 'moonshotai/Kimi-K3' else None)
     context_tokens = getattr(args, 'context_tokens', None) or (
-        131072 if chat_model == 'moonshotai/Kimi-K3' else None)
+        1024000 if chat_model == 'moonshotai/Kimi-K3' else None)
     folder = args.output / identifier
     folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     with open(folder / "setup.lock", "a") as lock:
@@ -261,7 +261,7 @@ def main() -> None:
     parser.add_argument('--reasoning-effort', choices=['low', 'high', 'max'],
                         help='Explicit provider-supported planning variant; never changes token budget.')
     parser.add_argument('--context-tokens', type=int,
-                        help='Explicit context ceiling; the approved Kimi default uses 131072 tokens.')
+                        help='Explicit context ceiling; the approved Kimi default uses 1024000 tokens.')
     parser.add_argument('--context-audit', action='store_true', help='Record only per-call context sizes in the scientist workspace.')
     parser.add_argument('--name-prefix', default='science-qualification-20260918')
     parser.add_argument('--source-deployments', type=Path, help='Reuse verified credentials from existing deployment receipts; preserve old instances.')

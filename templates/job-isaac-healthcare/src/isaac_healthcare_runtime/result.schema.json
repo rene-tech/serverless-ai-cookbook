@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Isaac for Healthcare result v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "model_id",
+    "operation",
+    "parameters",
+    "input_sha256",
+    "project_sha256",
+    "source_revision",
+    "provenance",
+    "scenarios",
+    "task_complete",
+    "scientific_validation",
+    "files",
+    "runtime_metrics"
+  ],
+  "properties": {
+    "schema": {
+      "const": "isaac-healthcare-result/v2"
+    },
+    "model_id": {
+      "const": "isaac-healthcare"
+    },
+    "operation": {
+      "type": "string"
+    },
+    "parameters": {
+      "type": "object"
+    },
+    "input_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "project_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_revision": {
+      "type": "string"
+    },
+    "provenance": {
+      "type": "object"
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "task_complete": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "scientific_validation": {
+      "enum": [
+        "passed",
+        "failed",
+        "not_applicable"
+      ]
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sha256",
+          "size_bytes"
+        ],
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "runtime_metrics": {
+      "type": "object"
+    },
+    "capabilities": {
+      "type": "object"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "recording_semantics": {
+      "type": "string"
+    },
+    "training": {
+      "type": "object"
+    }
+  }
+}

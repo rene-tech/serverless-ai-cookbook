@@ -1,0 +1,7 @@
+# Public CLN025/chignolin peptide from Microsoft's pinned BioEmu2 example.
+entities:
+  - entity_type: protein
+    asym_ids: [A]
+    sequence: GYDPETGTWG
+    mods: []
+bonds: []

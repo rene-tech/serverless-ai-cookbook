@@ -1,0 +1,10 @@
+# PEGG's published models require a different scikit-learn than Rule Set 3.
+# Pin the original authors' release, not the separately maintained PEGG3 fork.
+pegg==2.1.0
+numpy==1.23.5
+pandas==1.5.3
+scipy==1.10.1
+scikit-learn==1.1.1
+biopython==1.81
+matplotlib==3.7.5
+seaborn==0.12.2

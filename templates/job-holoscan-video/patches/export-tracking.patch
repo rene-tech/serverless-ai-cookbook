@@ -1,0 +1,128 @@
+--- a/cpp/main.cpp
++++ b/cpp/main.cpp
+@@ -50,6 +50,7 @@
+   bool help{false};
+   std::string model;
+   std::string engine_cache;
++  std::string output_directory;
+   std::uint32_t timeout_seconds{300U};
+ };
+ 
+@@ -94,6 +95,8 @@
+       opts.replay.directory = value;
+     } else if (option == "--model") {
+       opts.model = value;
++    } else if (option == "--output-dir") {
++      opts.output_directory = value;
+     } else if (option == "--engine-cache") {
+       opts.engine_cache = value;
+     } else if (option == "--basename") {
+@@ -139,6 +142,7 @@
+          "  --display auto|true|false   Display when a display server is available (default: "
+          "auto)\n"
+          "  --model FILE               Override tool_loc_convlstm.onnx in the data directory\n"
++         "  --output-dir DIR           Persist per-frame probabilities, coordinates and masks\n"
+          "  --engine-cache DIR         TensorRT cache (default: DATA/engines)\n"
+          "  --record-dir DIR           Optionally record original RGB input into a new file\n"
+          "  --record-basename NAME     Recording stem (default: input)\n"
+@@ -280,6 +284,7 @@
+     infer.set_params(
+         endo::LstmInferenceParams{.model_path = opts.model, .engine_cache_dir = opts.engine_cache});
+     post.emplace(graph.op<endo::ToolTrackingPostprocessorOp>("postprocessor"));
++    (*post).set_params(endo::ToolTrackingPostprocessorParams{.output_directory = opts.output_directory});
+     auto sink = graph.op<TrackingSinkOp>("tracking_sink", progress);
+     graph.add_flow(source->output, pre->input, lossless);
+     graph.add_flow(pre->output, infer->source_video, lossless);
+--- a/cpp/tool_tracking_postprocessor_v5.hpp
++++ b/cpp/tool_tracking_postprocessor_v5.hpp
+@@ -6,6 +6,8 @@
+ #pragma once
+ 
+ #include <cstdint>
++#include <fstream>
++#include <string>
+ 
+ #include <holoscan/core/domain/tensor.hpp>
+ #include <holoscan/core/errors.hpp>
+@@ -23,13 +25,15 @@
+ 
+ struct ToolTrackingPostprocessorParams {
+   float min_probability{0.5F};
++  std::string output_directory;
+ };
+ 
+ HOLOSCAN_PARAM_SCHEMA(
+     ToolTrackingPostprocessorParams,
+     holoscan::param_schema("com.nvidia.holohub.endoscopy.ToolTrackingPostprocessorParams", 1),
+     holoscan::field<&ToolTrackingPostprocessorParams::min_probability>("min_probability")
+-        .range(0.0F, 1.0F));
++        .range(0.0F, 1.0F),
++    holoscan::field<&ToolTrackingPostprocessorParams::output_directory>("output_directory"));
+ 
+ // Converts the model's three outputs into HoloViz-native layers:
+ // - mask: CUDA uint8 [60,107,4], straight-alpha RGBA
+@@ -42,6 +46,12 @@
+   [[nodiscard]] holoscan::expected<void, holoscan::Error> compute(
+       holoscan::ExecutionContext& context) override;
+ 
++ private:
++  std::ofstream table_;
++  std::ofstream masks_file_;
++  std::uint64_t frame_index_{};
++
++ public:
+   holoscan::Input<holoscan::Tensor> probs;
+   holoscan::Input<holoscan::Tensor> scaled_coords;
+   holoscan::Input<holoscan::Tensor> binary_masks;
+--- a/cpp/tool_tracking_postprocessor_v5.cu
++++ b/cpp/tool_tracking_postprocessor_v5.cu
+@@ -11,6 +11,8 @@
+ #include <cstddef>
+ #include <cstdint>
+ #include <exception>
++#include <filesystem>
++#include <iomanip>
+ #include <string>
+ #include <utility>
+ #include <vector>
+@@ -192,6 +194,40 @@
+     return fail(holoscan::ErrorCode::kFailure,
+                 "invalid model probabilities or coordinates; check inference precision");
+   }
++  // Persist the actual aligned tensors before overlays are composed. Per-operator
++  // handles and counters keep recurrent streams isolated; this does not change inference.
++  const auto& output_dir = context.params<ToolTrackingPostprocessorParams>().output_directory;
++  if (!output_dir.empty()) {
++    if (!table_.is_open()) {
++      std::filesystem::create_directories(output_dir);
++      const auto table_path = std::filesystem::path(output_dir) / "tracking.csv";
++      const auto masks_path = std::filesystem::path(output_dir) / "masks.f32";
++      if (std::filesystem::exists(table_path) || std::filesystem::exists(masks_path)) {
++        return fail(holoscan::ErrorCode::kFailure, "tracking output already exists; choose a new run directory");
++      }
++      table_.open(table_path);
++      masks_file_.open(masks_path, std::ios::binary);
++      table_.exceptions(std::ios::badbit | std::ios::failbit);
++      masks_file_.exceptions(std::ios::badbit | std::ios::failbit);
++      table_ << "frame_index,tool_index,probability,x_normalized,y_normalized\n";
++      table_ << std::setprecision(9);
++    }
++    std::vector<float> host_masks(kClasses * kMaskPixels);
++    const auto copied = masks_tensor.copy_to_host(host_masks.data(), host_masks.size() * sizeof(float), stream);
++    if (!copied) return fail(holoscan::ErrorCode::kFailure, "cannot copy segmentation masks to output");
++    if (!std::ranges::all_of(host_masks, [](float x) { return std::isfinite(x); })) {
++      return fail(holoscan::ErrorCode::kFailure, "segmentation masks contain non-finite predictions");
++    }
++    for (std::size_t tool = 0; tool < kClasses; ++tool) {
++      table_ << frame_index_ << ',' << tool << ',' << host_probs[tool] << ','
++             << host_coords[2 * tool] << ',' << host_coords[2 * tool + 1] << '\n';
++    }
++    masks_file_.write(reinterpret_cast<const char*>(host_masks.data()),
++                      static_cast<std::streamsize>(host_masks.size() * sizeof(float)));
++    table_.flush();
++    masks_file_.flush();
++    ++frame_index_;
++  }
+   HOLOSCAN_LOG_DEBUG("tool probabilities: [{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}]",
+                      host_probs[0], host_probs[1], host_probs[2], host_probs[3], host_probs[4],
+                      host_probs[5], host_probs[6]);

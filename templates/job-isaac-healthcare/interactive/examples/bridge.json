@@ -1,0 +1,17 @@
+{
+  "targets": [
+    {
+      "region": "REPLACE_WITH_NATIVE_REGION",
+      "target": {
+        "cluster": "REPLACE_WITH_NATIVE_CLUSTER",
+        "variant": "REPLACE_WITH_NATIVE_VARIANT_OR_NULL",
+        "id": "REPLACE_WITH_EXACT_NATIVE_ENDPOINT_OBJECT",
+        "image": "registry.example/isaac-interactive@sha256:REPLACE_WITH_VERIFIED_64_HEX_DIGEST",
+        "gpu_class": "REPLACE_WITH_NATIVE_GPU_CLASS_OR_NULL"
+      },
+      "native_endpoint": "wss://qualified-native-endpoint.example/v1/isaac/stream",
+      "runtime_revision": "REPLACE_WITH_QUALIFIED_REVISION"
+    }
+  ],
+  "port": 8443
+}

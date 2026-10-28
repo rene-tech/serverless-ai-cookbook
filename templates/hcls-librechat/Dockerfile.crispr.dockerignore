@@ -1,0 +1,12 @@
+**
+!skills/
+!skills/scientific-ai/
+!skills/scientific-ai/**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/crispr/
+!templates/hcls-librechat/crispr/**
+!templates/hcls-librechat/scripts/
+!templates/hcls-librechat/scripts/test-skills-installed.cjs
+**/__pycache__/
+**/.pytest_cache/

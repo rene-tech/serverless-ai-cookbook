@@ -1,6 +1,7 @@
 const { createRequire } = require('node:module');
 const appRequire = createRequire('/app/package.json');
 const { MongoClient, ObjectId } = appRequire('mongodb');
+const { mergeSeed } = require('/app/seed-merge.cjs');
 const { tools: demoTools } = require('./mcp.cjs');
 // Keep specialized workflow agents on the product-owner-approved conversational
 // default. Backend report/judge model selections remain explicit and separate.
@@ -25,7 +26,8 @@ async function main() {
     const owner = await db.collection('users').findOne({ email: 'nebius-scientific-ai-agent@localhost.invalid' });
     if (!owner) throw new Error('Seed the scientific workbench owner first.');
     for (const entry of definitions) {
-      await db.collection('agents').updateOne({ id: entry.id }, { $set: { id: entry.id, name: entry.name,
+      const existing = await db.collection('agents').findOne({ id: entry.id });
+      const next = { id: entry.id, name: entry.name,
         description: entry.description, instructions: entry.instructions, provider: 'Nebius Token Factory',
         model: defaultChatModel,
         model_parameters: { model: defaultChatModel, max_tokens: 8192 },
@@ -33,11 +35,18 @@ async function main() {
           .map((tool) => `${tool.name}_mcp_scientific-demos`),
         mcpServerNames: ['scientific-demos'], skills_enabled: true, skills_scope: 'all',
         conversation_starters: entry.starters, author: owner._id, authorName: 'Nebius', updatedAt: new Date(),
-        is_promoted: true, category: 'science' }, $setOnInsert: { _id: new ObjectId(), createdAt: new Date(), versions: [] } }, { upsert: true });
-      const agent = await db.collection('agents').findOne({ id: entry.id });
-      await db.collection('aclentries').updateOne({ principalType: 'public', resourceType: 'agent', resourceId: agent._id },
-        { $set: { permBits: 1, grantedBy: owner._id, grantedAt: new Date() },
-          $setOnInsert: { _id: new ObjectId(), principalType: 'public', resourceType: 'agent', resourceId: agent._id, createdAt: new Date() } }, { upsert: true });
+        is_promoted: true, category: 'science' };
+      const seeded = await db.collection('agents').updateOne({ id: entry.id }, {
+        $set: { ...mergeSeed(existing, existing?._scientificSeed, next), _scientificSeed: next },
+        $setOnInsert: { _id: new ObjectId(), createdAt: new Date(), versions: [] },
+      }, { upsert: true });
+      // Absence is meaningful: never recreate access revoked on an existing
+      // agent. Only this insert owns creation of its initial public grant.
+      if (seeded.upsertedId) {
+        await db.collection('aclentries').updateOne({ principalType: 'public', resourceType: 'agent', resourceId: seeded.upsertedId },
+          { $setOnInsert: { permBits: 1, grantedBy: owner._id, grantedAt: new Date(),
+            _id: new ObjectId(), principalType: 'public', resourceType: 'agent', resourceId: seeded.upsertedId, createdAt: new Date() } }, { upsert: true });
+      }
     }
     console.log('Clinical documentation and conversation evaluation agents seeded.');
   } finally { await client.close(); }

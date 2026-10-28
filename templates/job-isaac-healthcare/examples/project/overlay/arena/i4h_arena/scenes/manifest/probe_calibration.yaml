@@ -1,0 +1,10 @@
+impl: i4h_arena.scenes.probe_calibration:ProbeCalibrationScene
+description: User-owned observation scene using the upstream Panda/phantom geometry and physics.
+embodiment: panda
+action_space: ee_pose
+dof: 6
+gripper: false
+cameras: [room, wrist]
+objects: [table, organs]
+max_steps: 1200
+control_hz: 30.0

@@ -1,0 +1,6 @@
+{
+  "msa_mode": "single_sequence",
+  "num_samples": 2,
+  "batch_size": 2,
+  "seed": 42
+}

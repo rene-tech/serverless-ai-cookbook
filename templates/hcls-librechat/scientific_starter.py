@@ -15,7 +15,7 @@ def resolve(case_directory, model, output, workspace, python, client):
     output = (workspace / output).resolve()
     if not case.is_relative_to(workspace) or not output.is_relative_to(workspace):
         raise ValueError('Input and output paths must be inside the mounted workspace.')
-    if not case.is_dir() or model not in {'gromacs', 'namd', 'amber', 'lammps'}:
+    if not case.is_dir() or model not in {'gromacs', 'namd', 'amber', 'lammps', 'openmm'}:
         raise ValueError('Select an existing installed MD example and one of its supported engines.')
     # Both the case folder shown in the catalog and its explicit engine folder
     # identify the same recipe. Normalize only this unambiguous direct child;

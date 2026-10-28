@@ -1,0 +1,5 @@
+[
+  "/opt/i4h/arena/.venv/bin/python",
+  "-I",
+  "/opt/isaac-task/run_bundle.py"
+]

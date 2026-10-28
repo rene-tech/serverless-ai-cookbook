@@ -1,0 +1,61 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:crispr-workbench-20261022-10a272b",
+  "manifest": "sha256:cb248daeabff7b8ae1495cce3f86e40e1bf6c14feaec534f2767dc0f83d56507",
+  "source": "10a272bbc794d0986db30170751a3e7e489152eb",
+  "skills_version": "2026.10.22.4",
+  "base_manifest": "sha256:3a3357728e0e613c5099a5fe40021dfb5f686c525a184489d46c01db11c32e9b",
+  "published_verified": true,
+  "all_scientific_workflows_qualified": false,
+  "installed": {
+    "base_layers_preserved": 62,
+    "total_layers": 68,
+    "runtime_configuration_preserved": true,
+    "canonical_bundle_files_verified": 106,
+    "loaded_skills": 88,
+    "numerical_runtime_tests_passed": 73,
+    "crispr_skill_sha256": "61968ba1c5e2860d3d3604500cd2dfcc0d7185423a6b89ca16097142066e4398",
+    "bioemu2_skill_sha256_preserved": "30873bad405ca3dde3acc9dfa8778b51d8304a402b4e3b99e8c78977bc416327"
+  },
+  "real_client": {
+    "identity": "existing system QA",
+    "unchanged_final_code_six_workflow_cohorts": 2,
+    "original_stream_inline_without_reload": true,
+    "saved_reopen_inline_without_reset": true,
+    "actionable_invalid_nuclease_error": true,
+    "empty_primer_design_distinguished_from_success": true,
+    "gpu_operations_submitted": 0,
+    "six_path_compute_seconds": [6.54, 5.546],
+    "cohort_screenshot_sha256": [
+      "d3045769b89e76fa7afdded276d5ededd53ea9111bda454661b0f01deef21d06",
+      "13429859d836521edc6e30a1e572249e82481cc01f0c22718cbd46885a2240ee"
+    ]
+  },
+  "retained_clients": {
+    "count": 6,
+    "added_runtime_and_loaded_skill": true,
+    "existing_87_skill_objects_preserved": true,
+    "processes_provider_specs_bindings_and_history_preserved": true,
+    "numerical_tests_per_client": 73,
+    "customer_keys_used_for_testing": false,
+    "provider_image_metadata_changed": false
+  },
+  "independent_prompt_benchmark": {
+    "cases": 50,
+    "repetitions": 3,
+    "common_schema_first_revision_correct": {"baseline": 150, "skill": 150},
+    "common_schema_second_revision_correct": {"baseline": 150, "skill": 145},
+    "second_revision_failures": "Invented where/filters wrappers rejected by the runner",
+    "full_private_crispr_gpt_benchmark_available": false,
+    "superiority_demonstrated": false,
+    "final_output_format_revision_rebenchmarked": false
+  },
+  "limitations": [
+    "Synthetic computational workflows, not experimentally validated editing",
+    "Whole-genome search throughput and large-library capacity unqualified",
+    "No bulge search, exhaustive base-editor bystander analysis or PE3 nicking guide design",
+    "Amplicon QC is not paired-end/UMI CRISPResso2 or a calibrated editing fraction",
+    "Existing screen-triage phrase replicated guide-level depletion is multiple guides, not biological replication",
+    "Fresh provider recreation must use the pinned default; live patches are additive"
+  ],
+  "evidence_document": "../crispr-workbench-20261022.md"
+}

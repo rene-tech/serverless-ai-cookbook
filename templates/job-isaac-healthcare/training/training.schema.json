@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Isaac for Healthcare upstream RL options",
+  "type": "object",
+  "additionalProperties": false,
+  "default": {},
+  "properties": {
+    "profile": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "RL profile YAML relative to the effective SDK root; null selects rl/profiles/<workflow>.yaml. User-authored profiles are supported."
+    },
+    "num_envs": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "default": null,
+      "description": "Null preserves the profile default."
+    },
+    "epochs": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "default": null,
+      "description": "Maximum training iterations/epochs; null preserves the profile default."
+    },
+    "episodes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "default": null,
+      "description": "Evaluation episode count; null preserves upstream default20."
+    },
+    "video": {
+      "type": "boolean",
+      "default": false
+    },
+    "overrides": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3
+      },
+      "default": [],
+      "description": "Upstream KEY=VALUE trainer overrides, passed as separate argv entries; unsupported combinations fail upstream."
+    },
+    "resume_dir": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Supported upstream trainer run directory relative to the project archive; RSL-RL resume is unsupported upstream."
+    },
+    "train_config": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "RLinf resolved trainer YAML relative to the project archive for export."
+    },
+    "runtime_python": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Explicit installed trainer interpreter for a separately provisioned policy environment. Null uses the configured Arena interpreter for RSL-RL; RLinf requires its own installed environment."
+    },
+    "sim_runtime_python": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Installed simulator interpreter for the isolated RLinf backend; not accepted by RSL-RL."
+    }
+  }
+}

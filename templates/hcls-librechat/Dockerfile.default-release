@@ -1,15 +1,92 @@
 # syntax=docker/dockerfile:1.7
-# Additive transport release over the qualified current workbench. Keep its
-# UI, skills, scientific runtimes and state supervisor; do not replay historical
-# SDK patches or reconstruct the client from an obsolete October 1 ancestor.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:013858f8a22c1e1e6835eb927018642e8109ce467f5cfc4d369692dccab7268b
+# Consolidated validated client fixes, report helpers and current MD guidance.
+# Preserve its clients, runtimes, supervisor, provider and complete skill set.
+# Build with --build-context scientific-skills=./skills/scientific-ai.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:13934a2c4d6713c7940d847dabf022ab62549bbc87811ed5a485564448ff860a
 FROM ${WORKBENCH_BASE}
+# Token Factory /v1/models advertises Kimi K3 context_length=1024000.
+ENV SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=1024000
 USER root
+# Keep the qualified connection/catalog fixes and scientific runtimes. One
+# additive filesystem layer also avoids the parent image layer-depth limit.
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
-    cp /tmp/client/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
+    --mount=type=bind,source=life-science/bionemo-librechat,target=/tmp/viewer,ro \
+    --mount=type=bind,source=plugins/cbioportal-research,target=/tmp/cbioportal,ro \
+    --mount=type=bind,from=scientific-skills,target=/tmp/scientific-skills,ro <<'RELEASE'
+set -eu
+python3 - <<'PYINSTALL'
+import pathlib, py_compile, shutil
+source = pathlib.Path('/tmp/client')
+for name in ('scientific_study.py', 'scientific_study_schema.py', 'scientific_workflow_view.py',
+             'report-assembly.py', 'structure-analysis.py',
+             'scientific_protein_preparation.py', 'native_md_artifacts.py', 'native_md_preview.py',
+             'native_md_report.py', 'scientific_starter.py', 'execution-mcp.py', 'scientific_verified_results.py'):
+    target = pathlib.Path('/opt/bionemo') / name
+    shutil.copy2(source / name, target)
+    py_compile.compile(str(target), doraise=True)
+for name, target in {
+    'agent-instructions.md': '/app/agent-instructions.md',
+    'seed-workbench.js': '/app/seed-hcls-workbench.js',
+    'patch-skill-result.mjs': '/opt/hcls-librechat/patch-skill-result.mjs',
+    'scientific-tool-options.cjs': '/opt/hcls-librechat/scientific-tool-options.cjs',
+    'render-config.mjs': '/opt/hcls-librechat/render-config.mjs',
+    'scientific-provider-routing.cjs': '/opt/hcls-librechat/scientific-provider-routing.cjs',
+    'entrypoint.sh': '/usr/local/bin/hcls-librechat-entrypoint',
+    'native_md_report.py': '/opt/bionemo/report-native-md.py',
+    'demos/service.cjs': '/opt/hcls-librechat/demos/service.cjs',
+    'demos/analysis.cjs': '/opt/hcls-librechat/demos/analysis.cjs',
+    'demos/mcp.cjs': '/opt/hcls-librechat/demos/mcp.cjs',
+    'profiles/cancer-immunology.md': '/opt/hcls-librechat/profiles/cancer-immunology.md',
+}.items():
+    pathlib.Path(target).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source / name, target)
+shutil.copy2('/tmp/viewer/viewer-mcp.py', '/opt/bionemo/viewer-mcp.py')
+# Available for explicit activation; no external connector is enabled by the image.
+shutil.copytree('/tmp/cbioportal', '/opt/hcls-librechat/plugins/cbioportal-research', dirs_exist_ok=True)
+PYINSTALL
+python3 - <<'PY'
+import hashlib, json, py_compile, shutil, subprocess
+from pathlib import Path
+source = Path('/tmp/scientific-skills')
+subprocess.run(['python3', str(source / 'bundle.py'), 'verify'], check=True)
+root = Path('/app/skill')
+inventory = json.loads((source / 'files.sha256.json').read_bytes())
+# Install the exact current portable bundle; preserve additional ClawBio skills.
+for name, expected in inventory.items():
+    target = root / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source / name, target)
+    assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected, name
+shutil.copy2(source / 'files.sha256.json', root / 'files.sha256.json')
+profile = Path('/opt/hcls-librechat/profiles/cancer-research-instructions.md')
+profile.write_bytes(Path('/app/agent-instructions.md').read_bytes() + Path('/opt/hcls-librechat/profiles/cancer-immunology.md').read_bytes())
+py_compile.compile('/opt/bionemo/scientific_study.py', doraise=True)
+print(json.dumps({'managed_files_verified': len(inventory), 'other_skills_preserved': True}))
+PY
+cp /tmp/client/scripts/scientific-batch-acceptance.py /opt/bionemo/invoke-scientific-batch.py \
  && cp /tmp/client/scientific-workflow.py /tmp/client/scientific-study-worker.py /opt/bionemo/ \
  && /opt/scientific-client/bin/python /tmp/client/scripts/verify-observer-recovery.py --source /tmp/client
+# The base already has Skill result/path patches; apply only the new body reader.
+node --input-type=module <<'JSSKILL'
+import { readFile, writeFile } from 'node:fs/promises';
+import { patchDeploymentSkillFreshness } from '/tmp/client/patch-skill-result.mjs';
+const path = '/app/packages/api/dist/index.cjs';
+await writeFile(path, patchDeploymentSkillFreshness(await readFile(path, 'utf8')));
+JSSKILL
+node /tmp/client/scripts/test-skill-body-freshness.cjs
+node /tmp/client/patch-report-preview.mjs /app/client \
+ && node /tmp/client/patch-workspace-tool-reports.mjs /app/client \
+ && cp /tmp/client/ScientificArtifactMarkdown.test.ts /app/client/src/components/ \
+ && cp /tmp/client/WorkspaceReportPreview.test.tsx /tmp/client/WorkspaceToolReports.test.tsx /app/client/src/components/ \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit \
+    src/components/ScientificArtifactMarkdown.test.ts src/components/WorkspaceReportPreview.test.tsx src/components/WorkspaceToolReports.test.tsx \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify
+RELEASE
 ARG HCLS_IMAGE_REVISION=unknown
 LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
       org.opencontainers.image.source="https://github.com/rene-tech/serverless-ai-cookbook" \
-      ai.nebius.scientific.release="client-observation-recovery-20261020"
+      ai.nebius.scientific.release="client-fixes-20261024" \
+      ai.nebius.scientific.skills.version="2026.10.24.8" \
+      ai.nebius.scientific.skills.revision="${HCLS_IMAGE_REVISION}"

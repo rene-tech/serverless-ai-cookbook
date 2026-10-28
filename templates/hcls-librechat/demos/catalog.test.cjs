@@ -15,7 +15,7 @@ const native = [
 const batch = [
   ['boltzgen', 'design-binders'], ['esmfold2', 'predict-structure'],
   ['esmfold2-fast', 'predict-protein-structure'], ['gromacs', 'run-workflow'],
-  ['gromacs-mpi', 'run-workflow'], ['lammps', 'run-workflow'], ['namd', 'run-workflow'],
+  ['gromacs-mpi', 'run-workflow'], ['lammps', 'run-workflow'], ['namd', 'run-workflow'], ['openmm', 'run-workflow'],
   ['openfold3-openbind', 'predict-complex-structure'], ['rfdiffusion', 'design-backbone'],
   ['scvi-scanvi', 'fit-transform'],
 ].map(([model_id, operation]) => ({ id: model_id, model_id, object: 'model', operations: [operation],
@@ -73,8 +73,8 @@ test('full listing accepts only the current empty-object contract; invalid field
     assert.equal(result.result.isError, false);
     const catalog = value(result);
     assert.deepEqual(catalog.data.map(x => x.model_id).sort(), ids);
-    assert.equal(catalog.count, 17);
-    assert.equal(catalog.total_authorized_count, 17);
+    assert.equal(catalog.count, ids.length);
+    assert.equal(catalog.total_authorized_count, ids.length);
     assert.equal(catalog.catalog_scope, 'full_authorized_catalog');
     assert.equal(catalog.filter_applied, null);
     assert.deepEqual(catalog.data.find(x => x.model_id === 'scvi-scanvi').contract_kinds, ['scientific-batch']);
@@ -82,7 +82,8 @@ test('full listing accepts only the current empty-object contract; invalid field
     assert.equal(catalog.data.find(x => x.model_id === 'openfold2').tool_name, 'run_openfold2');
     assert.ok(catalog.data.every(x => !('capabilities' in x) && !('request_schema' in x)));
     assert.doesNotMatch(JSON.stringify(catalog), /private-image|private-device|gpus_per_job/);
-    assert.equal(catalog.groups.flatMap(x => x.apps).length, 17);
+    assert.equal(catalog.groups.flatMap(x => x.apps).length, ids.length);
+    assert.equal(catalog.data.find(x => x.model_id === 'openmm').use_case, 'Molecular dynamics');
     assert.equal(catalog.data.find(x => x.model_id === 'mdprecheck').use_case, 'Molecular dynamics');
   }
   for (const result of results.slice(1)) {
@@ -94,10 +95,10 @@ test('full listing accepts only the current empty-object contract; invalid field
 test('explicit searches distinguish matches from grants, including genuine misses', async t => {
   const results = await rpc(t, ['protein', 'molecular dynamics', 'single-cell', 'DiffDock docking ligand', 'missing']
     .map(query => invoke('workbench_search_apps', { query })));
-  assert.deepEqual(results.map(x => value(x).count), [10, 5, 1, 0, 0]);
+  assert.deepEqual(results.map(x => value(x).count), [10, 6, 1, 0, 0]);
   for (const result of results) {
     const catalog = value(result);
-    assert.equal(catalog.total_authorized_count, 17);
+    assert.equal(catalog.total_authorized_count, ids.length);
     assert.equal(catalog.catalog_scope, 'search_matches');
     assert.match(catalog.answer_rules, /NOT the full authorization list/);
     assert.match(catalog.next_step, /workbench_list_apps with \{\}/);

@@ -1,0 +1,11 @@
+target-version = "py311"
+src = ["src"]
+
+[lint]
+extend-select = ["I", "B", "UP", "RUF"]
+
+[lint.isort]
+known-first-party = ["isaac_healthcare_runtime"]
+
+[lint.per-file-ignores]
+"src/isaac_healthcare_runtime/launch.py" = ["E402"]

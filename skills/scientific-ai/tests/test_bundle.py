@@ -33,8 +33,10 @@ def text(name):
 
 def test_manifest_and_skill_format():
     data = bundle.validate()
-    assert len(data['skills']) == 38
-    assert len({model for models in data['skills'].values() for model in models}) == 44
+    assert set(data['skills']['protein-scoring']) == {
+        'esm2-650m', 'esm2-3b', 'stab-ddg',
+        'pyrosetta-interface-metrics', 'rosetta-flex-ddg',
+    }
     for name in data['skills']:
         assert 'license:' in text(name).split('---')[1]
         assert not re.search(r'`bionemo_[a-z_]+`|`protein_viewer`', text(name))
@@ -166,7 +168,8 @@ def test_install_repeat_conflict_and_integrity(tmp_path):
     (source / 'files.sha256.json').write_text(json.dumps(bundle.inventory(source)))
     destination = tmp_path / 'installed'
     result = bundle.install(destination, source)
-    assert result['skills'] == 38
+    assert result['skills'] == len(bundle.manifest(source)['skills'])
+    assert {p.parent.name for p in destination.glob('*/SKILL.md')} == set(bundle.manifest(source)['skills'])
     assert bundle.install(destination, source) == result
     assert (destination / 'clinical-documentation/scripts/study_report.py').is_file()
     assert (destination / 'rfd4-proteina/LICENSE').is_file()

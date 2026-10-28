@@ -96,14 +96,14 @@ def test_md_reports_actual_config_not_longer_run_or_invented_statistics(tmp_path
     md_fixture(tmp_path / 'run')
     text = deliver({'results': [{'kind': 'native-md', 'path': 'run'}]}, tmp_path)['report_markdown']
     assert '6598' in text and '| sd | 10000 | 0.002 | 20 | C-rescale |' in text
-    assert '1 ns' not in text and 'GPU snapshot used: False' in text
+    assert '1 ns' not in text and 'GPU snapshot' not in text
     assert 'none are invented' in text and 'convergence are not established' in text
     (tmp_path / 'run/native/result-00/production.mdp').write_text('nsteps=500000\n')
     with pytest.raises(ValueError, match='changed'):
         deliver({'results': [{'kind': 'native-md', 'path': 'run'}]}, tmp_path)
 
 
-@pytest.mark.parametrize('engine', ['gromacs', 'namd', 'amber', 'lammps'])
+@pytest.mark.parametrize('engine', ['gromacs', 'namd', 'amber', 'lammps', 'openmm'])
 def test_recovery_receipt_delivers_without_copying_or_changing_files(tmp_path, engine):
     folder = tmp_path / 'run'
     md_fixture(folder, engine)

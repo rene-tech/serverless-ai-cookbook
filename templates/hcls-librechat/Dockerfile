@@ -80,6 +80,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends zstd plink1.9 f
  && zstd --version && ffprobe -version \
  && rm -rf /var/lib/apt/lists/*
 COPY templates/hcls-librechat/render-config.mjs /opt/hcls-librechat/render-config.mjs
+COPY templates/hcls-librechat/scientific-provider-routing.cjs /opt/hcls-librechat/scientific-provider-routing.cjs
 COPY templates/hcls-librechat/scientific-tool-options.cjs /opt/hcls-librechat/scientific-tool-options.cjs
 COPY templates/hcls-librechat/scientific-completion.cjs /opt/hcls-librechat/scientific-completion.cjs
 COPY templates/hcls-librechat/scientific-study-admission.cjs /opt/hcls-librechat/scientific-study-admission.cjs
@@ -88,6 +89,7 @@ COPY templates/hcls-librechat/scientific-workflow.py /opt/bionemo/scientific-wor
 COPY templates/hcls-librechat/scientific-context-audit.cjs /opt/hcls-librechat/scientific-context-audit.cjs
 COPY templates/hcls-librechat/scientific-token-count.cjs /opt/hcls-librechat/scientific-token-count.cjs
 COPY templates/hcls-librechat/scientific-tool-search-patch.cjs /opt/hcls-librechat/scientific-tool-search-patch.cjs
+COPY templates/hcls-librechat/scientific-mcp-catalog.cjs /opt/hcls-librechat/scientific-mcp-catalog.cjs
 COPY templates/hcls-librechat/patch-server.mjs /opt/hcls-librechat/patch-server.mjs
 COPY templates/hcls-librechat/test-deferred-discovery-boundary.cjs /opt/hcls-librechat/test-deferred-discovery-boundary.cjs
 COPY templates/hcls-librechat/demos/service.cjs \
@@ -103,6 +105,9 @@ RUN node /opt/hcls-librechat/patch-client-assets.mjs
 COPY templates/hcls-librechat/uploads/verify-installed.mjs /opt/hcls-librechat/verify-workspace-installed.mjs
 RUN node /opt/hcls-librechat/verify-workspace-installed.mjs
 COPY templates/hcls-librechat/tavily-mcp.mjs /opt/bionemo/tavily-mcp.mjs
+COPY templates/hcls-librechat/camsol/ /opt/hcls-librechat/camsol/
+RUN node /opt/hcls-librechat/camsol/patch-private-vars.mjs \
+    /app/packages/api/src/utils/env.ts /app/packages/api/dist/index.cjs
 COPY templates/hcls-librechat/structure-mcp.py /opt/bionemo/structure-mcp.py
 COPY templates/hcls-librechat/execution-mcp.py /opt/bionemo/execution-mcp.py
 COPY templates/hcls-librechat/scientific_verified_results.py /opt/bionemo/scientific_verified_results.py
@@ -215,7 +220,7 @@ LABEL org.opencontainers.image.title="Nebius Scientific AI Workspace" \
 ENV SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true \
     HOST=0.0.0.0 \
     SCIENTIFIC_CHAT_REASONING_EFFORT=high \
-    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=131072 \
+    SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS=1024000 \
     PORT=3080 \
     NODE_ENV=production \
     APP_TITLE="Nebius Scientific AI Workspace" \

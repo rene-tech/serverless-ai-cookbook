@@ -1,0 +1,6 @@
+[
+  "/opt/holoscan-video/launch.sh",
+  "python3",
+  "-I",
+  "/opt/holoscan-task/run_bundle.py"
+]

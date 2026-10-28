@@ -155,7 +155,6 @@ def md_card(folder, root):
         text = [f'### {cell(engine.upper())}: completed engine operation', '',
                 f"Operation: `{receipt['operation_id']}`.",
                 f"Completed steps: {', '.join(cell(v) for v in result['completed_steps'])}.",
-                f"GPU snapshot used: {result.get('gpu_snapshot_used', 'not recorded')}.",
                 f"Native checkpoint generation: {result.get('native_checkpoint_generation', 'not recorded')}."]
         if engine == 'gromacs':
             if 'system.gro' in files:

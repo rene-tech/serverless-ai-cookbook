@@ -120,6 +120,54 @@ def test_absent_confidence_remains_unavailable_not_zero(tmp_path):
     assert fields == {} and provenance['status'] == 'unavailable_no_confidence_artifact'
 
 
+def af3_fixture(tmp_path, summary=None):
+    prediction, document, manifest, envelope, path = fixture(tmp_path)
+    raw = json.dumps(summary or {'ptm': 0.0, 'iptm': None, 'ranking_score': 0.0}).encode()
+    entry = manifest['entries'][1]
+    entry['semantic_type'] = 'alphafold3-summary-confidence/v1'
+    entry['artifact'].update(sha256=hashlib.sha256(raw).hexdigest(), size_bytes=len(raw))
+    (tmp_path / 'output-01.artifact').write_bytes(raw)
+    path.write_text(json.dumps(manifest))
+    return prediction, manifest, path
+
+
+def test_af3_canonical_pair_keeps_zero_and_null_without_inventing_a_sample(tmp_path):
+    prediction, manifest, path = af3_fixture(tmp_path)
+    fields, proof = analysis.bound_confidence(manifest, prediction, source_path=path)
+    assert fields == {'confidence_artifacts[1].native_summary.ptm': 0.0,
+                      'confidence_artifacts[1].native_summary.ranking_score': 0.0}
+    assert proof['status'] == 'same_immutable_manifest_canonical_structure_and_summary'
+    assert proof['unavailable_native_fields'] == ['iptm'] and 'seed' not in proof
+    assert 'not a per-sample hash' in proof['scope']
+    from scientific_protein_preparation import coordinate_input
+    text, _, retained = coordinate_input(path, 0, {}, {}, allow_mmcif=True)
+    envelope_fields, envelope_proof = analysis.bound_confidence(
+        {'structure': text, 'retained_source_result': retained}, prediction)
+    assert envelope_fields == fields and envelope_proof == proof
+
+
+@pytest.mark.parametrize('defect', ['second-coordinate', 'second-summary', 'tampered'])
+def test_af3_summary_cannot_bind_ambiguous_or_changed_evidence(tmp_path, defect):
+    prediction, manifest, path = af3_fixture(tmp_path)
+    if defect == 'second-coordinate':
+        other = copy.deepcopy(manifest['entries'][0])
+        other['artifact']['sha256'] = 'f' * 64
+        manifest['entries'].append(other)
+    elif defect == 'second-summary':
+        manifest['entries'].append(copy.deepcopy(manifest['entries'][1]))
+    else:
+        (tmp_path / 'output-01.artifact').write_bytes(b'{}')
+    with pytest.raises(ValueError):
+        analysis.bound_confidence(manifest, prediction, source_path=path)
+
+
+@pytest.mark.parametrize('value', [True, 1.1, float('nan')])
+def test_af3_confidence_requires_valid_native_probability_values(tmp_path, value):
+    prediction, manifest, path = af3_fixture(tmp_path, {'ptm': value, 'iptm': None, 'ranking_score': 0.5})
+    with pytest.raises(ValueError, match='finite native'):
+        analysis.bound_confidence(manifest, prediction, source_path=path)
+
+
 def test_cli_explicit_manifest_renders_exact_values_and_keeps_geometry(tmp_path):
     prediction, _, _, _, path = fixture(tmp_path)
     reference = tmp_path / 'reference.pdb'

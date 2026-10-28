@@ -1,0 +1,1284 @@
+{
+  "date": "2026-10-27",
+  "status": "Portable float32 compatibility qualified on four GPU classes; Scientific AI REST/MCP acceptance and same-tenant isolation/idempotency passed; one provider scoped-transfer L40S Job passed",
+  "cpu": {
+    "actual_runtime_uid": "unprivileged",
+    "network": "disabled",
+    "monai": "1.6.1",
+    "torch": "2.9.1+cu128",
+    "heldout_case": {
+      "id": "MSD spleen_56",
+      "scope": "published validation-subset regression, not independent clinical accuracy",
+      "minimum_dice": 0.9,
+      "dice": 0.9361426978818284,
+      "pred_voxels": 22038,
+      "label_voxels": 22812,
+      "timings_s": {
+        "load": 0.23527095466852188,
+        "preprocess": 0.38006994873285294,
+        "inference": 1.5256041195243597,
+        "total": 3.9017081446945667
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          33
+        ],
+        "affine": [
+          [
+            0.6992189884185791,
+            0.0,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.6992189884185791,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.0,
+            6.999969959259033,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "spacing": [
+          0.6992189884185791,
+          0.6992189884185791,
+          6.999969959259033
+        ],
+        "axis_codes": [
+          "R",
+          "A",
+          "S"
+        ],
+        "xyzt_units": [
+          "mm",
+          "sec"
+        ],
+        "qform_code": 1,
+        "sform_code": 1,
+        "effective_spatial_units": "mm",
+        "millimeters_per_coordinate_unit": 1.0
+      },
+      "portable_revision": "r3"
+    },
+    "training_case": {
+      "id": "MSD spleen_19",
+      "scope": "training-cohort functional regression",
+      "dice": 0.9853786144719017,
+      "pred_voxels": 95811,
+      "label_voxels": 96852,
+      "timings_s": {
+        "load": 0.32202341966331005,
+        "preprocess": 0.5659100972115993,
+        "inference": 2.358067551627755,
+        "total": 6.0401670671999454
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          51
+        ],
+        "affine": [
+          [
+            0.796875,
+            0.0,
+            0.0,
+            -407.203125
+          ],
+          [
+            0.0,
+            0.796875,
+            0.0,
+            -407.203125
+          ],
+          [
+            0.0,
+            0.0,
+            5.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "spacing": [
+          0.796875,
+          0.796875,
+          5.0
+        ],
+        "axis_codes": [
+          "R",
+          "A",
+          "S"
+        ],
+        "xyzt_units": [
+          "mm",
+          "sec"
+        ],
+        "qform_code": 1,
+        "sform_code": 1,
+        "effective_spatial_units": "mm",
+        "millimeters_per_coordinate_unit": 1.0
+      },
+      "evidence_revision": "r2 lineage; unchanged science"
+    },
+    "variation": {
+      "voxel_identical_after_inverse_orientation": true,
+      "original_foreground": 95811,
+      "variation_foreground": 95811,
+      "parameters": {
+        "precision": "float32",
+        "sw_batch_size": 1,
+        "overlap": 0.5,
+        "spatial_units": "header"
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          51
+        ],
+        "affine": [
+          [
+            -0.0007968749850988388,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0007968749850988388,
+            0.0,
+            -0.40720313787460327
+          ],
+          [
+            0.0,
+            0.0,
+            -0.004999999888241291,
+            0.25
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "spacing": [
+          0.0007968749850988388,
+          0.0007968749850988388,
+          0.004999999888241291
+        ],
+        "axis_codes": [
+          "L",
+          "A",
+          "I"
+        ],
+        "xyzt_units": [
+          "meter",
+          "sec"
+        ],
+        "qform_code": 1,
+        "sform_code": 2,
+        "effective_spatial_units": "meter",
+        "millimeters_per_coordinate_unit": 1000.0
+      },
+      "evidence_revision": "r2 lineage; unchanged science"
+    },
+    "geometry_tests": 4,
+    "private_contract_tests": 18,
+    "integer_json_normalization": {
+      "package_version": "0.1.1",
+      "default_vs_r2_voxel_identical": true,
+      "integer_float_batch_voxel_identical": true,
+      "nonobject_cli_cases_rejected": [
+        "null",
+        "false",
+        "[]",
+        "0",
+        "empty-string"
+      ],
+      "files": {
+        "__init__.py": "062a52d8ee9eb1e00edeebf7dac9f4d42ccd7f47de915c38c593acec1ab034fc",
+        "metadata.py": "1966c9045aa7e8794569059eeab70b5ddf84e6e68fb33c639a5e9737f3ad7c65",
+        "runtime.py": "82c6ebba15a4d00ee2a79532d9dad6a7e7c17957e62eb5b5e79f80dcbb0b9ade"
+      }
+    },
+    "provider_transfer": {
+      "execution_exit_code": 0,
+      "input_sha256": "be3da1a63973734da44b32a29be49b55b3baaf2830299af8a5b853e2d1243ed1",
+      "output_sha256": "90e166d99a9b0c1180410fac01edae7b6ddfb092fa327387d815be972e3ca275",
+      "output_size_bytes": 61440,
+      "uploaded": true,
+      "driver_sha256": "9f314bc44a064d2a97ca9abddf20e0e3dbef73e10b07ae11740a52c4ada388cf",
+      "mode": "CPU, local TLS transfer test; actual provider GPU qualification is recorded separately under provider_serverless.",
+      "dice": 0.9361426978818284,
+      "files": [
+        "execution.log",
+        "qualification.json",
+        "result.json",
+        "segmentation.nii.gz",
+        "transfer-result.json"
+      ],
+      "corrupt_input_rejected_before_execution": true
+    },
+    "geometry_tests_image_revision": "r3"
+  },
+  "pending": [
+    "native availability fallback",
+    "general PVC-based Kubernetes storage execution",
+    "float16/bfloat16 and broader workload/performance qualification",
+    "capacity qualification",
+    "owner cancellation during execution and recovery",
+    "cross-tenant isolation",
+    "provider bucket-mount transport",
+    "provider scoped transfer without public IP/SSH diagnostics"
+  ],
+  "supersedes_portable_image": "sha256:72b86537cde390d80db100ce7d05db7fbb008c809a8610fd6ef5e2822851529f",
+  "definition_resources": {
+    "compute_memory": "32Gi",
+    "finalizer_memory": "32Gi",
+    "reason": "Full-volume semantic check uses the same host memory envelope; no fixture-only finalizer sizing"
+  },
+  "portable_image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+  "portable_image_availability": "Build this public recipe and publish to your own registry; no public prebuilt image is promised.",
+  "installed_engine_sha256": {
+    "__init__.py": "062a52d8ee9eb1e00edeebf7dac9f4d42ccd7f47de915c38c593acec1ab034fc",
+    "metadata.py": "1966c9045aa7e8794569059eeab70b5ddf84e6e68fb33c639a5e9737f3ad7c65",
+    "runtime.py": "82c6ebba15a4d00ee2a79532d9dad6a7e7c17957e62eb5b5e79f80dcbb0b9ade"
+  },
+  "provider_serverless": {
+    "status": "finite_scoped_transfer_science_pass",
+    "date": "2026-10-27",
+    "historical_long_reference_failure": {
+      "status": "blocked_before_container_start",
+      "date": "2026-10-27",
+      "tested_services": [
+        "Job",
+        "Endpoint"
+      ],
+      "reason": "Immutable image digest references rejected by provider image-label length validation.",
+      "immutable_pin_retained": true,
+      "inference_executed": false
+    },
+    "full_digest_preserved": true,
+    "transport": "Scoped HTTPS input/output and unchanged provider_driver.py",
+    "scientific_execution": "passed",
+    "bucket_mounted_transport": "unqualified",
+    "general_supplied_input_command": "provider-command.json",
+    "general_workflow": "PROVIDER.md",
+    "network_scope": {
+      "qualified": "Public IP and existing authorized SSH key for read-only host diagnostics; no workload ports.",
+      "no_public_ip_or_ssh_variant": "unqualified end to end"
+    },
+    "accepted_finite_run": {
+      "date": "2026-10-27",
+      "region": "eu-north1",
+      "platform": "gpu-l40s-d",
+      "preset": "1gpu-16vcpu-96gb",
+      "requested_resources": {
+        "gpu": 1,
+        "cpu": 16,
+        "memory_gib": 96,
+        "disk_gib": 100,
+        "disk_type": "NETWORK_SSD",
+        "timeout_seconds": 1800,
+        "restart_attempts": 0
+      },
+      "actual_gpu": {
+        "name": "NVIDIA L40S",
+        "driver": "580.173.02",
+        "compute_capability": "8.9",
+        "reported_memory_mib": 46068
+      },
+      "actual_image_manifest_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+      "actual_image_config_digest": "sha256:11155a608d7fc54d7a41e17994c733e6fbc0df965fd7a1188457bde7ab83d415",
+      "actual_identity_scope": "Two retained exact-container observations, joined to the accepted Job and Compute VM; containerd manifest target and actual config blob both verified.",
+      "runtime": {
+        "python": "3.11.14",
+        "monai": "1.6.1",
+        "torch": "2.9.1+cu128",
+        "cuda": "12.8"
+      },
+      "uid": 10001,
+      "driver_sha256": "9f314bc44a064d2a97ca9abddf20e0e3dbef73e10b07ae11740a52c4ada388cf",
+      "command_sha256": "10ae65000048d4f9a46a5a7f29051ff8881b89ebf0b7a853b6eab0c88c5a4496",
+      "portable_sources_sha256": {
+        "__init__.py": "062a52d8ee9eb1e00edeebf7dac9f4d42ccd7f47de915c38c593acec1ab034fc",
+        "metadata.py": "1966c9045aa7e8794569059eeab70b5ddf84e6e68fb33c639a5e9737f3ad7c65",
+        "runtime.py": "82c6ebba15a4d00ee2a79532d9dad6a7e7c17957e62eb5b5e79f80dcbb0b9ade"
+      },
+      "weights_sha256": "502c312893994ec071a85c4f2e7d83a43f7789969faa73dae62f1291177f50fe",
+      "case": "MSD spleen_56",
+      "case_scope": "Published validation-subset functional regression, not independent clinical accuracy",
+      "parameters": {
+        "precision": "float32",
+        "sw_batch_size": 4,
+        "overlap": 0.5,
+        "spatial_units": "header"
+      },
+      "minimum_dice": 0.9,
+      "independent_semantic_validation": {
+        "geometry_preserved": true,
+        "foreground_voxels": 22038,
+        "dice": 0.936098104793757,
+        "reference_foreground_voxels": 22812
+      },
+      "labels": {
+        "0": 8628714,
+        "1": 22038
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          33
+        ],
+        "affine": [
+          [
+            0.6992189884185791,
+            0.0,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.6992189884185791,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.0,
+            6.999969959259033,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "spacing": [
+          0.6992189884185791,
+          0.6992189884185791,
+          6.999969959259033
+        ],
+        "axis_codes": [
+          "R",
+          "A",
+          "S"
+        ],
+        "xyzt_units": [
+          "mm",
+          "sec"
+        ],
+        "qform_code": 1,
+        "sform_code": 1,
+        "effective_spatial_units": "mm",
+        "millimeters_per_coordinate_unit": 1.0
+      },
+      "terminal_state": "COMPLETED",
+      "scientific_execution_exit_code": 0,
+      "output_archive_sha256": "dd1c3abd82b18333a363c9dc96024553c5f589d8e71fb32ac70db7f9902dcbce",
+      "output_archive_size_bytes": 61440,
+      "all_five_downloaded_files_verified": true,
+      "files": {
+        "execution.log": {
+          "sha256": "e31149acf4b90e0030336a4916be3484ed6ee903715b23ba72d708495df0526e",
+          "size_bytes": 1128
+        },
+        "qualification.json": {
+          "sha256": "8bdf88e3086486c05079d27b714286b3a4b19ae729d6cea9ba915b4dc3ac81da",
+          "size_bytes": 655
+        },
+        "result.json": {
+          "sha256": "91df7b2cb192c73ff734a8650321c64c935fab5764870992ad1e4eddcbc998bc",
+          "size_bytes": 2809
+        },
+        "segmentation.nii.gz": {
+          "sha256": "15056061a043d09c19aa59d6a2a35c48df076382e997e55fbc92d354eee7cd0b",
+          "size_bytes": 41666
+        },
+        "transfer-result.json": {
+          "sha256": "bdcb8b02da20629e0569cd72508557d3bfc80cdb6519c54a7a37834c7b7d2bf6",
+          "size_bytes": 829
+        }
+      },
+      "timings_s": {
+        "load": 0.4369203269999957,
+        "preprocess": 0.3527339449999829,
+        "inference": 0.4063797750000049,
+        "total": 2.591010873999977
+      },
+      "timing_scope": "One engine run; excludes imports, allocation retries, image pull and transfer. No speed/cost ranking or sustainable capacity estimate.",
+      "allocation_history": {
+        "failures": 2,
+        "operation_kinds": [
+          "Create Instance",
+          "Start Instance"
+        ],
+        "error": "NotEnoughResources",
+        "provider_status_code": 8,
+        "requested_shape": "1gpu-16vcpu-96gb",
+        "resolution": "The same original Job and VM later reached image pulling and completed; no alternative allocation or scientific replay was submitted."
+      },
+      "provider_log_tail_max_lines": 1000,
+      "complete_scientific_stdout_stderr": "Verified archived execution.log; bounded provider tail does not establish full lifecycle-log coverage.",
+      "physical_cleanup": "Separate root-owned terminal/accounting/deletion verification; scientific PASS does not itself release resources.",
+      "scope_limits": [
+        "One fixed float32 volume on one provider L40S; not all MONAI tasks",
+        "No-IP/no-SSH transport and bucket mounts unqualified",
+        "Native availability fallback, owner cancellation/recovery and sustainable capacity unqualified"
+      ]
+    }
+  },
+  "kubernetes": {
+    "status": "Four hardware-specific scoped-URL finite GPU regressions passed; general PVC template client-validated only",
+    "general_recipe": "kubernetes-job.yaml",
+    "manifest_client_dry_run": "passed",
+    "cpu_container_security_conformance": {
+      "uid": 10001,
+      "read_only_root": true,
+      "dropped_capabilities": "ALL",
+      "no_new_privileges": true,
+      "device": "cpu",
+      "dice": 0.9361426978818284,
+      "validation": {
+        "geometry_preserved": true,
+        "geometry": {
+          "shape": [
+            512,
+            512,
+            33
+          ],
+          "affine": [
+            [
+              0.6992189884185791,
+              0.0,
+              0.0,
+              -357.3009033203125
+            ],
+            [
+              0.0,
+              0.6992189884185791,
+              0.0,
+              -357.3009033203125
+            ],
+            [
+              0.0,
+              0.0,
+              6.999969959259033,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "spacing": [
+            0.6992189884185791,
+            0.6992189884185791,
+            6.999969959259033
+          ],
+          "axis_codes": [
+            "R",
+            "A",
+            "S"
+          ],
+          "xyzt_units": [
+            "mm",
+            "sec"
+          ],
+          "qform_code": 1,
+          "sform_code": 1,
+          "effective_spatial_units": "mm",
+          "millimeters_per_coordinate_unit": 1.0
+        },
+        "labels": {
+          "0": 8628714,
+          "1": 22038
+        },
+        "foreground_voxels": 22038,
+        "foreground_volume_mm3": 75421.43347829994
+      }
+    },
+    "finite_execution": {
+      "gpus": 1,
+      "cpus": 8,
+      "memory": "32Gi",
+      "scratch": "32Gi",
+      "backoff_limit": 0,
+      "active_deadline_seconds": 1800
+    },
+    "notes": "General PVC input path and fixed-example scoped-URL qualification are separate commands using the same portable engine.",
+    "scoped_url_regression": "portable_gpu_runs"
+  },
+  "portable_gpu": {
+    "status": "passed",
+    "date": "2026-10-27",
+    "execution": "finite Kubernetes Job with scoped HTTPS input/output capabilities",
+    "region": "eu-north1",
+    "gpu": "NVIDIA L40S",
+    "gpu_compute_capability": "8.9",
+    "driver": "580.173.02",
+    "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+    "image_config_digest": "sha256:11155a608d7fc54d7a41e17994c733e6fbc0df965fd7a1188457bde7ab83d415",
+    "resources": {
+      "gpu": 1,
+      "cpu": 8,
+      "memory": "32Gi",
+      "scratch": "32Gi"
+    },
+    "uid": 10001,
+    "exit_code": 0,
+    "restart_count": 0,
+    "case": "MSD spleen_56",
+    "case_scope": "published validation-subset regression, not independent clinical accuracy",
+    "parameters": {
+      "precision": "float32",
+      "sw_batch_size": 4,
+      "overlap": 0.5,
+      "spatial_units": "header"
+    },
+    "minimum_dice": 0.9,
+    "independent_semantic_validation": {
+      "geometry_preserved": true,
+      "foreground_voxels": 22038,
+      "dice": 0.936098104793757,
+      "reference_foreground_voxels": 22812
+    },
+    "geometry": {
+      "shape": [
+        512,
+        512,
+        33
+      ],
+      "affine": [
+        [
+          0.6992189884185791,
+          0.0,
+          0.0,
+          -357.3009033203125
+        ],
+        [
+          0.0,
+          0.6992189884185791,
+          0.0,
+          -357.3009033203125
+        ],
+        [
+          0.0,
+          0.0,
+          6.999969959259033,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "affine_exact": true,
+      "forms": {
+        "qform": {
+          "matrix_equal": true,
+          "code": 1
+        },
+        "sform": {
+          "matrix_equal": true,
+          "code": 1
+        }
+      },
+      "units": [
+        "mm",
+        "sec"
+      ],
+      "dtype": "uint8",
+      "label_counts": {
+        "0": 8628714,
+        "1": 22038
+      }
+    },
+    "runtime": {
+      "monai": "1.6.1",
+      "torch": "2.9.1+cu128",
+      "device": "cuda"
+    },
+    "timings_s": {
+      "load": 0.6453668619506061,
+      "preprocess": 0.39191442308947444,
+      "inference": 0.409979258896783,
+      "total": 3.5315189339453354
+    },
+    "timing_scope": "Engine timer excludes imports, queue, image pull and transfer; CUDA inference explicitly synchronizes. Kubernetes timestamps have one-second resolution.",
+    "container_wall_seconds_at_api_resolution": 7,
+    "job_wall_seconds_at_api_resolution": 38,
+    "image_pull_seconds_reported_by_kubelet": 26.629,
+    "output_archive_sha256": "d64734d09de0327995f30ef455decf0643c6da34e9feab8e832e746e3e07b20c",
+    "output_archive_size_bytes": 61440,
+    "all_five_downloaded_files_verified": true,
+    "cpu_gpu_comparison": {
+      "differing_voxels": 2,
+      "total_voxels": 8650752,
+      "foreground_cpu": 22038,
+      "foreground_gpu": 22038,
+      "mask_dice_cpu_vs_gpu": 0.9999546238315636,
+      "gpu_runtime": {
+        "monai": "1.6.1",
+        "torch": "2.9.1+cu128",
+        "device": "cuda"
+      },
+      "gpu_engine_timings_s": {
+        "load": 0.6453668619506061,
+        "preprocess": 0.39191442308947444,
+        "inference": 0.409979258896783,
+        "total": 3.5315189339453354
+      }
+    },
+    "capacity_scope": "One volume in one finite Job; concurrency, cancellation, fallback and sustained capacity unqualified."
+  },
+  "fleet_gpu_matrix": [
+    {
+      "gpu": "NVIDIA L40S",
+      "region": "eu-north1",
+      "support_status": "supported",
+      "qualified_scope": "One real pretrained portable float32 Kubernetes run; same image, weights and validation input.",
+      "evidence": {
+        "dice": 0.936098104793757,
+        "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+        "geometry_exact": true,
+        "downloaded_files_verified": true
+      },
+      "performance": "Single-run timings retained; no sustainable capacity or cost ordering."
+    },
+    {
+      "gpu": "NVIDIA-H100-80GB-HBM3",
+      "region": "eu-north1",
+      "support_status": "supported",
+      "qualified_scope": "One real pretrained portable float32 Kubernetes run; same image, weights and validation input.",
+      "evidence": {
+        "dice": 0.936098104793757,
+        "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+        "geometry_exact": true,
+        "downloaded_files_verified": true
+      },
+      "performance": "Single-run timings retained; no sustainable capacity or cost ordering."
+    },
+    {
+      "gpu": "NVIDIA-H200",
+      "region": "eu-north1",
+      "support_status": "supported",
+      "qualified_scope": "One real pretrained portable float32 Kubernetes run; same image, weights and validation input.",
+      "evidence": {
+        "dice": 0.936098104793757,
+        "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+        "geometry_exact": true,
+        "downloaded_files_verified": true
+      },
+      "performance": "Single-run timings retained; no sustainable capacity or cost ordering."
+    },
+    {
+      "gpu": "NVIDIA-RTX-PRO-6000-Blackwell-Server-Edition",
+      "region": "eu-south1",
+      "support_status": "supported",
+      "qualified_scope": "One real pretrained portable float32 Kubernetes run; same image, weights and validation input.",
+      "evidence": {
+        "dice": 0.936098104793757,
+        "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+        "geometry_exact": true,
+        "downloaded_files_verified": true
+      },
+      "performance": "Single-run timings retained; no sustainable capacity or cost ordering."
+    }
+  ],
+  "native_fallback_status": "unqualified",
+  "portable_gpu_runs": {
+    "l40s": {
+      "status": "passed",
+      "date": "2026-10-27",
+      "execution": "finite Kubernetes Job with scoped HTTPS input/output capabilities",
+      "region": "eu-north1",
+      "gpu": "NVIDIA L40S",
+      "gpu_compute_capability": "8.9",
+      "driver": "580.173.02",
+      "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+      "image_config_digest": "sha256:11155a608d7fc54d7a41e17994c733e6fbc0df965fd7a1188457bde7ab83d415",
+      "resources": {
+        "gpu": 1,
+        "cpu": 8,
+        "memory": "32Gi",
+        "scratch": "32Gi"
+      },
+      "uid": 10001,
+      "exit_code": 0,
+      "restart_count": 0,
+      "case": "MSD spleen_56",
+      "case_scope": "published validation-subset regression, not independent clinical accuracy",
+      "parameters": {
+        "precision": "float32",
+        "sw_batch_size": 4,
+        "overlap": 0.5,
+        "spatial_units": "header"
+      },
+      "minimum_dice": 0.9,
+      "independent_semantic_validation": {
+        "geometry_preserved": true,
+        "foreground_voxels": 22038,
+        "dice": 0.936098104793757,
+        "reference_foreground_voxels": 22812
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          33
+        ],
+        "affine": [
+          [
+            0.6992189884185791,
+            0.0,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.6992189884185791,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.0,
+            6.999969959259033,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "affine_exact": true,
+        "forms": {
+          "qform": {
+            "matrix_equal": true,
+            "code": 1
+          },
+          "sform": {
+            "matrix_equal": true,
+            "code": 1
+          }
+        },
+        "units": [
+          "mm",
+          "sec"
+        ],
+        "dtype": "uint8",
+        "label_counts": {
+          "0": 8628714,
+          "1": 22038
+        }
+      },
+      "runtime": {
+        "monai": "1.6.1",
+        "torch": "2.9.1+cu128",
+        "device": "cuda"
+      },
+      "timings_s": {
+        "load": 0.6453668619506061,
+        "preprocess": 0.39191442308947444,
+        "inference": 0.409979258896783,
+        "total": 3.5315189339453354
+      },
+      "timing_scope": "Engine timer excludes imports, queue, image pull and transfer; CUDA inference explicitly synchronizes. Kubernetes timestamps have one-second resolution.",
+      "container_wall_seconds_at_api_resolution": 7,
+      "job_wall_seconds_at_api_resolution": 38,
+      "image_pull_seconds_reported_by_kubelet": 26.629,
+      "output_archive_sha256": "d64734d09de0327995f30ef455decf0643c6da34e9feab8e832e746e3e07b20c",
+      "output_archive_size_bytes": 61440,
+      "all_five_downloaded_files_verified": true,
+      "cpu_gpu_comparison": {
+        "differing_voxels": 2,
+        "total_voxels": 8650752,
+        "foreground_cpu": 22038,
+        "foreground_gpu": 22038,
+        "mask_dice_cpu_vs_gpu": 0.9999546238315636,
+        "gpu_runtime": {
+          "monai": "1.6.1",
+          "torch": "2.9.1+cu128",
+          "device": "cuda"
+        },
+        "gpu_engine_timings_s": {
+          "load": 0.6453668619506061,
+          "preprocess": 0.39191442308947444,
+          "inference": 0.409979258896783,
+          "total": 3.5315189339453354
+        }
+      },
+      "capacity_scope": "One volume in one finite Job; concurrency, cancellation, fallback and sustained capacity unqualified."
+    },
+    "h100": {
+      "status": "passed",
+      "date": "2026-10-27",
+      "execution": "finite Kubernetes Job with scoped HTTPS input/output capabilities",
+      "region": "eu-north1",
+      "gpu": "NVIDIA-H100-80GB-HBM3",
+      "gpu_compute_capability": "9.0",
+      "driver": "580.173.02",
+      "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+      "image_config_digest": "sha256:11155a608d7fc54d7a41e17994c733e6fbc0df965fd7a1188457bde7ab83d415",
+      "resources": {
+        "gpu": 1,
+        "cpu": 8,
+        "memory": "32Gi",
+        "scratch": "32Gi"
+      },
+      "uid": 10001,
+      "exit_code": 0,
+      "restart_count": 0,
+      "case": "MSD spleen_56",
+      "case_scope": "published validation-subset regression, not independent clinical accuracy",
+      "parameters": {
+        "precision": "float32",
+        "sw_batch_size": 4,
+        "overlap": 0.5,
+        "spatial_units": "header"
+      },
+      "minimum_dice": 0.9,
+      "independent_semantic_validation": {
+        "geometry_preserved": true,
+        "foreground_voxels": 22038,
+        "dice": 0.936098104793757,
+        "reference_foreground_voxels": 22812
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          33
+        ],
+        "affine_exact": true,
+        "affine": [
+          [
+            0.6992189884185791,
+            0.0,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.6992189884185791,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.0,
+            6.999969959259033,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "forms": {
+          "qform": {
+            "exact": true,
+            "code": 1
+          },
+          "sform": {
+            "exact": true,
+            "code": 1
+          }
+        },
+        "units": [
+          "mm",
+          "sec"
+        ],
+        "dtype": "uint8"
+      },
+      "label_counts": {
+        "0": 8628714,
+        "1": 22038
+      },
+      "runtime": {
+        "monai": "1.6.1",
+        "torch": "2.9.1+cu128",
+        "device": "cuda"
+      },
+      "timings_s": {
+        "load": 0.6311954909469932,
+        "preprocess": 0.34733662917278707,
+        "inference": 0.44342260900884867,
+        "total": 3.0543672870844603
+      },
+      "timing_scope": "Engine timer excludes imports, queue, image pull and transfer; CUDA inference is explicitly synchronized. Kubernetes start/finish timestamps have one-second resolution. One run per GPU; no ordering inferred.",
+      "job_timestamps": {
+        "created": "2026-10-27T10:25:04Z",
+        "started": "2026-10-27T10:25:04Z",
+        "completed": "2026-10-27T10:27:01Z"
+      },
+      "container_started_at": "2026-10-27T10:26:40Z",
+      "container_finished_at": "2026-10-27T10:26:47Z",
+      "container_wall_seconds_at_api_resolution": 7.0,
+      "job_wall_seconds_at_api_resolution": 117.0,
+      "image_pull_observations": [
+        {
+          "reported_duration": "1m35.298s",
+          "seconds": 95.298,
+          "first_timestamp": "2026-10-27T10:26:40Z",
+          "last_timestamp": "2026-10-27T10:26:40Z"
+        }
+      ],
+      "output_archive_sha256": "a32fd6431fe4f1bba6ec7f759dfd6a2e6afa1fe195c41447a1f29e2e74797d00",
+      "output_archive_size_bytes": 61440,
+      "all_five_downloaded_files_verified": true,
+      "cpu_gpu_comparison": {
+        "differing_voxels": 2,
+        "total_voxels": 8650752,
+        "mask_dice": 0.9999546238315636
+      },
+      "capacity_scope": "One volume in one finite Job; concurrency, cancellation, fallback and sustained capacity unqualified."
+    },
+    "h200": {
+      "status": "passed",
+      "date": "2026-10-27",
+      "execution": "finite Kubernetes Job with scoped HTTPS input/output capabilities",
+      "region": "eu-north1",
+      "gpu": "NVIDIA-H200",
+      "gpu_compute_capability": "9.0",
+      "driver": "580.173.02",
+      "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+      "image_config_digest": "sha256:11155a608d7fc54d7a41e17994c733e6fbc0df965fd7a1188457bde7ab83d415",
+      "resources": {
+        "gpu": 1,
+        "cpu": 8,
+        "memory": "32Gi",
+        "scratch": "32Gi"
+      },
+      "uid": 10001,
+      "exit_code": 0,
+      "restart_count": 0,
+      "case": "MSD spleen_56",
+      "case_scope": "published validation-subset regression, not independent clinical accuracy",
+      "parameters": {
+        "precision": "float32",
+        "sw_batch_size": 4,
+        "overlap": 0.5,
+        "spatial_units": "header"
+      },
+      "minimum_dice": 0.9,
+      "independent_semantic_validation": {
+        "geometry_preserved": true,
+        "foreground_voxels": 22038,
+        "dice": 0.936098104793757,
+        "reference_foreground_voxels": 22812
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          33
+        ],
+        "affine_exact": true,
+        "affine": [
+          [
+            0.6992189884185791,
+            0.0,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.6992189884185791,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.0,
+            6.999969959259033,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "forms": {
+          "qform": {
+            "exact": true,
+            "code": 1
+          },
+          "sform": {
+            "exact": true,
+            "code": 1
+          }
+        },
+        "units": [
+          "mm",
+          "sec"
+        ],
+        "dtype": "uint8"
+      },
+      "label_counts": {
+        "0": 8628714,
+        "1": 22038
+      },
+      "runtime": {
+        "monai": "1.6.1",
+        "torch": "2.9.1+cu128",
+        "device": "cuda"
+      },
+      "timings_s": {
+        "load": 0.5887583768926561,
+        "preprocess": 0.3214807140175253,
+        "inference": 0.38834686705376953,
+        "total": 3.414255207986571
+      },
+      "timing_scope": "Engine timer excludes imports, queue, image pull and transfer; CUDA inference is explicitly synchronized. Kubernetes start/finish timestamps have one-second resolution. One run per GPU; no ordering inferred.",
+      "job_timestamps": {
+        "created": "2026-10-27T10:25:53Z",
+        "started": "2026-10-27T10:25:53Z",
+        "completed": "2026-10-27T10:27:48Z"
+      },
+      "container_started_at": "2026-10-27T10:27:29Z",
+      "container_finished_at": "2026-10-27T10:27:36Z",
+      "container_wall_seconds_at_api_resolution": 7.0,
+      "job_wall_seconds_at_api_resolution": 115.0,
+      "image_pull_observations": [
+        {
+          "reported_duration": "1m34.113s",
+          "seconds": 94.113,
+          "first_timestamp": "2026-10-27T10:27:28Z",
+          "last_timestamp": "2026-10-27T10:27:28Z"
+        }
+      ],
+      "output_archive_sha256": "208516ae3a9282f6355d3b3105752aaf60d7dfb7cdfe57992d94f9021501a8ea",
+      "output_archive_size_bytes": 61440,
+      "all_five_downloaded_files_verified": true,
+      "cpu_gpu_comparison": {
+        "differing_voxels": 2,
+        "total_voxels": 8650752,
+        "mask_dice": 0.9999546238315636
+      },
+      "capacity_scope": "One volume in one finite Job; concurrency, cancellation, fallback and sustained capacity unqualified."
+    },
+    "rtx-pro-6000": {
+      "status": "passed",
+      "date": "2026-10-27",
+      "execution": "finite Kubernetes Job with scoped HTTPS input/output capabilities",
+      "region": "eu-south1",
+      "gpu": "NVIDIA-RTX-PRO-6000-Blackwell-Server-Edition",
+      "gpu_compute_capability": "12.0",
+      "driver": "580.173.02",
+      "image_digest": "sha256:77afa6cb9e1d915c9cb10e6444ec91b9ff2b0cbda81273b70bc1b62fda0b8d82",
+      "image_config_digest": "sha256:11155a608d7fc54d7a41e17994c733e6fbc0df965fd7a1188457bde7ab83d415",
+      "resources": {
+        "gpu": 1,
+        "cpu": 8,
+        "memory": "32Gi",
+        "scratch": "32Gi"
+      },
+      "uid": 10001,
+      "exit_code": 0,
+      "restart_count": 0,
+      "case": "MSD spleen_56",
+      "case_scope": "published validation-subset regression, not independent clinical accuracy",
+      "parameters": {
+        "precision": "float32",
+        "sw_batch_size": 4,
+        "overlap": 0.5,
+        "spatial_units": "header"
+      },
+      "minimum_dice": 0.9,
+      "independent_semantic_validation": {
+        "geometry_preserved": true,
+        "foreground_voxels": 22038,
+        "dice": 0.936098104793757,
+        "reference_foreground_voxels": 22812
+      },
+      "geometry": {
+        "shape": [
+          512,
+          512,
+          33
+        ],
+        "affine_exact": true,
+        "affine": [
+          [
+            0.6992189884185791,
+            0.0,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.6992189884185791,
+            0.0,
+            -357.3009033203125
+          ],
+          [
+            0.0,
+            0.0,
+            6.999969959259033,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "forms": {
+          "qform": {
+            "exact": true,
+            "code": 1
+          },
+          "sform": {
+            "exact": true,
+            "code": 1
+          }
+        },
+        "units": [
+          "mm",
+          "sec"
+        ],
+        "dtype": "uint8"
+      },
+      "label_counts": {
+        "0": 8628714,
+        "1": 22038
+      },
+      "runtime": {
+        "monai": "1.6.1",
+        "torch": "2.9.1+cu128",
+        "device": "cuda"
+      },
+      "timings_s": {
+        "load": 0.519427165039815,
+        "preprocess": 0.3443064579041675,
+        "inference": 0.4729790290584788,
+        "total": 5.485944935935549
+      },
+      "timing_scope": "Engine timer excludes imports, queue, image pull and transfer; CUDA inference is explicitly synchronized. Kubernetes start/finish timestamps have one-second resolution. One run per GPU; no ordering inferred.",
+      "job_timestamps": {
+        "created": "2026-10-27T10:26:36Z",
+        "started": "2026-10-27T10:26:36Z",
+        "completed": "2026-10-27T10:29:00Z"
+      },
+      "container_started_at": "2026-10-27T10:28:38Z",
+      "container_finished_at": "2026-10-27T10:28:48Z",
+      "container_wall_seconds_at_api_resolution": 10.0,
+      "job_wall_seconds_at_api_resolution": 144.0,
+      "image_pull_observations": [
+        {
+          "reported_duration": "1m58.231s",
+          "seconds": 118.231,
+          "first_timestamp": "2026-10-27T10:28:35Z",
+          "last_timestamp": "2026-10-27T10:28:35Z"
+        }
+      ],
+      "output_archive_sha256": "ec8d4f6da62daa00c2a19a660f238c54045d5a20472cc8263df2915d5b5d30ec",
+      "output_archive_size_bytes": 61440,
+      "all_five_downloaded_files_verified": true,
+      "cpu_gpu_comparison": {
+        "differing_voxels": 2,
+        "total_voxels": 8650752,
+        "mask_dice": 0.9999546238315636
+      },
+      "capacity_scope": "One volume in one finite Job; concurrency, cancellation, fallback and sustained capacity unqualified."
+    }
+  },
+  "cross_gpu_comparison": {
+    "total_voxels": 8650752,
+    "pairs": [
+      {
+        "left": "l40s",
+        "right": "h100",
+        "differing_voxels": 0,
+        "mask_dice": 1.0
+      },
+      {
+        "left": "l40s",
+        "right": "h200",
+        "differing_voxels": 0,
+        "mask_dice": 1.0
+      },
+      {
+        "left": "l40s",
+        "right": "rtx-pro-6000",
+        "differing_voxels": 0,
+        "mask_dice": 1.0
+      },
+      {
+        "left": "h100",
+        "right": "h200",
+        "differing_voxels": 0,
+        "mask_dice": 1.0
+      },
+      {
+        "left": "h100",
+        "right": "rtx-pro-6000",
+        "differing_voxels": 0,
+        "mask_dice": 1.0
+      },
+      {
+        "left": "h200",
+        "right": "rtx-pro-6000",
+        "differing_voxels": 0,
+        "mask_dice": 1.0
+      }
+    ],
+    "scope": "Numerical mask agreement for one fixed volume; not a speed or cost ranking."
+  },
+  "public_artifact_transport": {
+    "source": "scientific_ai.gateway.ArtifactPointer JSON Schema maximum for size_bytes",
+    "current_maximum_bytes": 53687091200,
+    "scope": "Existing Scientific AI public upload bound; portable CLI science unchanged."
+  },
+  "public_app_evidence": {
+    "date": "2026-10-27",
+    "model": "monai-spleen-ct",
+    "positive_cohorts": 2,
+    "positive_requests": 4,
+    "negative_requests": 2,
+    "surfaces": [
+      "REST",
+      "MCP"
+    ],
+    "science": "Full original geometry, uint8 labels, delivered file hashes, validation-case Dice 0.936098",
+    "variation": "Renamed/reoriented inputs, spatial units and window batch",
+    "errors": "Non-finite CT rejected with actionable repair cause and no successful output",
+    "controls": "28 MONAI checks within 84 shared checks: same-tenant principal isolation, foreign cancellation denial, same-request identity and changed parameters/destination conflicts",
+    "physical_closeout": "All six scientific cases passed",
+    "scope": "Separate authenticated service; standalone recipe requires no Scientific AI account."
+  }
+}

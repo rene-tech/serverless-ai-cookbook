@@ -1,0 +1,6 @@
+**
+!templates/
+!templates/hcls-librechat/
+!templates/hcls-librechat/scientific-provider-routing.cjs
+!templates/hcls-librechat/render-config.mjs
+!templates/hcls-librechat/entrypoint.sh

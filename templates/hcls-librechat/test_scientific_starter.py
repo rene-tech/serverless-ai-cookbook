@@ -20,7 +20,7 @@ def pack(tmp_path):
         data = value if isinstance(value, bytes) else json.dumps(value).encode()
         path.write_bytes(data)
         objects.append({'path': name, 'size_bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
-    for model in ('gromacs', 'namd', 'amber', 'lammps'):
+    for model in ('gromacs', 'namd', 'amber', 'lammps', 'openmm'):
         directory = 'molecular-dynamics/example/' + model
         params = {'jobs': [{'id': 'original', 'steps': [{'id': 'run', 'command': 'native'}]}]}
         put(directory + '/parameters.json', params)
@@ -38,7 +38,7 @@ def pack(tmp_path):
     return tmp_path, case
 
 
-@pytest.mark.parametrize('model', ['gromacs', 'namd', 'amber', 'lammps'])
+@pytest.mark.parametrize('model', ['gromacs', 'namd', 'amber', 'lammps', 'openmm'])
 def test_preserves_selected_engine_bytes_and_stable_identity(pack, model):
     workspace, case = pack
     before = (case / model / 'parameters.json').read_bytes()
@@ -65,7 +65,7 @@ def test_changed_input_and_unsupported_model_never_admitted(pack):
         resolve(str(case), 'gromacs', str(case / 'results'), workspace, '/python', '/client')
 
 
-@pytest.mark.parametrize('model', ['gromacs', 'namd', 'amber', 'lammps'])
+@pytest.mark.parametrize('model', ['gromacs', 'namd', 'amber', 'lammps', 'openmm'])
 def test_exact_engine_child_is_the_same_pack_recipe_not_another_protocol(pack, model):
     workspace, case = pack
     common = ('studies/new', workspace, '/python', '/client')

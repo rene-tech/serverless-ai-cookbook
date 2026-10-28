@@ -1,0 +1,14 @@
+{
+  "variant": "protein-target",
+  "target": {
+    "bundle_path": "targets/1UBQ.pdb",
+    "target_input": "A1-76",
+    "hotspot_residues": ["A8", "A44", "A70"],
+    "binder_length": [64, 64],
+    "pdb_id": "1UBQ"
+  },
+  "run_name": "ubiquitin-custom-target",
+  "seed": 7,
+  "num_samples": 1,
+  "diffusion_steps": 400
+}

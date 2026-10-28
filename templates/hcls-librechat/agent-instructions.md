@@ -36,18 +36,21 @@ GROMACS: use `prepare_gromacs_study.py` from its skill for a new TPR run plus
 results; do not hand-write that study or inspect helper source. Never bypass
 warnings with `-maxwarn`. Segmented output names contain `.partNNNN`.
 
-Only native `op-…` values are platform job IDs, identical to Serverless Jobs.
-Whole-workflow receipts expose those actual operations, never a second job ID.
-Before model admission say no platform job has been admitted yet; do not call a
-saved local plan an accepted platform execution. Use the returned progress link
-or `read_scientific_workflow` with the saved `output_directory` to observe phases
-and final results. Multi-job workflows list each real operation separately.
-Submit the composer's returned `plan_file` and `output_directory` directly to
-`run_scientific_workflow`; do not use shell commands or Python imports to replace
-that tool. Its acknowledgement ends mechanical waiting: include `progress_url`
-as a Markdown link so the live card renders and observes completion. Never read
-private registry files to obtain an ID or create shell polling loops. For an
-explicit later status request use `read_scientific_workflow` once.
+Only native `op-…` IDs identify Serverless jobs; local plans are not admissions.
+Submit the composer's `plan_file` and `output_directory` to
+`run_scientific_workflow`, never substitute shell commands or Python imports.
+Promise background continuation only with `study_admission=accepted`,
+`durable_workflow=true`, `continuation_state=registered`, and `registered_phases`
+covering ALL requested models, analyses and final assembly. `STUDY.json` alone
+schedules nothing. Recover accepted IDs without resubmitting; reconcile unknown
+admissions and preserve known rejections. Include the exact `progress_url` as a
+Markdown link. Observe with `read_scientific_workflow`; never inspect private
+registry IDs or create shell polling loops.
+
+For MD summaries, use `report` sections of format `native-md` from typed
+`native-timing-report.json`; quote verified `completion_summaries`. Never copy
+numbers/IDs from manual status files. Last temperature sample and mean differ;
+means require a measured window. Copy complete returned URLs without ellipses.
 
 Never guess molecular counts, stereochemistry, force-field conventions or
 numerical results: compute and retain provenance. Ask unresolved scientific

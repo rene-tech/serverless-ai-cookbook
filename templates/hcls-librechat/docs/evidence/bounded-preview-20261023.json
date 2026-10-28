@@ -1,0 +1,108 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:bounded-preview-20261023-3894580",
+  "manifest": "sha256:962fff454d231c3ea40b31f494cc9e78fabe590ca8e10786c38a01f58df38363",
+  "source": "389458042770e8a1046bc30aefe8283ae85f957e",
+  "skills_version": "2026.10.23.2",
+  "base_manifest": "sha256:d73a00bd00f4af578110680c4a4f3083f5f6ec3f753f0147c2f952b8b789f633",
+  "base_receipt": "report-completion-20261023.json",
+  "published_verified": true,
+  "customer_ready": false,
+  "all_scientific_workflows_qualified": false,
+  "scope": "Bounded retained native coordinate previews and nonfatal optional report presentation",
+  "installed": {
+    "base_layers_preserved": 89,
+    "total_layers": 100,
+    "runtime_configuration_preserved": true,
+    "bundle_files_verified": 110,
+    "recopied_runtime_files_compared": 17,
+    "unchanged_runtime_files": 16,
+    "exact_intentional_file_differences": [
+      "skill/files.sha256.json",
+      "skill/manifest.json",
+      "skill/openmm/references/workbench.md",
+      "skill/gromacs/references/timing-study.md",
+      "opt/bionemo/native_md_preview.py"
+    ]
+  },
+  "tests": {
+    "focused_passed": 81,
+    "release_pointer_and_deploy_link_passed": 17,
+    "exact_image_retained_result_report": true,
+    "exact_image_missing_viewer_fault_report_survived": true,
+    "image_report_network": "none",
+    "scientific_submissions": 0
+  },
+  "real_client": {
+    "identity": "existing system/qa",
+    "actual_skills_loaded": [
+      "scientific-gateway",
+      "openmm",
+      "scientific-batch"
+    ],
+    "updated_workbench_reference_loaded": true,
+    "completed_analysis_phases": 1,
+    "analysis_kind": "python-script",
+    "verified_deliverables": 6,
+    "exact_receipt_operation_id_in_title": true,
+    "original_stream_inline_without_reload": true,
+    "saved_reopen_inline_without_reset": true,
+    "structure_pixels_visually_verified": true,
+    "native_coordinate_atoms": 61153,
+    "preview_atoms": 3555,
+    "preview_selection": "protein/nucleic-acid atoms only",
+    "native_coordinate_bytes": 7822621,
+    "html_bytes": 901829,
+    "failed_study_files_hash_preserved": 53,
+    "original_chat_messages_preserved": 2,
+    "scientific_submissions": 0,
+    "recovery_downloads": 0,
+    "metrics": {
+      "executed_steps": 50000,
+      "physical_time_ps": 100,
+      "temperature_k": 301.55622176990636,
+      "temperature_step": 50000,
+      "integration_seconds": 24.187737336964346,
+      "setup_seconds": 3.961908694007434,
+      "command_wall_seconds": 32.37574789894279,
+      "integration_ns_per_day": 357.20579728621914,
+      "queue_seconds": null,
+      "worker_startup_seconds": null,
+      "total_operation_elapsed_seconds": null
+    }
+  },
+  "retained_clients": {
+    "updated": 6,
+    "files_per_client": 3,
+    "protected_files_per_client": 17,
+    "loaded_reference_hashes_verified": 12,
+    "untouched_registry_objects_per_client": 87,
+    "api_supervisor_worker_processes_preserved": true,
+    "fresh_idle_checks_passed": true,
+    "temporary_loopback_inspectors_closed": true,
+    "existing_af3_guidance_differences_preserved": true,
+    "full_default_bundle_byte_identity_claimed": false,
+    "provider_images_replaced": false,
+    "customer_workflows_retested": false,
+    "customer_inference_performed": false
+  },
+  "limitations": [
+    "New scientific execution, convergence, capacity, isolation, arbitrary-size performance and provider recreation are unqualified.",
+    "Existing-worker native-md-timing execution was not requalified; the fresh python-script path was qualified.",
+    "Inherited static admission acknowledgement remains after dynamic completion.",
+    "Initial immediate reopened summary screenshot preceded visible painting; ordinary scrolling then showed metrics, and the saved structure rendered without Reset."
+  ],
+  "evidence_sha256": {
+    "focused-tests.log": "eb23e9819f3350334da99c73cbdd3f78cb3da3e9108ce099dd91afa9e62c6def",
+    "image-verification.json": "a879aa34d2a082b1d03dd61f39a3af11098646ce187027b554bf9b325a63245c",
+    "image-report-verification.json": "55cb87f1ed2a1e843fc36a0bf3b61a738cad340e3547891f5c154915c136475c",
+    "image-unavailable-verification.json": "64b928796a3d968698f37e9896d8ccc21a8b3dee6d3c956f5d851d82c154a63f",
+    "qa-verification.json": "c73d9d244f7915f8864bbd35944da8029ec7319dd514e46af4f1f85c4e69dd84",
+    "fresh-tool-audit.private.json": "235d4f0ffd253943e2cf641c653509c4a341a55c362054cbfbb668198a59a95a",
+    "fresh-inline-proof.txt": "7001e679ea8ceb4f83fb7ad00a331da67bf5c9812bab45e2b8a9c6cf65d0979f",
+    "fresh-structure-proof.txt": "89d88774c909765318dd44ad65e58269e6f30f3ca9311128d65a05c8ef261b50",
+    "reopened-summary-visible-proof.txt": "0771572b479c5f7647332fc85d6253374d5c99ef480e7646a69e1d9f482edeff",
+    "reopened-structure-proof.txt": "ef4e6ad0229de2d253b7cc8c9bcc28d1a84160bfa2a2fa0852e07076bee7337e",
+    "fleet-verification.json": "a653a9dacfc4587aedb6c0cc8fbdeca438f34961de42afcef22fdafc90e10b83"
+  },
+  "evidence_document": "../bounded-preview-20261023.md"
+}

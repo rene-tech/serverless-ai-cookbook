@@ -1,0 +1,6 @@
+# syntax=docker/dockerfile:1.7
+# Narrow viewer maintenance overlay on the exact current workbench digest.
+ARG WORKBENCH_BASE
+FROM ${WORKBENCH_BASE}
+COPY --chmod=0644 templates/hcls-librechat/structure-mcp.py /opt/bionemo/structure-mcp.py
+RUN python3 -m py_compile /opt/bionemo/structure-mcp.py

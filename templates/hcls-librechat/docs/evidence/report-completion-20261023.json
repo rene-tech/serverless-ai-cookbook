@@ -1,0 +1,110 @@
+{
+  "image": "cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc:report-completion-20261023-c517ae6",
+  "manifest": "sha256:d73a00bd00f4af578110680c4a4f3083f5f6ec3f753f0147c2f952b8b789f633",
+  "source": "c517ae6ef168a235174eda4cc5b469177a9e51f2",
+  "skills_version": "2026.10.23.1",
+  "base_manifest": "sha256:b345d4de7785478608492ce33a2cbda4bfa09ef2322b406a91642641fc2cc990",
+  "base_receipt": "openmm-20261022.json",
+  "published_verified": true,
+  "all_scientific_workflows_qualified": false,
+  "customer_ready": false,
+  "scope": "Retained native MD reporting; no scientific execution or capacity change",
+  "installed": {
+    "base_layers_preserved": 78,
+    "total_layers": 89,
+    "runtime_configuration_preserved": true,
+    "canonical_bundle_files_verified": 110,
+    "unchanged_runtime_and_domain_files": 15,
+    "intentional_runtime_changes": [
+      "/opt/bionemo/scientific_study_schema.py",
+      "/opt/bionemo/native_md_preview.py",
+      "/opt/bionemo/native_md_report.py",
+      "/opt/bionemo/report-native-md.py"
+    ]
+  },
+  "tests": {
+    "focused_passed": 92,
+    "exact_image_retained_result_report": true,
+    "image_report_network": "none",
+    "new_scientific_submissions": 0,
+    "release_pointer_and_deploy_link_passed": 17
+  },
+  "real_client": {
+    "identity": "existing system/qa",
+    "actual_skills_loaded": [
+      "scientific-gateway",
+      "openmm",
+      "scientific-batch"
+    ],
+    "updated_workbench_reference_loaded": true,
+    "completed_analysis_phases": 1,
+    "verified_deliverables": 7,
+    "exact_receipt_operation_id_in_title": true,
+    "original_stream_inline_without_reload": true,
+    "saved_reopen_inline_without_reset": true,
+    "structure_pixels_visually_verified": true,
+    "original_study_files_hash_preserved": 62,
+    "scientific_submissions": 0,
+    "metrics": {
+      "native_atom_count": 19605,
+      "executed_steps": 50000,
+      "segment_physical_time_ps": 100,
+      "last_reported_temperature_k": 303.2209122162867,
+      "temperature_step": 50000,
+      "integration_seconds": 11.333018749020994,
+      "engine_setup_seconds": 1.8852768149226904,
+      "command_wall_seconds": 15.136110669001937,
+      "integration_ns_per_day": 762.3741027293694,
+      "queue_seconds": null,
+      "worker_startup_seconds": null,
+      "total_operation_elapsed_seconds": null
+    },
+    "original_chat_messages_preserved": 2
+  },
+  "retained_clients": {
+    "audited": 6,
+    "updated": 6,
+    "full_candidate_seven_file_overlay": 1,
+    "report_only_three_way_overlays": 5,
+    "retained_batch_base_sha256": "06baf39ece004b26daaa6139539255d2b0ab155d5969571a0315667b091aeb47",
+    "retained_batch_merged_sha256": "b114ca09d32b7502dc0d0a17646f9411b7d89e96f275de1f103953bb37fa2bed",
+    "existing_af3_guidance_differences_preserved": true,
+    "full_default_bundle_byte_identity_claimed": false,
+    "api_supervisor_worker_processes_preserved": true,
+    "untouched_skill_registry_objects_per_client": 85,
+    "protected_files_verified_per_retained_client": 13,
+    "retained_study_plan_receipt_hashes_preserved": 20,
+    "fresh_idle_checks_passed": true,
+    "temporary_loopback_inspectors_closed": true,
+    "provider_images_replaced": false,
+    "customer_workflows_retested": false,
+    "customer_inference_performed": false,
+    "live_qualification_analysis_kind": "python-script",
+    "live_executor_schema_unchanged_and_worker_not_reloaded": true,
+    "existing_worker_native_md_timing_path_requalified": false
+  },
+  "limitations": [
+    "Provider recreation not tested.",
+    "New scientific execution, convergence, isolation, capacity and scaling not qualified.",
+    "Existing static admission acknowledgement remains after dynamic completion.",
+    "Existing worker native-md-timing execution path was not requalified; no stale-worker defect was reproduced. Fresh python-script helpers were qualified, and the default image includes updated discovery."
+  ],
+  "evidence_sha256": {
+    "image-local-verification.json": "2da441e2c93656bf7c5217a828123aa2a71ee1f3b8d06a93e275f036a48a06d8",
+    "image-published-verification.json": "42b41ae3e49ab954c379b00b807395ab684119b64715497de220d29cf5ea995b",
+    "image-base-file-equality.json": "7d7f5a93d83b88bfb4e7d6509cb449e4279f7b20fba2695f7f7fc0e985d5e386",
+    "image-retained-report-verification.json": "ba47f1097676058733d53dbf4a1ac145f04bcf6b46bc04904f359631dcefb14f",
+    "qa-loaded-skills.json": "e3dbd251b9678d871e94ae9204528f4c7c756f467806e3c138b133c3c548d10e",
+    "fresh-study-audit.json": "01115a950b8db5a68dc92c9589a32e739fa6690eb029a65c46551373006ec6da",
+    "fresh-chat-tool-audit.private.json": "1c343834fbff451c28af39a969723e30809512c3f55c6636824bc3dd71422bfa",
+    "fresh-inline-proof.txt": "7aead46f7fec03838e327a20f7ce67a219c2a06385592af1d2e3f246408cff0b",
+    "reopened-summary-proof.txt": "adf212b9ef9159a18590167f826ee62b6ebe7673e08956e0a7623145a374c0c1",
+    "reopened-structure-proof.txt": "dddffee54a6d8dba0623193832cf88cc5c4bce9dc2788d189bfd88272c1ec68b",
+    "final-qa-audit.json": "04f71467c2cb7687d067a4ef42c5aabdf23971820c1e1a591b982724aa20f2d6",
+    "fleet-audit.json": "86c893e9424a57a531bdb1407f1a4c6cf69a4ce725425148410d132ca1e7f886",
+    "fleet-activation.json": "13e88e8a29506b304d822485b9f8c88508f513c7a9d7b26c456e458bd3dffd74",
+    "retained-scientific-batch-completion.diff": "7a20934033b4c93ae67d30c7ef6552497c8b33a40364cf56724bf56e40c2f64d",
+    "fleet-scientific-batch-completion.md": "b114ca09d32b7502dc0d0a17646f9411b7d89e96f275de1f103953bb37fa2bed"
+  },
+  "evidence_document": "../report-completion-20261023.md"
+}

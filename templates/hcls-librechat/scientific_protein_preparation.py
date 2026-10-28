@@ -101,7 +101,7 @@ def coordinate_input(path, index, inputs, measurements, *, allow_mmcif=False):
         confidence, confidence_sources = [], []
         if allow_mmcif:
             for position, entry in enumerate(value['entries']):
-                if entry.get('semantic_type') != 'structure-confidence-json/v1':
+                if entry.get('semantic_type') not in {'structure-confidence-json/v1', 'alphafold3-summary-confidence/v1'}:
                     continue
                 reference = entry['artifact']
                 if reference.get('compression') != 'none' or reference.get('media_type') != 'application/json':

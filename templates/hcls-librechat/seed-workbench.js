@@ -20,7 +20,7 @@ const reasoningEffort = process.env.SCIENTIFIC_CHAT_REASONING_EFFORT ||
 if (reasoningEffort && !['low', 'high', 'max'].includes(reasoningEffort)) throw new Error('Unsupported explicit reasoning effort');
 const contextTokens = process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS
   ? Number(process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS)
-  : (model === 'moonshotai/Kimi-K3' ? 131072 : undefined);
+  : (model === 'moonshotai/Kimi-K3' ? 1024000 : undefined);
 if (contextTokens !== undefined && (!Number.isInteger(contextTokens) || contextTokens < 1024)) {
   throw new Error('Explicit context ceiling must be an integer of at least 1024 tokens');
 }
@@ -73,7 +73,8 @@ const molecularDesignTools = [
   ...scientificCatalogTools,
   ...['infer_diffdock_native', 'genmol_generate_native', 'molmim_run_native',
     'infer_proteinmpnn_native', 'submit_bindcraft', 'submit_boltzgen', 'submit_mosaic',
-    'submit_proteina_complexa', 'submit_protenix_v2', 'submit_rfdiffusion', 'submit_rfd4_proteina'].map(mcpTool),
+    'submit_proteina_complexa', 'submit_protenix_v2', 'submit_rfdiffusion', 'submit_rfd4_proteina',
+    'submit_bioemu2'].map(mcpTool),
 ];
 
 const biomedicalImagingTools = [

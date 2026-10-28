@@ -15,19 +15,45 @@ def evidence():
 
 
 def test_pointer_and_console_link_select_exact_published_bytes():
-    # Historical receipts remain immutable; compare the current default only
-    # with its own published release evidence, not the old precheck-only image.
-    receipt = json.loads((ROOT/'docs/evidence/client-observation-recovery-20261020.json').read_text())
-    inline = json.loads((ROOT/'docs/evidence'/receipt['base_receipt']).read_text())
-    previous = json.loads((ROOT/'docs/evidence/future-image-recovery-20261017.json').read_text())
-    runtime = json.loads((ROOT/'docs/evidence'/previous['runtime_receipt']).read_text())
     values = dict(re.findall(r"^(SCIENTIFIC_AI_[A-Z_]+)='([^']+)'$",
                              (ROOT/'scripts/release-image.sh').read_text(), re.M))
-    assert values == {'SCIENTIFIC_AI_RELEASE_IMAGE':receipt['image'],
-                      'SCIENTIFIC_AI_RELEASE_DIGEST':receipt['manifest'],
-                      'SCIENTIFIC_AI_SKILLS_VERSION':receipt['skills_version']}
+    matches = []
+    for path in (ROOT/'docs/evidence').glob('*.json'):
+        candidate = json.loads(path.read_text())
+        if isinstance(candidate, dict) and candidate.get('image') == values['SCIENTIFIC_AI_RELEASE_IMAGE'] and candidate.get('manifest') == values['SCIENTIFIC_AI_RELEASE_DIGEST']:
+            matches.append(candidate)
+    assert len(matches) == 1, 'Current default requires one exact published release receipt'
+    receipt = matches[0]
+    assert receipt['published_verified']
+    assert receipt['skills_version'] == values['SCIENTIFIC_AI_SKILLS_VERSION']
+    assert re.fullmatch('[a-f0-9]{40}', receipt['source'])
+    assert isinstance(receipt['all_scientific_workflows_qualified'], bool)
+    bundle = json.loads((ROOT.parents[1]/'skills/scientific-ai/manifest.json').read_text())
+    assert values['SCIENTIFIC_AI_SKILLS_VERSION'] == bundle['version']
+    readme = (ROOT/'README.md').read_text()
+    link = html.unescape(re.search(r'<a href="(https://console.nebius.com/serverless/endpoint/create\?[^"]+)"', readme)[1])
+    selected = parse_qs(urlsplit(link).query)['image']
+    assert selected == [receipt['image'].rsplit(':', 1)[0]+'@'+receipt['manifest']]
+    assert len(values['SCIENTIFIC_AI_RELEASE_IMAGE']) < 128
+
+
+def test_historical_rfd4_release_preserves_verified_base_features():
+    # Keep original RFD4 lineage/feature evidence independent of the moving default.
+    receipt = json.loads((ROOT/'docs/evidence/rfd4-skill-20261021.json').read_text())
+    observation = json.loads((ROOT/'docs/evidence'/receipt['base_receipt']).read_text())
+    inline = json.loads((ROOT/'docs/evidence'/observation['base_receipt']).read_text())
+    previous = json.loads((ROOT/'docs/evidence/future-image-recovery-20261017.json').read_text())
+    runtime = json.loads((ROOT/'docs/evidence'/previous['runtime_receipt']).read_text())
     assert receipt['all_scientific_workflows_qualified'] is False
-    assert receipt['base_manifest'] == inline['manifest']
+    assert receipt['base_manifest'] == observation['manifest']
+    assert observation['base_manifest'] == inline['manifest']
+    assert receipt['installed']['previous_layers_and_runtime_config_preserved']
+    assert receipt['installed']['old_skill_bodies_unchanged'] == 85
+    assert receipt['installed']['helper_sha256'] == observation['live_acceptance']['helper_sha256']
+    assert receipt['real_client']['scientific_submissions'] == 1
+    assert receipt['real_client']['original_stream_inline_without_reload']
+    assert receipt['real_client']['saved_reopen_inline_without_reset']
+    assert receipt['real_client']['history_configuration_and_processes_preserved']
     assert inline['base_manifest'] == previous['manifest']
     assert previous['base_manifest'] == runtime['manifest']
     assert inline['browser']['rootless_live_response_without_reload']
@@ -45,13 +71,7 @@ def test_pointer_and_console_link_select_exact_published_bytes():
         'precheck_async_fallback': False,
         'mcp_timeout_ms': 2400000,
     }
-    bundle = json.loads((ROOT.parents[1]/'skills/scientific-ai/manifest.json').read_text())
-    assert values['SCIENTIFIC_AI_SKILLS_VERSION'] == bundle['version']
-    readme = (ROOT/'README.md').read_text()
-    link = html.unescape(re.search(r'<a href="(https://console.nebius.com/serverless/endpoint/create\?[^"]+)"',readme)[1])
-    selected = parse_qs(urlsplit(link).query)['image']
-    assert selected == [receipt['image'].rsplit(':',1)[0]+'@'+receipt['manifest']]
-    assert len(values['SCIENTIFIC_AI_RELEASE_IMAGE']) < 128
+    assert len(receipt['image']) < 128
 
 
 def test_client_recovery_release_preserves_jobs_and_running_workbenches():

@@ -1,0 +1,11 @@
+FROM docker.io/coturn/coturn@sha256:908d02955aee04adac06b4b04805de55ca0fda04c2677cb50efa3e8407bb4366
+USER 0:0
+# A new inode drops the upstream file's CAP_NET_BIND_SERVICE xattr. The relay
+# listens on 5349, so neither that capability nor a privileged container is needed.
+RUN cp /usr/bin/turnserver /usr/bin/turnserver.nocaps \
+ && rm /usr/bin/turnserver \
+ && mv /usr/bin/turnserver.nocaps /usr/bin/turnserver \
+ && echo '7b5b89373c9a21b5215f3f4a86239ad0f9b52a5475d18bca99b6699c04c720d9  /usr/bin/turnserver' | sha256sum -c -
+USER 65532:65532
+ENTRYPOINT ["/usr/bin/turnserver"]
+CMD ["--version"]

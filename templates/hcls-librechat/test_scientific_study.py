@@ -40,6 +40,18 @@ def advance(identifier, **kwargs):
     return asyncio.run(study.advance(identifier, **kwargs))
 
 
+@pytest.mark.parametrize('extension', ['cif', 'mmcif', 'pdb'])
+def test_json_metadata_cannot_be_promised_as_coordinates_before_admission(mounted, extension):
+    value = plan()
+    value['deliverables'].append({'name': f'predicted-model.{extension}', 'role': 'data',
+                                 'source': {'step': 'model', 'file': 'result.json'}})
+    with pytest.raises(ValueError, match='JSON metadata, not molecular coordinates'):
+        study.submit(value, mounted / 'output')
+    assert not (mounted / 'output/study-binding.json').exists()
+    value['deliverables'][-1]['name'] = 'prediction-result.json'
+    study.validate(value)
+
+
 def test_whole_study_reuses_plan_and_finishes_after_disconnect(mounted):
     started = study.submit(plan(), mounted / 'output')
     assert study.submit(plan(), mounted / 'output')['id'] == started['id']

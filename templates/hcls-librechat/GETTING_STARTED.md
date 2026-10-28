@@ -129,6 +129,17 @@ research, Cellpose microscopy, single-cell UMAP, generated media, robotics and
 other authorized Apps. They are not silently counted as completed starter
 examples: each needs its own live schema, suitable data and acceptance evidence.
 
+### CRISPR research workflow
+
+> Run the synthetic CRISPR example. Compare nuclease guide candidates, design a
+> base-editing and a prime-editing option for the supplied edit, and show the
+> reports inline. Explain which checks remain before using these experimentally.
+
+The `crispr-workflows` skill creates the example files in your workspace and
+uses local, versioned CPU tools. You can then substitute your own sequence,
+assembly and scientific goal. Guide scores are predictions, not measured editing
+efficiency; a small reference search is not a whole-genome specificity check.
+
 ### GROMACS molecular dynamics
 
 GROMACS is an authorized hosted App, not a local workstation installation. The

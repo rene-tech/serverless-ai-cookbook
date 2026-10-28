@@ -1,6 +1,6 @@
 # Native molecular-dynamics transport
 
-This shared reference applies to GROMACS, LAMMPS, NAMD and AMBER. A skill being
+This shared reference applies to GROMACS, LAMMPS, NAMD, AMBER and OpenMM. A skill being
 installed is not evidence that its App is released or granted to this user.
 Discover the exact App and schema first. AMBER is not interchangeable with these
 engines; do not silently translate its inputs to another simulator.
@@ -71,11 +71,36 @@ stochastic state may not be bitwise serializable. Persistent CUDA/CRIU process
 snapshots are a separate capability: require exact-runtime evidence before
 claiming they work or estimating their cold-start benefit.
 
-The default workspace budget is 4 GiB and wall budget six hours. Read current
-schema limits before requesting more. These requests do not enlarge bucket
-quotas; individual files over 5 GiB are not currently qualified. Select output
-cadence with the scientist so trajectories fit the scientific question and
-storage allowance. Never silently reduce trajectory output to pass a test.
+Budgets are model-specific. Before a new submission, read `max_output_bytes`
+and `max_wall_seconds` in that App's current schema. A `default` applies when
+the field is omitted; a `maximum` is an allowed bound, not the default or a
+promise of sufficient resources. Do not copy another engine's defaults, an
+old example's limits or a short benchmark's explicit budget into the request.
+
+Current explicit `:resume` retains the original request parameters and the
+cumulative `elapsed_seconds` saved in the checkpoint. It uses only the remaining
+original `max_wall_seconds`; a spent budget is not renewed by another attempt or
+by the native delivery margin. Do not promise fresh time or repeatedly resume
+an exhausted budget. The current GROMACS and MPI schemas describe this same
+cumulative budget; check the live schema before offering continuation.
+
+For GROMACS, GROMACS MPI, AMBER, NAMD, LAMMPS and OpenMM, the current contract
+uses `default: null` for `max_output_bytes`. Omission or schema-supported `null`
+adds no aggregate workflow byte cap. An explicit integer still caps all retained
+workflow bytes, including inputs, preparation and archived outputs. Confirm this
+in the live schema; do not copy the former 4 GiB default or 48 GiB maximum from
+an old example into a new request. Other Apps may have different contracts.
+These are submission budgets, not a universal limit on downloading existing
+results.
+
+Request budgets do not enlarge bucket quotas or execution scratch. Keep the
+scientist's output cadence; estimate storage from real inputs and requested
+frames, and explain any measured capacity problem without silently reducing
+output. An omitted byte cap does not remove per-file transport or
+file-count/manifest limits or prove fourteen-day storage endurance. Native scripts may read older restart files
+later: do not delete them or overwrite the requested cadence to fit storage.
+Recover completed results through their existing operation ID; do not
+resubmit science or change its budgets merely to download or report on it.
 
 ## Evidence to return
 

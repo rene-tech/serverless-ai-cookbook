@@ -1,0 +1,5 @@
+# Build backends for the maintained portable package and upstream i4h_rl only.
+setuptools==83.0.0
+wheel==0.45.1
+hatchling==1.27.0
+packaging==26.0

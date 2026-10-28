@@ -1,0 +1,7 @@
+{
+  "configs/inference.json": "c450895205c6a04cdd7eb511a8aa0ee144ecc36199a77a0da45b3bfd2cffb17f",
+  "configs/metadata.json": "e1e210e597bc8396fd39a10f6ad2bc4fe2f642c17de4a722a23f1b3e51fe9896",
+  "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+  "docs/README.md": "8ff07be33b06c160042e92063b5e8fe63c461a74b2f2c771247d501db068e4c2",
+  "models/model.pt": "502c312893994ec071a85c4f2e7d83a43f7789969faa73dae62f1291177f50fe"
+}

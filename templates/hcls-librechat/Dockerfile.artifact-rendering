@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1.7
+# Presentation-only overlay. Keep the scientific runtimes and state untouched.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:8ae79c65b16a6ad678771cb4e62f46f0802aa6df6e166fe8fd50152a2231b4d2
+FROM ${WORKBENCH_BASE}
+USER root
+RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
+    node /tmp/client/patch-report-preview.mjs /app/client \
+ && cp /tmp/client/ScientificArtifactMarkdown.test.ts /app/client/src/components/ \
+ && cd /app/client \
+ && NODE_ENV=test /app/node_modules/.bin/jest --runInBand --watch=false --coverage=false --forceExit \
+    src/components/ScientificArtifactMarkdown.test.ts \
+ && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 /app/node_modules/.bin/vite build --logLevel error \
+ && node /opt/hcls-librechat/brand-client.mjs /app/client/dist /opt/hcls-librechat/assets --verify
+ARG HCLS_IMAGE_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HCLS_IMAGE_REVISION}" \
+      ai.nebius.scientific.release="artifact-rendering-20261024"

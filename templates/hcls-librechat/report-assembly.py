@@ -12,6 +12,7 @@ import html
 import io
 import json
 import math
+import os
 from pathlib import Path
 import re
 
@@ -235,6 +236,15 @@ def assemble(title, sections, *, source_data=None):
             parts.append(rendered)
             record.update(rendering='Schema-specific deterministic measurements; unavailable values are explicit',
                           measurements=measurements)
+        elif section['format'] == 'native-md':
+            from native_md_report import verified_summary
+            from scientific_verified_results import link, within
+            workspace = Path(os.environ.get('SCIENTIFIC_WORKSPACE', os.environ.get('WORKSPACE', '/workspace'))).resolve()
+            summary = verified_summary(data, workspace)
+            parts.append(summary['text'])
+            parts.append(f'\n[Typed observations]({link(within(source, workspace), workspace)})\n')
+            record.update(rendering='Typed observations rechecked against verified native sources',
+                          operation_id=summary['operation_id'])
         else:
             raise ValueError('Unsupported report section format.')
         parts.append('\n\n')
@@ -276,6 +286,33 @@ def publish_bundle(manifest_file, output_dir):
     files = {'report.md': report,
              'provenance.json': (json.dumps(provenance, indent=2, allow_nan=False) + '\n').encode(),
              'assembly-plan.json': manifest_bytes, 'helper.py': helper}
+    if all(section['format'] == 'native-md' for section in sections):
+        # Only this fully source-verified aggregate is projected as factual
+        # chat text. Generic Markdown may contain unverified manual claims.
+        files['customer-summary.json'] = (json.dumps({
+            'schema': 'scientific-study-summary/v1', 'kind': 'native-md',
+            'text': report.decode('utf-8'), 'inference_submitted': False}, indent=2) + '\n').encode()
+        # assemble() already verified these exact input bytes against native
+        # receipts. Reuse the individual renderer; never interpret manual prose.
+        from native_md_report import html_report
+        from scientific_verified_results import link, within
+        workspace = Path(os.environ.get('SCIENTIFIC_WORKSPACE', os.environ.get('WORKSPACE', '/workspace'))).resolve()
+        title = html.escape(manifest['title'], quote=True)
+        document = [f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
+                    f'<meta name="viewport" content="width=device-width, initial-scale=1"><title>{title}</title>'
+                    '<style>body{font:16px/1.5 system-ui,sans-serif;color:#14213d;background:#fff;'
+                    'max-width:1100px;margin:auto;padding:16px;overflow-wrap:anywhere}'
+                    'article{border-top:1px solid #ccd5e0;margin-top:24px}</style></head><body>'
+                    f'<h1>{title}</h1><p>Combined read-only report from verified native observations. '
+                    'Missing measurements remain unknown; no new simulation was submitted.</p>']
+        for index, (section, data) in enumerate(zip(resolved, inputs)):
+            source_url = link(within(Path(section['file']), workspace), workspace)
+            document += [f'<article><h2>{html.escape(section["title"], quote=True)}</h2>',
+                         html_report(json.loads(data), workspace, fragment=True, section_id=f'native-md-{index}'),
+                         f'<p><a href="{html.escape(source_url, quote=True)}">Typed observations</a>; '
+                         f'SHA-256 <code>{digest(data)}</code>.</p></article>']
+        document.append('</body></html>')
+        files['report.html'] = ''.join(document).encode('utf-8')
     for index, (section, data) in enumerate(zip(resolved, inputs)):
         extension = {'markdown': 'md', 'csv': 'csv'}.get(section['format'], 'json')
         files[f'sources/{index:03d}.{extension}'] = data

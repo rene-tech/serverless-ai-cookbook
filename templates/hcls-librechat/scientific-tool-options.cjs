@@ -28,19 +28,13 @@ const alwaysReady = new Set([
   'visualize_structure_mcp_structure-viewer',
   'visualize_workspace_media_mcp_structure-viewer',
 ]);
-const deferableSuffixes = [
-  '_mcp_scientific-ai-apps',
-  '_mcp_scientific-demos',
-  '_mcp_environment-execution',
-  '_mcp_structure-viewer',
-  '_mcp_tavily',
-];
 
-function shouldDefer(name) {
-  return typeof name === 'string' &&
-    deferableSuffixes.some((suffix) => name.endsWith(suffix)) &&
+function shouldDefer(name, option) {
+  return option?.defer_loading === undefined && typeof name === 'string' &&
+    name.includes('_mcp_') &&
     !alwaysReady.has(name) &&
-    !name.startsWith('mcp_all_mcp_');
+    !name.startsWith('mcp_all_mcp_') &&
+    !name.startsWith('sys__all__sys_mcp_');
 }
 
 module.exports = function scientificToolOptions(agent, loadedTools = []) {
@@ -62,10 +56,10 @@ module.exports = function scientificToolOptions(agent, loadedTools = []) {
   ];
   for (const rawName of modelTools) {
     const name = rawName + suffix;
-    options[name] = { ...options[name], defer_loading: true };
+    if (shouldDefer(name, options[name])) options[name] = { ...options[name], defer_loading: true };
   }
   for (const name of [...(agent.tools ?? []), ...loadedTools.map((tool) => tool.name)]) {
-    if (shouldDefer(name)) {
+    if (shouldDefer(name, options[name])) {
       options[name] = { ...options[name], defer_loading: true };
     }
   }
@@ -74,7 +68,7 @@ module.exports = function scientificToolOptions(agent, loadedTools = []) {
   // catalog. This affects context loading only, never tool ACLs or validation.
   return new Proxy(options, { get(target, name, receiver) {
     const value = Reflect.get(target, name, receiver);
-    if (shouldDefer(name)) {
+    if (shouldDefer(name, value)) {
       return { ...value, defer_loading: true };
     }
     return value;

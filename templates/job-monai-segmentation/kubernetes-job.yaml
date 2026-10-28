@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${MONAI_RUN}
+  namespace: ${MONAI_NAMESPACE}
+  labels:
+    app.kubernetes.io/name: monai-spleen-ct
+    app.kubernetes.io/instance: ${MONAI_RUN}
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: monai-spleen-ct
+        app.kubernetes.io/instance: ${MONAI_RUN}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: monai
+          image: ${MONAI_DIGEST}
+          imagePullPolicy: IfNotPresent
+          command: [/opt/conda/bin/python, -I, -m, monai_workflow.runtime]
+          args:
+            - --input
+            - /input/${MONAI_INPUT_FILE}
+            - --output-dir
+            - /output/${MONAI_RUN}
+          env:
+            - name: MONAI_CPU_THREADS
+              value: "8"
+            - name: TMPDIR
+              value: /tmp
+          resources:
+            requests:
+              cpu: "8"
+              memory: 32Gi
+              ephemeral-storage: 32Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "8"
+              memory: 32Gi
+              ephemeral-storage: 32Gi
+              nvidia.com/gpu: 1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: input
+              mountPath: /input
+              readOnly: true
+            - name: output
+              mountPath: /output
+            - name: scratch
+              mountPath: /tmp
+      volumes:
+        - name: input
+          persistentVolumeClaim:
+            claimName: ${MONAI_INPUT_PVC}
+            readOnly: true
+        - name: output
+          persistentVolumeClaim:
+            claimName: ${MONAI_OUTPUT_PVC}
+        - name: scratch
+          emptyDir:
+            sizeLimit: 32Gi

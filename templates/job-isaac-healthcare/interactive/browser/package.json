@@ -1,0 +1,9 @@
+{
+  "name": "isaac-healthcare-interactive-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {"build": "vite build --base=./", "check": "tsc --noEmit"},
+  "dependencies": {"@nvidia/ov-web-rtc": "6.7.0"},
+  "devDependencies": {"typescript": "5.8.3", "vite": "6.3.6"}
+}

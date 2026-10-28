@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1.7
+# Skill/tool-default release only. Pass the exact current qualified parent digest.
+# Do not replay the retired skills-release overlay onto a newer workbench.
+ARG WORKBENCH_BASE
+FROM ${WORKBENCH_BASE}
+ARG SKILLS_REVISION
+ARG SKILLS_VERSION
+RUN --mount=type=bind,source=skills/scientific-ai,target=/tmp/core-skills,ro \
+    --mount=type=bind,source=templates/hcls-librechat,target=/tmp/workbench-release,ro \
+    python3 /tmp/core-skills/bundle.py verify \
+ && python3 /tmp/core-skills/bundle.py build --output /tmp/scientific-skill-bundle \
+ && tar -xzf /tmp/scientific-skill-bundle/scientific-ai-skills-${SKILLS_VERSION}.tar.gz --strip-components=1 -C /app/skill \
+ && cp /tmp/workbench-release/seed-workbench.js /app/seed-hcls-workbench.js \
+ && node --check /app/seed-hcls-workbench.js \
+ && node /tmp/workbench-release/scripts/test-skills-installed.cjs
+LABEL ai.nebius.scientific.skills.version="${SKILLS_VERSION}" \
+      ai.nebius.scientific.skills.revision="${SKILLS_REVISION}" \
+      ai.nebius.scientific.skills.source="https://github.com/rene-tech/serverless-ai-cookbook/tree/main/skills/scientific-ai"

@@ -139,7 +139,8 @@ STEPS = [NATIVE, BATCH, CLINICAL,
     local('report', object_schema({'title': {**REPORT_HEADING, 'default': DEFAULT_REPORT_TITLE,
         'description': REPORT_HEADING['description'] + ' Optional presentation heading; omission uses exactly "Scientific study report". Explicit titles are preserved. Section titles, source files and formats remain required.'},
         'sections': {'type': 'array', 'minItems': 1, 'maxItems': 16,
-        'items': object_schema({'title': REPORT_HEADING, 'file': FILE, 'format': {'enum': ['markdown', 'csv', 'operation-timing', 'recorded-export', 'rgb-statistics', 'mindeval-runs']}})}}, ['sections'])),
+        'items': object_schema({'title': REPORT_HEADING, 'file': FILE, 'format': {'enum': ['markdown', 'csv', 'operation-timing', 'recorded-export', 'rgb-statistics', 'mindeval-runs', 'native-md'],
+            'description': 'native-md consumes native-timing-report.json and rechecks its typed observations against retained native receipts. Use it for factual multi-engine summaries, not hand-copied Markdown values.'}})}}, ['sections'])),
     local('clinical-study', object_schema({'plan_file': FILE})),
     local('mindeval', object_schema({'title': REPORT_HEADING, 'records': {'type': 'array', 'minItems': 1,
         'items': FILE, 'description': 'Full native saved run JSON: state.config, state.transcript[{role,content,...}], and optional state.judgment.judgment mapping criterion names to scores. This nested native judgment shape is directly supported: do NOT transform it into judgment.scores or write a custom parser. Preserves original records/transcripts, identities, supplied criterion rows, descriptive within-profile pairing, missing cells and judge-family limitations. No catalog/model calls.'}})),
@@ -174,8 +175,8 @@ PHASE_OUTPUTS = {
     'write-json': ([], ['Exactly the declared filename; JSON values are not automatically loaded from file references.']),
     'python-script': (['script.py', 'input-bindings.json', 'script-provenance.json'], ['Every declared outputs filename is required nonempty before success.']),
     'parquet-export': (['comparison.json', 'report.md'], ['Requested formats only: data.npz, data.h5, data.zip, data.sqlite.']),
-    'native-md-timing': (['native-timing-report.md', 'native-timings.csv', 'native-timing-report.json'],
-        ['Hash-verified native simulation command rows and source links; no inference or simulation. Declare native-timing-report.md as the report deliverable and CSV/JSON as metrics/provenance. Missing required native metrics/repeats stops the study with retained incomplete diagnostics. Generic report operation-timing measures platform fields, not native MD throughput.']),
+    'native-md-timing': (['native-md-report.html', 'native-timing-report.md', 'native-timings.csv', 'native-timing-report.json', 'customer-summary.json'],
+        ['Hash-verified native simulation command rows and source links; no inference or simulation. Declare native-md-report.html as an inline report, Markdown as optional supporting report and CSV/JSON as metrics/provenance. The HTML includes measured scientific fields where recorded and explicit unknowns; optional structure embedding uses the installed native_md_preview.py python-script recipe. Missing required native metrics/repeats stops the study with retained incomplete diagnostics. Generic report operation-timing measures platform fields, not native MD throughput.']),
     'robotics-analysis': (['metrics.json','report.md','native-output.mp4','augmented-dataset.tar.zst','completion-manifest.json','visual-comparisons.json'], ['helper-input.json retains the resolved exact inputs when run as a study. visual-comparisons.json and available comparison-native.png/comparison-dataset-NNN.png are automatically published as customer downloads. Each PNG contains at most four unedited same-index decoded source/output frames; unavailable alignment is explicit. No geometry or physical-action validity claim; inspect recorded measurements and clips.']),
     'evo2-continuation': (['metrics.json','rows.csv','report.md','completion-manifest.json'], ['helper-input.json retains the resolved exact inputs when run as a study. Actual generation/suffix diversity, not likelihood or variant effects.']),
     'proteinmpnn-input': (['input.json', 'backbone.pdb', 'provenance.json', 'report.md'], []),
@@ -187,7 +188,7 @@ PHASE_OUTPUTS = {
     'aging': (['metrics.json', 'rows.csv', 'report.md'], []),
     'genmol': (['metrics.json', 'rows.csv', 'report.md', 'completion-manifest.json'], []),
     'protein-design-analysis': (['measurements.json', 'inventory.csv', 'report.md'], []),
-    'report': (['report.md', 'provenance.json', 'assembly-plan.json', 'helper.py', 'completion-manifest.json'], ['sources/NNN.ext retains every exact supplied section.']),
+    'report': (['report.md', 'provenance.json', 'assembly-plan.json', 'helper.py', 'completion-manifest.json'], ['sources/NNN.ext retains every exact supplied section. When every section uses native-md, report.html is the combined standalone HTML deliverable; select it with {step:report_step_id,file:report.html}. Existing verified native-timing-report.json paths can be assembled directly without rerunning analyses. customer-summary.json is also automatically published and projected in verified completion_summaries. These preserve exact operation IDs, last sampled temperatures with step/time, timing scopes, unknowns and complete source links; they do not invent means.']),
     'mindeval': (['report.md', 'methods.md', 'runs.csv', 'scores.csv', 'measurements.json', 'provenance.json', 'records.json', 'completion-manifest.json', 'customer-summary.json'],
                  ['records/NNN.json and transcripts/NNN.txt retain every full supplied record and transcript. customer-summary.json is automatically published; stored overall_score stays bound to exact profile, clinician and run ID, unavailable stays unavailable. Completed Runs/read_execution expose its verified text; quote that instead of recomputing scores.']),
     'clinical-study': (['report.md', 'measurement.json', 'completion-manifest.json'], ['Per-case measurements and preserved input files follow the helper completion-manifest.']),
@@ -238,6 +239,10 @@ def known_output_files(step):
     if method in PHASE_OUTPUT_ALTERNATIVES:
         return set(PHASE_OUTPUTS[method][0] + PHASE_OUTPUT_ALTERNATIVES[method])
     args = step.get('arguments', {})
+    if method == 'report' and args.get('sections') and all(
+            item.get('format') == 'native-md' for item in args['sections']):
+        return (set(PHASE_OUTPUTS[method][0]) | {'report.html', 'customer-summary.json'}
+                | {f'sources/{index:03d}.json' for index in range(len(args['sections']))})
     if method == 'write-json':
         return {args['filename']}
     if method == 'python-script':

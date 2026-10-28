@@ -1,0 +1,16 @@
+{
+  "securityContext": {
+    "runAsUser": 0,
+    "runAsGroup": 0,
+    "seccompProfile": {"type": "RuntimeDefault"}
+  },
+  "containerSecurityContext": {
+    "runAsUser": 0,
+    "runAsGroup": 0,
+    "readOnlyRootFilesystem": true,
+    "allowPrivilegeEscalation": false,
+    "capabilities": {"drop": ["ALL"], "add": ["CHOWN", "SETUID", "SETGID", "KILL"]}
+  },
+  "readinessProbe": {"path": "/healthz", "port": 8080, "periodSeconds": 5},
+  "livenessProbe": {"path": "/livez", "port": 8080, "periodSeconds": 10}
+}

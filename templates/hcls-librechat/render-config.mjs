@@ -1,4 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
+const providerRouting = process.env.SCIENTIFIC_CHAT_BASE_URL
+  ? (await import('./scientific-provider-routing.cjs')).default.settings(process.env) : null;
+const catalogBaseURL = providerRouting?.catalog || 'https://api.tokenfactory.nebius.com/v1';
 
 const outputPath = process.argv[2];
 if (!outputPath) throw new Error('Expected the output config path');
@@ -42,7 +45,7 @@ const tokenFactoryContext = new Map([
   ['openai/gpt-oss-120b', 131072],
   ['zai-org/GLM-5.3-Flash', 1048576],
   ['deepseek-ai/DeepSeek-V4-Flash-0731', 1048576],
-  ['moonshotai/Kimi-K3', 1048576],
+  ['moonshotai/Kimi-K3', 1024000],
   ['meta-llama/Llama-3.3-70B-Instruct', 127500],
   ['zai-org/GLM-5.2', 1048576],
   ['zai-org/GLM-5.1', 204800],
@@ -57,7 +60,8 @@ const tokenFactoryContext = new Map([
 ]);
 
 const makeTokenConfig = (models) => Object.fromEntries(models.map(([id]) => [id, {
-  prompt: 0, completion: 0, context: tokenFactoryContext.get(id) ?? 131072,
+  prompt: 0, completion: 0, context: (id === process.env.SCIENTIFIC_CHAT_MODEL && process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS)
+    ? Number(process.env.SCIENTIFIC_CHAT_MAX_CONTEXT_TOKENS) : tokenFactoryContext.get(id) ?? 131072,
 }]));
 
 let availablePublicTokenModels = publicTokenFactoryModels;
@@ -69,7 +73,7 @@ const configuredChatModel = process.env.SCIENTIFIC_CHAT_MODEL || 'moonshotai/Kim
 if (process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY !== 'user_provided'
     && process.env.SCIENTIFIC_DISCOVER_CHAT_MODELS !== 'false') {
   try {
-    const response = await fetch('https://api.tokenfactory.nebius.com/v1/models', {
+    const response = await fetch(catalogBaseURL + '/models', {
       headers: { Authorization: `Bearer ${process.env.NEBIUS_API_KEY}` },
       signal: AbortSignal.timeout(10000),
     });
@@ -84,25 +88,27 @@ if (process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY !== 'user_provided'
   }
 }
 
-// A positively discovered, explicitly configured planning model need not have
-// existed when the curated display-name list was written. Preserve validation:
-// never silently replace the selected model or admit an unknown fallback.
+// Explicit regional model/base pairs are authoritative: private models need
+// not appear in the public catalog, and discovery outages must not disable
+// fallback. Requests still surface 404s. Public-only deployments retain their
+// authenticated catalog validation.
 if (configuredChatModel) {
-  if (discoveredPublicTokenIds && !discoveredPublicTokenIds.has(configuredChatModel)) {
+  if (!providerRouting && discoveredPublicTokenIds && !discoveredPublicTokenIds.has(configuredChatModel)) {
     throw new Error(`Configured chat model ${configuredChatModel} is absent from the authenticated Token Factory catalog`);
   }
   if (!availablePublicTokenModels.some(([id]) => id === configuredChatModel)) {
-    if (!discoveredPublicTokenIds?.has(configuredChatModel)) {
+    if (!providerRouting && !discoveredPublicTokenIds?.has(configuredChatModel)) {
       throw new Error('The configured chat model is not in the curated catalog and live discovery could not verify it');
     }
-    availablePublicTokenModels = [...availablePublicTokenModels, [configuredChatModel, configuredChatModel]];
+    availablePublicTokenModels = [...availablePublicTokenModels,
+      [configuredChatModel, process.env.SCIENTIFIC_CHAT_MODEL_LABEL || configuredChatModel]];
   }
 }
 
 // The reusable client has no event-owned endpoints. A stale environment flag
 // must not resurrect retired model IDs when an existing instance is upgraded.
 const providerModels = [
-  { endpoint: 'Nebius Token Factory', group: 'Public Token Factory', models: availablePublicTokenModels },
+  { endpoint: 'Nebius Token Factory', group: providerRouting ? 'Token Factory' : 'Public Token Factory', models: availablePublicTokenModels },
   { endpoint: 'openAI', group: 'OpenAI', models: [
     ['gpt-6-astra', 'GPT-6 Astra'], ['gpt-5.6', 'GPT-5.6 Sol'],
     ['gpt-5.6-terra', 'GPT-5.6 Terra'], ['gpt-5.6-luna', 'GPT-5.6 Luna'],
@@ -118,9 +124,9 @@ const modelSpecs = providerModels.flatMap(({ endpoint, group, models }) => model
     name: `science-${endpoint}-${model}`.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase(),
     label, group, groupIcon: endpoint === 'anthropic' ? 'anthropic' : endpoint === 'openAI' ? 'openAI' : '/assets/token-factory.svg',
     iconURL: endpoint === 'anthropic' || endpoint === 'openAI' ? endpoint : '/assets/token-factory.svg',
-    default: false, showOnLanding: false, showIconInHeader: true,
+    default: false, showOnLanding: false, showIconInHeader: true, hideBadgeRow: true,
     description: endpoint === 'Nebius Token Factory'
-        ? 'Public Token Factory · scientific tools and web research'
+        ? `${providerRouting ? 'Token Factory' : 'Public Token Factory'} · scientific tools and web research`
         : 'Scientific tools · connect your provider key',
     mcpServers: ['scientific-ai-apps', 'scientific-demos', 'tavily', 'structure-viewer', 'environment-execution'], skills: true, artifacts: true,
     preset: { endpoint, model, modelLabel: label, promptPrefix: instructions,
@@ -170,11 +176,11 @@ const config = {
       name: 'Nebius Token Factory',
       iconURL: '/assets/token-factory.svg',
       apiKey: process.env.NEBIUS_API_KEY ? '${NEBIUS_API_KEY}' : 'user_provided',
-      baseURL: 'https://api.tokenfactory.nebius.com/v1',
+      baseURL: providerRouting?.primary || catalogBaseURL,
       models: { default: availablePublicTokenModels.map(([id]) => id), fetch: false },
       tokenConfig: makeTokenConfig(availablePublicTokenModels),
       titleConvo: true, titleModel: configuredChatModel,
-      modelDisplayLabel: 'Nebius Public', dropParams: ['stop'],
+      modelDisplayLabel: providerRouting ? 'Nebius Token Factory' : 'Nebius Public', dropParams: ['stop'],
     }],
   },
   modelSpecs: { prioritize: true, enforce: false, list: modelSpecs },
@@ -236,6 +242,38 @@ const config = {
     },
   },
 };
+
+// Optional, per-user OAuth connection. The app credentials are references, never
+// baked into the image or sent to the model. Consent stays with the signed-in user.
+if (process.env.SCIENTIFIC_DROPBOX_ENABLED === 'true') {
+  for (const key of ['DROPBOX_APP_KEY', 'DROPBOX_APP_SECRET']) {
+    if (!process.env[key]) throw new Error(`Dropbox requires ${key}`);
+  }
+  config.mcpServers.dropbox = {
+    title: 'Dropbox research library',
+    description: 'Search and read the Dropbox account you authorize. Connect in the MCP menu.',
+    type: 'streamable-http', url: 'https://mcp.dropbox.com/mcp',
+    startup: false, requiresOAuth: true, initTimeout: 60000, timeout: 120000,
+    serverInstructions: 'Use only the requested research files and actual granted tools. Preserve originals. Read the dropbox-research skill. Never share, delete, move, restore or publish files without explicit user intent.',
+    oauth: {
+      authorization_url: 'https://www.dropbox.com/oauth2/authorize?token_access_type=offline',
+      token_url: 'https://api.dropboxapi.com/oauth2/token',
+      client_id: '${DROPBOX_APP_KEY}', client_secret: '${DROPBOX_APP_SECRET}',
+      scope: 'account_info.read files.metadata.read files.content.read',
+      token_endpoint_auth_methods_supported: ['client_secret_basic'],
+      code_challenge_methods_supported: ['S256'],
+      grant_types_supported: ['authorization_code', 'refresh_token'],
+    },
+  };
+}
+
+// Optional personal Cambridge connection. Credentials stay in LibreChat's
+// encrypted user settings; this does not activate or submit CamSol calculations.
+if (process.env.SCIENTIFIC_CAMSOL_ENABLED === 'true') {
+  config.mcpServers.camsol = JSON.parse(await readFile(new URL('./camsol/connection.json', import.meta.url), 'utf8'));
+  config.mcpSettings = { ...config.mcpSettings,
+    allowedAddresses: [...(config.mcpSettings?.allowedAddresses || []), '127.0.0.1:8786'] };
+}
 
 // JSON is valid YAML and preserves multiline instructions and literal key references.
 await writeFile(outputPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });

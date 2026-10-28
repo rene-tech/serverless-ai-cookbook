@@ -1,0 +1,101 @@
+# Set your exact image digest, namespace, resource sizing and qualified GPU placement.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: holoscan-video-run-001
+  labels: &id001
+    app.kubernetes.io/name: holoscan-video
+    app.kubernetes.io/instance: holoscan-video-run-001
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  podReplacementPolicy: Failed
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Equal
+        value: present
+        effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: holoscan
+        image: YOUR_REGISTRY/holoscan-video@sha256:REPLACE_WITH_IMAGE_MANIFEST_DIGEST
+        imagePullPolicy: IfNotPresent
+        command:
+        - /opt/holoscan-video/launch.sh
+        args:
+        - python3
+        - -I
+        - /opt/holoscan-task/transfer.py
+        - --config
+        - /opt/holoscan-capability/transfer.json
+        - --command
+        - /opt/holoscan-task/command.json
+        workingDir: /tmp
+        env:
+        - name: TMPDIR
+          value: /tmp
+        - name: CUDA_CACHE_PATH
+          value: /tmp/cuda-cache
+        - name: XDG_CACHE_HOME
+          value: /tmp/xdg-cache
+        resources:
+          requests:
+            cpu: '4'
+            memory: 16Gi
+            ephemeral-storage: 64Gi
+            nvidia.com/gpu: '1'
+          limits:
+            cpu: '4'
+            memory: 16Gi
+            ephemeral-storage: 64Gi
+            nvidia.com/gpu: '1'
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: scripts
+          mountPath: /opt/holoscan-task
+          readOnly: true
+        - name: capability
+          mountPath: /opt/holoscan-capability
+          readOnly: true
+        - name: scratch
+          mountPath: /tmp
+        - name: shm
+          mountPath: /dev/shm
+      volumes:
+      - name: scripts
+        configMap:
+          name: holoscan-video-run-001
+          defaultMode: 292
+      - name: capability
+        secret:
+          secretName: holoscan-video-run-001-io
+          defaultMode: 288
+      - name: scratch
+        emptyDir:
+          sizeLimit: 64Gi
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi

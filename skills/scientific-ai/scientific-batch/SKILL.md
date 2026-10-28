@@ -30,15 +30,34 @@ publication names.
    manifest. No manual handles, copied base64, invented hashes or parallel
    reservation calls are needed. Workspace supports authenticated file upload.
 3. Include preparation, dependent model inputs, analysis and final report in
-   the immutable study. Longer plans/scripts can be written in bounded logical
+   the immutable study. Before admission, map every requested deliverable and
+   report section to an analysis output; a helper's example is only its supported
+   scope. Include additional analysis or explicitly identify missing evidence.
+   Copy operation identities from trusted results/receipts rather than typing
+   them into study titles. Longer plans/scripts can be written in bounded logical
    pieces and submitted by path. The supervisor serializes calls and completes
    declared phases after disconnect; no mechanical continuation is required.
    Keep original idempotency keys and settings. A pending study is not completed
-   analysis. Direct model tools remain available for supported standalone calls.
+   analysis. At completion inspect the requested content, not just filenames;
+   deliver the requested report inline and disclose any unfinished item.
+   Direct model tools remain available for supported standalone calls.
+   Before promising continuation, require the tool receipt's
+   `study_admission=accepted`, `durable_workflow=true`,
+   `continuation_state=registered`, and `registered_phases` covering every
+   requested model, analysis and final assembly. A handwritten `STUDY.json`
+   is a note, not a scheduler. If earlier operations already exist, recover
+   those exact IDs and register only remaining work/analysis; never resubmit
+   accepted science. Preserve rejected and ambiguous admissions separately;
+   reconcile unknown outcomes before submitting anything new.
 4. Successful batch phases publish `output-manifest.json`, `result.json` and
    `output-NN.artifact` siblings. Roles, MIME, compression and hashes are in the
    manifest. Use these exact filenames in `{step,file}` dependencies. Native
    phases publish `result.json`. Do not interpret an artifact index as a seed.
+   A manifest is JSON metadata, not a coordinate file: never label it `.cif`
+   or `.pdb`. For a structure comparison, select `output-manifest.json` with
+   explicit `structure_index`; deliver the structure phase's verified
+   `prediction.structure` output as the coordinates and retain the manifest
+   separately as provenance. Names do not convert scientific file formats.
 
 Inline `study` accepts a v2 object or complete strict JSON text encoding that
 same object. Prefer a composer-generated `plan_file` for a long plan. Fix a
@@ -49,6 +68,11 @@ For comparisons, verify that the inputs really describe the same samples:
 retain sample identifiers and align records by those identifiers, not row order
 or equal table sizes. Report measured values and provenance; an output file or
 a completed model operation alone does not establish the requested comparison.
+For `workbench_compare_structures`, use workspace-relative `prediction_file`
+for coordinates or a downloaded manifest, plus `confidence_result_file` for
+its same-operation manifest and `request_file` for the original model input.
+`result_file` is for inline coordinate-bearing JSON, not an artifact-pointer
+platform envelope. Keep confidence and experimental agreement separate.
 
 RFdiffusion `design-backbone` is unconditional: its published `text/plain`
 source is a human-readable provenance note describing the design, not a PDB,
@@ -66,6 +90,21 @@ hash-bound residue map, while still validating both structure hashes and every
 position. Multi-chain biological choices remain explicit.
 
 ## Result conventions
+
+For native MD, use `native-md-timing` on the verified `native-files.json`.
+Assemble multi-run reports with existing `report` sections of format `native-md`
+and file `{step:"analysis-phase",file:"native-timing-report.json"}` (or an
+existing verified report path). This rechecks observations against native source
+hashes and publishes `customer-summary.json`. When every section is `native-md`,
+select `{step:"report-phase",file:"report.html"}` for the combined standalone
+HTML and keep `report.md` when Markdown is also requested. Existing verified
+timing JSON files need only this assembly phase, not repeated analyses or science.
+Quote verified
+`completion_summaries` and complete returned artifact URLs. Do not hand-copy
+measurements or operation IDs into a summary index. Last sampled temperature,
+its step/time and a mean are distinct; a mean requires its actual sample window.
+Missing measurements remain unknown. Exact filenames/URLs are never abbreviated
+with ellipses. Deliver the requested HTML inline as well as the aggregate.
 
 Structures arrive as mmCIF/PDB artifacts with confidence documents; designs
 arrive as sequences/structures per the model schema. Binder-design scores from

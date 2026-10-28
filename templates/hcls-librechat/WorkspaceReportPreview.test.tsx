@@ -115,7 +115,34 @@ test('a missing report is an explicit preview failure, never a fabricated pass o
   await screen.findByText(/could not be loaded/);
   expect(screen.queryByTitle('Scientific report')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Download HTML' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Download JSON' })).not.toBeInTheDocument();
   expect(read).toHaveBeenCalledTimes(1);
+});
+
+test.each([404, 403, 500])('optional companion HTTP %s does not fail valid HTML, including reopened messages', async (status) => {
+  read.mockImplementation(async (url: string) => {
+    if (url.includes('report.json')) throw { response: { status } };
+    return { data: blob(html) };
+  });
+  for (let reopened = 0; reopened < 2; reopened++) {
+    const rendered = render(<WorkspaceReportPreview href={href}>Combined retained report</WorkspaceReportPreview>);
+    const frame = await screen.findByTitle('Scientific report');
+    await waitFor(() => expect(read).toHaveBeenCalledTimes((reopened + 1) * 2));
+    expect(frame.getAttribute('srcdoc')).toContain('Recorded check');
+    expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Download JSON' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download HTML' })).toBeInTheDocument();
+    rendered.unmount();
+  }
+});
+
+test.each(['not JSON', JSON.stringify({ schema: 'unrelated/v1' })])('unrecognized optional metadata never advertises a companion download', async (metadata) => {
+  read.mockImplementation(async (url: string) => ({ data: blob(url.includes('report.json') ? metadata : html) }));
+  render(<WorkspaceReportPreview href={href}>Combined retained report</WorkspaceReportPreview>);
+  await screen.findByTitle('Scientific report');
+  await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+  expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Download JSON' })).not.toBeInTheDocument();
 });
 
 test('failed preview never retries through another route', async () => {
@@ -150,6 +177,37 @@ test('only authenticated owned workspace report/media links get an automatic pre
   }
   expect(isolatedReportHtml(html).indexOf('Content-Security-Policy')).toBeLessThan(isolatedReportHtml(html).indexOf('<script>'));
   expect(precheckSummary({ status: 'pass', verdict: 'not a supported report' })).toBeNull();
+});
+
+test('table reports retain links and gain one standalone preview per path', () => {
+  const link = (value: string) => ({ type: 'element', tagName: 'a', properties: { href: value },
+    children: [{ type: 'text', value: 'Saved report' }] });
+  const first = link(href), repeated = link(href), other = link('https://example.org/paper');
+  const tree = { type: 'root', children: [{ type: 'element', tagName: 'table', properties: {},
+    children: [{ type: 'element', tagName: 'tbody', properties: {}, children: [
+      { type: 'element', tagName: 'tr', properties: {}, children: [
+        { type: 'element', tagName: 'td', properties: {}, children: [first, repeated, other] },
+      ] },
+    ] }] }] };
+  workspaceMarkdownLinks()(tree);
+  expect(tree.children).toHaveLength(2);
+  expect(first.properties).toEqual({ href, 'data-scientific-report-link': 'true' });
+  expect(other.properties).toEqual({ href: 'https://example.org/paper' });
+  expect(tree.children[1]).toEqual({ type: 'element', tagName: 'p', properties: {}, children: [
+    { type: 'element', tagName: 'a', properties: { href }, children: [{ type: 'text', value: 'Saved report' }] },
+  ] });
+  const once = JSON.stringify(tree);
+  workspaceMarkdownLinks()(tree);
+  expect(JSON.stringify(tree)).toBe(once);
+});
+
+test('ordinary paragraph and list reports stay in their existing position', () => {
+  const tree = { type: 'root', children: [{ type: 'element', tagName: 'li', properties: {}, children: [
+    { type: 'element', tagName: 'a', properties: { href }, children: [{ type: 'text', value: 'Report' }] },
+  ] }] };
+  const before = JSON.stringify(tree);
+  workspaceMarkdownLinks()(tree);
+  expect(JSON.stringify(tree)).toBe(before);
 });
 
 test('native MD results show measured rates and unknown steps without runtime details', async () => {

@@ -348,6 +348,11 @@ def validate(plan):
         if isinstance(item['source'], dict):
             source_step = next(step for step in plan['steps'] if step['id'] == item['source']['step'])
             source_name = Path(item['source']['file']).as_posix()
+            if Path(source_name).suffix.lower() == '.json' and Path(item['name']).suffix.lower() in {'.cif', '.mmcif', '.pdb'}:
+                raise ValueError(f'Deliverable {item["name"]!r} points to JSON metadata, not molecular coordinates. '
+                    'A name does not convert the source bytes. Preserve the JSON with its correct format; '
+                    'for selected predicted coordinates use a structure phase and its prediction.structure output. '
+                    'No study has been admitted.')
             known_directories = PHASE_OUTPUT_DIRECTORIES.get(source_step.get('method'), [])
             if source_name == '.' or source_name in known_directories or item['source']['file'].endswith('/'):
                 raise ValueError(f'Deliverable {item["name"]!r} refers to output directory {item["source"]["file"]!r}, not a file. Declare concrete published files (for example records/000.json), not whole helper directories.')
@@ -422,7 +427,7 @@ def validate_local_arguments(method, args):
     for name in ('sections', 'cohorts', 'runs'):
         if name in args and (not isinstance(args[name], list) or not args[name] or any(not isinstance(item, dict) for item in args[name])):
             raise ValueError(f'{method} {name} must be a nonempty list of named objects.')
-    if method == 'report' and any(set(item) != {'title', 'file', 'format'} or item['format'] not in {'markdown', 'csv', 'operation-timing', 'recorded-export', 'rgb-statistics', 'mindeval-runs'} for item in args['sections']):
+    if method == 'report' and any(set(item) != {'title', 'file', 'format'} or item['format'] not in {'markdown', 'csv', 'operation-timing', 'recorded-export', 'rgb-statistics', 'mindeval-runs', 'native-md'} for item in args['sections']):
         raise ValueError('report sections require title, file and a published deterministic format.')
     if method == 'aging' and (args['model'] not in {'phenoage', 'altumage'} or any(not {'label', 'input_file', 'result_file'} <= item.keys() for item in args['cohorts'])):
         raise ValueError('aging requires model=phenoage|altumage and cohorts with label, input_file and result_file.')
@@ -501,7 +506,10 @@ def submit(plan, output):
                     if not evaluator.is_file():
                         evaluator = HERE / 'scripts/qualification/evaluators.py'
                     implementations['protein-design-evaluator'] = measure(evaluator)
-                if step['method'] == 'native-md-timing':
+                if step['method'] == 'native-md-timing' or (step['method'] == 'report' and any(
+                        item['format'] == 'native-md' for item in step['arguments']['sections'])):
+                    if step['method'] == 'report':
+                        implementations['native-md-report'] = measure(HERE / 'native_md_report.py')
                     implementations['native-md-verified-results'] = measure(HERE / 'scientific_verified_results.py')
         output.mkdir(parents=True, exist_ok=True)
         # The output binding is durable and exclusive across plans/owner queues.
@@ -550,10 +558,14 @@ def verify_owner(record):
 def verify_cancellation_identity(record, plan):
     """Stopping saved work needs its identity, not unchanged analysis helpers."""
     verify_owner(record)
+    verify_plan_identity(record, plan)
+
+
+def verify_plan_identity(record, plan):
     expected = hashlib.sha256(canonical({'plan': plan, 'output': record['output_directory'],
                                          'owner': record['owner']})).hexdigest()
     if record['identity'] != expected or record['id'] != str(uuid.uuid5(uuid.NAMESPACE_URL, expected)):
-        raise ValueError('Saved study plan identity changed; no cancellation was sent.')
+        raise ValueError('Saved study plan identity changed; no continuation or cancellation is authorized.')
 
 
 def verify_inputs(record):
@@ -797,7 +809,7 @@ def run_local(step, record):
                 result['structure_confidence_pairs'] = {'prediction.structure': {
                     'sha256': coordinate['sha256'], 'size_bytes': coordinate['size_bytes'],
                     'result_file': 'prediction-result.json', 'result_sha256': envelope['sha256']}}
-        if method == 'mindeval':
+        if method in {'mindeval', 'native-md-timing', 'report'} and 'customer-summary.json' in files:
             filename = 'customer-summary.json'
             result['customer_artifacts'] = {filename: {**files[filename], 'role': 'metrics'}}
             result['customer_summary'] = filename
@@ -1018,6 +1030,7 @@ async def advance(identifier, model_runner=None, local_runner=None, cancel_runne
                 verify_cancellation_identity(record, plan)
             else:
                 verify_inputs(record)
+                verify_plan_identity(record, plan)
             remaining = [step for step in plan['steps'] if step['id'] not in record['completed_steps']]
             if cancelling:
                 active = remaining[0] if remaining else None
@@ -1215,9 +1228,24 @@ def view(record):
     result.update(job_id=record['id'], status='completed' if record['state'] == 'completed' else
                   'failed' if record['state'] in {'failed', 'needs_attention', 'cancelled'} else 'running',
                   durable_study=True, output_directory=record['output_directory'],
-                  guidance='This saved whole study runs independently of chat. Reconnect to Runs for phases and verified final files; no continue prompt is needed for mechanical waits.')
+                  guidance='This receipt owns the registered phases of the saved whole study. '
+                      'Observe its actual state and failures before promising continuation; '
+                      'registered scope is not proof that every user-requested task was included.')
     plan = json.loads((directory(record['id']) / 'plan.json').read_bytes())
+    try:
+        verify_plan_identity(record, plan)
+    except ValueError as error:
+        # Keep accepted operation evidence readable, but never endorse changed
+        # phase ownership or allow advance() to execute the altered plan.
+        result['durable_study'] = False
+        result['registration_failure'] = str(error)
+        plan = {'steps': []}
+    result['study_admission'] = 'accepted'
     result['step_count'] = len(plan['steps'])
+    result['registered_phases'] = [{'id': step['id'], 'kind': step['kind'],
+        **{key: step[key] for key in ('model', 'method') if key in step},
+        'state': record.get('steps', {}).get(step['id'], {}).get('state', 'pending')}
+        for step in plan['steps']]
     progress = model_progress(record, plan)
     if progress:
         result['model_progress'] = progress

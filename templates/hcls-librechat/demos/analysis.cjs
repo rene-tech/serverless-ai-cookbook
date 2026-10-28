@@ -37,6 +37,11 @@ async function compare(kind, key, args, storage) {
   }
   const fields = ['reference_file', args.result_file ? 'result_file' : 'prediction_file'];
   if (args.residue_mapping_file) fields.push('residue_mapping_file');
+  if (kind === 'structure') {
+    for (const field of ['confidence_result_file', 'request_file']) {
+      if (args[field]) fields.push(field);
+    }
+  }
   const inputs = {};
   for (const field of fields) {
     if (typeof args[field] !== 'string' || !args[field]) throw fail('Supply workspace-relative input file paths.');
@@ -66,6 +71,8 @@ async function compare(kind, key, args, storage) {
       }
       argv.push('--output-dir', temporary, '--structure-index', String(args.structure_index || 0), '--chain-map', ...args.chain_map);
       if (inputs.residue_mapping_file) argv.push('--residue-map', inputs.residue_mapping_file.absolute);
+      if (inputs.confidence_result_file) argv.push('--confidence-result', inputs.confidence_result_file.absolute);
+      if (inputs.request_file) argv.push('--request-file', inputs.request_file.absolute);
     }
     let diagnostic = '';
     try { await (storage.execute || execute)(PYTHON, argv, { timeout: 120000, maxBuffer: 2 * 1024 * 1024 }); }

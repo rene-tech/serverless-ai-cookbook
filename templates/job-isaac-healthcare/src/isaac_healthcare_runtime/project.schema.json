@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Isaac for Healthcare project archive manifest v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema"
+  ],
+  "properties": {
+    "schema": {
+      "const": "isaac-healthcare-project/v2"
+    },
+    "default_workflow": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null
+    },
+    "default_mode": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null
+    },
+    "python_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "default": [],
+      "description": "Additional import directories relative to the archive root. SDK package directories in overlay/ are merged with the pinned base source automatically."
+    },
+    "description": {
+      "type": "string"
+    },
+    "asset_root": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Path relative to the extracted project archive; absolute paths, parent traversal and symlinks are rejected."
+    }
+  }
+}

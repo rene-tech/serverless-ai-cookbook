@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cbioportal-research",
+  "version": "2026.10.24.6",
+  "description": "Public cancer-genomics cohort research with the official cBioPortal database and navigation MCP services.",
+  "author": {"name": "Nebius Scientific AI"},
+  "homepage": "https://docs.cbioportal.org/ai-integrations/mcp/",
+  "license": "Apache-2.0"
+}

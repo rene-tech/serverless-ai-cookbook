@@ -1,0 +1,29 @@
+{
+  "upstream_repository": "nvidia-holoscan/holoscan-applications",
+  "upstream_revision": "7d2e3b3c2b5d48bf0bc5caeba4d715b797ae3031",
+  "upstream_archive_sha256": "ed2f532b16a61380ca9b86a13cbbde1661b0429f3abad943255e3fa1ac3ca857",
+  "base_image": "nvcr.io/nvidia/clara-holoscan/holoscan@sha256:9cd60e6a35ddaa697009139ad5565cedefa0034a98bae1c12f4a5bde051f202c",
+  "sdk": "5.0.0",
+  "cuda": "13.2.51",
+  "tensorrt": "10.16.0.72",
+  "model_resource": "nvidia/clara-holoscan/holoscan_endoscopy_sample_data:20230222",
+  "model_sha256": "d05733d49187f10975eafd762001f4535f5029fd071ca39779f953c7886a3c18",
+  "source_files": {
+    "Dockerfile": "b498e06d4976345e73694929fafd8ae170a59ca19ef90267616c94edcd58aa38",
+    "patches/export-tracking.patch": "3179c32f1217a3378feaf851ddc25aef8de72081d46017c28197969b51ba6183",
+    "src/holoscan_video.py": "4178ad8afced2aee5071161f73686f2b9b628e07df1bf89d098528e3e0a2fa4a",
+    "src/launch.sh": "6c367f71a529ecfd6da6dd6e6a8c499f1787e1858f62ea039b1af45588906256",
+    "src/prepare_sample.py": "aab770f5919fdea67597b86ac5f1f939babcd10113ea98ea69c9791cec9cd8bb"
+  },
+  "provider_helpers": {
+    "provider/prepare_endpoint.py": "7a1dce8e0e1c34b6ff66316e3feef1535d69a9fee078c0935a3bdd3f6c9f9766",
+    "provider/run_bundle.py": "33edabc03d0e75ad234aabdfba071d843b9317abf0457da1407b1f90d1e6b67e",
+    "provider/test_transfer.py": "63b86e9cc23dd08fb429f86689fca3b7a572b37e83a622abe732590e41d32167",
+    "provider/transfer.py": "0e44702fbf62a25f8f8a0582240b977fb95ee2ad8c372fae4759945b36f43901"
+  },
+  "kubernetes_files": {
+    "kubernetes/README.md": "8ffd167ffcffd92479b289c363888ba60a0bb3184e2e3bf9f30bc5e46984e4f7",
+    "kubernetes/command.json": "994cdc9c3fde3c17ce4a23a29c4cac3b84f8c68814effabe7901def9cbf8d7a1",
+    "kubernetes/job.yaml": "09bd7528ba4adb4d01407b45feffb87c6cb060251c4dc951f1a11361a7a3f205"
+  }
+}

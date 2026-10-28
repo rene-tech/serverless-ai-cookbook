@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools==83.0.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isaac-healthcare-interactive"
+version = "0.1.0"
+description = "An authenticated transport and process boundary for one admitted Isaac session"
+requires-python = ">=3.11"
+dependencies = ["starlette==1.7.0", "uvicorn==0.35.0", "websockets==15.0.1", "httpx==0.28.1"]
+
+[project.scripts]
+isaac-interactive = "i4h_interactive.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

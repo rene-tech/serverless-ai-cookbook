@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Isaac for Healthcare general batch parameters v2",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "workflow": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Any discovered upstream or project-authored workflow. Null selects project.json default_workflow."
+    },
+    "mode": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Any mode authored by the selected workflow. Null selects its upstream/project default."
+    },
+    "episodes": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "episode_steps": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "default": null,
+      "description": "Null preserves the resolved scene/mode cap. An explicit value may only lower that authored cap; there is no global 600-step limit."
+    },
+    "physics": {
+      "enum": [
+        null,
+        "physx",
+        "newton"
+      ],
+      "default": null,
+      "description": "Null preserves the selected scene backend. Explicit settings are passed unchanged to upstream."
+    },
+    "cameras": {
+      "type": "boolean",
+      "default": true
+    },
+    "envs": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "seed": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 4294967295,
+      "default": null
+    },
+    "checkpoint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Path relative to the extracted project archive; absolute paths, parent traversal and symlinks are rejected."
+    },
+    "dataset": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Path relative to the extracted project archive; absolute paths, parent traversal and symlinks are rejected."
+    },
+    "patient_twin": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "default": null,
+      "description": "Path relative to the extracted project archive; absolute paths, parent traversal and symlinks are rejected."
+    },
+    "replay_episodes": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "default": [
+        0
+      ]
+    },
+    "prompt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "workflow_args": {
+      "type": "object",
+      "default": {},
+      "description": "JSON keyword arguments for the authored workflow mode builder; upstream validation and Python signatures remain authoritative."
+    },
+    "idle_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 60.0
+    },
+    "spacing": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "default": 4.0
+    },
+    "fluoro_backend": {
+      "enum": [
+        null,
+        "synthetic",
+        "slang"
+      ],
+      "default": null
+    },
+    "fluoro_device": {
+      "enum": [
+        "cuda",
+        "vulkan"
+      ],
+      "default": "vulkan"
+    },
+    "training": {
+      "title": "Isaac for Healthcare upstream RL options",
+      "type": "object",
+      "additionalProperties": false,
+      "default": {},
+      "properties": {
+        "profile": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "default": null,
+          "description": "RL profile YAML relative to the effective SDK root; null selects rl/profiles/<workflow>.yaml. User-authored profiles are supported."
+        },
+        "num_envs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "default": null,
+          "description": "Null preserves the profile default."
+        },
+        "epochs": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "default": null,
+          "description": "Maximum training iterations/epochs; null preserves the profile default."
+        },
+        "episodes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "default": null,
+          "description": "Evaluation episode count; null preserves upstream default20."
+        },
+        "video": {
+          "type": "boolean",
+          "default": false
+        },
+        "overrides": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          },
+          "default": [],
+          "description": "Upstream KEY=VALUE trainer overrides, passed as separate argv entries; unsupported combinations fail upstream."
+        },
+        "resume_dir": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "default": null,
+          "description": "Supported upstream trainer run directory relative to the project archive; RSL-RL resume is unsupported upstream."
+        },
+        "train_config": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "default": null,
+          "description": "RLinf resolved trainer YAML relative to the project archive for export."
+        },
+        "runtime_python": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "default": null,
+          "description": "Explicit installed trainer interpreter for a separately provisioned policy environment. Null uses the configured Arena interpreter for RSL-RL; RLinf requires its own installed environment."
+        },
+        "sim_runtime_python": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "default": null,
+          "description": "Installed simulator interpreter for the isolated RLinf backend; not accepted by RSL-RL."
+        }
+      }
+    },
+    "dataset_options": {
+      "title": "Isaac for Healthcare dataset options",
+      "type": "object",
+      "additionalProperties": false,
+      "default": {},
+      "properties": {
+        "robot": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "default": null,
+          "description": "Upstream or project-authored robot descriptor name; required for conversion."
+        },
+        "repo_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "default": null,
+          "description": "LeRobot dataset identifier written locally; this operation does not publish it."
+        },
+        "fps": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30
+        },
+        "video_codec": {
+          "enum": [
+            "h264",
+            "hevc",
+            "libsvtav1"
+          ],
+          "default": "h264"
+        },
+        "skip_frames": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "successful_only": {
+          "type": "boolean",
+          "default": false
+        },
+        "task": {
+          "type": "string",
+          "default": ""
+        },
+        "g1_wbc_policy_actions": {
+          "type": "boolean",
+          "default": false
+        },
+        "segments": {
+          "type": "boolean",
+          "default": false
+        },
+        "actions": {
+          "type": "boolean",
+          "default": false
+        },
+        "action_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.05
+        }
+      }
+    }
+  }
+}

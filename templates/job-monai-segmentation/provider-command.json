@@ -1,0 +1,6 @@
+[
+  "/opt/conda/bin/python",
+  "-I",
+  "-c",
+  "import json, os, shutil, tarfile\nfrom pathlib import Path\nfrom monai_workflow.runtime import run\nincoming = Path(os.environ['MONAI_PROVIDER_INPUT'])\noutgoing = Path(os.environ['MONAI_PROVIDER_OUTPUT'])\nwith tarfile.open(incoming / 'input.tar') as archive:\n    members = archive.getmembers()\n    if len(members) != 1 or not members[0].isfile():\n        raise ValueError('Input archive must contain exactly one regular NIfTI volume')\n    member = members[0]\n    if member.name in ('', '.', '..') or Path(member.name).name != member.name:\n        raise ValueError('Archive the volume at its basename, without directory entries or links')\n    if not member.name.lower().endswith(('.nii', '.nii.gz')):\n        raise ValueError('Use a .nii or .nii.gz CT volume')\n    extracted = incoming / 'extracted'\n    extracted.mkdir()\n    volume = extracted / member.name\n    with archive.extractfile(member) as source, volume.open('xb') as target:\n        shutil.copyfileobj(source, target)\nparameters = json.loads(os.environ.get('MONAI_PARAMETERS_JSON', '{}'))\nrun(volume, outgoing, parameters, device='cuda')\n"
+]
