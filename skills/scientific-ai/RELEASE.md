@@ -1,3 +1,33 @@
+# Scientific AI skills 2026.10.28.1 — general Isaac workflows
+
+This source release keeps all 50 skills and preserves the other 49
+skills unchanged. A finite two-owner public REST/MCP interactive cohort passed
+video, controls, same-session reconnect, verified recording export and resource
+closeout. Its sequential browser windows measured about 12.7–13.0 FPS at
+1920×1080, below the requested 60; sustained capacity is not established.
+One corrected ordinary default-batch request passed public REST/MCP observation,
+scientific/artifact validation and resource closeout; final preservation is bound.
+This source packet does not publish a skill archive or activate existing clients.
+The Isaac guide covers authored Scene + Task + Workflow projects, finite
+simulation and replay, policy training/evaluation/export, dataset inspection
+and conversion, and authenticated GUI/teleoperation sessions. The model map
+separately names `isaac-healthcare` and `isaac-healthcare-interactive`.
+
+Discover the caller's deployed schemas and capabilities before selecting a
+mode. The guide preserves owned artifacts, explicit experiment settings,
+same-operation/session recovery and truthful failure/output reporting. It does
+not replace the user's project with the scissor example or silently substitute
+a missing policy backend. The [public recipe](https://github.com/rene-tech/serverless-ai-cookbook/tree/main/templates/job-isaac-healthcare)
+records the measured execution scope and owning runtime entrypoints; a skill
+archive does not qualify every scene, policy, GPU, shared-capacity bound or
+physical-device connection.
+
+This is an instruction bundle. It does not install simulator dependencies,
+change the App release or activate an existing client. Verify its exact tag,
+archive checksum and file inventory; use a new versioned install destination
+only when explicitly selecting it for a client. Historical release notes below
+remain unchanged.
+
 # Scientific AI skills 2026.10.27.1 — healthcare workflows
 
 This additive bundle contains 50 skills: the 47 existing skills are preserved,

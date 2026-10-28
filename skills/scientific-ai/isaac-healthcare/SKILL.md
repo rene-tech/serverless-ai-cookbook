@@ -12,9 +12,11 @@ condition. Preserve the requested robot, anatomy, sensors, controller, physics,
 training objective and assets. Use the pinned upstream framework's authoring
 interfaces for a new task rather than disguising it as a bundled example.
 
-Discover `isaac-healthcare` with `get_model_schema` and use its current typed
-tools. Fetch current capabilities before choosing batch execution, training or
-an interactive session. A workflow appearing in the SDK registry means it is
+Discover `isaac-healthcare` for finite batch/data/training and
+`isaac-healthcare-interactive` for GUI/teleoperation with `get_model_schema`.
+Use each model's current typed tools and capabilities. Upload artifacts for the
+same model you intend to invoke; access to one model is not an upload grant for
+the other. This guide or an image publication does not enable a hosted mode. A workflow appearing in the SDK registry means it is
 discoverable; successful execution additionally depends on its assets, policy
 environment, device capabilities and the qualified deployment. Report a missing
 capability directly instead of substituting the scissor demo or another App.
@@ -49,8 +51,10 @@ when a different experiment requires one.
 For simulation, preserve explicit mode, physics, environment count, camera,
 episode/attempt and reset settings. For replay, supply the retained recording
 and actual episode indices; retain its initial-state and runtime identity.
-For training/evaluation/export or dataset conversion, use the current typed
-operation and its installed backend. Preserve optimizer, randomization,
+The batch operation names are `inspect`, `lint`, `simulate`, `replay`, `train`,
+`evaluate`, `export`, `dataset-inspect` and `dataset-convert`; discover which are
+available on the caller's deployment. For training/evaluation/export or dataset
+conversion, use the current typed operation and its installed backend. Preserve optimizer, randomization,
 checkpoint, dataset and sensor settings. Never silently change training into
 inference, replace a missing checkpoint, or claim a dry run trained a policy.
 
@@ -63,11 +67,16 @@ completed simulation or training run does not establish clinical validity.
 
 ## Interactive work
 
-Use the platform's authenticated session creation/attach/keepalive/stop tools
-when the deployed contract exposes them. A session has its own workspace and
-native admission identity. Reconnect to the same session after a browser
-disconnect; do not allocate another GPU automatically. Report ready only after
-the actual simulator, video stream and intended controls work.
+When the deployed contract exposes them, use
+`start_isaac_interactive_session`, `get_isaac_interactive_session`,
+`attach_isaac_interactive_session`, `stop_isaac_interactive_session` and
+`get_isaac_interactive_result`. A session has its own workspace and native
+admission identity. Reconnect to the same session after a browser disconnect;
+attachment does not create a new session or extend its original deadline.
+Retain that session ID for status and result recovery. Report ready only after
+the actual simulator, advancing video and intended controls work. Report a
+returned initialization failure as a failure even when transport is connected;
+execution outcome, output delivery and resource release are separate facts.
 
 Keep browser authentication, native claims and media-relay credentials out of
 messages, source and downloadable examples. Use the returned authenticated

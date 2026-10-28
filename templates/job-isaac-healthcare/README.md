@@ -6,8 +6,11 @@ and dispatch upstream RL and dataset operations. A project archive can add or
 replace Scene, Task and Workflow source, manifests, configuration and assets.
 Workflow names and modes are discovered from the project, not an example list.
 The portable package has no private Scientific AI dependency or platform token.
+The operation names are `inspect`, `lint`, `simulate`, `replay`, `train`,
+`evaluate`, `export`, `dataset-inspect` and `dataset-convert`; interactive
+GUI/teleoperation uses the separate session recipe linked below.
 
-**Qualification status (27 October 2026):** the generalized runtime passed finite
+**Qualification status (28 October 2026):** the generalized runtime passed finite
 L40S simulation, demonstration recording and reverse-order replay of an authored
 dVRK PSM surgical workflow on marker-closure image
 `sha256:7b82a5b69afc4fdc8c08c5644ae6f1dfd16aa0939ffc371a4c4e90a98b0f345d`.
@@ -15,10 +18,16 @@ Finite PPO training, evaluation and TorchScript export passed separately on
 `sha256:bd5110c3991b74ec670b2c8a20688fbad440e3108b20e24e86b2c975adc9c400`;
 evaluation had zero successful episodes and does not establish convergence.
 CPU project discovery/lint and dataset conversion also have retained evidence.
-Interactive GUI/teleoperation and expanded Native REST/MCP delivery remain under
-qualification. These observations do not qualify every workflow, shared capacity
-or clinical use. The earlier scissor image's REST/MCP and cross-GPU passes remain
-separate evidence; they do not implement this generalized interface.
+The interactive extension has scoped cold-start and standalone passes for
+video, W/S controls, same-process reattachment and recording delivery. A finite
+two-owner public REST/MCP cohort also passed those checks and resource closeout
+with isolated sessions on two eu-north1 L40S workers. Sequential browser windows
+measured approximately 12.7–13.0 FPS at 1920×1080; the requested 60 FPS was not
+achieved. One corrected ordinary shared default-batch request passed public
+REST/MCP observation, scientific/artifact validation and resource closeout. These
+observations do not qualify every workflow, sustained shared capacity, South
+GUI behavior or clinical use. The earlier scissor image's REST/MCP and cross-GPU
+passes remain separate evidence; they do not implement this general interface.
 See [capabilities and owning entrypoints](docs/capabilities.md),
 [training and datasets](training/README.md), and [interactive sessions](interactive/README.md).
 

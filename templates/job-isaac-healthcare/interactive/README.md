@@ -3,9 +3,18 @@
 This extension runs an ordinary upstream or project-authored workflow with the
 actual Isaac GUI, video and keyboard/pointer teleoperation. It contains a process
 supervisor, authenticated WebRTC signaling boundary, NVIDIA browser client and
-native-session integration. CPU checks cover the boundary; interactive GPU,
-browser media, teleoperation and shared capacity qualification remain pending.
-The qualified finite batch recipes do not establish interactive readiness.
+native-session integration. Installed CPU checks cover scene startup, signaling
+handoff, disconnect races and the session deadline. The deployed Native image
+`025d9ef8…` passed one isolated cold-start browser session, with decoded video,
+measured W/S control response and reconnect to the same Kit process. Full
+recording export and normal owner-driven resource closeout passed. The portable image
+`e1556d23…` also passed one scoped standalone session with authenticated video,
+W/S control response, same-process reattachment, recording export and normal
+owner stop. A separate finite public REST/MCP cohort passed with two overlapping
+owned sessions, actual video, W/S response, reconnect, verified exports and
+resource closeout. Both sessions used eu-north1 L40S workers; sequential browser
+windows measured approximately 12.7–13.0 FPS at 1920×1080, below the requested 60.
+Sustained shared capacity and South GUI behavior have not been measured.
 
 ## Runtime and project contract
 
@@ -65,18 +74,53 @@ The portable token is a unique random 32-byte URL-safe capability mounted as a
 file for this session. It is neither a cloud API key nor a repository secret.
 The proxy binds loopback only. A reviewed TLS ingress validates the exact user
 and session before forwarding to it; use the token in a bearer header, never a
-URL. NVIDIA SDK 6.7.0 sends it as `Authorization.Bearer.<token>` alongside
-`x-nv-sessionid.<session-id>` in WebSocket subprotocols. The proxy strips the
-credential before forwarding to Kit. Native Scientific AI uses its own one-use
+URL. NVIDIA SDK 6.7.0 constructs its WebSocket protocols through
+`Headers.entries()`, producing `authorization.bearer.<token>` alongside
+`x-nv-sessionid.<session-id>`. The proxy recognizes the prefix independently of
+case, preserves the capability bytes exactly, and rejects duplicate credentials.
+The credential is stripped before forwarding to Kit. Native Scientific AI uses its own one-use
 HttpOnly cookie and bound lease instead of the portable capability.
 
 Use an isolated container/Pod and storage directory for each active session.
 The supervisor starts Kit once, forwards shutdown to the entire process group,
-joins cleanup, and never restarts science. A browser signaling disconnect detaches that viewer and preserves the same
-process until explicit stop, workflow completion or the existing native deadline. `/health` and `/stop` require its capability. Health does not equate a
+joins cleanup, and never restarts science. A browser signaling disconnect detaches
+that viewer and preserves the same process until explicit stop, workflow
+completion or the existing session deadline. Reattachment authenticates the
+viewer again; it does not start another simulation or extend the deadline.
+`/health` and `/stop` require its capability. Health does not equate a
 listening socket with decoded video; `media_ready` remains unknown until actual
 browser evidence exists. Process cleanup is only a witness; native resource
 release remains the native owner's decision.
+
+## Scene startup and viewer attachment
+
+The normal Arena preparation waits for its `workflow_started` lifecycle event
+and the signaling socket before declaring the session ready. The event follows
+scene reset and actuation setup; an open TCP listener alone can precede usable
+rendering during cold startup. The controller reads the bounded readiness record
+under the project UID without expanding project permissions.
+
+The authenticated descriptor reports `startup_ready`, `startup_readiness_source`,
+`terminal` and the original `deadline_at`. The browser waits on that same
+descriptor before connecting the SDK; polling neither consumes another attach
+credential nor creates or extends a session. Direct custom commands without the
+optional Arena event retain explicit `signaling_socket` readiness. Such commands
+must provide their own scene-readiness contract if socket readiness is too early.
+The portable server finishes its ordinary startup before serving the viewer.
+A ready descriptor still does not prove decoded video or successful controls.
+
+The recorded cold-start session delivered 1920×1080 video in two browser
+contexts, with about 12.8 decoded frames/s and zero reported dropped frames.
+Reattachment preserved the original session, Kit PID/start identity and deadline.
+The actual W and S key events produced approximately +1.4284 mm and -1.4288 mm
+of end-effector movement along the recorded X axis. The exported recording
+contained 5,441 six-component action rows; the full HDF5 read was finite, and all
+three delivered files matched their declared hashes. Normal owner cancellation
+completed recording export and resource cleanup.
+The requested 60 frames/s was not achieved. This is a scoped Native browser
+result; it does not establish every authored workflow, training workload,
+standalone deployment, concurrent-user capacity, clinical outcome or a public
+service rollout.
 
 ## Docker and on-premises networking
 
@@ -92,7 +136,15 @@ Use `docker run --gpus <assigned-device> --network=host` on the Ubuntu GPU host,
 mount the project read-only and isolated outputs/cache/home writable, and use the
 same immutable image. Retain the image digest and actual driver/encoder results.
 
-The published portable candidate below contains the corrected standalone server.
+The two image settings serve different entrypoints: `ISAAC_INTERACTIVE_IMAGE`
+is the portable GUI/teleoperation runtime, while `ISAAC_BATCH_IMAGE` is the
+finite simulation/training/dataset runtime used by the [general recipe](../README.md).
+The portable image adds SDK bearer-prefix compatibility to its `025d9ef8…`
+parent. Scientific AI's separately deployed Native definition remains on
+`sha256:025d9ef8282d8352bc0dfbf19e932e6b6a72bcc16fa03a58371e477afacd48a3`;
+this documentation does not replace that deployment.
+
+The portable image below contains the qualified standalone server.
 Its OCI entrypoint remains `i4h_interactive.native_server`, so Docker must
 explicitly select the portable server. Set the host paths to the prepared
 project, session workspace, viewer artifact and session-token file; the paths
@@ -101,7 +153,8 @@ holds isolated writable outputs/cache/home, while the project and viewer stay
 read-only.
 
 ```sh
-ISAAC_INTERACTIVE_IMAGE='cr.eu-north1.nebius.cloud/e00tgb3jwv3v1mx8g5/scientific-ai/isaac-healthcare-interactive@sha256:e1da4f5dc3b89d6b5682c23a19711497efa80413556b81de44407d13dd66ea4a'
+ISAAC_INTERACTIVE_IMAGE='cr.eu-north1.nebius.cloud/e00tgb3jwv3v1mx8g5/scientific-ai/isaac-healthcare-interactive@sha256:e1556d236f28b91f8327f4b4de4c1669ced7a4c024902dfb7302f3c6ab720f46'
+ISAAC_BATCH_IMAGE='cr.eu-north1.nebius.cloud/e00tgb3jwv3v1mx8g5/ih@sha256:2eba3d69b8ec71aba639f679e0d9390528ee41a73524bcddeb0f4c0e5c033b9b'
 docker run --rm --gpus "device=${ISAAC_GPU}" --network=host \
   --env NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,video,display \
   --mount "type=bind,src=${ISAAC_SESSION_DIR},dst=/work" \
@@ -113,9 +166,32 @@ docker run --rm --gpus "device=${ISAAC_GPU}" --network=host \
   --config /work/interactive-plan/session.json --token-file /run/secrets/session-token
 ```
 
-The installed portable proxy passed CPU protocol checks. This image pin does
-not claim an actual on-premises GPU/browser qualification or change Scientific
-AI's separately deployed Native worker.
+The installed portable proxy passed CPU checks for startup, SDK close handling,
+a Kit peer that does not answer Python heartbeat pings, and the SDK's lowercase
+bearer protocol. Case-sensitive capabilities, mixed-case duplicate rejection,
+origin/session checks and credential removal were checked through the installed
+server. The standalone GPU session then used the same published image, normal
+TLS, owner capability and `workflow_started` readiness. Two browser attachments
+delivered 1920×1080 video at about 12.54 and 12.50 frames/s; reattachment preserved
+the same Kit process, server, workflow and original deadline. The requested
+60 frames/s was not achieved.
+
+Actual W and S inputs produced approximately +1.42854 mm and -1.19174 mm of
+end-effector movement along the recorded X axis. The initial browser automation
+stopped after W for an unresolved reason; its failure evidence is retained. One
+same-session continuation sent S without replaying W. Trusted W browser events
+and the Kit press/release are retained, but the first browser action's complete
+time interval was not saved, so an exact full-interval timestamp join is not
+claimed. The second S interval is fully joined to its Kit events.
+
+Normal owner stop closed the recording, whose full HDF5 read contained 5,517
+finite six-component action rows. All 372 exported files were retained and
+hash-checked; the five task resources and owned local forward were removed.
+This qualifies one supported authored workflow and the standalone launch, TLS,
+authentication, control, reattachment and export path. It does not qualify every
+project, device connection, concurrent-user capacity or medical outcome. The
+separate two-owner public result above does not extend this standalone scope. The
+[engine, training and workflow qualification limits](../README.md) apply.
 
 Do not publish raw TCP 49100, UDP 47998 or the unauthenticated upstream viewer
 8210 to the Internet. An authenticated VPN/private network may carry the direct
