@@ -91,6 +91,32 @@ Hopper batch results cannot be reused as interactive streaming evidence.
 Use `docker run --gpus <assigned-device> --network=host` on the Ubuntu GPU host,
 mount the project read-only and isolated outputs/cache/home writable, and use the
 same immutable image. Retain the image digest and actual driver/encoder results.
+
+The published portable candidate below contains the corrected standalone server.
+Its OCI entrypoint remains `i4h_interactive.native_server`, so Docker must
+explicitly select the portable server. Set the host paths to the prepared
+project, session workspace, viewer artifact and session-token file; the paths
+recorded in `session.json` must match the container mounts. The session workspace
+holds isolated writable outputs/cache/home, while the project and viewer stay
+read-only.
+
+```sh
+ISAAC_INTERACTIVE_IMAGE='cr.eu-north1.nebius.cloud/e00tgb3jwv3v1mx8g5/scientific-ai/isaac-healthcare-interactive@sha256:e1da4f5dc3b89d6b5682c23a19711497efa80413556b81de44407d13dd66ea4a'
+docker run --rm --gpus "device=${ISAAC_GPU}" --network=host \
+  --env NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,video,display \
+  --mount "type=bind,src=${ISAAC_SESSION_DIR},dst=/work" \
+  --mount "type=bind,src=${ISAAC_PROJECT_DIR},dst=/work/prepared-project,readonly" \
+  --mount "type=bind,src=${ISAAC_VIEWER_DIST},dst=/opt/isaac-viewer,readonly" \
+  --mount "type=bind,src=${ISAAC_TOKEN_FILE},dst=/run/secrets/session-token,readonly" \
+  --entrypoint /opt/i4h/interactive/.venv/bin/python \
+  "$ISAAC_INTERACTIVE_IMAGE" -I -B -m i4h_interactive.server \
+  --config /work/interactive-plan/session.json --token-file /run/secrets/session-token
+```
+
+The installed portable proxy passed CPU protocol checks. This image pin does
+not claim an actual on-premises GPU/browser qualification or change Scientific
+AI's separately deployed Native worker.
+
 Do not publish raw TCP 49100, UDP 47998 or the unauthenticated upstream viewer
 8210 to the Internet. An authenticated VPN/private network may carry the direct
 stream. Each concurrent host-network instance needs distinct signal/media ports;
