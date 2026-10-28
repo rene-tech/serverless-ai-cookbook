@@ -43,6 +43,34 @@ class NoRedirectConnect(connect):
         return exc
 
 
+def _kit_close_diagnostic(peer, error, phase):
+    """Bounded private metadata; never log peer-controlled exception text."""
+    def code(value):
+        return int(value) if isinstance(value, int) and not isinstance(value, bool) and 1000 <= value <= 4999 else None
+
+    def frame(value):
+        if value is None:
+            return None
+        reason = getattr(value, "reason", None)
+        known = reason in ("", "keepalive ping timeout")
+        return {
+            "code": code(getattr(value, "code", None)),
+            "reason": reason if known else None,
+            "reason_sha256": hashlib.sha256(reason.encode("utf-8", errors="replace")).hexdigest()
+            if isinstance(reason, str) and not known else None,
+        }
+
+    name = type(error).__name__ if error is not None else None
+    return {
+        "event": "kit_viewer_transport_ended",
+        "phase": phase,
+        "exception_type": "".join(c for c in name[:80] if c.isascii() and (c.isalnum() or c == "_")) if name else None,
+        "received": frame(getattr(error, "rcvd", None)),
+        "sent": frame(getattr(error, "sent", None)),
+        "final_close_code": code(getattr(peer, "close_code", None)),
+    }
+
+
 def epoch(value):
     return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
 
@@ -311,9 +339,11 @@ def application(
 
                 async def outbound(peer, identity):
                     cancelled = False
+                    failure, failure_phase = None, "kit_receive"
                     try:
                         async for data in peer:
                             binary = isinstance(data, bytes)
+                            failure_phase = "native_forward"
                             await socket.send_json(
                                 {
                                     "type": "viewer.data",
@@ -324,13 +354,24 @@ def application(
                                     else data,
                                 }
                             )
+                            failure_phase = "kit_receive"
                     except asyncio.CancelledError:
                         cancelled = True
+                        raise
+                    except Exception as error:
+                        failure = error
                         raise
                     finally:
                         # Our own transport handoff/drain cancels this reader.
                         # It is not an independent Kit failure for the next peer.
                         if not cancelled:
+                            # Operator logs only; the viewer envelope, lease and
+                            # Kit connection/heartbeat policy remain unchanged.
+                            with contextlib.suppress(Exception):
+                                logging.getLogger(__name__).warning(
+                                    "Kit viewer transport ended: %s",
+                                    json.dumps(_kit_close_diagnostic(peer, failure, failure_phase), sort_keys=True),
+                                )
                             await socket.send_json(
                                 {"type": "viewer.error", "peer_id": identity,
                                  "code": "kit_viewer_closed"}
