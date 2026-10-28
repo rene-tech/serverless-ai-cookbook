@@ -36,6 +36,7 @@ test('run inspection reveals loading, responses, repeat selections and errors in
         'react-router-dom': {
           useSearchParams: () => {
             const [params, setParams] = React.useState(new URLSearchParams(window.initialQuery || 'tab=runs'));
+            window.navigate = value => setParams(new URLSearchParams(value));
             return [params, value => setParams(new URLSearchParams(value))];
           },
           Link: ({ to, ...props }) => React.createElement('a', { href: to, ...props }),
@@ -124,6 +125,17 @@ test('run inspection reveals loading, responses, repeat selections and errors in
     assert.deepEqual((await page.evaluate(() => calls)).slice(-2), [
       '/api/scientific-demos/runs/op-fixture/artifacts/mask', '/api/scientific-demos/runs/op-fixture/artifacts/mask',
     ]);
+    await result.getByRole('button', { name: /segmentation/ }).click();
+    await page.evaluate(() => navigate('tab=runs&operation=op-other'));
+    const other = page.getByRole('region', { name: 'Details · op-other' });
+    await other.getByRole('status').waitFor();
+    await page.evaluate(() => pending.shift().reject(new Error('Previous download failed')));
+    await page.waitForFunction(() => pending.length === 1);
+    assert.equal(await other.getByRole('alert').count(), 0, 'old download errors must not affect another operation');
+    assert.equal(await other.getByRole('button', { name: 'Refresh operation' }).isDisabled(), true,
+      'old download completion must not clear another request’s busy state');
+    await page.evaluate(() => pending.shift().resolve({ operation: { id: 'op-other', status: 'running' } }));
+    await other.getByText('running', { exact: true }).waitFor();
     await page.evaluate(() => {
       queryErrors.runs = new Error('offline');
       datasets.studies.data[0].state = 'needs_attention';
