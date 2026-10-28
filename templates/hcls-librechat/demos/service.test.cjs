@@ -62,6 +62,20 @@ test('malformed status cannot overwrite the last valid observation', async () =>
   } finally { global.fetch = original; }
 });
 
+test('invalid result JSON cannot become saved empty output', async () => {
+  const service = await setup, original = global.fetch;
+  const id = 'op-invalid-json';
+  try {
+    global.fetch = async (url) => String(url).endsWith('/result')
+      ? new Response('{"truncated":') : Response.json({ id, status: 'succeeded' });
+    await assert.rejects(service.operationResult('json-key', id), error => error.status === 502);
+    await assert.rejects(fs.access(path.join(process.env.SCIENTIFIC_WORKSPACE, '.scientific-runs', id, 'result.json')),
+      error => error.code === 'ENOENT');
+    global.fetch = async () => new Response('Unavailable', { status: 503 });
+    await assert.rejects(service.platform('json-key', 'GET', `/v1/operations/${id}`), error => error.status === 503);
+  } finally { global.fetch = original; }
+});
+
 test('batch result retrieval retries independently and binds named downloads to the verified manifest', async () => {
   const service = await setup, original = global.fetch, calls = [];
   const id = 'op-flow-results', manifestId = crypto.randomUUID(), resultId = crypto.randomUUID(), maskId = crypto.randomUUID();

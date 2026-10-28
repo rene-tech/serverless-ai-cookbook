@@ -110,7 +110,10 @@ async function platform(key, method, resource, body, idempotencyKey, timeoutMs =
     error.platformTimeout = cause?.name === 'TimeoutError';
     throw error;
   }
-  const result = await response.json().catch(() => ({}));
+  const result = await response.json().catch(() => {
+    if (response.ok) throw failure('Platform returned invalid JSON. Retry retrieving the existing operation.', 502);
+    return {};
+  });
   if (!response.ok) {
     const detail = result.error && typeof result.error === 'object' ? result.error
       : result.detail && typeof result.detail === 'object' ? result.detail : result;
