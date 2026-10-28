@@ -18,13 +18,21 @@ from websockets.asyncio.client import connect
 
 from .contract import authenticate, turn_credentials
 from .process import SessionProcess
+from .signaling import kit_signaling_path, parse_signaling_query
 
 
-def application(config, token, *, process=None):
+class NoRedirectConnect(connect):
+    def process_redirect(self, exc):
+        return exc
+
+
+def application(config, token, *, process=None, connect_factory=NoRedirectConnect):
     process = process or SessionProcess(config)
 
-    def authorized(request):
-        if request.query_params:
+    def authorized(request, *, signaling=False):
+        if signaling:
+            parse_signaling_query(request.query_params.multi_items(), config["session_id"])
+        elif request.query_params:
             raise PermissionError(
                 "credentials and controls do not belong in query strings"
             )
@@ -95,7 +103,8 @@ def application(config, token, *, process=None):
 
     async def signaling(socket: WebSocket):
         try:
-            authorized(socket)
+            authorized(socket, signaling=True)
+            handshake = parse_signaling_query(socket.query_params.multi_items(), config["session_id"])
             protocols = authenticate(socket.headers, config, token)
         except PermissionError:
             await socket.close(code=1008)
@@ -107,8 +116,8 @@ def application(config, token, *, process=None):
         try:
             # Fixed loopback target, no redirect, URL input, arbitrary path or
             # credential forwarding to Kit. Video remains real WebRTC media.
-            async with connect(
-                f"ws://127.0.0.1:{config['signal_port']}/",
+            async with connect_factory(
+                f"ws://127.0.0.1:{config['signal_port']}" + kit_signaling_path(handshake, config["session_id"]),
                 subprotocols=protocols,
                 proxy=None,
                 max_size=1024 * 1024,
@@ -171,7 +180,7 @@ def application(config, token, *, process=None):
         Route("/health", health),
         Route("/stop", stop, methods=["POST"]),
         Route("/descriptor", descriptor),
-        WebSocketRoute("/signaling", signaling),
+        WebSocketRoute("/signaling/sign_in", signaling),
     ]
     if config.get("viewer_dist"):
         routes.extend([Route("/", viewer), Route("/assets/{name}", asset)])

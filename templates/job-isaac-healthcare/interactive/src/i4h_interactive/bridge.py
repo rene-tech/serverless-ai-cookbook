@@ -27,6 +27,7 @@ from starlette.routing import Route, WebSocketRoute
 from websockets.asyncio.client import connect
 
 from .contract import SESSION
+from .signaling import SIGNALING_HEADER, parse_signaling_header, validate_signaling
 
 
 class NoRedirectConnect(connect):
@@ -140,7 +141,8 @@ class Tunnel:
             # Drop the single-use claim after the connection lifetime.
             self.value.pop("claim", None)
 
-    async def attach(self, socket):
+    async def attach(self, socket, signaling):
+        signaling = validate_signaling(signaling, self.value["session_id"])
         if self.peer_lock.locked():
             await socket.close(code=1013)
             return
@@ -156,7 +158,8 @@ class Tunnel:
             pumps = []
             try:
                 await self.upstream.send(
-                    json.dumps({"type": "viewer.attach", "peer_id": self.peer_id})
+                    json.dumps({"type": "viewer.attach", "peer_id": self.peer_id,
+                                "signaling": signaling})
                 )
                 ack = await asyncio.wait_for(
                     queue.get(), self.value["startup_timeout_s"]
@@ -426,10 +429,18 @@ def application(
         if not SESSION.fullmatch(nonce) or nonce in item.consumed:
             await socket.close(code=1008)
             return
+        try:
+            headers = socket.headers.getlist(SIGNALING_HEADER)
+            if len(headers) != 1:
+                raise PermissionError("exactly one private signaling header required")
+            signaling = parse_signaling_header(headers[0], item.value["session_id"])
+        except PermissionError:
+            await socket.close(code=1008)
+            return
         # A customer cannot reset this guard by deleting a bucket receipt. Its
         # lifetime is exactly this native connection; restart creates no tunnel.
         item.consumed.add(nonce)
-        await item.attach(socket)
+        await item.attach(socket, signaling)
 
     @contextlib.asynccontextmanager
     async def lifespan(_):

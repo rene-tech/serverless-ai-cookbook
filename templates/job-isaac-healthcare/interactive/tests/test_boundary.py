@@ -142,6 +142,8 @@ def test_viewer_disconnect_keeps_same_native_tunnel_for_reconnect():
             raise AssertionError("same session should attach")
 
     async def run():
+        signaling = {"peer_id": "ordinary-sdk-peer", "version": "2", "peer_role": "1",
+                     "pairing_id": "ses-0123456789abcdef"}
         t = Tunnel(
             {"session_id": "ses-0123456789abcdef", "startup_timeout_s": 1},
             "wss://native.test",
@@ -150,8 +152,8 @@ def test_viewer_disconnect_keeps_same_native_tunnel_for_reconnect():
         t.upstream.tunnel = t
         t.state = "ready"
         t.ready.set()
-        await t.attach(Socket())
-        await t.attach(Socket())
+        await t.attach(Socket(), signaling)
+        await t.attach(Socket(), {**signaling, "peer_id": "reconnected-sdk-peer"})
         assert t.state == "ready" and t.upstream is not None
         assert [x["type"] for x in t.upstream.sent] == [
             "viewer.attach",
@@ -159,6 +161,9 @@ def test_viewer_disconnect_keeps_same_native_tunnel_for_reconnect():
             "viewer.attach",
             "viewer.detach",
         ]
+        assert [x["signaling"]["peer_id"] for x in t.upstream.sent if x["type"] == "viewer.attach"] == [
+            "ordinary-sdk-peer", "reconnected-sdk-peer"]
+        assert t.upstream.sent[0]["peer_id"] != t.upstream.sent[2]["peer_id"]
 
     asyncio.run(run())
 
@@ -227,7 +232,10 @@ def test_actual_native_protocol_reconnect_then_owner_cancel_joins_before_release
         async def close(self):
             await self.q.put(None)
 
+    connections = []
+
     async def connect(*args, **kwargs):
+        connections.append((args, kwargs))
         return Kit()
 
     api = API()
@@ -287,7 +295,8 @@ def test_actual_native_protocol_reconnect_then_owner_cancel_joins_before_release
         ) as ws:
             ws.send_json(envelope)
             assert ws.receive_json()["type"] == "isaac.session.signaling_ready"
-            ws.send_json({"type": "viewer.attach", "peer_id": "first"})
+            ws.send_json({"type": "viewer.attach", "peer_id": "first", "signaling": {
+                "peer_id": "sdk-first", "version": "2", "peer_role": "1", "pairing_id": sid}})
             assert ws.receive_json() == {"type": "viewer.attached", "peer_id": "first"}
             ws.send_json(
                 {
@@ -300,7 +309,8 @@ def test_actual_native_protocol_reconnect_then_owner_cancel_joins_before_release
             assert ws.receive_json()["data"] == "ordinary-signaling"
             ws.send_json({"type": "viewer.detach", "peer_id": "first"})
             assert ws.receive_json()["peer_id"] == "first"
-            ws.send_json({"type": "viewer.attach", "peer_id": "second"})
+            ws.send_json({"type": "viewer.attach", "peer_id": "second", "signaling": {
+                "peer_id": "sdk-second", "version": "2", "peer_role": "1", "pairing_id": sid}})
             assert ws.receive_json() == {"type": "viewer.attached", "peer_id": "second"}
             assert events.count("process_start") == 1
             api.cancelled = True
@@ -317,6 +327,12 @@ def test_actual_native_protocol_reconnect_then_owner_cancel_joins_before_release
         "process_joined",
         "native_release",
     ]
+    assert [args[0] for args, _ in connections] == [
+        f"ws://127.0.0.1:49100/sign_in?peer_id=sdk-{peer}&version=2&peer_role=1&pairing_id={sid}"
+        for peer in ("first", "second")]
+    assert all(kwargs == {"subprotocols": [f"x-nv-sessionid.{sid}"], "proxy": None,
+                          "max_size": 1024 * 1024, "max_queue": 2, "open_timeout": 10}
+               for _, kwargs in connections)
 
 
 def test_delivery_uses_exact_sha_length_and_preserves_bytes_after_unknown_put(

@@ -1,4 +1,4 @@
-import { AppStreamer, StreamType } from '@nvidia/ov-web-rtc';
+import { AppStreamer, EventStatus, StreamType } from '@nvidia/ov-web-rtc';
 
 // The owner-authenticated parent exchanges a one-use ticket for an HttpOnly
 // session cookie, then posts this noncredential descriptor from the SAME origin.
@@ -38,7 +38,20 @@ async function attach(d: Descriptor) {
       iceServerConfiguration: {iceTransportPolicy: d.mode === 'portable' ? d.ice_transport_policy : 'relay', iceServers: d.ice_servers},
       videoElementId: 'remote-video', audioElementId: 'remote-audio',
       width: d.width ?? 1920, height: d.height ?? 1080, fps: d.fps ?? 60,
-      onStart: () => { status.textContent = 'Signaling connected; waiting for decoded media.'; },
+      // SDK6.7 invokes onStart for failed and intermediate states as well.
+      // A callback alone is neither a connected stream nor a decoded frame.
+      onStart: event => {
+        if (event.status === EventStatus.SUCCESS) {
+          if (!video.videoWidth || video.readyState < 2)
+            status.textContent = 'Stream connected; waiting for decoded media.';
+        } else if (event.status === EventStatus.ERROR) {
+          status.textContent = 'Streaming failed. The authenticated session status contains the actionable failure.';
+        } else if (event.status === EventStatus.CANCELED) {
+          status.textContent = 'Viewer connection stopped. Check the session status for native resource release.';
+        } else {
+          status.textContent = 'Connecting. Media readiness is unknown until a video frame is decoded.';
+        }
+      },
       onStop: () => { status.textContent = 'Stream stopped. Check the session status for native resource release.'; },
     }});
     video.requestVideoFrameCallback(() => {

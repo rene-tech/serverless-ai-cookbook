@@ -30,6 +30,12 @@ from websockets.asyncio.client import connect
 
 from .contract import SESSION
 from .process import SessionProcess
+from .signaling import kit_signaling_path, validate_signaling
+
+
+class NoRedirectConnect(connect):
+    def process_redirect(self, exc):
+        return exc
 
 
 def epoch(value):
@@ -120,7 +126,7 @@ def application(
     prepare_start,
     poll_seconds=2,
     process_factory=SessionProcess,
-    connect_factory=connect,
+    connect_factory=NoRedirectConnect,
 ):
     """prepare_start(start, native_owner, sid, deadline, display) returns config.
 
@@ -324,8 +330,10 @@ def application(
                         frame = json.loads(raw)
                         kind = frame.get("type")
                         if kind == "viewer.attach":
-                            if not SESSION.fullmatch(frame.get("peer_id", "")):
+                            if (set(frame) != {"type", "peer_id", "signaling"}
+                                    or not SESSION.fullmatch(frame.get("peer_id", ""))):
                                 raise ValueError("viewer identity missing")
+                            signaling = validate_signaling(frame["signaling"], sid)
                             if kit is not None:
                                 await socket.send_json(
                                     {
@@ -337,7 +345,8 @@ def application(
                                 continue
                             peer_id = frame["peer_id"]
                             kit = await connect_factory(
-                                f"ws://127.0.0.1:{config['signal_port']}/",
+                                f"ws://127.0.0.1:{config['signal_port']}"
+                                + kit_signaling_path(signaling, sid),
                                 subprotocols=[f"x-nv-sessionid.{sid}"],
                                 proxy=None,
                                 max_size=1024 * 1024,
