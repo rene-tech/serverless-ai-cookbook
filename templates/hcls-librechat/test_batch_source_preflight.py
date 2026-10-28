@@ -217,3 +217,21 @@ def test_exact_retained_v60_03_bytes_plan_and_contract_resolve_without_rewriting
     with pytest.raises(batch.SourcePreflightError, match="received 'none'"):
         batch.preflight_source(selected, parameters, argparse.Namespace(**{**step, 'compression': 'none'}), len(source))
     assert [path.read_bytes() for path in paths] == before
+
+
+def test_named_entries_use_the_explicit_role_and_preserve_parameters():
+    entry = {'name': 'scenarios', 'semantic_type': 'isaac-healthcare-scenarios/v1',
+             'media_type': 'application/json', 'compression': 'none', 'required': True}
+    policy = {'input_artifact_contract': {'entries': [entry]}}
+    args = argparse.Namespace(operation='simulate', entry_name='scenarios',
+        semantic_type=entry['semantic_type'], media_type=entry['media_type'], compression='none')
+    parameters = {'episodes': 1, 'episode_steps': None}
+    original = copy.deepcopy(parameters)
+    batch.preflight_source(policy, parameters, args, 96)
+    assert parameters == original
+    for entries in [[], [entry, entry], [entry, {**entry, 'name': 'project'}]]:
+        with pytest.raises(batch.SourcePreflightError):
+            batch.preflight_source({'input_artifact_contract': {'entries': entries}}, parameters, args, 96)
+    args.semantic_type = 'wrong/v1'
+    with pytest.raises(batch.SourcePreflightError, match='semantic_type must be'):
+        batch.preflight_source(policy, parameters, args, 96)

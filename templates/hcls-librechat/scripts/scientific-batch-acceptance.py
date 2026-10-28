@@ -561,6 +561,18 @@ def selected_source_contract(contract: dict, parameters: dict, args):
     context = {'operation': getattr(args, 'operation', None), 'parameters': parameters}
     if 'entry' in policy:
         source, selection = policy['entry'], 'the published input entry'
+    elif 'entries' in policy:
+        entries = policy['entries']
+        matches = [entry for entry in entries if isinstance(entry, dict)
+                   and entry.get('name') == args.entry_name] if isinstance(entries, list) else []
+        if len(matches) != 1:
+            raise SourcePreflightError('Choose one unique published input entry name; no upload was submitted.')
+        source, selection = matches[0], f'entry {args.entry_name!r}'
+        missing = [entry.get('name') for entry in entries if isinstance(entry, dict)
+                   and entry.get('required') is True and entry is not source]
+        if missing:
+            raise SourcePreflightError(f'This request also requires input entries {missing!r}; '
+                                       'use a complete manifest. No upload was submitted.')
     else:
         selector = policy.get('operation_parameter') or policy.get('source_kind_parameter', 'parameters.source.kind')
         value = context

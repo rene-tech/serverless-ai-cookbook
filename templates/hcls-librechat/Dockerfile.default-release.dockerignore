@@ -48,3 +48,11 @@
 !plugins/
 !plugins/cbioportal-research/
 !plugins/cbioportal-research/**
+
+!templates/hcls-librechat/scientific_app.py
+!templates/hcls-librechat/demos/Demos.tsx
+!templates/hcls-librechat/demos/ScientificAppForm.tsx
+!templates/hcls-librechat/demos/router.cjs
+!templates/hcls-librechat/scientific_preview.py
+!templates/hcls-librechat/demos/ScientificResult.tsx
+!templates/hcls-librechat/demos/ScientificArtifactViewer.tsx

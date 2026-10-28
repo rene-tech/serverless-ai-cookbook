@@ -124,7 +124,7 @@ async function platform(key, method, resource, body, idempotencyKey, timeoutMs =
   return result;
 }
 
-async function platformBytes(key, resource) {
+async function platformBytes(key, resource, limit = 8 * 1024 * 1024) {
   privateKey(key);
   if (!/^\/v1\/artifacts\/[a-f0-9-]{36}\/content$/.test(resource)) throw failure('Unsupported platform artifact operation');
   let response;
@@ -133,7 +133,13 @@ async function platformBytes(key, resource) {
       headers: { Authorization: `Bearer ${key}` } });
   } catch { throw failure('Artifact download interrupted. Retry the same result lookup; do not resubmit compute.', 503); }
   if (!response.ok) throw failure(`Platform artifact returned HTTP ${response.status}`, response.status);
-  return Buffer.from(await response.arrayBuffer());
+  const chunks = []; let size = 0;
+  for await (const chunk of response.body) {
+    size += chunk.length;
+    if (size > limit) throw failure('Artifact exceeds the bounded download limit. Use the batch file client.', 413);
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
 const USE_CASE_ORDER = [
@@ -365,6 +371,35 @@ function evidenceGuidance(value, summary, artifact) {
   };
 }
 
+async function verifiedArtifact(key, artifact, limit) {
+  if (!artifact || !/^[a-f0-9-]{36}$/.test(artifact.artifact_id) || !/^[a-f0-9]{64}$/.test(artifact.sha256)
+      || !Number.isSafeInteger(artifact.size_bytes) || artifact.size_bytes < 0 || artifact.size_bytes > limit) {
+    throw failure('Artifact metadata is invalid or exceeds this preview/download limit. Use the batch file client.', 413);
+  }
+  const bytes = await platformBytes(key, `/v1/artifacts/${artifact.artifact_id}/content`, limit);
+  if (bytes.length !== artifact.size_bytes || hash(bytes) !== artifact.sha256) throw failure('Artifact integrity check failed. Retry retrieval; do not resubmit compute.', 502);
+  return bytes;
+}
+async function batchArtifacts(key, result) {
+  const reference = result?.output_manifest;
+  if (!reference || reference.compression !== 'none') return null;
+  const document = JSON.parse((await verifiedArtifact(key, reference, 8 * 1024 * 1024)).toString('utf8'));
+  if (document.schema !== 'fs2-serve.nebius.ai/scientific-artifact-manifest/v1' || !Array.isArray(document.entries) || document.entries.length > 1000) throw failure('Invalid output manifest.', 502);
+  return document.entries;
+}
+async function operationArtifact(key, operationId, index) {
+  if (!OPERATION_ID.test(operationId || '')) throw failure('Supply a native operation ID.');
+  if (!Number.isSafeInteger(index) || index < 0) throw failure('Invalid artifact index.');
+  const envelope = await platform(key, 'GET', `/v1/operations/${operationId}/result`);
+  const entries = await batchArtifacts(key, envelope.result || envelope);
+  const entry = entries?.[index];
+  if (!entry) throw failure('Artifact is absent from this operation manifest.', 404);
+  const bytes = await verifiedArtifact(key, entry.artifact, 32 * 1024 * 1024);
+  const extension = entry.artifact.media_type === 'application/x-nifti' ? (entry.artifact.compression === 'gzip' ? '.nii.gz' : '.nii')
+    : ({ 'application/json': '.json', 'video/mp4': '.mp4', 'application/x-hdf5': '.hdf5' }[entry.artifact.media_type] || '.artifact');
+  return retainWorkspaceBytes(key, `.scientific-runs/${operationId}/output-${index}${extension}`, bytes);
+}
+
 async function operationResult(key, operationId) {
   if (!OPERATION_ID.test(operationId || '')) throw failure('Supply the native operation ID returned by submission.');
   // Scientific batch operations publish their scientific result directly;
@@ -380,7 +415,19 @@ async function operationResult(key, operationId) {
   const result = resultOperation && typeof resultOperation === 'object' ? resultEnvelope.result : resultEnvelope;
   if (result?.schema !== 'fs2-serve.nebius.ai/operation-artifact-result/v1') {
     const workspace_file = await retainResult(key, operationId, Buffer.from(JSON.stringify(result)));
-    return { operation, result: summarizeResult(result), workspace_file };
+    try {
+      const entries = await batchArtifacts(key, result);
+      let scientific_summary;
+      const summaryEntry = entries?.find(entry => ['result', 'result.json'].includes(entry.name) && entry.artifact?.media_type === 'application/json' && entry.artifact?.compression === 'none' && entry.artifact?.size_bytes <= 8 * 1024 * 1024);
+      if (summaryEntry) scientific_summary = summarizeResult(JSON.parse((await verifiedArtifact(key, summaryEntry.artifact, 8 * 1024 * 1024)).toString('utf8')));
+      return { operation, result: summarizeResult(result), workspace_file, ...(entries ? {
+        artifacts: entries.map((entry, index) => ({ name: entry.name, semantic_type: entry.semantic_type,
+          ...pickFields(entry.artifact, ['media_type', 'size_bytes', 'sha256', 'compression']),
+          retrieve_url: `/api/scientific-demos/runs/${operationId}/artifacts/${index}` })), scientific_summary,
+      } : {}) };
+    } catch (error) {
+      return { operation, result: summarizeResult(result), workspace_file, artifact_error: publicError(error).error };
+    }
   }
   const artifact = result.artifact || {};
   if (result.content_type !== 'application/json' || artifact.compression !== 'none'
@@ -530,6 +577,37 @@ async function studies(key, action = 'list', outputDirectory) {
   });
 }
 
+async function appRequest(key, model, action, body = {}) {
+  if (!['monai-spleen-ct', 'holoscan-endoscopy', 'isaac-healthcare'].includes(model)
+      || !['contract', 'preflight', 'submit', 'draft', 'preview'].includes(action)) throw failure('Unsupported App form.');
+  const current = await studies(key);
+  if (action === 'submit' && !current.engine?.alive) throw failure('Study supervisor is unavailable. The saved request is retained; reconnect before submitting.', 503);
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.env.SCIENTIFIC_CLIENT_PYTHON || '/opt/scientific-client/bin/python',
+      [process.env.SCIENTIFIC_APP_SCRIPT || '/opt/bionemo/scientific_app.py', action, model],
+      { env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
+    const chunks = []; let bytes = 0;
+    const timer = setTimeout(() => { child.kill(); reject(failure('Request observation timed out. Reopen the saved request; do not submit another copy.', 503)); }, 120000);
+    child.stdout.on('data', chunk => {
+      bytes += chunk.length;
+      if (bytes > (action === 'preview' ? 6 : 2) * 1024 * 1024) { child.kill(); reject(failure('App response exceeds the display limit.', 502)); }
+      else chunks.push(chunk);
+    });
+    child.stderr.resume();
+    child.stdin.on('error', () => {});
+    child.once('error', () => { clearTimeout(timer); reject(failure('App form helper is unavailable.', 503)); });
+    child.once('close', code => {
+      clearTimeout(timer);
+      if (code !== 0) return reject(failure('App form interrupted. Reopen the saved request to reconcile its state.', 503));
+      try {
+        const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        if (value.error) reject(failure(value.error)); else resolve(value);
+      } catch { reject(failure('App form returned an invalid response.', 502)); }
+    });
+    child.stdin.end(JSON.stringify(body));
+  });
+}
+
 function workspacePath(relative = '') {
   if (typeof relative !== 'string' || relative.length > 1024 || relative.includes('\0')) throw failure('Invalid workspace path.');
   const normalized = relative.replace(/^\/+/, '');
@@ -590,9 +668,8 @@ async function workspaceGet(key, relative) {
   if (!stat.isFile()) throw failure('Workspace path is not a file.');
   return { ...target, size_bytes: stat.size };
 }
-async function workspacePreview(key, relative) {
+async function workspacePreview(key, relative, limit = 8 * 1024 * 1024) {
   const target = await workspaceGet(key, relative);
-  const limit = 8 * 1024 * 1024;
   if (target.size_bytes > limit) throw failure('Report exceeds the inline preview limit. Download the complete original.', 413);
   const handle = await fs.open(target.absolute, 'r');
   try {
@@ -727,5 +804,5 @@ async function analyzeWorkspace(kind, key, args) {
     : kind === 'docking-batch' ? analysis.dockingBatch(key, args, { workspaceGet, retainWorkspaceBytes })
     : analysis.compare(kind, key, args, { workspaceGet, retainWorkspaceBytes });
 }
-module.exports = { platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
+module.exports = { appRequest, operationArtifact, platform, listApps, operationResult, workshopRun, summarizeResult, clinical, clinicalFromWorkspace, status, list, start, output, clinicalOutput, analyzeWorkspace, track, waitOperation, runs, studies, workspaceInfo, workspaceList,
   workspacePut, workspaceGet, workspacePreview, save, read, failure, publicError, customerOperation, customerProgress, customerCatalogItem, FILES, REPORT_MODEL };

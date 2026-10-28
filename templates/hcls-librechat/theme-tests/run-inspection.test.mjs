@@ -52,7 +52,7 @@ test('run inspection reveals loading, responses, repeat selections and errors in
         './scientific-comparison': {},
       };
     ` });
-    for (const [name, file] of [['./scientific-run-display', '../demos/run-display.ts'], ['Demos', '../demos/Demos.tsx']]) {
+    for (const [name, file] of [['./scientific-run-display', '../demos/run-display.ts'], ['./ScientificResult', '../demos/ScientificResult.tsx'], ['Demos', '../demos/Demos.tsx']]) {
       await page.addScriptTag({ content: `{
         const module = { exports: {} }; const exports = module.exports;
         const require = (name) => window.dependencies[name];
@@ -83,7 +83,7 @@ test('run inspection reveals loading, responses, repeat selections and errors in
     await checkFocusAndVisibility(result);
     assert.equal(await result.locator('pre').count(), 0, 'old response must disappear while loading');
     await page.evaluate(() => pending.shift().resolve({ result: 'saved output' }));
-    await result.getByText(/saved output/).waitFor();
+    await result.getByText('saved output', { exact: true }).waitFor();
     // Repeating the same action must reveal the panel again, even for identical data.
     await page.getByRole('button', { name: 'Result', exact: true }).click();
     await checkFocusAndVisibility(result);

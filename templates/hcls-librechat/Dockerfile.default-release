@@ -17,7 +17,7 @@ set -eu
 python3 - <<'PYINSTALL'
 import pathlib, py_compile, shutil
 source = pathlib.Path('/tmp/client')
-for name in ('scientific_study.py', 'scientific_study_schema.py', 'scientific_workflow_view.py',
+for name in ('scientific_app.py', 'scientific_preview.py', 'scientific_study.py', 'scientific_study_schema.py', 'scientific_workflow_view.py',
              'report-assembly.py', 'structure-analysis.py',
              'scientific_protein_preparation.py', 'native_md_artifacts.py', 'native_md_preview.py',
              'native_md_report.py', 'scientific_starter.py', 'execution-mcp.py', 'scientific_verified_results.py'):
@@ -74,6 +74,11 @@ const path = '/app/packages/api/dist/index.cjs';
 await writeFile(path, patchDeploymentSkillFreshness(await readFile(path, 'utf8')));
 JSSKILL
 node /tmp/client/scripts/test-skill-body-freshness.cjs
+cp /tmp/client/demos/Demos.tsx /app/client/src/components/ScientificDemos.tsx
+cp /tmp/client/demos/ScientificAppForm.tsx /app/client/src/components/ScientificAppForm.tsx
+cp /tmp/client/demos/ScientificResult.tsx /app/client/src/components/ScientificResult.tsx
+cp /tmp/client/demos/ScientificArtifactViewer.tsx /app/client/src/components/ScientificArtifactViewer.tsx
+cp /tmp/client/demos/router.cjs /app/api/server/routes/scientific-demos.js
 node /tmp/client/patch-report-preview.mjs /app/client \
  && node /tmp/client/patch-workspace-tool-reports.mjs /app/client \
  && cp /tmp/client/ScientificArtifactMarkdown.test.ts /app/client/src/components/ \
