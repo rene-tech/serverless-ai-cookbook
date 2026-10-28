@@ -73,6 +73,8 @@ export function CompletedStudySummaries({ summaries }: { summaries?: CompletionS
 type WorkspaceEntry = { name: string; path: string; kind: 'directory' | 'file'; size_bytes?: number; updated_at: string };
 const BASE = '/api/scientific-demos';
 const field = 'rounded-lg border border-border-medium bg-surface-primary p-2 text-text-primary';
+const accessError = (error: unknown) => [401, 403].includes((error as { response?: { status?: number } })?.response?.status || 0)
+  ? 'Access denied. Sign in again or check your platform key and permissions.' : undefined;
 const errorText = (error: Error) => {
   const detail = (error as Error & { response?: { data?: { error?: string; durable_admission?: boolean;
     retryable?: boolean; retry_after_seconds?: number; operation_id?: string } } }).response?.data;
@@ -127,7 +129,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
   const [apiKey, setApiKey] = useState('');
   const [operationId, setOperationId] = useState('');
   const [inspection, setInspection] = useState<{ id: string; view: 'Details' | 'Result'; loading: boolean;
-    data?: RunInspection; error?: string; updatedAt?: number } | null>(null);
+    data?: RunInspection; error?: string; accessError?: string; updatedAt?: number } | null>(null);
   const inspectionPanel = useRef<HTMLElement>(null);
   const inspectionRequest = useRef(0);
   useEffect(() => {
@@ -172,7 +174,9 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       setInspection({ id, view, loading: false, data: value, error: value.refresh_error,
         updatedAt: view === 'Details' && value.updated_at ? Date.parse(value.updated_at) : Date.now() });
     } catch (problem) {
-      if (currentRequest === inspectionRequest.current) setInspection({ ...previous, id, view, loading: false, error: errorText(problem as Error) });
+      const denied = accessError(problem);
+      if (currentRequest === inspectionRequest.current) setInspection({ ...(denied ? undefined : previous), id, view,
+        loading: false, accessError: denied, error: errorText(problem as Error) });
     } finally {
       if (currentRequest === inspectionRequest.current) setBusy(false);
     }
@@ -227,7 +231,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       {[{ label: 'Operations', query: runs }, { label: 'Studies', query: studies }].map(({ label, query: status }) => {
         const updatedAt = label === 'Operations' && runs.data?.history_available === false ? 0 : status.dataUpdatedAt;
         return <div key={label} className="my-2 text-sm">
-          {status.error && <><p role="alert">{label} status fetch failed. Showing the last known state; compute may still be running. Refresh status to reconnect.</p>
+          {status.error && <><p role="alert">{accessError(status.error) || `${label} status fetch failed. Showing the last known state; compute may still be running. Refresh status to reconnect.`}</p>
             <details><summary>Technical details</summary>{errorText(status.error as Error)}</details></>}
           <p>Last successful {label.toLowerCase()} update: {updatedAt ? new Date(updatedAt).toLocaleString() : 'unavailable; see saved operation timestamps'}</p>
         </div>;
@@ -283,9 +287,9 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
         <h3 id="run-inspection-title" className="font-semibold">{inspection.view} · {inspection.id}</h3>
         {inspection.loading && <p role="status">Loading {inspection.view.toLowerCase()}…</p>}
         {inspection.updatedAt && <p className="text-xs">Last successful update: {new Date(inspection.updatedAt).toLocaleString()}</p>}
-        {inspection.error && <><p role="alert">{inspection.view === 'Result'
+        {inspection.error && <><p role="alert">{inspection.accessError || (inspection.view === 'Result'
           ? 'Output retrieval failed. Retrieve outputs or retry the artifact download; this does not rerun compute.'
-          : 'Status fetch failed. Last known state is retained; compute may still be running. Refresh this operation.'}</p>
+          : 'Status fetch failed. Last known state is retained; compute may still be running. Refresh this operation.')}</p>
           <details><summary>Technical details</summary>{inspection.error}</details></>}
         <Button variant="outline" disabled={busy} onClick={() => void inspectRun(inspection.id, inspection.view)}>{inspection.view === 'Result' ? 'Retrieve outputs' : 'Refresh operation'}</Button>
         {inspection.data && <>

@@ -154,6 +154,20 @@ test('run inspection reveals loading, responses, repeat selections and errors in
     await page.evaluate(() => pending.shift().resolve({ operation: { id: 'op-fixture', status: 'running' } }));
     await panel.getByRole('button', { name: 'Refresh operation' }).waitFor();
     assert.equal((await page.evaluate(() => calls)).at(-1), '/api/scientific-demos/runs/op-fixture');
+    for (const status of [401, 403]) {
+      await panel.getByRole('button', { name: 'Refresh operation' }).click();
+      await page.evaluate(status => pending.shift().reject({ response: { status, data: { error: 'Denied' } } }), status);
+      await panel.getByRole('alert').waitFor();
+      assert.match(await panel.getByRole('alert').textContent(), /Access denied/);
+      assert.equal(await panel.getByText('running', { exact: true }).count(), 0,
+        'authorization failure must not present cached details as accessible');
+      await page.evaluate(status => {
+        queryErrors.runs = { response: { status, data: { error: 'Denied' } } };
+        root.render(React.createElement(dependencies.Demos.default));
+      }, status);
+      assert.equal(await page.getByText(/Operations status fetch failed/).count(), 0,
+        'authorization failure must not be described as a reconnectable outage');
+    }
     await page.evaluate(() => {
       dependencies['librechat-data-provider'].request.put = async () => ({ configured: true });
       dependencies['librechat-data-provider'].request.post = async () => ({});
