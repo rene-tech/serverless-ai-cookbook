@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.7
 # Opt-in routing over the qualified workbench; defaults remain unchanged.
-ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:90a385ca32b36d128135184245860baf77705a30b60846b7ff5aeaccea09d31d
+# Compact copy of default90: runtime configuration and729 checked runtime,
+# skill, helper and client file hashes preserved; room for future image layers.
+ARG WORKBENCH_BASE=cr.eu-north1.nebius.cloud/e00akg9ndpx77eaexh/lc@sha256:146c4920a41cf96389f3bdcd88913f72ac047f25c55381b582d785f8e4aac7f2
 FROM ${WORKBENCH_BASE}
 USER root
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/routing,ro \
