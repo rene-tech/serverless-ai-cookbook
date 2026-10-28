@@ -178,9 +178,15 @@ def application(config, token, *, process=None, connect_factory=NoRedirectConnec
                                 if isinstance(data, bytes)
                                 else socket.send_text(data)
                             )
-                        except WebSocketDisconnect:
+                        except (WebSocketDisconnect, RuntimeError) as error:
+                            if not isinstance(error, WebSocketDisconnect) and str(error) not in {
+                                'Cannot call "send" once a close message has been sent.',
+                                "Unexpected ASGI message 'websocket.send', after sending 'websocket.close' or response already completed.",
+                            }:
+                                raise
                             # A downstream send can notice the same browser
-                            # close first. Keep watching Kit until the actual
+                            # close first through either ASGI closed-send state.
+                            # Keep watching Kit until the actual
                             # inbound close or unchanged session deadline.
                             downstream_disconnected = True
 

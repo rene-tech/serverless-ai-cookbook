@@ -229,9 +229,16 @@ class Tunnel:
                         try:
                             await (socket.send_bytes(base64.b64decode(frame["data"], validate=True))
                                    if frame["binary"] else socket.send_text(frame["data"]))
-                        except WebSocketDisconnect:
+                        except (WebSocketDisconnect, RuntimeError) as error:
+                            if not isinstance(error, WebSocketDisconnect) and str(error) not in {
+                                'Cannot call "send" once a close message has been sent.',
+                                "Unexpected ASGI message 'websocket.send', after sending 'websocket.close' or response already completed.",
+                            }:
+                                raise
                             # The browser's close can race an already queued
-                            # Native frame. Keep watching Native while inbound
+                            # Native frame. These ASGI closed-send states are
+                            # equivalent to disconnect, not other RuntimeErrors.
+                            # Keep watching Native while inbound
                             # reads the actual close code; never infer4001.
                             downstream_disconnected = True
 
