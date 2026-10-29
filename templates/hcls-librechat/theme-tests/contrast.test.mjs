@@ -13,7 +13,7 @@ import { component, client, fixture, upstreamSource } from './fixture.mjs';
 
 let browser, markup, css, theme, highContrast;
 before(async () => {
-  ({ markup, css, highContrast } = await fixture(await upstreamSource()));
+  ({ markup, css, highContrast } = await fixture(await upstreamSource(), await readFile(join(client, 'demos/Demos.tsx'), 'utf8')));
   const dir = await mkdtemp(join(tmpdir(), 'scientific-theme-'));
   try {
     await writeFile(join(dir, 'index.html'), '<html><head><title>Test</title></head><body></body></html>');
@@ -50,6 +50,45 @@ test('Apps discovery distinguishes loading, failed discovery and an empty author
       assert.equal(await page.getByRole('article').count(), state === 'populated' ? 1 : 0, String(state));
       if (process.env.SCIENTIFIC_THEME_ARTIFACTS) {
         await page.screenshot({ path: join(process.env.SCIENTIFIC_THEME_ARTIFACTS, `apps-${state}.png`), fullPage: true });
+      }
+    }
+  } finally { await page.close(); }
+});
+
+test('Workspace distinguishes folder states and hides cached files after access denial', async () => {
+  const h = React.createElement;
+  let listing;
+  const Demos = component(join(client, 'demos/Demos.tsx'), {
+    axios: {},
+    'react-router-dom': { Link: ({ to, ...props }) => h('a', { href: to, ...props }),
+      useSearchParams: () => [new URLSearchParams('tab=workspace&file=synthetic.txt'), () => {}] },
+    '@tanstack/react-query': { useQueryClient: () => ({}), useQuery: (key) =>
+      key[1] === 'settings' ? { data: { configured: true } } : key[1] === 'workspace' ? listing : {} },
+    '@librechat/client': { Button: ({ variant, size, ...props }) => h('button', props), Input: (props) => h('input', props) },
+    'librechat-data-provider': {}, './scientific-comparison': {}, './scientific-run-display': {}, './ScientificGettingStarted': {},
+  }).default;
+  const data = { info: { bucket_name: 'synthetic-bucket' }, data: [{ name: 'synthetic.txt', path: 'synthetic.txt',
+    kind: 'file', size_bytes: 0, updated_at: '2026-01-01T00:00:00Z' }] };
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  try {
+    for (const mode of ['light', 'dark', 'high-contrast-dark']) {
+      for (const state of ['loading', 'empty', 'populated', 'refreshing', 'unknown', 'unavailable', 'stale', 401, 403]) {
+        listing = { isLoading: state === 'loading', isFetching: state === 'refreshing', dataUpdatedAt: 1767225600000,
+          data: ['populated', 'refreshing', 'stale', 401, 403].includes(state) ? data : state === 'empty' ? { ...data, data: [] } : undefined,
+          error: ['unavailable', 'stale', 401, 403].includes(state) ? { message: 'Synthetic listing failure', response: {
+            status: typeof state === 'number' ? state : 503, data: { error: 'Synthetic listing failure' } } } : undefined };
+        await page.setContent('<html class="' + (mode.endsWith('dark') ? 'dark' : 'light') + '"><head>' + theme + '<style>' + css + '</style></head><body>' + renderToStaticMarkup(h(Demos)) + '</body></html>');
+        if (mode.startsWith('high-contrast')) await page.evaluate(palette => {
+          for (const [name, value] of Object.entries(palette)) document.documentElement.style.setProperty(name, value);
+        }, highContrast.highContrastDarkTheme);
+        const visible = ['populated', 'refreshing', 'stale'].includes(state);
+        assert.equal(await page.getByRole('button', { name: 'synthetic.txt', exact: true }).count(), visible ? 1 : 0, String(state));
+        assert.equal(await page.getByRole('button', { name: 'Download selected file' }).count(), visible ? 1 : 0, String(state));
+        assert.equal(await page.getByText('This folder is empty.', { exact: true }).count(), state === 'empty' ? 1 : 0, String(state));
+        if (state === 'loading' || state === 'refreshing') assert.ok(await page.getByRole('status').count());
+        if (listing.error) assert.ok(await page.getByRole('alert').count());
+        if (state === 'stale') assert.ok(await page.getByText(/last known listing/i).count());
+        if (process.env.SCIENTIFIC_THEME_ARTIFACTS) await page.screenshot({ path: join(process.env.SCIENTIFIC_THEME_ARTIFACTS, 'workspace-' + mode + '-' + state + '.png'), fullPage: true });
       }
     }
   } finally { await page.close(); }
