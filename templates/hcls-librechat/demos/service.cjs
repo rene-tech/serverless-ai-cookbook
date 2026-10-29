@@ -428,6 +428,7 @@ function evidenceGuidance(value, summary, artifact) {
 
 async function operationResult(key, operationId) {
   if (!OPERATION_ID.test(operationId || '')) throw failure('Supply the native operation ID returned by submission.');
+  const result_url = `/demos?tab=runs&operation=${encodeURIComponent(operationId)}&view=result`;
   // Scientific batch operations publish their scientific result directly;
   // endpoint and speech operations publish {operation, result}. These are
   // current execution contracts, each bound to the requested native identity.
@@ -446,14 +447,14 @@ async function operationResult(key, operationId) {
       const summary = reported && reported.artifact.compression === 'none' && reported.artifact.size_bytes <= 8 * 1024 * 1024
         ? summarizeResult(await verifiedJson(key, reported.artifact)) : summarizeResult(result);
       const workspace_file = await retainResult(key, operationId, Buffer.from(JSON.stringify(result)));
-      return { operation, result: { ...summarizeResult(result), summary }, workspace_file,
+      return { operation, result_url, result: { ...summarizeResult(result), summary }, workspace_file,
         artifacts: entries.filter(item => RUN_ID.test(item.artifact?.artifact_id || '')).map(item => ({
           name: item.name, size_bytes: item.artifact.size_bytes, media_type: item.artifact.media_type,
           download_url: `/api/scientific-demos/runs/${operationId}/artifacts/${item.artifact.artifact_id}`,
         })) };
     }
     const workspace_file = await retainResult(key, operationId, Buffer.from(JSON.stringify(result)));
-    return { operation, result: summarizeResult(result), workspace_file };
+    return { operation, result_url, result: summarizeResult(result), workspace_file };
   }
   const artifact = result.artifact || {};
   const artifacts = RUN_ID.test(artifact.artifact_id || '') && Number.isSafeInteger(artifact.size_bytes) && artifact.size_bytes >= 0
@@ -461,7 +462,7 @@ async function operationResult(key, operationId) {
       download_url: `/api/scientific-demos/runs/${operationId}/artifacts/${artifact.artifact_id}` }] : [];
   if (result.content_type !== 'application/json' || artifact.compression !== 'none' || !artifacts.length
       || artifact.size_bytes > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/.test(artifact.sha256 || '')) {
-    return { operation, artifacts, result: { ...result, resolution: 'Download in Runs; this artifact is not bounded JSON.' } };
+    return { operation, result_url, artifacts, result: { ...result, resolution: 'Download in Runs; this artifact is not bounded JSON.' } };
   }
   const bytes = await platformBytes(key, `/v1/artifacts/${artifact.artifact_id}/content`);
   if (bytes.length !== artifact.size_bytes || hash(bytes) !== artifact.sha256) throw failure('Result artifact failed size or SHA-256 verification.', 502);
@@ -470,7 +471,7 @@ async function operationResult(key, operationId) {
   catch { throw failure('Result artifact was declared as JSON but could not be decoded.', 502); }
   const summary = summarizeResult(parsed);
   const workspace_file = await retainResult(key, operationId, bytes);
-  return { operation, workspace_file, artifacts, result: {
+  return { operation, result_url, workspace_file, artifacts, result: {
     schema: 'fs2-serve.nebius.ai/resolved-operation-result/v1', content_type: result.content_type,
     source_artifact: artifact, summary, evidence_guidance: evidenceGuidance(parsed, summary, artifact),
     resolution: 'Downloaded with caller credentials; size and SHA-256 verified; large arrays and strings summarized.',
