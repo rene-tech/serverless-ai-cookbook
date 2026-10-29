@@ -208,6 +208,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
     {Boolean(error || sessionError) && <p role="alert" className="mb-4 rounded border border-border-medium p-3">{error || errorText(sessionError as Error)}</p>}
     {tab === 'apps' && <section>
       <h2 className="text-xl font-semibold">Apps you can use</h2><p className="my-2 text-sm text-text-secondary">Live, caller-scoped discovery. Scaled-to-zero Apps remain listed when your key may start them.</p>
+      {enabled && apps.isLoading && <p role="status">Loading authorized Apps…</p>}
       <div className="grid gap-3 md:grid-cols-2">{(apps.data?.data || []).map((app) => {
         const title = app.scientific?.display_name || app.native?.display_name || app.id;
         const operations = app.scientific?.operations || app.native?.capabilities || [];
@@ -222,7 +223,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
           }}>{copied === app.id ? 'Prompt copied' : 'Copy chat prompt'}</Button></div>
         </article>;
       })}</div>
-      {enabled && !apps.isLoading && !(apps.data?.data.length) && <p role="status">This key currently has no authorized Apps.</p>}
+      {enabled && !apps.isLoading && !apps.error && apps.data?.data.length === 0 && <p role="status">This key currently has no authorized Apps.</p>}
     </section>}
     {tab === 'runs' && <section>
       <h2 className="text-xl font-semibold">Runs</h2><p className="my-2 text-sm text-text-secondary">Your model operations and input uploads from chat and API appear automatically. Reconnect to follow their actual status without submitting duplicate work.</p>
