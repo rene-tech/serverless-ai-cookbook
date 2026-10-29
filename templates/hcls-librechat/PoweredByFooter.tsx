@@ -115,11 +115,11 @@ function Footer({ className, startupConfig }: FooterProps) {
   );
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full shrink-0 bg-presentation">
       <div
         className={
           className ??
-          'absolute bottom-0 left-0 right-0 hidden items-center justify-center gap-2 px-2 py-2 text-center text-xs text-text-primary sm:flex md:px-[60px]'
+          'hidden items-center justify-center gap-2 px-2 py-2 text-center text-xs text-text-primary sm:flex md:px-[60px]'
         }
       >
         {footerElements.map((contentRender, index) => {
