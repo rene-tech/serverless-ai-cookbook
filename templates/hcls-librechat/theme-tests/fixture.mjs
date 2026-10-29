@@ -41,7 +41,7 @@ export async function upstreamSource() {
   return source;
 }
 
-function component(file, mocks) {
+export function component(file, mocks) {
   const code = ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: {
     module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true,
   } }).outputText;

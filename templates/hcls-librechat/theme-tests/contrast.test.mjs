@@ -5,8 +5,10 @@ import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { chromium } from 'playwright';
 import { build } from 'vite';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { brandClient, verifyBranding } from '../brand-client.mjs';
-import { fixture, upstreamSource } from './fixture.mjs';
+import { component, client, fixture, upstreamSource } from './fixture.mjs';
 
 let browser, markup, css, theme, highContrast;
 before(async () => {
@@ -20,6 +22,37 @@ before(async () => {
   browser = await chromium.launch(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {});
 });
 after(async () => { await browser?.close(); });
+
+test('Apps discovery distinguishes loading, failed discovery and an empty authorized catalogue', async () => {
+  const h = React.createElement;
+  let discovery;
+  const Demos = component(join(client, 'demos/Demos.tsx'), {
+    axios: {},
+    'react-router-dom': { Link: ({ to, ...props }) => h('a', { href: to, ...props }),
+      useSearchParams: () => [new URLSearchParams('tab=apps'), () => {}] },
+    '@tanstack/react-query': { useQueryClient: () => ({}), useQuery: (key) =>
+      key[1] === 'settings' ? { data: { configured: true } } : key[1] === 'apps' ? discovery : {} },
+    '@librechat/client': { Button: ({ variant, size, ...props }) => h('button', props),
+      Input: (props) => h('input', props) },
+    'librechat-data-provider': {}, './scientific-comparison': {}, './scientific-run-display': {},
+    './ScientificGettingStarted': {},
+  }).default;
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  try {
+    for (const state of [503, 401, 403, 'loading', 'unavailable', 'empty', 'populated']) {
+      discovery = { isLoading: state === 'loading',
+        data: state === 'empty' ? { data: [] } : state === 'populated' ? { data: [{ id: 'synthetic-app' }] } : undefined,
+        error: typeof state === 'number' ? { message: 'Discovery failed', response: { status: state, data: { error: 'Discovery failed' } } } : undefined };
+      await page.setContent(renderToStaticMarkup(h(Demos)));
+      assert.equal(await page.getByRole('status').count(), ['loading', 'empty'].includes(state) ? 1 : 0, String(state));
+      assert.equal(await page.getByRole('alert').count(), typeof state === 'number' ? 1 : 0, String(state));
+      assert.equal(await page.getByRole('article').count(), state === 'populated' ? 1 : 0, String(state));
+      if (process.env.SCIENTIFIC_THEME_ARTIFACTS) {
+        await page.screenshot({ path: join(process.env.SCIENTIFIC_THEME_ARTIFACTS, `apps-${state}.png`), fullPage: true });
+      }
+    }
+  } finally { await page.close(); }
+});
 
 // Measure rendered text, including inherited colors, transparent backgrounds,
 // opacity and placeholder text. A class-name assertion cannot catch this bug.
