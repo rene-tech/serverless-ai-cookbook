@@ -139,6 +139,9 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
   }, [tab, inspection]);
   const [runPages, setRunPages] = useState<string[]>(['']);
   const { directory: workspacePath, file: selectedWorkspaceFile } = workspaceSelection(params);
+  const offset = Number(params.get('offset') || 0);
+  const workspaceOffset = Number.isSafeInteger(offset) && offset >= 0 ? offset : 0;
+  const setWorkspaceOffset = (next: number) => setParams({ ...Object.fromEntries(params), offset: String(next) });
   const setWorkspacePath = (next: string) => setParams({ tab: 'workspace', ...(next ? { path: next } : {}) });
   const [workspaceFile, setWorkspaceFile] = useState<File | null>(null);
   const [workspaceName, setWorkspaceName] = useState('');
@@ -155,7 +158,7 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
   const runCursor = runPages[runPages.length - 1];
   const runs = useQuery(['scientific-demos', 'runs', runCursor], () => request.get<RunPage>(`${BASE}/runs${runCursor ? `?cursor=${encodeURIComponent(runCursor)}` : ''}`), { enabled: enabled && tab === 'runs', retry: false, refetchInterval: tab === 'runs' ? 5000 : false });
   const studies = useQuery(['scientific-demos', 'studies'], () => request.get<{ data: Study[]; engine?: { configured: boolean; alive: boolean } }>(`${BASE}/studies`), { enabled: enabled && tab === 'runs', retry: false, refetchInterval: tab === 'runs' ? 5000 : false });
-  const workspace = useQuery(['scientific-demos', 'workspace', workspacePath], () => request.get<{ info: Record<string, unknown>; prefix: string; data: WorkspaceEntry[] }>(`${BASE}/workspace?path=${encodeURIComponent(workspacePath)}`), { enabled: enabled && tab === 'workspace', retry: false });
+  const workspace = useQuery(['scientific-demos', 'workspace', workspacePath, workspaceOffset], () => request.get<{ info: Record<string, unknown>; prefix: string; data: WorkspaceEntry[]; next_offset?: number | null }>(`${BASE}/workspace?path=${encodeURIComponent(workspacePath)}&offset=${workspaceOffset}`), { enabled: enabled && tab === 'workspace', retry: false });
   async function act(work: () => Promise<void>) {
     setBusy(true); setError('');
     try { await work(); await cache.invalidateQueries(['scientific-demos']); }
@@ -319,13 +322,19 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
       {selectedWorkspaceFile && <div className="mb-4 rounded-xl border border-border-medium p-4">
         <p className="mb-2 text-sm">Selected file: <code>{selectedWorkspaceFile}</code></p>
         {selectedEntry ? <Button disabled={busy} onClick={() => void downloadWorkspaceFile(selectedEntry)}>Download selected file</Button>
-          : !workspace.isLoading && workspace.data && <p role="status">This file was not found in the selected folder. No download was started.</p>}
+          : !workspace.isLoading && workspace.data && <p role="status">{workspaceOffset > 0 || workspace.data.next_offset != null ? 'This file is not on this page. Browse the folder pages to find it.' : 'This file was not found in the selected folder. No download was started.'}</p>}
       </div>}
       <form className="mb-4 grid gap-2 rounded-xl border border-border-medium p-4 sm:grid-cols-[1fr_1fr_auto]" onSubmit={(event) => { event.preventDefault(); void act(async () => {
         if (!workspaceFile) return; const data = new FormData(); data.append('file', workspaceFile); data.append('path', workspaceName || workspaceFile.name); await request.postMultiPart(`${BASE}/workspace`, data); setWorkspaceFile(null); setWorkspaceName('');
       }); }}><input type="file" onChange={(event) => { const file = event.target.files?.[0] || null; setWorkspaceFile(file); if (file) setWorkspaceName([workspacePath, file.name].filter(Boolean).join('/')); }} /><Input aria-label="Workspace object path" value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} /><Button type="submit" disabled={!workspaceFile || busy}>Upload</Button></form>
       <div className="mb-3 flex items-center gap-2"><Button size="sm" variant="outline" disabled={!workspacePath} onClick={() => setWorkspacePath(workspacePath.split('/').slice(0, -1).join('/'))}>Up</Button><code className="text-xs">/{workspacePath}</code></div>
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>Name</th><th>Kind</th><th>Size</th><th>Updated</th></tr></thead><tbody>{(workspace.data?.data || []).map((entry) => <tr key={entry.path} className="border-t border-border-light"><td className="py-3">{entry.kind === 'directory' ? <button className="underline" onClick={() => setWorkspacePath(entry.path)}>{entry.name}/</button> : <button className="underline" onClick={() => void downloadWorkspaceFile(entry)}>{entry.name}</button>}</td><td>{entry.kind}</td><td>{entry.size_bytes?.toLocaleString() || '—'}</td><td>{new Date(entry.updated_at).toLocaleString()}</td></tr>)}</tbody></table></div>
+      {(workspaceOffset > 0 || workspace.data?.next_offset != null) && <nav aria-label="Workspace pages" className="mt-4 flex gap-2">
+        <Button variant="outline" disabled={workspace.isFetching || workspaceOffset === 0} onClick={() => setWorkspaceOffset(Math.max(0, workspaceOffset - 500))}>Previous files</Button>
+        <Button variant="outline" disabled={workspace.isFetching || Boolean(workspace.error) || workspace.data?.next_offset == null} onClick={() => {
+          if (workspace.data?.next_offset != null) setWorkspaceOffset(workspace.data.next_offset);
+        }}>Next files</Button>
+      </nav>}
     </section>}
   </main>;
 }
