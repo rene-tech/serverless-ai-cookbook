@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: node --test templates/hcls-librechat/demos/service.test.cjs
+      - run: node --test templates/hcls-librechat/demos/service.test.cjs templates/hcls-librechat/test-scientific-verified-delivery.cjs
 
   recovery:
     runs-on: ubuntu-latest
@@ -52,6 +52,7 @@ jobs:
             templates/hcls-librechat/test_study_cancellation_contract.py \
             templates/hcls-librechat/test_operation_polling.py \
             templates/hcls-librechat/test_result_recovery.py \
+            templates/hcls-librechat/test_scientific_verified_results.py \
             templates/hcls-librechat/test_workflow_public_identity.py \
             templates/hcls-librechat/test_batch_source_preflight.py \
             templates/hcls-librechat/test_batch_parameter_preflight.py

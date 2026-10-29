@@ -13,6 +13,78 @@ def save(path, value):
     return {'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'size_bytes': path.stat().st_size}
 
 
+def publication(folder):
+    entries = []
+    for name, data in [('result.json', b'{"task_complete":false,"samples":0}'),
+                       ('artifacts/mask | [test].bin', bytes(range(256))), ('empty.txt', b'')]:
+        path = folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        entries.append({'path': name, 'size_bytes': len(data),
+                        'sha256': hashlib.sha256(data).hexdigest()})
+    manifest = {'schema': 'scientific-ai/customer-publication/v1',
+                'operation_id': 'op-publication-fixture', 'files': entries}
+    save(folder / 'manifest.json', manifest)
+    return manifest
+
+
+def test_publication_delivery_preserves_full_hashes_and_workspace_links(tmp_path):
+    manifest = publication(tmp_path / 'run')
+    result = deliver({'results': [{'kind': 'publication', 'path': 'run'}]}, tmp_path)
+    text = result['report_markdown']
+    assert result['inference_submitted'] is False
+    assert '`op-publication-fixture`' in text
+    for entry in manifest['files']:
+        assert f"`{entry['sha256']}`" in text
+    assert '/demos?tab=workspace&path=run%2Fartifacts&file=run%2Fartifacts%2Fmask+%7C+%5Btest%5D.bin' in text
+    assert r'mask \| \[test\].bin' in text
+    assert 'not the scientific validity' in text
+    assert '…' not in text
+
+
+def test_typed_publication_delivery_uses_the_verified_renderer(tmp_path, monkeypatch):
+    from jsonschema import Draft202012Validator
+
+    publication(tmp_path / 'run')
+    spec = importlib.util.spec_from_file_location('publication_execution', Path(__file__).with_name('execution-mcp.py'))
+    execution = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(execution)
+    monkeypatch.setattr(execution, 'WORKSPACE', str(tmp_path))
+    args = {'results': [{'kind': 'publication', 'path': 'run'}]}
+    tool = next(tool for tool in execution.TOOLS if tool['name'] == 'deliver_scientific_results')
+    Draft202012Validator(tool['inputSchema']).validate(args)
+    assert execution.deliver_scientific_results(args) == deliver(args, tmp_path)
+
+
+@pytest.mark.parametrize('change', ['changed', 'missing', 'truncated-hash', 'duplicate',
+                                  'traversal', 'absolute', 'invalid-id', 'boolean-size'])
+def test_publication_rejects_invalid_or_changed_evidence(tmp_path, change):
+    folder = tmp_path / 'run'
+    manifest = publication(folder)
+    entry = manifest['files'][0]
+    if change == 'changed':
+        (folder / entry['path']).write_bytes(b'changed')
+    elif change == 'missing':
+        (folder / entry['path']).unlink()
+    elif change == 'truncated-hash':
+        entry['sha256'] = entry['sha256'][:8]
+    elif change == 'duplicate':
+        manifest['files'].append(dict(entry))
+    elif change == 'traversal':
+        entry['path'] = '../outside.json'
+    elif change == 'absolute':
+        entry['path'] = str(folder / entry['path'])
+    elif change == 'invalid-id':
+        manifest['operation_id'] = 'op-x` forged'
+    elif change == 'boolean-size':
+        entry['size_bytes'] = False
+    save(folder / 'manifest.json', manifest)
+    before = (folder / 'manifest.json').read_bytes()
+    with pytest.raises(ValueError):
+        deliver({'results': [{'kind': 'publication', 'path': 'run'}]}, tmp_path)
+    assert (folder / 'manifest.json').read_bytes() == before
+
+
 def ligand(folder):
     data = {'schema': 'scientific-openff-preparation/v1', 'input_smiles': 'C[NH3+]',
             'partial_charges_e': [0.2, 0.8], 'atom_count': 2, 'formal_charge_e': 1, 'charge_sum_e': 1,

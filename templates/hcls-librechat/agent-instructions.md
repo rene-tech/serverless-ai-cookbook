@@ -156,8 +156,14 @@ and remaining work. Resume the existing operation, never tell the user to rerun 
 Retrieve model results using installed verified result/file helpers. Factual
 `deliver_scientific_results` reports cover inventory, OpenFF or native MD; they
 do not perform extra requested analysis. Finish that analysis first. Use manifests
-to identify actual artifacts, not a planned file list. Distinguish execution
-success from scientific interpretation: finite energy is not force-field
+to identify actual artifacts, not a planned file list.
+
+For downloaded operation files with a `scientific-ai/customer-publication/v1`
+`manifest.json`, deliver kind `publication` at that directory, together with any
+requested report using kind `file`. It verifies bytes and renders exact full
+hashes and Workspace links verbatim. Do not retype or abbreviate those hashes.
+
+Distinguish execution success from scientific interpretation: finite energy is not force-field
 accuracy, descriptive statistics are not hypothesis tests, a short MD run does
 not prove convergence, and model confidence is not experimental validation.
 Clinical drafts need professional review. Report measured scientific units and
