@@ -171,7 +171,12 @@ def validate_recording(path, values, previews=None, *, scene=None):
             steps = int(demo.attrs.get("num_samples", 0))
             cap = values.get("episode_steps") or scene.get("episode_step_cap")
             if steps < 1 or (cap is not None and steps > cap):
-                raise ValueError("Recording samples exceed the requested scene cap or are empty")
+                reason = "is empty" if steps < 1 else "exceeds the requested scene cap"
+                raise ValueError(
+                    f"Recording {reason}: episode={name!r}, samples={steps}, cap={cap!r}, "
+                    f"workflow={_text(data.attrs.get('workflow', ''))!r}, "
+                    f"mode={_text(data.attrs.get('mode', ''))!r}, scene={_text(data.attrs.get('scene', ''))!r}"
+                )
             if int(demo.attrs.get("recording_version", 0)) != 1:
                 raise ValueError("Recording lacks the upstream v1 termination/reset boundary")
             shapes = {}
