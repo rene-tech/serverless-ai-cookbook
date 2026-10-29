@@ -308,3 +308,66 @@ test('run inspection reveals loading, responses, repeat selections and errors in
     assert.equal(await page.evaluate(() => window.scopeReset), true, 'cached caller data must be reset');
   } finally { await page.close(); }
 });
+
+test('Workspace pages reach later files and reset on folder navigation', async () => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  page.setDefaultTimeout(3000);
+  try {
+    await page.setContent('<div id="root"></div>');
+    for (const file of ['react/umd/react.development.js', 'react-dom/umd/react-dom.development.js']) {
+      await page.addScriptTag({ path: require.resolve('./node_modules/' + file) });
+    }
+    await page.addScriptTag({ content: `
+      window.calls = [];
+      window.dependencies = {
+        react: React, axios: {},
+        'react-router-dom': { Link: ({ to, ...props }) => React.createElement('a', { href: to, ...props }),
+          useSearchParams: () => {
+            const [params, setParams] = React.useState(new URLSearchParams('tab=workspace&file=last.txt'));
+            window.navigate = value => setParams(new URLSearchParams(value));
+            return [params, value => setParams(new URLSearchParams(value))];
+          } },
+        '@tanstack/react-query': { useQueryClient: () => ({}), useQuery: (key, load) => {
+          const [reply, setReply] = React.useState({});
+          React.useEffect(() => {
+            if (key[1] !== 'workspace') return;
+            let active = true;
+            load().then(data => { if (active) setReply({ data }); });
+            return () => { active = false; };
+          }, [JSON.stringify(key)]);
+          return key[1] === 'settings' ? { data: { configured: true } } : key[1] === 'workspace' ? reply : {};
+        } },
+        '@librechat/client': { Button: ({ variant, size, ...props }) => React.createElement('button', props),
+          Input: props => React.createElement('input', props) },
+        'librechat-data-provider': { request: { get: async url => {
+          calls.push(url);
+          const query = new URL(url, 'https://fixture.invalid').searchParams;
+          const later = query.get('offset') === '500';
+          return { info: {}, next_offset: later || query.get('path') ? null : 500,
+            data: Array.from({ length: later || query.get('path') ? 1 : 500 }, (_, index) => ({
+              name: later ? 'last.txt' : index === 0 ? 'child' : 'synthetic-' + index + '.txt',
+              path: later ? 'last.txt' : index === 0 ? 'child' : 'synthetic-' + index + '.txt',
+              kind: !later && index === 0 ? 'directory' : 'file', updated_at: '2026-01-01T00:00:00Z' })) };
+        } } },
+        './scientific-comparison': {}, './scientific-run-display': {}, './ScientificGettingStarted': {},
+      };
+    ` });
+    await page.addScriptTag({ content: `{
+      const module = { exports: {} }; const exports = module.exports;
+      const require = name => dependencies[name];
+      ${compile('../demos/Demos.tsx')}
+      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(module.exports.default));
+    }` });
+    await page.getByRole('button', { name: 'Next files' }).click();
+    await page.getByRole('button', { name: 'last.txt', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Download selected file' }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Next files' }).isDisabled(), true);
+    if (process.env.SCIENTIFIC_THEME_ARTIFACTS) await page.screenshot({ path: join(process.env.SCIENTIFIC_THEME_ARTIFACTS, 'workspace-pagination.png'), fullPage: true });
+    await page.getByRole('button', { name: 'Previous files' }).click();
+    await page.getByRole('button', { name: 'child/', exact: true }).click();
+    await page.waitForFunction(() => calls.some(url => url.includes('path=child') && !url.includes('offset=500')));
+    assert.equal(await page.getByRole('button', { name: 'Previous files' }).count(), 0);
+    await page.evaluate(() => navigate('tab=workspace&offset=-1'));
+    await page.waitForFunction(() => calls.at(-1).includes('offset=0'));
+  } finally { await page.close(); }
+});
