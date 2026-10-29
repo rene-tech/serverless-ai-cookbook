@@ -168,10 +168,22 @@ def validate_recording(path, values, previews=None, *, scene=None):
             if not name.startswith("demo_"):
                 raise ValueError("Recording contains an unfinished attempt")
             demo = data[name]
-            steps = int(demo.attrs.get("num_samples", 0))
+            recorded = demo.attrs.get("num_samples")
+            steps = int(recorded) if recorded is not None else None
             cap = values.get("episode_steps") or scene.get("episode_step_cap")
-            if steps < 1 or (cap is not None and steps > cap):
-                raise ValueError("Recording samples exceed the requested scene cap or are empty")
+            reason = None
+            if steps is None:
+                reason = "has no recorded sample count"
+            elif steps < 1:
+                reason = "is empty"
+            elif cap is not None and steps > cap:
+                reason = "exceeds the requested scene cap"
+            if reason:
+                raise ValueError(
+                    f"Recording {reason}: episode={name!r}, samples={steps}, cap={cap!r}, "
+                    f"workflow={_text(data.attrs.get('workflow', ''))!r}, "
+                    f"mode={_text(data.attrs.get('mode', ''))!r}, scene={_text(data.attrs.get('scene', ''))!r}"
+                )
             if int(demo.attrs.get("recording_version", 0)) != 1:
                 raise ValueError("Recording lacks the upstream v1 termination/reset boundary")
             shapes = {}

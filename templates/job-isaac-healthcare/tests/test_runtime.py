@@ -184,6 +184,53 @@ def test_camera_disable_and_explicit_scene_cap(tmp_path):
         validate_recording(path, {**values, 'episode_steps': 2}, scene=scene)
 
 
+@pytest.mark.parametrize('samples,cap,reason', [(0, 3, 'is empty'), (-1, 3, 'is empty'),
+                                               (None, 3, 'has no recorded sample count'),
+                                               (4, 3, 'exceeds the requested scene cap')])
+def test_recording_error_retains_counts_and_resolved_identity(tmp_path, samples, cap, reason):
+    path = tmp_path / 'recording.hdf5'
+    recording(path)
+    with h5py.File(path, 'a') as source:
+        if samples is None:
+            del source['data/demo_0'].attrs['num_samples']
+        else:
+            source['data/demo_0'].attrs['num_samples'] = samples
+    values = parameters({'workflow': 'unseen_probe'})
+    with pytest.raises(ValueError) as error:
+        validate_recording(path, values, scene={**selected(), 'episode_step_cap': cap})
+    message = str(error.value)
+    for detail in (reason, f'samples={samples}', f'cap={cap}', "episode='demo_0'",
+                   "workflow='unseen_probe'", "mode='measure'", "scene='custom_probe'"):
+        assert detail in message
+
+
+@pytest.mark.parametrize('requested,scene_cap', [(None, 3), (3, 9), (None, None)])
+def test_recording_at_effective_cap_or_without_cap_remains_valid(tmp_path, requested, scene_cap):
+    path = tmp_path / 'recording.hdf5'
+    recording(path)
+    result = validate_recording(path, parameters({'workflow': 'unseen_probe', 'episode_steps': requested}),
+                                scene={**selected(), 'episode_step_cap': scene_cap})
+    assert result['samples'] == 3
+
+
+def test_recording_details_survive_cli_failure(tmp_path, monkeypatch, capsys):
+    import sys
+    from isaac_healthcare_runtime import runtime
+
+    path = tmp_path / 'recording.hdf5'
+    recording(path)
+    values = parameters({'workflow': 'unseen_probe', 'episode_steps': 2})
+    monkeypatch.setattr(runtime, 'run', lambda *args, **kwargs: validate_recording(path, values, scene=selected()))
+    monkeypatch.setattr(sys, 'argv', ['isaac-healthcare', '--operation', 'simulate', '--output-dir', str(tmp_path)])
+    with pytest.raises(SystemExit) as error:
+        runtime.main()
+    assert error.value.code == 1
+    message = capsys.readouterr().err
+    assert 'Isaac healthcare simulate failed: Recording exceeds the requested scene cap' in message
+    assert "samples=3, cap=2" in message and "mode='measure'" in message
+    assert not (tmp_path / 'result.json').exists()
+
+
 def test_integer_equivalent_cli_and_empty_input_guard(tmp_path):
     values = parameters({'workflow': 'unknown', 'episodes': 1.0, 'envs': 2.0, 'episode_steps': 701.0})
     argv = command(values, {'name': 'a', 'seed': 17}, tmp_path)
