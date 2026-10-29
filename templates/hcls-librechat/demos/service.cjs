@@ -548,6 +548,7 @@ async function waitOperation(owner, key, operationId, waitSeconds = 15) {
     await new Promise((resolve) => setTimeout(resolve, Math.min(3000, deadline - Date.now())));
   }
   return { ...latest, observations, terminal: TERMINAL_STATES.has(latest.status),
+    operation_url: `/demos?tab=runs&operation=${encodeURIComponent(operationId)}`,
     wait_expired: Boolean(waitSeconds && !TERMINAL_STATES.has(latest.status) && Date.now() >= deadline),
     last_observed_at: latest.updated_at,
     next_step: TERMINAL_STATES.has(latest.status) ? 'Inspect the terminal state before retrieving output.'

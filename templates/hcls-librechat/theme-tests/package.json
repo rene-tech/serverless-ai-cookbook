@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test ../brand-client.test.mjs contrast.test.mjs run-inspection.test.mjs"
+    "test": "node --test ../brand-client.test.mjs ../test-scientific-agent-budget.cjs contrast.test.mjs run-inspection.test.mjs"
   },
   "devDependencies": {
+    "@tanstack/react-query": "4.36.1",
     "playwright": "1.62.1",
     "postcss": "8.5.23",
     "react": "18.3.1",

@@ -505,12 +505,14 @@ test('bounded operation wait preserves terminal and intermediate status without 
   };
   try {
     const pending = await service.waitOperation('waiting-user', 'fixture-key', id, 0);
+    assert.equal(pending.operation_url, `/demos?tab=runs&operation=${id}`);
     assert.equal(pending.terminal, false);
     assert.equal(pending.observations[0].status, 'queued');
     state = 'preempted';
     const done = await service.waitOperation('waiting-user', 'fixture-key', id, 15);
     assert.equal(done.terminal, true);
     assert.equal(done.status, 'preempted');
+    assert.equal(done.operation_url, pending.operation_url);
     assert.deepEqual(calls, ['GET', 'GET']);
     await assert.rejects(service.waitOperation('waiting-user', 'fixture-key', id, 31), /between 0 and 30/);
   } finally { global.fetch = originalFetch; }
