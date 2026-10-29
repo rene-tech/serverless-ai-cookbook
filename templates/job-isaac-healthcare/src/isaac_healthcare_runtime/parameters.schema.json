@@ -20,7 +20,7 @@
       ],
       "minLength": 1,
       "default": null,
-      "description": "Any mode authored by the selected workflow. Null selects its upstream/project default."
+      "description": "Any mode authored by the selected workflow. Null preserves its upstream/project default, which may be idle. For an automatic demo with agent-selected settings, inspect available modes and choose an explicit supported unattended mode. Preserve user-selected modes and project defaults."
     },
     "episodes": {
       "type": "integer",
