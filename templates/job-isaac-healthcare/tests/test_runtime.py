@@ -185,12 +185,16 @@ def test_camera_disable_and_explicit_scene_cap(tmp_path):
 
 
 @pytest.mark.parametrize('samples,cap,reason', [(0, 3, 'is empty'), (-1, 3, 'is empty'),
+                                               (None, 3, 'has no recorded sample count'),
                                                (4, 3, 'exceeds the requested scene cap')])
 def test_recording_error_retains_counts_and_resolved_identity(tmp_path, samples, cap, reason):
     path = tmp_path / 'recording.hdf5'
     recording(path)
     with h5py.File(path, 'a') as source:
-        source['data/demo_0'].attrs['num_samples'] = samples
+        if samples is None:
+            del source['data/demo_0'].attrs['num_samples']
+        else:
+            source['data/demo_0'].attrs['num_samples'] = samples
     values = parameters({'workflow': 'unseen_probe'})
     with pytest.raises(ValueError) as error:
         validate_recording(path, values, scene={**selected(), 'episode_step_cap': cap})
