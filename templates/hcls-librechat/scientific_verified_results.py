@@ -105,6 +105,38 @@ def file_card(path, root):
             'File existence and bytes verified; this is not a scientific validation of its contents.')
 
 
+def publication_card(folder, root):
+    manifest = json.loads((folder / 'manifest.json').read_text())
+    operation = manifest.get('operation_id', '')
+    files = manifest.get('files')
+    if (manifest.get('schema') != 'scientific-ai/customer-publication/v1'
+            or not isinstance(operation, str)
+            or not re.fullmatch(r'op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?', operation)
+            or not isinstance(files, list) or not files):
+        raise ValueError('Missing operation publication identity or files.')
+    text = ['### Published operation files', '', f'Operation: `{operation}`.', '',
+            '| File | Bytes | SHA-256 |', '|---|---:|---|']
+    seen = set()
+    for entry in files:
+        if not isinstance(entry, dict):
+            raise ValueError('Invalid publication file metadata.')
+        name, sha, size = entry.get('path'), entry.get('sha256'), entry.get('size_bytes')
+        if (not isinstance(name, str) or not name or Path(name).is_absolute()
+                or not isinstance(sha, str) or not re.fullmatch(r'[a-f0-9]{64}', sha)
+                or type(size) is not int or size < 0):
+            raise ValueError('Invalid publication file metadata.')
+        path = within(name, folder)
+        if path in seen:
+            raise ValueError('Duplicate publication file.')
+        seen.add(path)
+        verify(path, entry)
+        label = cell(name).replace('[', '\\[').replace(']', '\\]')
+        text.append(f'| [{label}]({link(path, root)}) | {size} | `{sha}` |')
+    text += ['', 'Every listed file matches its saved publication size and full SHA-256. '
+             'This verifies delivered bytes, not the scientific validity of their contents.']
+    return '\n'.join(text)
+
+
 def verified_md_inputs(folder, root):
     """Resolve native results once, sharing receipt/hash checks with reporters."""
     # Read-only recovery deliberately keeps a separate receipt; it must not
@@ -210,7 +242,8 @@ def deliver(args, workspace):
         if not isinstance(item, dict) or set(item) != {'kind', 'path'}:
             raise ValueError('Each result needs exactly kind and path.')
         handler = {'mmcif': mmcif_card, 'openff': openff_card,
-                   'native-md': md_card, 'file': file_card}.get(item['kind'])
+                   'native-md': md_card, 'file': file_card,
+                   'publication': publication_card}.get(item['kind'])
         if handler is None:
             raise ValueError('Unsupported verified result kind.')
         cards.append(handler(within(item['path'], root), root))
