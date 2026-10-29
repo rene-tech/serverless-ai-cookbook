@@ -28,6 +28,101 @@ def publication(folder):
     return manifest
 
 
+def failed_run(folder):
+    operation = 'op-failed-fixture'
+    receipt = {'operation_id': operation, 'state': 'failed', 'identity': {'model_id': 'isaac-healthcare'}}
+    status = {'operation_id': operation, 'model_id': 'isaac-healthcare', 'status': 'FAILED',
+              'operation': {'operation_id': operation, 'status': 'failed', 'result_available': False},
+              'error': {'code': 'EXECUTION_FAILED', 'stage_id': 'simulate',
+                        'message': 'Recording samples exceed the requested scene cap or are empty'}}
+    save(folder / 'receipt.json', receipt)
+    save(folder / 'status.json', status)
+    return receipt, status
+
+
+def test_failure_delivery_reports_saved_facts_without_diagnosing_ambiguous_errors(tmp_path):
+    folder = tmp_path / 'run'
+    _, status = failed_run(folder)
+    before = (folder / 'status.json').read_bytes()
+    result = deliver({'results': [{'kind': 'failure', 'path': 'run'}]}, tmp_path)
+    text = result['report_markdown']
+    assert result['inference_submitted'] is False
+    for value in ('op-failed-fixture', 'isaac-healthcare', 'failed', 'simulate', 'EXECUTION_FAILED',
+                  status['error']['message'], 'Root cause: not established', 'not retained, not zero',
+                  '/demos?tab=workspace&path=run&file=run%2Fstatus.json'):
+        assert value in text
+    assert 'zero valid samples' not in text and 'configuration failure' not in text
+    assert (folder / 'status.json').read_bytes() == before
+
+
+def test_missing_failure_details_are_not_invented_and_message_is_literal(tmp_path):
+    folder = tmp_path / 'run'
+    _, status = failed_run(folder)
+    status.pop('error')
+    save(folder / 'status.json', status)
+    text = deliver({'results': [{'kind': 'failure', 'path': 'run'}]}, tmp_path)['report_markdown']
+    assert '| Failed stage | not retained |' in text
+    assert '| Error code | not retained |' in text
+    assert '\nnot retained\n' in text
+    status['error'] = {'message': 'Actual message with ``` and [markup](https://fixture.invalid)\nsecond line'}
+    save(folder / 'status.json', status)
+    text = deliver({'results': [{'kind': 'failure', 'path': 'run'}]}, tmp_path)['report_markdown']
+    assert '````text\n' + status['error']['message'] + '\n````' in text
+
+
+@pytest.mark.parametrize('change', ['receipt-id', 'status-id', 'nested-id', 'model', 'pending',
+                                  'success', 'conflicting-state', 'message-type'])
+def test_failure_delivery_rejects_unrelated_or_nonfailed_evidence(tmp_path, change):
+    folder = tmp_path / 'run'
+    receipt, status = failed_run(folder)
+    if change == 'receipt-id':
+        receipt['operation_id'] = 'not-a-native-operation'
+    elif change == 'status-id':
+        status['operation_id'] = 'op-other'
+    elif change == 'nested-id':
+        status['operation']['operation_id'] = 'op-other'
+    elif change == 'model':
+        status['model_id'] = 'different-model'
+    elif change in ('pending', 'success'):
+        receipt['state'] = status['operation']['status'] = 'running' if change == 'pending' else 'succeeded'
+        status['status'] = receipt['state'].upper()
+    elif change == 'conflicting-state':
+        status['operation']['status'] = 'succeeded'
+    else:
+        status['error']['message'] = {'model_authored_diagnosis': 'zero samples'}
+    save(folder / 'receipt.json', receipt)
+    save(folder / 'status.json', status)
+    with pytest.raises(ValueError):
+        deliver({'results': [{'kind': 'failure', 'path': 'run'}]}, tmp_path)
+
+
+def test_typed_failure_delivery_uses_retained_files_only(tmp_path, monkeypatch):
+    from jsonschema import Draft202012Validator
+
+    failed_run(tmp_path / 'run')
+    spec = importlib.util.spec_from_file_location('failure_execution', Path(__file__).with_name('execution-mcp.py'))
+    execution = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(execution)
+    monkeypatch.setattr(execution, 'WORKSPACE', str(tmp_path))
+    args = {'results': [{'kind': 'failure', 'path': 'run'}]}
+    tool = next(tool for tool in execution.TOOLS if tool['name'] == 'deliver_scientific_results')
+    Draft202012Validator(tool['inputSchema']).validate(args)
+    assert execution.deliver_scientific_results(args) == deliver(args, tmp_path)
+
+
+def test_failure_delivery_accepts_bound_recovery_without_echoing_private_fields(tmp_path):
+    folder = tmp_path / 'run'
+    receipt, status = failed_run(folder)
+    receipt['identity'] = {'operation_id': receipt['operation_id'], 'caller_fingerprint': 'PRIVATE-CALLER'}
+    status['debug'] = {'credential': 'PRIVATE-DEBUG'}
+    save(folder / 'recovery-receipt.json', receipt)
+    (folder / 'receipt.json').unlink()
+    save(folder / 'status.json', status)
+    text = deliver({'results': [{'kind': 'failure', 'path': 'run'}]}, tmp_path)['report_markdown']
+    assert 'isaac-healthcare' in text and 'run%2Frecovery-receipt.json' in text
+    assert 'PRIVATE' not in text
+
+
 def test_publication_delivery_preserves_full_hashes_and_workspace_links(tmp_path):
     manifest = publication(tmp_path / 'run')
     result = deliver({'results': [{'kind': 'publication', 'path': 'run'}]}, tmp_path)

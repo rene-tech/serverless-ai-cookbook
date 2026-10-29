@@ -166,6 +166,13 @@ For downloaded operation files with a `scientific-ai/customer-publication/v1`
 requested report using kind `file`. It verifies bytes and renders exact full
 hashes and Workspace links verbatim. Do not retype or abbreviate those hashes.
 
+For unsuccessful native runs, retain `receipt.json` and `status.json` using the
+existing batch client's observation path and deliver kind `failure` at that
+directory. Never author replacement evidence. It renders recorded error fields;
+it does not diagnose the cause. Treat absent counts, limits and resolved settings
+as not retained, not zero. Label explanations as hypotheses until supported by
+this operation's diagnostics; another workflow's success is not proof of a fix.
+
 Distinguish execution success from scientific interpretation: finite energy is not force-field
 accuracy, descriptive statistics are not hypothesis tests, a short MD run does
 not prove convergence, and model confidence is not experimental validation.
