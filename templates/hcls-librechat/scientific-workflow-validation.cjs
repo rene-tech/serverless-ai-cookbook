@@ -68,8 +68,9 @@ function describe(schema, value, path = '$', issues = []) {
 }
 
 function attach(toolInstance, serverName, serverToolName) {
-  if (serverName !== 'environment-execution' || !METHODS.has(serverToolName)
-      || toolInstance.name !== `${serverToolName}_mcp_environment-execution`) return toolInstance;
+  const workflow = serverName === 'environment-execution' && METHODS.has(serverToolName);
+  if ((!workflow && serverName !== 'scientific-ai-apps')
+      || toolInstance.name !== `${serverToolName}_mcp_${serverName}`) return toolInstance;
   const originalCall = toolInstance.call;
   toolInstance.call = async function (...args) {
     try { return await originalCall.apply(this, args); }
@@ -83,7 +84,7 @@ function attach(toolInstance, serverName, serverToolName) {
             const issues = describe(this.schema, input);
             const details = issues.join('; ').slice(0, 880);
             error.message = 'Received tool input did not match expected schema'
-              + (details ? `: ${details}.` : '. Check the published workflow schema.')
+              + (details ? `: ${details}.` : '. Check the published tool schema.')
               + ' Correct these fields and call the same tool again.';
           }
         } catch { /* Unknown schema/metadata: retain the original exception. */ }
