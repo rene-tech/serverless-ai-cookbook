@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { after, before, test } from 'node:test';
 import { chromium } from 'playwright';
 import ts from 'typescript';
+import { upstreamSource } from './fixture.mjs';
 
 const require = createRequire(import.meta.url);
 const compile = (file) => ts.transpileModule(readFileSync(new URL(file, import.meta.url), 'utf8'), {
@@ -14,6 +18,124 @@ before(async () => {
   browser = await chromium.launch(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {});
 });
 after(async () => { await browser?.close(); });
+
+async function operationFixture() {
+  const page = await browser.newPage();
+  page.setDefaultTimeout(10000);
+  await page.setContent('<div id="root"></div>');
+  for (const file of ['react/umd/react.development.js', 'react-dom/umd/react-dom.development.js',
+    '@tanstack/react-query/build/umd/index.production.js']) {
+    await page.addScriptTag({ path: require.resolve('./node_modules/' + file) });
+  }
+  await page.addScriptTag({ content: `
+    window.calls = []; window.problem = null;
+    window.reply = { id: 'op-native-inline', status: 'queued', updated_at: '2026-10-29T10:00:57Z',
+      operation: { id: 'op-native-inline', result_available: false } };
+    window.dependencies = { react: React, '@tanstack/react-query': ReactQuery,
+      'librechat-data-provider': { request: { get: async url => {
+        calls.push(url); if (problem) throw problem; return JSON.parse(JSON.stringify(reply));
+      }, post: () => { throw new Error('Observation must never submit'); } } },
+      './WorkspaceReportPreview': { __esModule: true, default: () => null, workspaceReportPath: () => false },
+      './WorkspaceInlineCode': { workspaceCodeHref: () => undefined },
+    };
+  ` });
+  for (const [name, file] of [['./scientific-run-display', '../demos/run-display.ts'],
+    ['Preview', '../ScientificStudyPreview.tsx']]) {
+    await page.addScriptTag({ content: `{
+      const module = { exports: {} }; const exports = module.exports;
+      const require = name => dependencies[name];
+      ${compile(file)}
+      dependencies[${JSON.stringify(name)}] = module.exports;
+    }` });
+  }
+  await page.addScriptTag({ content: `
+    window.queryClient = new ReactQuery.QueryClient({ defaultOptions: { queries: { retry: false, cacheTime: 0 } } });
+    window.root = ReactDOM.createRoot(document.getElementById('root'));
+    window.showHref = href => root.render(React.createElement(ReactQuery.QueryClientProvider,
+      { client: queryClient }, React.createElement(dependencies.Preview.default, { href }, 'Live saved run')));
+    showHref('/demos?tab=runs&operation=op-native-inline');
+  ` });
+  return page;
+}
+
+test('Markdown renderer adds native observation and upgrades the existing study seam idempotently', async () => {
+  const source = await upstreamSource();
+  const folder = mkdtempSync(join(tmpdir(), 'scientific-inline-patch-'));
+  const content = join(folder, 'src/components/Chat/Messages/Content');
+  const anchor = join(content, 'MarkdownComponents.tsx');
+  try {
+    mkdirSync(content, { recursive: true });
+    for (const file of ['MarkdownComponents.tsx', 'MarkdownBlocks.tsx']) {
+      writeFileSync(join(content, file), readFileSync(join(source, 'client/src/components/Chat/Messages/Content', file)));
+    }
+    const patch = () => execFileSync(process.execPath, [new URL('../patch-report-preview.mjs', import.meta.url).pathname, folder]);
+    patch();
+    const first = readFileSync(anchor, 'utf8');
+    assert.ok(first.includes('if (scientificWorkflowPath(href) || scientificOperationId(href))'));
+    patch();
+    assert.equal(readFileSync(anchor, 'utf8'), first);
+    writeFileSync(anchor, first.replace('scientificWorkflowPath, scientificOperationId', 'scientificWorkflowPath')
+      .replace('scientificWorkflowPath(href) || scientificOperationId(href)', 'scientificWorkflowPath(href)'));
+    patch();
+    assert.equal(readFileSync(anchor, 'utf8'), first);
+  } finally { rmSync(folder, { recursive: true, force: true }); }
+});
+
+test('native run links keep observing after chat ends and wait for output publication', async () => {
+  const page = await operationFixture();
+  try {
+    await page.getByText('Processing state: queued', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Inspect outputs and downloads' }).count(), 0);
+    await page.evaluate(() => { reply.status = 'succeeded'; });
+    await page.getByText('Processing state: succeeded', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Inspect outputs and downloads' }).count(), 0,
+      'Processing success must not claim outputs are already published');
+    await page.evaluate(() => { reply.operation.result_available = true; });
+    await page.getByRole('link', { name: 'Inspect outputs and downloads' }).waitFor();
+    assert.equal(await page.getByRole('link', { name: 'Inspect outputs and downloads' }).getAttribute('href'),
+      '/demos?tab=runs&operation=op-native-inline&view=result');
+    const count = await page.evaluate(() => calls.length);
+    await page.waitForTimeout(5500);
+    assert.equal(await page.evaluate(() => calls.length), count, 'Published terminal results stop polling');
+    assert.deepEqual([...new Set(await page.evaluate(() => calls))], ['/api/scientific-demos/runs/op-native-inline']);
+  } finally { await page.close(); }
+});
+
+test('native run links retain outages, hide revoked data and reject foreign identities', async () => {
+  const page = await operationFixture();
+  try {
+    await page.getByText('Processing state: queued', { exact: true }).waitFor();
+    await page.evaluate(() => { problem = { response: { status: 503 } }; });
+    await page.getByRole('button', { name: 'Refresh status' }).click();
+    await page.getByRole('alert').waitFor();
+    await page.getByText('Processing state: queued', { exact: true }).waitFor();
+    await page.getByText('Last successful update: 2026-10-29T10:00:57Z', { exact: true }).waitFor();
+    const count = await page.evaluate(() => calls.length);
+    await page.waitForTimeout(5500);
+    assert.equal(await page.evaluate(() => calls.length), count, 'An outage pauses automatic polling');
+    for (const status of [401, 403]) {
+      await page.evaluate(() => { problem = null; reply.status = 'succeeded'; reply.operation.result_available = true; });
+      await page.getByRole('button', { name: 'Refresh status' }).click();
+      await page.getByRole('link', { name: 'Inspect outputs and downloads' }).waitFor();
+      await page.evaluate(status => { problem = { response: { status } }; }, status);
+      await page.getByRole('button', { name: 'Refresh status' }).click();
+      await page.getByText(/Access denied/).waitFor();
+      assert.equal(await page.getByText('Processing state: succeeded', { exact: true }).count(), 0);
+      assert.equal(await page.getByRole('link', { name: 'Inspect outputs and downloads' }).count(), 0);
+    }
+    await page.evaluate(() => { problem = null; showHref('/demos?tab=runs&operation=op-other'); });
+    await page.getByRole('alert').waitFor();
+    assert.equal(await page.getByText('Processing state: succeeded', { exact: true }).count(), 0);
+    const before = await page.evaluate(() => calls.length);
+    for (const href of ['https://other.invalid/demos?tab=runs&operation=op-x',
+      '/demos?tab=runs&operation=op-x&operation=op-y', '/demos?tab=runs&operation=op-x&token=secret',
+      '/demos?tab=runs&operation=op-x&view=unknown', '/demos?tab=runs&operation=../other']) {
+      await page.evaluate(href => showHref(href), href);
+      await page.getByRole('link', { name: 'Live saved run' }).waitFor();
+    }
+    assert.equal(await page.evaluate(() => calls.length), before, 'Unrecognized links never start authenticated reads');
+  } finally { await page.close(); }
+});
 
 test('run inspection reveals loading, responses, repeat selections and errors in the scroll container', async () => {
   const page = await browser.newPage({ viewport: { width: 1000, height: 600 } });

@@ -181,3 +181,17 @@ test('pause describes incomplete work without inventing results or exposing earl
   const reset = stopText(new AgentBudgetStop('repeated_tools'), [...round(1, 'submit', {}, { operation_id: id }), human()]);
   assert.doesNotMatch(reset, new RegExp(id));
 });
+
+test('pause links recover flat and nested native operation receipts without changing budgets', () => {
+  const id = 'op-native-inline';
+  for (const receipt of [{ operation_id: id }, { id }, { operation: { id } },
+    { operations: [{ operation_id: id }] }]) {
+    const text = stopText(new AgentBudgetStop('turn_model_time'), [human(), ...round(1, 'submit', {}, receipt)]);
+    assert.ok(text.includes(`[\`${id}\`](/demos?tab=runs&operation=${id})`));
+    assert.match(text, /incomplete/);
+  }
+  const text = stopText(new AgentBudgetStop('turn_model_time'), [human(), ...round(1, 'submit', {}, {
+    id: 'op-x](https://untrusted.invalid)', job_id: '00000000-0000-4000-8000-000000000000',
+  })]);
+  assert.doesNotMatch(text, /untrusted|00000000/);
+});

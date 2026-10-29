@@ -34,8 +34,11 @@ if (!source.includes(importLine)) {
   throw new Error('Report-preview import exists without its guarded renderer seam');
 }
 
-const studyImport = "import ScientificStudyPreview, { scientificWorkflowPath } from '~/components/ScientificStudyPreview';";
-const studyInserted = `  if (scientificWorkflowPath(href)) {
+const legacyStudyImport = "import ScientificStudyPreview, { scientificWorkflowPath } from '~/components/ScientificStudyPreview';";
+const studyImport = "import ScientificStudyPreview, { scientificWorkflowPath, scientificOperationId } from '~/components/ScientificStudyPreview';";
+source = source.replace(legacyStudyImport, studyImport)
+  .replace('if (scientificWorkflowPath(href)) {', 'if (scientificWorkflowPath(href) || scientificOperationId(href)) {');
+const studyInserted = `  if (scientificWorkflowPath(href) || scientificOperationId(href)) {
     return <ScientificStudyPreview href={href}>{children}</ScientificStudyPreview>;
   }
 

@@ -152,6 +152,9 @@ For interactive requests follow work to its terminal result and check promised
 files. For explicitly asynchronous requests report the ID and actual pending
 phase. On interruption/failure, state the known ID, failed stage, saved outputs
 and remaining work. Resume the existing operation, never tell the user to rerun it.
+For pending model operations include the returned relative `operation_url`, or
+`/demos?tab=runs&operation=EXACT_RETURNED_ID`. Its live status panel keeps observing
+the saved operation after this turn ends; analysis and report writing remain separate.
 
 Retrieve model results using installed verified result/file helpers. Factual
 `deliver_scientific_results` reports cover inventory, OpenFF or native MD; they
