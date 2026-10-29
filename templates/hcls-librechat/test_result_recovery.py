@@ -123,6 +123,20 @@ def test_pending_or_failed_operation_never_downloads_or_resubmits(tmp_path, monk
     assert tools == ['get_operation'] and requests == []
 
 
+def test_failed_recovery_can_deliver_saved_status_without_fabricating_diagnostics(tmp_path, monkeypatch):
+    from scientific_verified_results import deliver
+
+    args, result, requests, tools = setup_client(tmp_path, monkeypatch)
+    result['terminal_status'] = 'failed'
+    with pytest.raises(client.ScientificOperationFailed):
+        asyncio.run(client.recover_completed(args))
+    report = deliver({'results': [{'kind': 'failure', 'path': str(args.output)}]}, tmp_path)
+    assert 'Root cause: not established' in report['report_markdown']
+    assert OPERATION in report['report_markdown'] and 'not retained, not zero' in report['report_markdown']
+    assert report['inference_submitted'] is False
+    assert tools == ['get_operation'] and requests == []
+
+
 def test_different_identity_or_changed_download_is_not_overwritten(tmp_path, monkeypatch):
     args, _, requests, _ = setup_client(tmp_path, monkeypatch)
     asyncio.run(client.recover_completed(args))

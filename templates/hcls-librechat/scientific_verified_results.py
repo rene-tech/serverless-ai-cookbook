@@ -105,6 +105,50 @@ def file_card(path, root):
             'File existence and bytes verified; this is not a scientific validation of its contents.')
 
 
+def failure_card(folder, root):
+    receipt_path = folder / 'receipt.json'
+    if not receipt_path.exists():
+        receipt_path = folder / 'recovery-receipt.json'
+    receipt = json.loads(receipt_path.read_text())
+    status = json.loads((folder / 'status.json').read_text())
+    if not isinstance(receipt, dict) or not isinstance(status, dict):
+        raise ValueError('Invalid retained failure evidence.')
+    operation = status.get('operation', {})
+    identity = receipt.get('identity', {})
+    operation_id, state = receipt.get('operation_id'), receipt.get('state')
+    model = status.get('model_id')
+    if (not isinstance(operation_id, str)
+            or not re.fullmatch(r'op-[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?', operation_id)
+            or state not in ('failed', 'cancelled', 'timed_out', 'export_failed', 'preempted')
+            or not isinstance(operation, dict) or not isinstance(identity, dict)
+            or not isinstance(model, str) or not model or identity.get('model_id', model) != model
+            or identity.get('operation_id', operation_id) != operation_id
+            or status.get('operation_id') != operation_id or operation.get('operation_id') != operation_id
+            or status.get('status') != state.upper() or operation.get('status') != state
+            or any(row.get('id', operation_id) != operation_id for row in (status, operation))):
+        raise ValueError('Failure status does not match the retained operation receipt.')
+    error = status.get('error') or {}
+    if not isinstance(error, dict):
+        raise ValueError('Invalid retained failure details.')
+    rows = [('Model', model), ('Recorded state', state),
+            ('Failed stage', error.get('stage_id')), ('Error code', error.get('code'))]
+    message = error.get('message')
+    if any(value is not None and not isinstance(value, str) for _, value in rows) or (
+            message is not None and (not isinstance(message, str) or len(message) > 8192)):
+        raise ValueError('Invalid retained failure details.')
+    message = message or 'not retained'
+    fence = '`' * max(3, max((len(part) for part in re.findall(r'`+', message)), default=0) + 1)
+    text = ['### Scientific operation did not succeed', '', f'Operation: `{operation_id}`.', '',
+            '| Recorded field | Value |', '|---|---|']
+    text += [f'| {label} | {cell(value) if value is not None else "not retained"} |' for label, value in rows]
+    text += ['', 'Recorded platform message:', fence + 'text', message, fence, '',
+             'Root cause: not established by this status. Missing details mean not retained, not zero. '
+             'A different successful workflow does not establish the cause of this failure.', '',
+             f'[Retained status]({link(folder / "status.json", root)})',
+             f'[Operation receipt]({link(receipt_path, root)})']
+    return '\n'.join(text)
+
+
 def publication_card(folder, root):
     manifest = json.loads((folder / 'manifest.json').read_text())
     operation = manifest.get('operation_id', '')
@@ -243,7 +287,7 @@ def deliver(args, workspace):
             raise ValueError('Each result needs exactly kind and path.')
         handler = {'mmcif': mmcif_card, 'openff': openff_card,
                    'native-md': md_card, 'file': file_card,
-                   'publication': publication_card}.get(item['kind'])
+                   'publication': publication_card, 'failure': failure_card}.get(item['kind'])
         if handler is None:
             raise ValueError('Unsupported verified result kind.')
         cards.append(handler(within(item['path'], root), root))
