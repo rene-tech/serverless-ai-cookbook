@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import shutil
@@ -12,6 +13,28 @@ import tempfile
 from .contract import SOURCE, checked, digest, json_loads, parameters, scenarios, schema
 from .project import relative_path
 from .validate import validate_recording
+
+
+def _recording_equal(reported, observed, path=()):
+    """Compare exact recording facts, allowing roundoff only in camera statistics.
+
+    NumPy reductions can differ by a few representable float64 values across
+    CPU/library builds. These derived image statistics are not trajectory values
+    or task-success tolerances; the underlying recording hashes remain exact.
+    """
+    if isinstance(reported, dict) and isinstance(observed, dict):
+        return reported.keys() == observed.keys() and all(
+            _recording_equal(reported[key], observed[key], (*path, key)) for key in reported)
+    if isinstance(reported, list) and isinstance(observed, list):
+        return len(reported) == len(observed) and all(
+            _recording_equal(left, right, (*path, index))
+            for index, (left, right) in enumerate(zip(reported, observed)))
+    if (len(path) >= 4 and path[-4] == 'cameras'
+            and path[-2] == 'sampled_standard_deviations'
+            and type(reported) is float and type(observed) is float):
+        return (math.isfinite(reported) and math.isfinite(observed)
+                and abs(reported - observed) <= 8 * max(math.ulp(reported), math.ulp(observed)))
+    return reported == observed
 
 
 def validate_delivery(*, operation, input_path, project_path, parameter_values, result_path, archive_path,
@@ -95,7 +118,7 @@ def validate_delivery(*, operation, input_path, project_path, parameter_values, 
                 raise ValueError('Scenario resolved workflow differs from its execution provenance')
             validated = validate_recording(recording, values, scene=selected)
             for key, value in validated.items():
-                if key != 'task_complete' and row[key] != value:
+                if key != 'task_complete' and not _recording_equal(row[key], value, (key,)):
                     raise ValueError(f'Scenario {index} recorded {key} differs from its report')
             terminal = row['terminal']
             counts = ('successful_episodes', 'requested_episodes', 'saved_demonstrations', 'attempts')
