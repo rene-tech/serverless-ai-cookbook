@@ -169,7 +169,7 @@ async function outputEntries(key, operationId, result) {
   return manifest.entries;
 }
 
-async function operationArtifact(key, operationId, artifactId) {
+async function operationArtifact(key, operationId, artifactId, { signal } = {}) {
   if (!OPERATION_ID.test(operationId) || !RUN_ID.test(artifactId)) throw failure('Invalid output identity.');
   const envelope = await platform(key, 'GET', `/v1/operations/${operationId}/result`);
   const nested = envelope.operation && typeof envelope.operation === 'object';
@@ -179,8 +179,18 @@ async function operationArtifact(key, operationId, artifactId) {
     ? [{ name: 'result', artifact: result.artifact }] : await outputEntries(key, operationId, result);
   const entry = entries.find(item => item.artifact?.artifact_id === artifactId);
   if (!entry) throw failure('This artifact is not in the operation output manifest.', 404);
-  const response = await fetch(`${PLATFORM}/v1/artifacts/${artifactId}/content`, { redirect: 'error',
-    headers: { Authorization: `Bearer ${privateKey(key)}` }, signal: AbortSignal.timeout(120000) });
+  // Bound connection/header wait, not the lifetime of a healthy large download.
+  // The HTTP owner cancels the stream when its downstream client disconnects.
+  const headers = new AbortController();
+  const deadline = setTimeout(() => headers.abort(), 45000);
+  let response;
+  try {
+    response = await fetch(`${PLATFORM}/v1/artifacts/${artifactId}/content`, { redirect: 'error',
+      headers: { Authorization: `Bearer ${privateKey(key)}` },
+      signal: signal ? AbortSignal.any([headers.signal, signal]) : headers.signal });
+  } catch {
+    throw failure('Output download interrupted. Retrieve outputs again; do not rerun compute.', 503);
+  } finally { clearTimeout(deadline); }
   if (!response.ok) throw failure('Output download failed. Retrieve outputs again; do not rerun compute.', response.status);
   return { response, name: String(entry.name).replace(/[^A-Za-z0-9._-]/g, '_') };
 }

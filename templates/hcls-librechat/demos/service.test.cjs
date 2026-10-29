@@ -335,6 +335,43 @@ test('artifact-backed operation results are verified and compacted for the agent
     await assert.rejects(service.operationArtifact('fixture-key', operationId, artifactId), /mismatched operation/);
   } finally { global.fetch = originalFetch; }
 });
+test('artifact downloads outlive the header deadline and honor client disconnection', async (t) => {
+  const service = await setup;
+  const originalFetch = global.fetch;
+  const operationId = 'op-streamed-download';
+  const artifactId = '22222222-2222-4222-8222-222222222222';
+  const controller = new AbortController();
+  let upstreamSignal, body;
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  // Model deadline signals with the controlled clock, without a two-minute test.
+  t.mock.method(AbortSignal, 'timeout', (ms) => {
+    const deadline = new AbortController();
+    setTimeout(() => deadline.abort(), ms);
+    return deadline.signal;
+  });
+  global.fetch = async (url, options) => {
+    if (String(url).endsWith('/result')) return Response.json({
+      schema: 'fs2-serve.nebius.ai/operation-artifact-result/v1', artifact: { artifact_id: artifactId },
+    });
+    upstreamSignal = options.signal;
+    return new Response(new ReadableStream({ start(stream) {
+      body = stream;
+      upstreamSignal.addEventListener('abort', () => stream.error(new Error('Disconnected')));
+    } }));
+  };
+  try {
+    const download = await service.operationArtifact('fixture-key', operationId, artifactId, { signal: controller.signal });
+    t.mock.timers.tick(120001);
+    assert.equal(upstreamSignal.aborted, false, 'healthy transfers must not expire at two minutes');
+    const reader = download.response.body.getReader();
+    body.enqueue(new Uint8Array([1, 2, 3]));
+    assert.deepEqual((await reader.read()).value, new Uint8Array([1, 2, 3]));
+    controller.abort();
+    await assert.rejects(reader.read(), /Disconnected/);
+    assert.equal(upstreamSignal.aborted, true, 'disconnect releases the upstream transfer');
+  } finally { global.fetch = originalFetch; }
+});
+
 test('compact discovery filters Apps and does not emit scientific input schemas', async () => {
   const service = await setup;
   const originalFetch = global.fetch;

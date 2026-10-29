@@ -52,9 +52,15 @@ router.post('/runs', wrap(async (req, res) => res.status(201).json(await service
 router.get('/runs/:id', wrap(async (req, res) => res.json(await service.track(req.user.id, await key(req), req.params.id, { source: 'panel' }))));
 router.get('/runs/:id/result', wrap(async (req, res) => res.json(await service.operationResult(await key(req), req.params.id))));
 router.get('/runs/:id/artifacts/:artifact', wrap(async (req, res) => {
-  const { response, name } = await service.operationArtifact(await key(req), req.params.id, req.params.artifact);
-  res.set('X-Content-Type-Options', 'nosniff').type('application/octet-stream').attachment(name);
-  await pipeline(Readable.fromWeb(response.body), res);
+  const controller = new AbortController();
+  const disconnected = () => { if (!res.writableFinished) controller.abort(); };
+  res.once('close', disconnected);
+  try {
+    const { response, name } = await service.operationArtifact(await key(req), req.params.id, req.params.artifact,
+      { signal: controller.signal });
+    res.set('X-Content-Type-Options', 'nosniff').type('application/octet-stream').attachment(name);
+    await pipeline(Readable.fromWeb(response.body), res);
+  } finally { res.removeListener('close', disconnected); }
 }));
 router.post('/runs/:id/cancel', wrap(async (req, res) => res.json(await service.platform(await key(req), 'POST', `/v1/operations/${req.params.id}:cancel`))));
 router.get('/studies', wrap(async (req, res) => res.json(await service.studies(await key(req)))));
