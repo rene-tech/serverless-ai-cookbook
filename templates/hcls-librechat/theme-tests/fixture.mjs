@@ -55,7 +55,7 @@ export function component(file, mocks) {
   return module.exports;
 }
 
-export async function fixture(source) {
+export async function fixture(source, extraMarkup = '') {
   const h = React.createElement;
   // Mock only data, navigation and library controls. Render the real Scientific
   // AI TSX and pinned OutputRenderer; never copy their text/color classes here.
@@ -113,7 +113,7 @@ export async function fixture(source) {
       `src="data:image/svg+xml;base64,${readFileSync(join(client, 'assets/nebius-logo.svg')).toString('base64')}"`);
   const { createTailwindColors } = require(join(source, 'packages/client/src/theme/utils/createTailwindColors.js'));
   const css = await postcss([tailwind({
-    content: [{ raw: markup, extension: 'html' }], darkMode: 'class',
+    content: [{ raw: markup + extraMarkup, extension: 'html' }], darkMode: 'class',
     theme: { extend: { colors: createTailwindColors() } },
   })]).process(readFileSync(join(source, 'client/src/style.css'), 'utf8'), { from: undefined });
   const highContrast = component(join(source, 'packages/client/src/theme/themes/highContrast.ts'), {});

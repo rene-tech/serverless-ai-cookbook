@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -165,4 +166,74 @@ test('production Vite build retains the complete theme and exact brand assets', 
     await build({ root: dir, configFile: false, logLevel: 'error' });
     await verifyBranding(join(dir, 'dist'));
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('chat header masks scrolling text and footer cannot cover content', async () => {
+  const source = await upstreamSource();
+  const dir = await mkdtemp(join(tmpdir(), 'scientific-chat-surfaces-'));
+  const page = await browser.newPage();
+  try {
+    await mkdir(join(dir, 'src/components/Chat'), { recursive: true });
+    await mkdir(join(dir, 'src/components/Auth'), { recursive: true });
+    for (const file of ['Chat/Header.tsx', 'Auth/AuthLayout.tsx']) {
+      await writeFile(join(dir, 'src/components', file), await readFile(join(source, 'client/src/components', file)));
+    }
+    const patch = () => execFileSync(process.execPath, [join(client, 'patch-branding.mjs'), dir]);
+    patch();
+    const header = await readFile(join(dir, 'src/components/Chat/Header.tsx'), 'utf8');
+    patch();
+    assert.equal(await readFile(join(dir, 'src/components/Chat/Header.tsx'), 'utf8'), header, 'Reapplying the release patch must be safe');
+    // Use the patched pinned header layout; its provider-backed controls are
+    // represented by ordinary buttons. Render the actual partner footer.
+    const headerClass = header.match(/return \(\s*<div className="([^"]+)"/)[1];
+    const Footer = component(join(client, 'PoweredByFooter.tsx'), {
+      'react-markdown': { __esModule: true, default: ({ children }) => children },
+      '~/data-provider': { useGetStartupConfig: () => ({ data: undefined }) },
+      '~/hooks': { useLocalize: () => key => key },
+    }).default;
+    const footer = renderToStaticMarkup(React.createElement(Footer, { startupConfig: { interface: {
+      privacyPolicy: { externalUrl: 'https://example.com/privacy' },
+      termsOfService: { externalUrl: 'https://example.com/terms' },
+    } } })).replace('src="/assets/nebius-logo.svg"', `src="data:image/svg+xml;base64,${(await readFile(join(client, 'assets/nebius-logo.svg'))).toString('base64')}"`);
+    const shell = `<div data-shell class="relative flex h-screen w-full flex-col bg-presentation">
+      <div data-header class="${headerClass}"><button>Chat model</button><button>Temporary Chat</button></div>
+      <div data-scroll class="min-h-0 flex-1 overflow-y-auto pt-16">
+        ${Array.from({ length: 30 }, (_, i) => `<p class="p-4">Scientific content ${i}</p>`).join('')}
+        <textarea aria-label="Message input" class="w-full bg-transparent p-4">Prepared prompt</textarea>
+      </div><div data-footer>${footer}</div></div>`;
+    const { css: shellCss } = await fixture(source, shell);
+    for (const mode of ['light', 'dark', 'high-contrast-light', 'high-contrast-dark']) {
+      for (const width of [390, 768, 1600]) {
+        await page.setViewportSize({ width, height: 600 });
+        const appearance = mode.endsWith('dark') ? 'dark' : 'light';
+        await page.setContent(`<html class="${appearance}"><head><style>${shellCss}</style>${theme}</head><body>${shell}</body></html>`);
+        if (mode.startsWith('high-contrast')) await page.evaluate(palette => {
+          for (const [key, value] of Object.entries(palette)) document.documentElement.style.setProperty(`--${key.replace(/^rgb-/, '')}`, value);
+        }, highContrast[appearance === 'dark' ? 'highContrastDarkTheme' : 'highContrastLightTheme']);
+        await page.locator('[data-scroll]').evaluate(el => { el.scrollTop = el.scrollHeight; });
+        const layout = await page.evaluate(() => {
+          const header = document.querySelector('[data-header]');
+          const footer = document.querySelector('[data-testid="powered-by-partners"]');
+          const footerSlot = document.querySelector('[data-footer]');
+          const input = document.querySelector('textarea');
+          const style = getComputedStyle(header);
+          return { headerColor: style.backgroundColor, headerImage: style.backgroundImage,
+            shellColor: getComputedStyle(document.querySelector('[data-shell]')).backgroundColor,
+            reserved: footerSlot.getBoundingClientRect().height,
+            inputBottom: input.getBoundingClientRect().bottom,
+            footerTop: footer.getBoundingClientRect().top };
+        });
+        assert.match(layout.headerColor, /^rgb\(/, `${mode}/${width}: header needs an opaque surface`);
+        assert.equal(layout.headerColor, layout.shellColor, 'Header must follow the selected theme');
+        assert.equal(layout.headerImage, 'none', 'A fading gradient lets content show through');
+        if (width >= 640) {
+          assert.ok(layout.reserved > 0, 'Footer must reserve layout space');
+          assert.ok(layout.inputBottom <= layout.footerTop, 'Footer must not cover the composer');
+          await page.getByRole('link', { name: 'com_ui_privacy_policy' }).waitFor();
+          await page.getByRole('link', { name: 'com_ui_terms_of_service' }).waitFor();
+        } else assert.equal(layout.reserved, 0, 'Keep the existing mobile footer visibility');
+        if (process.env.SCIENTIFIC_THEME_ARTIFACTS) await page.screenshot({ path: join(process.env.SCIENTIFIC_THEME_ARTIFACTS, `chat-surfaces-${mode}-${width}.png`) });
+      }
+    }
+  } finally { await page.close(); await rm(dir, { recursive: true, force: true }); }
 });

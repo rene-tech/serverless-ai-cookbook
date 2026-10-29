@@ -12,8 +12,14 @@ if (!header.includes('data-testid="nebius-workspace-brand"')) {
           <span className="hidden text-xs font-medium text-text-secondary xl:inline">Scientific AI Workspace</span>
         </div>
 ${anchor}`);
-  await writeFile(headerPath, header);
 }
+const headerFade = 'bg-gradient-to-b from-presentation via-presentation/70 to-transparent';
+const desktopFade = ' md:from-presentation/80 md:via-presentation/50 2xl:from-presentation/0 2xl:via-transparent';
+if (!header.includes('gap-2 bg-presentation p-2')) {
+  if (!header.includes(headerFade) || !header.includes(desktopFade)) throw new Error('Unsupported chat header background');
+  header = header.replace(headerFade, 'bg-presentation').replace(desktopFade, '');
+}
+await writeFile(headerPath, header);
 const authPath = join(client, 'src/components/Auth/AuthLayout.tsx');
 let auth = await readFile(authPath, 'utf8');
 if (!auth.includes('src="/assets/nebius-logo.svg"')) {
