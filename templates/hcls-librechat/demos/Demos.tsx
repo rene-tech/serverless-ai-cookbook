@@ -185,7 +185,8 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
     const response = await request.getResponse<Blob>(url, { responseType: 'blob' });
     download(name, response.data, response.headers['content-type'] || 'application/octet-stream');
   }
-  const selectedEntry = workspace.data?.data.find((entry) => entry.kind === 'file' && entry.path === selectedWorkspaceFile);
+  const workspaceData = enabled && !accessError(workspace.error) && !accessError(settings.error) ? workspace.data : undefined;
+  const selectedEntry = workspaceData?.data.find((entry) => entry.kind === 'file' && entry.path === selectedWorkspaceFile);
   const downloadWorkspaceFile = (entry: WorkspaceEntry) => act(async () => {
     try {
       await downloadFile(`${BASE}/workspace/file?path=${encodeURIComponent(entry.path)}`, entry.name);
@@ -315,17 +316,21 @@ function CoreWorkbench({ tab, choose }: { tab: string; choose: (tab: string) => 
     </section>}
     {tab === 'workspace' && <section>
       <h2 className="text-xl font-semibold">Workspace</h2><p className="my-2 text-sm text-text-secondary">Files in the bucket mounted for this deployment. Model inputs should be uploaded as immutable platform artifacts before a run.</p>
-      {workspace.data && <p className="mb-3 text-xs">Bucket: <strong>{String(workspace.data.info.team_bucket_name || workspace.data.info.bucket_name || 'configured by platform')}</strong> · {String(workspace.data.info.mode || 'mounted')} storage</p>}
+      {workspaceData && <p className="mb-3 text-xs">Bucket: <strong>{String(workspaceData.info.team_bucket_name || workspaceData.info.bucket_name || 'configured by platform')}</strong> · {String(workspaceData.info.mode || 'mounted')} storage</p>}
       {selectedWorkspaceFile && <div className="mb-4 rounded-xl border border-border-medium p-4">
         <p className="mb-2 text-sm">Selected file: <code>{selectedWorkspaceFile}</code></p>
         {selectedEntry ? <Button disabled={busy} onClick={() => void downloadWorkspaceFile(selectedEntry)}>Download selected file</Button>
-          : !workspace.isLoading && workspace.data && <p role="status">This file was not found in the selected folder. No download was started.</p>}
+          : !workspace.isLoading && !workspace.error && workspaceData && <p role="status">This file was not found in the selected folder. No download was started.</p>}
       </div>}
       <form className="mb-4 grid gap-2 rounded-xl border border-border-medium p-4 sm:grid-cols-[1fr_1fr_auto]" onSubmit={(event) => { event.preventDefault(); void act(async () => {
         if (!workspaceFile) return; const data = new FormData(); data.append('file', workspaceFile); data.append('path', workspaceName || workspaceFile.name); await request.postMultiPart(`${BASE}/workspace`, data); setWorkspaceFile(null); setWorkspaceName('');
       }); }}><input type="file" onChange={(event) => { const file = event.target.files?.[0] || null; setWorkspaceFile(file); if (file) setWorkspaceName([workspacePath, file.name].filter(Boolean).join('/')); }} /><Input aria-label="Workspace object path" value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} /><Button type="submit" disabled={!workspaceFile || busy}>Upload</Button></form>
       <div className="mb-3 flex items-center gap-2"><Button size="sm" variant="outline" disabled={!workspacePath} onClick={() => setWorkspacePath(workspacePath.split('/').slice(0, -1).join('/'))}>Up</Button><code className="text-xs">/{workspacePath}</code></div>
-      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>Name</th><th>Kind</th><th>Size</th><th>Updated</th></tr></thead><tbody>{(workspace.data?.data || []).map((entry) => <tr key={entry.path} className="border-t border-border-light"><td className="py-3">{entry.kind === 'directory' ? <button className="underline" onClick={() => setWorkspacePath(entry.path)}>{entry.name}/</button> : <button className="underline" onClick={() => void downloadWorkspaceFile(entry)}>{entry.name}</button>}</td><td>{entry.kind}</td><td>{entry.size_bytes?.toLocaleString() || '—'}</td><td>{new Date(entry.updated_at).toLocaleString()}</td></tr>)}</tbody></table></div>
+      {enabled && workspace.isLoading && <p role="status">Loading workspace folder…</p>}
+      {workspaceData && workspace.isFetching && !workspace.isLoading && <p role="status">Refreshing workspace folder…</p>}
+      {workspaceData && Boolean(workspace.error) && <p role="status">Showing the last known listing{workspace.dataUpdatedAt ? ` from ${new Date(workspace.dataUpdatedAt).toLocaleString()}` : ''}. Refresh failed; these files may have changed.</p>}
+      {workspaceData && !workspace.isLoading && !workspace.error && workspaceData.data.length === 0 && <p role="status">This folder is empty.</p>}
+      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>Name</th><th>Kind</th><th>Size</th><th>Updated</th></tr></thead><tbody>{(workspaceData?.data || []).map((entry) => <tr key={entry.path} className="border-t border-border-light"><td className="py-3">{entry.kind === 'directory' ? <button className="underline" onClick={() => setWorkspacePath(entry.path)}>{entry.name}/</button> : <button className="underline" onClick={() => void downloadWorkspaceFile(entry)}>{entry.name}</button>}</td><td>{entry.kind}</td><td>{entry.size_bytes?.toLocaleString() || '—'}</td><td>{new Date(entry.updated_at).toLocaleString()}</td></tr>)}</tbody></table></div>
     </section>}
   </main>;
 }
