@@ -8,6 +8,25 @@ permissions:
   contents: read
 
 jobs:
+  isaac-modes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest==9.2.0 jsonschema==4.26.0 numpy==2.5.1 h5py==3.16.0 Pillow==12.2.0 PyYAML==6.0.3 msgpack==1.2.1 eclipse-zenoh==1.9.0
+      - run: |
+          curl --fail --location --silent --show-error https://codeload.github.com/isaac-for-healthcare/i4h-workflows/tar.gz/5b430a6d8d8c9cccc547b05b5e079d22b08ade9e -o /tmp/i4h.tar.gz
+          echo '418b51c4546b71a4c448c98c26eed56941794ac2314e8c6afa0006852e64c46b  /tmp/i4h.tar.gz' | sha256sum --check
+          mkdir /tmp/i4h
+          tar -xzf /tmp/i4h.tar.gz -C /tmp/i4h --strip-components=1
+      - run: python -m pytest -p no:cacheprovider -q templates/job-isaac-healthcare/tests/test_workflow_arguments.py
+        env:
+          I4H_WORKFLOWS: /tmp/i4h
+          PYTHONPATH: templates/job-isaac-healthcare/src:/tmp/i4h/common:/tmp/i4h/engine:/tmp/i4h/tasks/basic:/tmp/i4h/tasks/ik:/tmp/i4h/tasks/teleop:/tmp/i4h/arena:/tmp/i4h/workflows
+
   contrast:
     runs-on: ubuntu-latest
     timeout-minutes: 10

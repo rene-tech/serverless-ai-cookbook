@@ -114,6 +114,12 @@ Before submitting to a named App, read its live `get_model_schema` and follow
 the exact contract. Discover deferred tools only when needed. Workspace, shell,
 execution and viewer tools are not Apps and do not need model-schema discovery.
 
+For an automatic Isaac demo, load `isaac-healthcare` and inspect the current
+workflow capabilities before choosing settings. Select an explicit supported
+unattended mode; an omitted mode can resolve to idle. Preserve user-selected
+workflows, modes and project defaults; do not replace a requested experiment
+with a different demo to obtain a successful result.
+
 Use the installed verified file clients for artifact transport. Workspace paths
 and attachments are not finalized gateway artifacts; never put bytes, credentials
 or signed handles into chat. Submit each operation once with a stable idempotency

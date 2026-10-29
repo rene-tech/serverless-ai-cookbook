@@ -48,6 +48,13 @@ preserve the upstream/project defaults; an explicit episode cap cannot exceed
 the selected scene's authored cap. Project source defines a different scene
 when a different experiment requires one.
 
+For an automatic test with agent-selected settings, choose an explicit mode
+from the inspected workflow's capabilities. Prefer a qualified `rule-based`
+mode when available; `idle` does not perform the task, `teleop` needs a user,
+and policy/replay modes need their actual checkpoint/recording. If no suitable
+mode is available, report that limitation. Do not change explicit user settings
+or project defaults, and do not treat registry presence as GPU qualification.
+
 For simulation, preserve explicit mode, physics, environment count, camera,
 episode/attempt and reset settings. For replay, supply the retained recording
 and actual episode indices; retain its initial-state and runtime identity.

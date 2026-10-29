@@ -11,6 +11,31 @@ from isaac_healthcare_runtime.contract import parameters
 from isaac_healthcare_runtime.inspection import resolve
 
 
+def test_omitted_mode_preserves_idle_instead_of_implying_an_automatic_task(tmp_path):
+    from isaac_healthcare_runtime.runtime import command
+
+    values = parameters({'workflow': 'scissor_pick_and_place'})
+    workflow = resolve(values)
+    assert workflow.mode == 'idle'
+    assert len(workflow.graph.nodes) == 1
+    assert workflow.graph.nodes[0].task_id == 'local/idle'
+    assert '--mode' not in command(values, {'seed': None}, tmp_path)
+
+
+@pytest.mark.parametrize('mode', ['rule-based', 'idle', 'teleop'])
+def test_explicit_demo_or_customer_mode_reaches_the_same_workflow_unchanged(tmp_path, mode):
+    from isaac_healthcare_runtime.runtime import command
+
+    values = parameters({'workflow': 'scissor_pick_and_place', 'mode': mode})
+    workflow = resolve(values)
+    argv = command(values, {'seed': None}, tmp_path)
+    assert workflow.mode == mode and workflow.name == values['workflow']
+    assert argv[argv.index('--mode') + 1] == mode
+    assert argv[argv.index('--workflow') + 1] == values['workflow']
+    if mode == 'rule-based':
+        assert len(workflow.graph.nodes) > 1
+
+
 def test_actual_teleop_builder_accepts_explicit_defaults_override_and_custom_kwargs():
     values = parameters({'workflow': 'scissor_pick_and_place', 'mode': 'teleop',
                          'workflow_args': {'port': 47041, 'sensitivity': 0.37, 'base_height': 1.4,
