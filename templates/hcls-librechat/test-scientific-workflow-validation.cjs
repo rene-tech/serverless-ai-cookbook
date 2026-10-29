@@ -129,6 +129,40 @@ test('unrelated tools and other servers retain the original call and generic err
   }
 });
 
+const appSchema = { type: 'object', additionalProperties: false, required: ['request', 'idempotency_key'], properties: {
+  idempotency_key: { type: 'string', minLength: 8 },
+  request: { type: 'object', additionalProperties: false, required: ['parameters'], properties: {
+    max_wall_seconds: { type: 'integer', minimum: 1, maximum: 1800 },
+    parameters: { type: 'object', additionalProperties: false, properties: {
+      episodes: { type: 'integer', minimum: 1, maximum: 2 },
+    } },
+  } },
+} };
+function appTool(name = 'submit_isaac_healthcare', schema = appSchema) {
+  return make(name, schema, async args => { calls++; return [JSON.stringify(args), null]; }, 'scientific-ai-apps');
+}
+
+test('typed App diagnostics identify the missing request wrapper without dispatch', async () => {
+  await rejected(appTool(), { parameters: { episodes: 2 }, idempotency_key: 'PRIVATE_SENTINEL' },
+    /\$\.request: required/);
+});
+
+test('typed App diagnostics locate misplaced controls and invalid nested parameters', async () => {
+  await rejected(appTool(), { request: { parameters: { episodes: 2, max_wall_seconds: 1800 } },
+    idempotency_key: 'PRIVATE_SENTINEL' }, /\$\.request\.parameters: contains an unsupported field/);
+  await rejected(appTool(), { request: { parameters: { episodes: 3 } },
+    idempotency_key: 'PRIVATE_SENTINEL' }, /\$\.request\.parameters\.episodes: must be <= 2/);
+});
+
+test('new typed Apps use their published flat or wrapped schema, never an adapter', async () => {
+  await rejected(appTool('future_native', { type: 'object', required: ['image'],
+    properties: { image: { type: 'string' } } }), { request: { image: 'PRIVATE_SENTINEL' } }, /\$\.image: required/);
+  const args = { request: { parameters: { episodes: 2 }, max_wall_seconds: 1800 }, idempotency_key: 'fixture-key' };
+  const before = calls;
+  assert.deepEqual(JSON.parse(await appTool().invoke(args)), args);
+  assert.equal(calls, before + 1, 'A valid call must be dispatched exactly once');
+});
+
 test('formatter preserves the exact original parsing exception object and call arguments', async () => {
   const error = new ToolInputParsingException('original', '{}');
   const input = {};
