@@ -107,6 +107,7 @@ test('batch result retrieval retries independently and binds named downloads to 
       error => error.code === 'ENOENT');
     unavailable = false;
     const output = await service.operationResult('flow-key', id);
+    assert.equal(output.result_url, `/demos?tab=runs&operation=${id}&view=result`);
     assert.deepEqual(output.result.summary.validation.geometry.shape, [512, 512, 38]);
     assert.equal(output.result.summary.validation.foreground_voxels, 0);
     assert.equal(output.result.summary.task_complete, false);
@@ -307,6 +308,7 @@ test('artifact-backed operation results are verified and compacted for the agent
   };
   try {
     const resolved = await service.operationResult('fixture-key', operationId);
+    assert.equal(resolved.result_url, `/demos?tab=runs&operation=${operationId}&view=result`);
     assert.equal(resolved.result.schema, 'fs2-serve.nebius.ai/resolved-operation-result/v1');
     assert.equal(resolved.result.summary.confidence, 72.5);
     assert.deepEqual(resolved.result.summary.plddt, { type: 'numeric-array', count: 3,
@@ -324,6 +326,7 @@ test('artifact-backed operation results are verified and compacted for the agent
     artifact.size_bytes = payload.length;
     artifact.sha256 = crypto.createHash('sha256').update(payload).digest('hex');
     const large = await service.operationResult('fixture-key', operationId);
+    assert.equal(large.result_url, resolved.result_url);
     assert.equal(large.artifacts?.[0]?.download_url, `/api/scientific-demos/runs/${operationId}/artifacts/${artifactId}`,
       'results above the preview limit must still have a working download');
     const download = await service.operationArtifact('fixture-key', operationId, artifactId);
@@ -438,6 +441,7 @@ test('inline output is compacted, saved losslessly and never overwrites differen
     ? result : { id, status: 'succeeded' }));
   try {
     const output = await service.operationResult('fixture-key', id);
+    assert.equal(output.result_url, `/demos?tab=runs&operation=${id}&view=result`);
     assert.equal(output.result.structures[0].pdb.type, 'long-string');
     assert.deepEqual(JSON.parse(await fs.readFile(output.workspace_file.path, 'utf8')), result);
     const link = new URL(output.workspace_file.workspace_url, 'https://workbench.invalid');
