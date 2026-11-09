@@ -156,7 +156,8 @@ RUN python3 -m venv /opt/scientific-client \
     biopython==1.85 gemmi==0.7.3 rdkit==2025.3.6 h5py==3.13.0 \
     nibabel==5.4.2 scikit-image==0.26.0 matplotlib==3.11.2 Pillow==12.3.0 \
     anndata==0.12.3 scikit-learn==1.7.2 umap-learn==0.5.12 \
- && /opt/scientific-client/bin/python -c 'import anndata, matplotlib, nibabel, scipy, skimage, sklearn, umap; from PIL import Image'
+    MDAnalysis==2.9.0 imageio-ffmpeg==0.6.0 \
+ && /opt/scientific-client/bin/python -c 'import anndata, matplotlib, nibabel, scipy, skimage, sklearn, umap, MDAnalysis, imageio_ffmpeg; from PIL import Image'
 RUN --mount=type=bind,source=templates/hcls-librechat,target=/tmp/client,ro \
     /opt/scientific-client/bin/python /tmp/client/scripts/verify-observer-recovery.py --source /tmp/client
 COPY life-science/bionemo-librechat/viewer-mcp.py /opt/bionemo/viewer-mcp.py
@@ -240,8 +241,9 @@ ENV SCIENTIFIC_REQUIRE_PERSISTENT_STATE=true \
     SCIENTIFIC_MODELS_MCP_URL=https://89.169.99.188/mcp
 
 EXPOSE 3080
+COPY templates/hcls-librechat/healthcheck.py /opt/hcls-librechat/healthcheck.py
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \
-  CMD ["wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3080/health"]
+  CMD ["/opt/scientific-client/bin/python", "/opt/hcls-librechat/healthcheck.py"]
 # The operator explicitly enables root command execution in this environment.
 USER root
 ENTRYPOINT ["/usr/bin/tini", "-s", "--", "python3", "/opt/hcls-librechat/state-supervisor.py", "--", "/usr/local/bin/hcls-librechat-entrypoint"]

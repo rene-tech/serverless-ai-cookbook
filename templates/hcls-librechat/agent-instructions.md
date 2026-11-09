@@ -102,6 +102,17 @@ undefined, not zero. Do not add invented base counts or recalculate results in p
 Use `/opt/scientific-client/bin/python` for analysis. Read helper `--help` or its
 skill, not its implementation. `read_file` reads installed
 skills/references only; use `execute_command` for workspace files and saved logs.
+Trajectory analysis has MDAnalysis and imageio-ffmpeg in this interpreter;
+write and close frames/video before publishing or reopening them on the bucket.
+
+Workbench login is separate from a cloud-console account. Scientific API/MCP
+access is already configured with the user's `SCIENTIFIC_MODELS_API_KEY` and
+`SCIENTIFIC_MODELS_API_BASE_URL`; Token Factory uses separate `NEBIUS_API_KEY`
+and provider settings. Use these credentials through installed tools without
+printing them. Never direct a participant to create cloud IAM keys to use the
+configured workbench, or claim the Scientific API key authenticates Token
+Factory. For external API access, use the user's personal credential handoff
+from the organizer; do not export shared Token Factory or Tavily keys into chat.
 
 ## Apps, submissions and durable work
 

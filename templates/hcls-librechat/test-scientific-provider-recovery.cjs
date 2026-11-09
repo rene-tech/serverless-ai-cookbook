@@ -44,10 +44,23 @@ test('recovery notice is host-authored, retains results, and does not invent a u
   assert.match(messages[1].content, /instead of resubmitting/);
 });
 
-test('a second empty response stays incomplete, never loops indefinitely', async () => {
-  let calls = 0;
-  const result = await invokeWithRecovery({ invoke: async () => { calls++; return response(); },
-    canRetry: () => true, observeEmpty: () => {} });
+test('a second empty response surfaces a failure instead of a blank successful turn', async () => {
+  let calls = 0; const observed = [];
+  await assert.rejects(invokeWithRecovery({ invoke: async () => { calls++; return response(); },
+    canRetry: () => true, observeEmpty: (message) => observed.push(message) }), (error) => {
+    assert.equal(error.code, 'PROVIDER_EMPTY_RESPONSE');
+    assert.match(error.message, /Existing files and scientific operations are preserved/);
+    return true;
+  });
+  assert.equal(calls, 2); assert.equal(observed.length, 2);
+});
+
+test('cancellation during the recovery is not reported as a provider failure', async () => {
+  const signal = { aborted: false }; let calls = 0;
+  const result = await invokeWithRecovery({ signal, invoke: async () => {
+    if (++calls === 2) signal.aborted = true;
+    return response();
+  }, canRetry: () => true, observeEmpty: () => {} });
   assert.equal(calls, 2); assert.equal(isEmptyStoppedResponse(result), true);
 });
 

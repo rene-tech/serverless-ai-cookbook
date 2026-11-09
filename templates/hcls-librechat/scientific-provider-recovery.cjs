@@ -39,6 +39,12 @@ async function invokeWithRecovery({ invoke, signal, canRetry, observeEmpty }) {
     message.response_metadata = { ...message.response_metadata,
       scientific_empty_response_retries: 1 };
   }
+  if (isEmptyStoppedResponse(second) && !signal?.aborted) {
+    observeEmpty(second.messages[0]);
+    const error = new Error('The chat provider returned no answer after one recovery attempt. Existing files and scientific operations are preserved. Continue this chat to observe existing work; do not resubmit a scientific job.');
+    error.code = 'PROVIDER_EMPTY_RESPONSE';
+    throw error;
+  }
   return second;
 }
 

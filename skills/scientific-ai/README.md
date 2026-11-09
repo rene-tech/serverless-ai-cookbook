@@ -53,6 +53,9 @@ in the bundle does not establish deployment or caller access.
 
 Start with `scientific-gateway`; load only skills relevant to your task. For
 non-LibreChat clients, see its [portable client contract](scientific-gateway/references/portable-client.md).
+For event participants using Claude Code, start with
+[`scientific-ai-hackathon`](scientific-ai-hackathon/SKILL.md), including its
+MCP setup and short walkthrough. It uses the same caller-authorized model API.
 Client-specific tools are conditional, not promised by downloading Markdown.
 Private upstream Nebius infrastructure skills are optional operator extensions
 and are not redistributed here. Adapted NVIDIA guidance is attributed in

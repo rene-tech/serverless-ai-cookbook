@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.10.28.1",
+  "version": "2026.11.09.1",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -145,6 +145,7 @@
       "sam2-1-hiera-large"
     ],
     "scientific-agent-tutorials": [],
+    "scientific-ai-hackathon": [],
     "scientific-batch": [
       "alphafold3",
       "openfold3-openbind",
