@@ -167,6 +167,8 @@ RUN SCIENTIFIC_DISCOVERY_INSTALLED=1 SCIENTIFIC_DISCOVERY_GRAPH=/app/node_module
     node --test /opt/hcls-librechat/test-deferred-discovery-boundary.cjs
 COPY templates/hcls-librechat/scientific-provider-recovery.cjs templates/hcls-librechat/scientific-verified-delivery.cjs templates/hcls-librechat/patch-agent-reliability.mjs /opt/hcls-librechat/
 RUN node /opt/hcls-librechat/patch-agent-reliability.mjs
+COPY templates/hcls-librechat/scientific-agent-budget.cjs templates/hcls-librechat/patch-bounded-reasoning.mjs /opt/hcls-librechat/
+RUN node /opt/hcls-librechat/patch-bounded-reasoning.mjs
 COPY templates/hcls-librechat/scientific-title-options.cjs templates/hcls-librechat/patch-title-options.mjs templates/hcls-librechat/patch-skill-result.mjs /opt/hcls-librechat/
 RUN node /opt/hcls-librechat/patch-title-options.mjs \
  && node /opt/hcls-librechat/patch-skill-result.mjs

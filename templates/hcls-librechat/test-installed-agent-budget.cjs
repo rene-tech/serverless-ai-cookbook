@@ -169,7 +169,7 @@ test('a late tool chunk from a provider ignoring abort is never executed', async
 
 test('submitted durable work outlives a thinking timeout with no replay or cancellation', async () => {
   let generations = 0;
-  const job = { id: randomUUID(), state: 'not-submitted', submissions: 0 };
+  const job = { id: 'op-' + randomUUID(), state: 'not-submitted', submissions: 0 };
   let completion;
   const run = await fixture(async function* (...args) {
     generations++;
@@ -182,7 +182,7 @@ test('submitted durable work outlives a thinking timeout with no replay or cance
   const result = await execute(run, () => {
     job.submissions++; job.state = 'running';
     completion = sleep(350).then(() => { job.state = 'completed'; });
-    return JSON.stringify({ job_id: job.id, status: 'running' });
+    return JSON.stringify({ operation_id: job.id, status: 'running' });
   });
   assertPause(result, 'model_deadline');
   assert.match(result.reply.content, new RegExp(job.id));
