@@ -1,6 +1,6 @@
 ---
 name: binder-design-campaigns
-description: Plan and run bounded hosted Proteina-Complexa, BoltzGen, Mosaic or BindCraft campaigns, retaining target identity, seeds, filters, artifacts and negative candidates. Use for comparative binder-design batches and follow-up evaluation, not unsupported upstream deployment recipes.
+description: Plan and run bounded hosted Proteina-Complexa, BoltzGen, Mosaic, BindCraft or BindCraft2 campaigns, retaining target identity, seeds, filters, artifacts and negative candidates. Use for comparative binder-design batches and follow-up evaluation, not unsupported upstream deployment recipes.
 license: Apache-2.0 AND CC-BY-4.0
 ---
 

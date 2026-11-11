@@ -6,6 +6,18 @@
 | `boltzgen` | Use its published design specification and manifest role. Keep target entities, designed entities and constraints distinct; not the protein-only native `boltz2` App. |
 | `mosaic` | Record the exact deployed implementation/version, not an assumed paper identity. Use its source bundle/config schema and retain optimization/selection metrics and failed candidates. |
 | `bindcraft` | Preserve target chains, hotspots, trajectory limits and filter settings. Report no candidates passing as a result. Model access does not independently grant a PyRosetta license. |
+| `bindcraft2` | Separate versioned implementation from BindCraft1. Discover authorized availability first. Submit native scientific settings and owner-local targets/scaffolds as the `campaign` tar artifact (`bindcraft2-input-tar/v1`); `parameters.input_path` selects `settings.json` by default. Preserve native modalities, chains, hotspots, lengths, seeds and filters. |
+| `bindcraft2-analysis` | CPU operations are `score`, `rank`, `filter`, `campaign-output` and `archive`. Supply structures or campaign files in the same artifact contract, selecting `input_path` and the operation's live parameters. Ranking supplied scores is not a new design or refolding run. |
+
+BindCraft2 1.0.4 does not require PyRosetta. Its native scientific settings belong
+inside the uploaded settings JSON, not invented top-level MCP fields. Check the
+live schema and declared continuation capabilities before a long campaign;
+upstream resume support alone does not establish hosted recovery. An exhausted
+campaign with zero accepted designs is a retained negative result, not an accepted
+binder. Keep native acceptance filters separate from any subsequent user-defined
+ranking, and never describe predicted interface scores as experimentally measured
+affinity. Access is deployment-specific; do not substitute BindCraft1 when
+BindCraft2 is unavailable to the current owner.
 
 For contracts with `parameters.source.kind: uploaded-bundle`, place
 `"source":{"kind":"uploaded-bundle"}` in the parameter file alongside the
