@@ -16,9 +16,10 @@ This reference supplements `SKILL.md`. Live `tools/list` and
 - Ordinary serving operation access is tied to the exact submitting key and
   principal. Preserve that identity until required results are retrieved.
 - Tool discovery is authorization-aware, private, and uncached. Subscribe to
-  tool-list change notifications where supported. Compare the returned
-  `tool_catalog_revision` and refetch tools when it changes; reconnect after
-  replacing credentials.
+  tool-list change notifications only if the server advertises that capability.
+  Otherwise compare `tool_catalog_revision` before a new workflow and after a
+  missing/stale tool response, then refetch changed tools. Do not poll during
+  every operation status read. Reconnect after replacing credentials.
 
 The MCP SDK handles protocol negotiation. Let LibreChat manage
 `MCP-Protocol-Version`, request routing headers,
@@ -31,6 +32,13 @@ Use the current model schema, upload reservation and download handle for
 request limits, allowed encodings, size bounds and expiry. Do not reuse limits
 from an earlier deployment. A signed transfer handle expires independently of
 the API key and the underlying immutable artifact.
+
+Always use the returned expiry, not a hardcoded 60-second assumption. To refresh
+an expired upload URL, repeat the reservation with the **same** idempotency key,
+hash, byte count, MIME and compression; the reservation remains the same upload
+identity. Finalize and verify existing bytes after an ambiguous transfer rather
+than assuming failure or starting model work. A download can obtain a fresh
+handle for the same owned artifact; this never reruns the model.
 
 Raw bytes are not exposed as agent tools. The trusted client uploads through
 the handle/content path returned by reservation and downloads through the
@@ -98,7 +106,12 @@ An upload reservation returns `upload_id`, not a job ID. Finalize with that ID;
 the response is `{"state":"finalized","artifact":{...}}`. Multipart commands
 use the outer upload ID plus `action`, optional `multipart_upload_id` and
 `part_numbers`; there is no operation to poll or cancel for a reservation.
-Manifests use `entries`, each with `name` and `artifact`, never role/ref aliases.
+Manifests use `entries`, each with `name`, `semantic_type` and `artifact`, never
+role/ref aliases. All three fields are required. Source MIME describes actual
+bytes; the outer manifest is separately uploaded as
+`application/vnd.fs2.scientific-manifest+json`. For example, RFdiffusion
+`design-backbone` uses a `text/plain` provenance note, while `scaffold-motif`
+uses `chemical/x-pdb`; neither becomes JSON by changing its filename.
 After submission, poll status and wait for `operation.result_available`. The
 scientific result describes attempts, execution identity, semantic validation
 and output artifacts. Download the output manifest and its entries; verify exact

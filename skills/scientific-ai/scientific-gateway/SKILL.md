@@ -14,14 +14,18 @@ key determines the visible Apps and owns the resulting operations and artifacts.
 
 ## Discover before invoking
 
-1. For discovery, call compact `workbench_list_apps` once with `{}`. It returns
+1. In LibreChat, call compact `workbench_list_apps` once with `{}`. It returns
    the complete authorized catalog without filters. For a domain question select
    the relevant returned group; do not enumerate domains through keyword retries.
    `workbench_search_apps` is a separate literal phrase search: zero matches do
    not mean zero permissions. For a named App, read its schema directly. Portable
    clients without the workbench helper use hosted `list_models` and `list_scientific_models`.
+   Use their `query`/`limit`/`offset` fields when advertised; follow `next_offset`
+   for additional compact pages, and retrieve only the selected App's full schema.
    Compare their `tool_catalog_revision`; refresh tools when it changes.
-2. Call `get_model_schema` with the selected public `model_id` and protocol.
+2. Call `get_model_schema` with the selected public `model_id`. Supply a protocol
+   only when selecting a published contract: `scientific-batch` selects that
+   execution family and `scientific-batch-v1` its protocol. Omit it when unknown.
 3. Use the returned `contracts[].tool_name`, exact `input_schema`, examples,
    source references and active-runtime identity. Independent Apps using the
    same underlying model remain separate Apps.
@@ -102,7 +106,7 @@ Never invent or reuse another user's artifact ID. Keep base64 values and
 structure/media files out of chat. Use returned upload/download handles or
 the HTTPS artifact path through the trusted file helper. Check handle expiry.
 
-For a native artifact input use `/opt/bionemo/upload-artifact.py`; this uploads
+Inside LibreChat, for a native artifact input use `/opt/bionemo/upload-artifact.py`; this uploads
 one exact local file but does not create a scientific input manifest or run a
 model. For scientific batch use the installed existing
 `/opt/scientific-client/bin/python /opt/bionemo/invoke-scientific-batch.py --help`.
@@ -113,6 +117,13 @@ output directory/idempotency key and resume it after a bounded wait. Inspect all
 promised output artifacts and scientific constraints; transport verification is
 not scientific validation.
 
+Outside LibreChat, use the checksummed portable client described in
+[portable setup](references/portable-client.md). It packages the same helpers
+with relative paths and Python dependencies. Follow the
+[worked upload-to-result example](references/portable-rfdiffusion.md); no
+`/opt` installation, workbench executor or new storage integration is required.
+For standard S3 downloads, see [your existing bucket](references/bucket-access.md).
+
 Read the **top-level** `get_model_schema.input_artifact_contract` for exact
 source entry name, semantic type, media type and compression. An `entry` is a
 fixed source role; `operations` selects a role by the published operation;
@@ -120,11 +131,13 @@ fixed source role; `operations` selects a role by the published operation;
 entry name or invent a semantic type from a model name. The source media type
 describes its actual bytes (such as `application/json`); the helper creates the
 outer `application/vnd.fs2.scientific-manifest+json` artifact separately. Missing
-contract metadata is not permission to guess. Keep rejected receipts unchanged;
+contract metadata is a server documentation gap, not permission to guess or
+try GPU submissions to discover it. Record the model, operation and catalog
+revision for support. Keep rejected receipts unchanged;
 an explicitly corrected request has new metadata/identity and must not replace
 an accepted or unknown admission.
 
-For sequential native, batch or mixed multi-App work use `run_scientific_workflow`
+In LibreChat, for sequential native, batch or mixed multi-App work use `run_scientific_workflow`
 with a `scientific-workflow/v2` study. Discover its current phase schemas using
 `describe_scientific_workflow`; `compose_scientific_workflow` can build a larger
 plan. Include requested analysis and deliverables. Native phases name actual
@@ -145,6 +158,9 @@ Native speech calls consume concurrency too; do not submit them all in parallel
 when the caller policy allows only one active operation. Do not change keys to evade a rejected
 or unknown admission. Optional `/v1/me` describes caller policy, not real-time
 reserved capacity.
+Plain MCP clients do not inherit this supervisor: use the portable file client
+and its saved operation receipt, or the client's own explicitly configured
+orchestration. Do not promise background continuation from a handwritten plan.
 
 ## Errors and user-facing results
 
@@ -156,9 +172,11 @@ reserved capacity.
   section, then deliver its real workspace link inline. Keep units, provenance,
   timing boundaries and unavailable measurements explicit. Use an analysis-only
   follow-up for missing presentation; preserve accepted work and original files.
-- MCP `-32602` with `data.type: model_input_validation` means no work was
-  admitted. Use each issue's JSON-pointer `field`, `rule`, and any
-  `missing_fields`, `allowed_fields`, or `expected` details to fix the input.
+- When MCP returns `data.type: model_input_validation`, use each provided
+  issue's JSON-pointer `field`, `rule`, and `missing_fields`, `allowed_fields`,
+  or `expected` details. Preserve a prose-only response as a diagnostic gap;
+  never invent structured fields. Only an explicit `admission: not-submitted`
+  or a documented validation response proves that no work was admitted.
 - For 401/403 or a missing App, check this user's key and current catalog. Never
   substitute an admin credential or claim academic eligibility in the request.
 - For 429, retryable 503, or an interrupted submission, retain the same

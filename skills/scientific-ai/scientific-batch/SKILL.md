@@ -17,8 +17,18 @@ publication names.
 
 ## How to submit
 
+The study/executor tools in steps 2–4 and the analysis/report sections below
+are **LibreChat additions**, not tools supplied by the hosted model MCP. Plain
+MCP clients use the same typed model contract with the
+[portable file client](../scientific-gateway/references/portable-client.md)
+and [worked example](../scientific-gateway/references/portable-rfdiffusion.md).
+Its receipt resumes upload/observation/download without resubmitting accepted
+work; it does not install a multi-phase background supervisor.
+
 1. For a known model, read its live `get_model_schema` directly, including
    `input_artifact_contract`, parameter schema, allowed operation and examples.
+   If source-role metadata is missing, report that precise server contract gap;
+   do not invent an entry/media type or provoke a GPU failure to discover it.
    Use exact registered tool names. Do not inspect implementation source or
    load unrelated catalogs to discover a known contract.
 2. Whole studies use `run_scientific_workflow_mcp_environment-execution` with

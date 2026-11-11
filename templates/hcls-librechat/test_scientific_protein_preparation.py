@@ -107,7 +107,7 @@ def test_worker_chain_uses_prepared_content_not_paths_as_model_inputs(tmp_path, 
     args['backbone'] = {'step': 'rf', 'file': 'output-manifest.json'}
     steps = [
         {'id': 'rf', 'kind': 'batch', 'model': 'rfdiffusion', 'tool': 'submit_rfdiffusion',
-         'operation': 'design-backbone', 'media_type': 'application/json', 'entry_name': 'design_constraint',
+         'operation': 'design-backbone', 'media_type': 'text/plain', 'entry_name': 'design_constraint',
          'semantic_type': 'rfdiffusion-design-constraint/v1', 'idempotency_key': 'rf-frozen', 'display_name': 'Frozen backbone design',
          'source': str(source), 'parameters': str(source)},
         {'id': 'mpnn-prep', 'kind': 'preparation', 'method': 'proteinmpnn-input', 'arguments': args},

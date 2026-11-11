@@ -20,7 +20,7 @@ def batch(root):
     source.write_text('{}')
     return {'id': 'model', 'kind': 'batch', 'model': 'rfdiffusion', 'tool': 'submit_rfdiffusion',
         'operation': 'design-backbone', 'source': str(source), 'parameters': str(source),
-        'media_type': 'application/json', 'semantic_type': 'rfdiffusion-design-constraint/v1',
+        'media_type': 'text/plain', 'semantic_type': 'rfdiffusion-design-constraint/v1',
         'entry_name': 'design_constraint', 'display_name': 'Coordinate contract test',
         'idempotency_key': 'coordinate-contract-test'}
 

@@ -57,6 +57,12 @@ For event participants using Claude Code, start with
 [`scientific-ai-hackathon`](scientific-ai-hackathon/SKILL.md), including its
 MCP setup and short walkthrough. It uses the same caller-authorized model API.
 Client-specific tools are conditional, not promised by downloading Markdown.
+`manifest.json.client_requirements` explicitly labels every skill's required
+client/runtime and optional LibreChat sections. `workbench_*`, workspace viewers
+and scientific-study supervision are not installed by connecting the hosted
+model MCP. Plain clients can use the separately packaged
+`scientific-ai-client-*.tar.gz` for the same verified upload/manifest/submit/poll/
+download flow; see the portable guide and its complete RFdiffusion example.
 Private upstream Nebius infrastructure skills are optional operator extensions
 and are not redistributed here. Adapted NVIDIA guidance is attributed in
 [NOTICE.md](NOTICE.md), not advertised as an unmodified NVIDIA-verified package.
@@ -75,6 +81,14 @@ python3 bundle.py lock
 python3 bundle.py verify
 python3 bundle.py check-catalog
 python3 bundle.py build --output /absolute/release-output
+```
+
+From the repository root, package the exact existing file clients alongside the
+skill release (no workbench/API or duplicate transport implementation):
+
+```bash
+python3 templates/hcls-librechat/scripts/package-scientific-client.py \
+  --output /absolute/client-release-output
 ```
 
 Run the affected workbench tests from the repository root as well. `lock` updates

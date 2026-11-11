@@ -21,9 +21,9 @@ Merge this entry into your project's `.mcp.json`, preserving existing servers:
   "mcpServers": {
     "scientific-ai": {
       "type": "http",
-      "url": "${SCIENTIFIC_MCP_URL}",
+      "url": "${SCIENTIFIC_MODELS_MCP_URL}",
       "headers": {
-        "Authorization": "Bearer ${SCIENTIFIC_API_KEY}"
+        "Authorization": "Bearer ${SCIENTIFIC_MODELS_API_KEY}"
       }
     }
   }
@@ -34,10 +34,10 @@ Set the URL from your handoff and enter the key without putting it into shell
 history. This example is for Bash:
 
 ```bash
-export SCIENTIFIC_MCP_URL='https://YOUR-ISSUED-HOST/mcp'
-read -rsp 'Personal Scientific AI API key: ' SCIENTIFIC_API_KEY
+export SCIENTIFIC_MODELS_MCP_URL='https://YOUR-ISSUED-HOST/mcp'
+read -rsp 'Personal Scientific AI API key: ' SCIENTIFIC_MODELS_API_KEY
 printf '\n'
-export SCIENTIFIC_API_KEY
+export SCIENTIFIC_MODELS_API_KEY
 claude
 ```
 
@@ -73,6 +73,9 @@ workspace mount, viewers or background study executor. Use the bundle's
 [portable client contract](../../scientific-gateway/references/portable-client.md)
 for trusted artifact transfer. Do not claim those extra tools are installed by
 adding an MCP URL. Keep requests within the organizer's assigned capacity.
+The portable client uses these same two environment variables. Its worked
+RFdiffusion example creates and verifies source/manifest artifacts, submits once,
+polls and downloads actual outputs without a LibreChat installation.
 
 Official client references: [MCP configuration and environment expansion](https://code.claude.com/docs/en/mcp),
 [skill installation](https://code.claude.com/docs/en/skills).
