@@ -2,6 +2,7 @@
 
 | App | What to preserve / check |
 | --- | --- |
+| `rfdiffusion` | Hotspot binders use `scaffold-motif` with an uploaded PDB, actual `input_pdb_artifact_id` and receptor/design chain blocks separated by a space, e.g. `A1-150/0 70-70`. Preserve target numbering, hotspots, seed and selected model checkpoint. See the [portable binder example and schema-gated advanced controls](../../scientific-gateway/references/portable-rfdiffusion.md); unconditional generation is a different workflow. |
 | `proteina-complexa` | Supply an uploaded structure and explicit `parameters.target` for a user-defined target, or choose an exact `target_id` preset from the live `target_catalog`. These are alternative inputs. Preserve chains, residue numbering, hotspots and binder lengths; see [custom targets](proteina-targets.md). |
 | `boltzgen` | Use its published design specification and manifest role. Keep target entities, designed entities and constraints distinct; not the protein-only native `boltz2` App. |
 | `mosaic` | Record the exact deployed implementation/version, not an assumed paper identity. Use its source bundle/config schema and retain optimization/selection metrics and failed candidates. |

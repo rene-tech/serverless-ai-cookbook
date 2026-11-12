@@ -1,4 +1,6 @@
-# One complete portable RFdiffusion request
+# Portable RFdiffusion requests
+
+## Unconditional backbones
 
 This example creates two **unconditional backbones**. It is not hotspot binder
 design or an affinity prediction. Run it only after your live
@@ -66,3 +68,103 @@ For `scaffold-motif`, the source contract is a **PDB**:
 `media_type=chemical/x-pdb`, uncompressed. Its contig/hotspot parameters are a
 different workflow; follow that live schema. A PDB, provenance note and JSON
 manifest are not interchangeable, even when a filename ends in `.json`.
+
+## Target-conditioned binder backbone
+
+This public [upstream target](https://github.com/RosettaCommons/RFdiffusion/blob/9273ef67335acaf91df0150473a274759229cdf6/examples/input_pdbs/insulin_target.pdb)
+contains chain A, residues 1–150. The request retains that receptor and designs
+one 70-residue backbone conditioned on hotspots A59/A83/A91. This configuration
+has completed with finite, complete coordinates and retained receptor geometry;
+that is not evidence of binding affinity or an experimentally accepted binder.
+
+First check that the live schema advertises `scaffold-motif`, space-separated
+contigs, `hotspot_residues` and the PDB artifact contract. From the extracted
+portable-client directory, upload the target once and use its actual returned
+artifact ID in both the parameters and manifest:
+
+```bash
+set -e
+mkdir -p inputs runs
+curl --fail --location --output inputs/insulin_target.pdb \
+  'https://raw.githubusercontent.com/RosettaCommons/RFdiffusion/9273ef67335acaf91df0150473a274759229cdf6/examples/input_pdbs/insulin_target.pdb'
+.venv/bin/python - <<'PY'
+import hashlib
+from pathlib import Path
+raw = Path('inputs/insulin_target.pdb').read_bytes()
+assert len(raw) == 222658
+assert hashlib.sha256(raw).hexdigest() == 'b5ab52ee165f33b3d467407ecc3607cb5b70fb6c2972cf2d6ed7ff3294153480'
+PY
+
+.venv/bin/python upload-artifact.py \
+  --model rfdiffusion --file inputs/insulin_target.pdb \
+  --media-type chemical/x-pdb --compression none \
+  --idempotency-key rfdiffusion-insulin-target-upload-001 \
+  --output-dir runs/binder-target-upload
+
+.venv/bin/python - <<'PY'
+import json
+from pathlib import Path
+artifact = json.loads(Path('runs/binder-target-upload/artifact.json').read_text())
+parameters = {
+    'schema': 'fs2-serve.nebius.ai/rfdiffusion-parameters/v1',
+    'operation': 'scaffold-motif',
+    'contigs': ['A1-150/0 70-70'],
+    'num_designs': 1, 'seed': 8101, 'diffuser_T': 50, 'length': 70,
+    'hotspot_residues': ['A59', 'A83', 'A91'],
+    'input_pdb_artifact_id': artifact['artifact_id'],
+}
+Path('inputs/binder-parameters.json').write_text(json.dumps(parameters, indent=2) + '\n')
+PY
+
+.venv/bin/python invoke-scientific-batch.py \
+  --model rfdiffusion --tool submit_rfdiffusion --operation scaffold-motif \
+  --source inputs/insulin_target.pdb \
+  --source-artifact runs/binder-target-upload/artifact.json \
+  --media-type chemical/x-pdb --compression none \
+  --entry-name target_structure --semantic-type protein-structure-pdb/v1 \
+  --parameters inputs/binder-parameters.json \
+  --idempotency-key rfdiffusion-insulin-binder70-seed8101-001 \
+  --display-name 'Receptor-conditioned 70-residue binder backbone' \
+  --output runs/insulin-binder70-seed8101 --wait-seconds 1800
+```
+
+`--source-artifact` reuses the finalized target without another source upload;
+the client creates/uploads the canonical outer manifest and submits typed MCP
+arguments. Retain the upload and operation directories. If observation times
+out, use `--observe-output runs/insulin-binder70-seed8101` on the same helper.
+Retrieve `get_operation` and `get_operation_result` with that saved operation ID;
+download verification is identical to the unconditional example above.
+
+The space after `/0` separates receptor and designed chain. The equivalent array
+is `["A1-150/0", "70-70"]`: array entries are joined with spaces, not separate
+designs. `A1-150/0/70-70` is invalid. Here `length=70` counts the designed chain,
+excluding the 150-residue receptor; hotspot numbering comes from the uploaded
+PDB, not the output's reordered chains. Review every design's actual seed,
+checkpoint name/checksum, receptor mapping and coordinate validation before
+sequence design or independent complex scoring.
+
+## Checkpoints and optional advanced controls
+
+Model checkpoints are RFdiffusion weights, not saved job-recovery checkpoints.
+When advertised, `checkpoint="auto"` selects `complex-base` for hotspot designs
+and `base` otherwise; explicit `complex-base` or `complex-beta` requires a
+retained receptor. `complex-beta` changes the learned design distribution; it
+does not guarantee binding. Sequence conditioning selects `inpaint-seq` before
+the hotspot/default choice and requires that checkpoint.
+
+The following advanced controls are prepared for a successor release. **Do not
+send them until the live parameter schema advertises the operation and every
+field you intend to use.** Omission preserves the existing native defaults.
+
+| Control | Exact field semantics and requirements |
+| --- | --- |
+| Partial diffusion | `operation="partial-diffusion"`, an uploaded PDB and `partial_T` in `1..diffuser_T`. The complete input/output length must match, with zero offset for retained residue indices. This diversifies coordinates; it does not resume an interrupted job. |
+| Preserve sequence during partial diffusion | `provide_seq=["0-4","145-149"]` selects inclusive **zero-based** positions in the complete ordered input/output; this example requires 150 positions. It is partial-diffusion-only and uses `inpaint-seq`. |
+| Mask motif sequence | `inpaint_seq=["A2","A5"]` selects retained **PDB chain/residue identities**, unlike `provide_seq`. The backbone remains constrained; masked output residues are native glycine placeholders requiring downstream sequence design. Uses `inpaint-seq`. |
+| Noise | `noise_scale_ca` and `noise_scale_frame` are nonnegative numbers; zero disables the corresponding translation/rotation noise. Both default to native 1 when omitted. |
+| Guiding potentials | `guiding_potentials` is a list of typed objects, e.g. `[{"type":"monomer_ROG","weight":1.0}]` for monomer compactness. Use only the live registry's fields and required binder/hotspot context. `guide_scale`/`guide_decay` require a potential; omitted values retain 10/`constant`. Native `cubic` decay ignores `guide_scale`. These are heuristic constraints, not affinity scores. |
+| Symmetry | `symmetry="c2"` describes two chains; exact total length must be divisible by symmetry order. Discover `cN`, `dN`, `t3`, tetrahedral/octahedral/icosahedral and their type-specific options from the schema. The native PDB output supports at most 62 unique one-character chain labels. Symmetric `olig_contacts` additionally needs a nonempty allowed contact selection, such as `olig_inter_all=true`; do not apply arbitrary potential/symmetry combinations. |
+
+For more than 64 designs, use the existing [campaign client](portable-campaign.md)
+to freeze child requests and preserve each child's seeds, IDs, failures and
+verified results. Campaign design counts are not counts of accepted binders.
