@@ -1,6 +1,6 @@
 ---
 name: binder-design-campaigns
-description: Plan and run bounded hosted Proteina-Complexa, BoltzGen, Mosaic, BindCraft or BindCraft2 campaigns, retaining target identity, seeds, filters, artifacts and negative candidates. Use for comparative binder-design batches and follow-up evaluation, not unsupported upstream deployment recipes.
+description: Plan and run bounded hosted RFdiffusion, Proteina-Complexa, BoltzGen, Mosaic, BindCraft or BindCraft2 campaigns, retaining target identity, seeds, filters, artifacts and negative candidates. Use for comparative binder-design batches and follow-up evaluation, not unsupported upstream deployment recipes.
 license: Apache-2.0 AND CC-BY-4.0
 ---
 
@@ -29,12 +29,24 @@ the user's target with a preset or infer unsupported status from a missing ID.
 
 ## Execute and evaluate
 
-Use the installed durable scientific study for multiple bounded jobs and
-dependent analyses. Each distinct parameter/seed combination has one stable
+In LibreChat, register the complete durable scientific study before starting
+multiple bounded jobs and dependent analyses. See the
+[existing RFdiffusion study example](references/rfdiffusion-study.md).
+Plain MCP clients instead use the
+[portable campaign client](../scientific-gateway/references/portable-campaign.md);
+connecting MCP does not install LibreChat's study tools. Keep RFdiffusion's
+64-design request limit: partition a larger campaign into immutable children,
+reuse the finalized source and retain contiguous, non-overlapping seed ranges.
+Each distinct parameter/seed combination has one stable
 idempotency key and receipt directory. Respect queue/concurrency policy; pending
 capacity is not a reason to change a key. Preserve failed/filtered/empty outputs
 in the campaign table. Do not loosen filters or select only successful seeds to
 make a campaign appear successful.
+
+Unknown admission fences later chunks. Reconcile only the saved exact request
+and key; observe already accepted IDs without replacement submissions. A failed
+or held child is not permission to replay science. Stopping new admissions does
+not cancel existing work; use its supported operation control explicitly.
 
 Download every manifest-declared design, sequence and score artifact; verify
 hashes before interpreting them. Compare exact chains and residue numbering

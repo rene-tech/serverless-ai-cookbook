@@ -94,6 +94,10 @@ do not invent parameters or truncate a full response and call it complete.
   verifies output hashes. It saves the operation ID and private receipts.
 - `invoke-native.py` handles discovered native named tools using a JSON input
   file; fill artifact fields from the uploader's verified `artifact.json`.
+- `invoke-scientific-campaign.py` plans and iterates RFdiffusion campaigns via
+  that same batch client, retaining the 64-design request bound. See
+  `campaign-example.md` in the client archive for offline planning, source reuse,
+  bounded iteration, observation and admission fencing.
 
 Use one output directory and stable idempotency key per intended request.
 Do not edit inputs or change identity inside an accepted receipt directory.

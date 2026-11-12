@@ -38,6 +38,9 @@ def test_package_is_reproducible_exact_source_and_runs_outside_checkout(tmp_path
         ('invoke-scientific-batch.py', []),
         ('invoke-scientific-batch.py', ['--recover-operation-id', 'op-example']),
         ('invoke-scientific-batch.py', ['--observe-output', 'unused']),
+        ('invoke-scientific-campaign.py', []),
+        ('invoke-scientific-campaign.py', ['plan']),
+        ('invoke-scientific-campaign.py', ['observe']),
     ]:
         result = subprocess.run([sys.executable, str(client / script), *options, '--help'],
                                 cwd=tmp_path, capture_output=True, text=True,

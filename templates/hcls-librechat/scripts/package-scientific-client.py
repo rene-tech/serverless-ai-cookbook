@@ -18,12 +18,14 @@ FILES = {
     'upload-artifact.py': 'templates/hcls-librechat/upload-artifact.py',
     'invoke-native.py': 'templates/hcls-librechat/invoke-native.py',
     'invoke-scientific-batch.py': 'templates/hcls-librechat/scripts/scientific-batch-acceptance.py',
+    'invoke-scientific-campaign.py': 'templates/hcls-librechat/scripts/scientific-campaign.py',
     'scientific_receipts.py': 'templates/hcls-librechat/scientific_receipts.py',
     'native_md_artifacts.py': 'templates/hcls-librechat/native_md_artifacts.py',
     'requirements.txt': 'templates/hcls-librechat/scientific-client-requirements.txt',
     'README.md': 'skills/scientific-ai/scientific-gateway/references/portable-client.md',
     'worked-example.md': 'skills/scientific-ai/scientific-gateway/references/portable-rfdiffusion.md',
     'bindcraft2-example.md': 'skills/scientific-ai/scientific-gateway/references/portable-bindcraft2.md',
+    'campaign-example.md': 'skills/scientific-ai/scientific-gateway/references/portable-campaign.md',
     'bucket-access.md': 'skills/scientific-ai/scientific-gateway/references/bucket-access.md',
 }
 
