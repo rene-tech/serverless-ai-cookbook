@@ -49,7 +49,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `lammps_hecbiosim_20k`. Execution: GPU.
 
 ```json
-{"model":"lammps","workflow":"hecbiosim-20k","version":"22Jul2025+shake988b963.r2","parameters":{"steps":50000,"checkpoint_seconds":300,"threads":8}}
+{"model":"lammps","workflow":"hecbiosim-20k","version":"22Jul2025+shake988b963.r2","parameters":{}}
 ```
 
 ### alanine-quickstart
@@ -57,7 +57,7 @@ MCP tool: `lammps_hecbiosim_20k`. Execution: GPU.
 MCP tool: `lammps_alanine_quickstart`. Execution: GPU.
 
 ```json
-{"model":"lammps","workflow":"alanine-quickstart","version":"22Jul2025+shake988b963.r2","parameters":{"production_end_step":30000,"checkpoint_seconds":1800,"threads":4}}
+{"model":"lammps","workflow":"alanine-quickstart","version":"22Jul2025+shake988b963.r2","parameters":{}}
 ```
 
 ## Interpret and retain results

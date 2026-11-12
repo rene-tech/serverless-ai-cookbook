@@ -40,7 +40,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `openmm_hecbiosim_20k`. Execution: GPU.
 
 ```json
-{"model":"openmm","workflow":"hecbiosim-20k","version":"8.6.1.dev-b399af4","parameters":{"steps":50000,"threads":8}}
+{"model":"openmm","workflow":"hecbiosim-20k","version":"8.6.1.dev-b399af4","parameters":{}}
 ```
 
 ## Interpret and retain results

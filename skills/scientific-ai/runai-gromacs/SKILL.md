@@ -49,7 +49,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `gromacs_hecbiosim_20k`. Execution: GPU.
 
 ```json
-{"model":"gromacs","workflow":"hecbiosim-20k","version":"2026.4","parameters":{"steps":50000,"threads":8}}
+{"model":"gromacs","workflow":"hecbiosim-20k","version":"2026.4","parameters":{}}
 ```
 
 ### alanine-quickstart
@@ -57,7 +57,7 @@ MCP tool: `gromacs_hecbiosim_20k`. Execution: GPU.
 MCP tool: `gromacs_alanine_quickstart`. Execution: GPU.
 
 ```json
-{"model":"gromacs","workflow":"alanine-quickstart","version":"2026.4","parameters":{"threads":8}}
+{"model":"gromacs","workflow":"alanine-quickstart","version":"2026.4","parameters":{}}
 ```
 
 ## Interpret and retain results

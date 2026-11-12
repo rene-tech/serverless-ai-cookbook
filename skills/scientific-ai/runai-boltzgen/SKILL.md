@@ -48,7 +48,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `boltzgen_design`. Execution: GPU.
 
 ```json
-{"model":"boltzgen","workflow":"design","version":"0.3.2","parameters":{"num_designs":20,"budget":1,"protocol":"protein-anything"}}
+{"model":"boltzgen","workflow":"design","version":"0.3.2","parameters":{}}
 ```
 
 ## Interpret and retain results

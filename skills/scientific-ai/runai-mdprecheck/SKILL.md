@@ -44,7 +44,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `mdprecheck_hecbiosim_20k`. Execution: CPU.
 
 ```json
-{"model":"mdprecheck","workflow":"hecbiosim-20k","version":"0.1.0+git.1ab41dd","parameters":{"threads":2,"probes":[]}}
+{"model":"mdprecheck","workflow":"hecbiosim-20k","version":"0.1.0+git.1ab41dd","parameters":{}}
 ```
 
 ### alanine-source
@@ -52,7 +52,7 @@ MCP tool: `mdprecheck_hecbiosim_20k`. Execution: CPU.
 MCP tool: `mdprecheck_alanine_source`. Execution: CPU.
 
 ```json
-{"model":"mdprecheck","workflow":"alanine-source","version":"0.1.0+git.1ab41dd","parameters":{"threads":2,"nsteps":1000,"probes":["energy","minimize","stability"]}}
+{"model":"mdprecheck","workflow":"alanine-source","version":"0.1.0+git.1ab41dd","parameters":{}}
 ```
 
 ## Interpret and retain results

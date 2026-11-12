@@ -44,7 +44,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `proteinmpnn_sequence_design`. Execution: GPU.
 
 ```json
-{"model":"proteinmpnn","workflow":"sequence-design","version":"source-8907e6671bfb","parameters":{"num_seq_per_target":2,"sampling_temp":"0.1","seed":7,"save_score":true}}
+{"model":"proteinmpnn","workflow":"sequence-design","version":"source-8907e6671bfb","parameters":{}}
 ```
 
 ## Interpret and retain results

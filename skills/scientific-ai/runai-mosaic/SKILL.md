@@ -41,7 +41,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `mosaic_design`. Execution: GPU.
 
 ```json
-{"model":"mosaic","workflow":"design","version":"0.1.0","parameters":{"count":1,"seed":42,"binder_length":60,"optimizer_steps":100,"hotspots":"1"}}
+{"model":"mosaic","workflow":"design","version":"0.1.0","parameters":{}}
 ```
 
 ## Interpret and retain results

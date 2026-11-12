@@ -49,7 +49,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `namd_hecbiosim_20k`. Execution: GPU.
 
 ```json
-{"model":"namd","workflow":"hecbiosim-20k","version":"3.0.2","parameters":{"steps":50000,"checkpoint_steps":50000,"threads":8}}
+{"model":"namd","workflow":"hecbiosim-20k","version":"3.0.2","parameters":{}}
 ```
 
 ### alanine-quickstart
@@ -57,7 +57,7 @@ MCP tool: `namd_hecbiosim_20k`. Execution: GPU.
 MCP tool: `namd_alanine_quickstart`. Execution: GPU.
 
 ```json
-{"model":"namd","workflow":"alanine-quickstart","version":"3.0.2","parameters":{"production_steps":10000,"checkpoint_steps":10000,"threads":4}}
+{"model":"namd","workflow":"alanine-quickstart","version":"3.0.2","parameters":{}}
 ```
 
 ## Interpret and retain results
