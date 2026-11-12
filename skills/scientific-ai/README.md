@@ -5,11 +5,23 @@ MCP-compatible agents. LibreChat installs this exact directory at `/app/skill`.
 Skills teach the **hosted** APIs; they do not deploy NVIDIA services, grant model
 access, or install an entire workbench on a customer's computer.
 
+## Select the scientific service
+
+For the managed **Run:ai scientific service**, start with
+[`runai-scientific-gateway`](runai-scientific-gateway/SKILL.md), then the
+`runai-<model>` skill. These additive skills cover 14 models and 32 explicitly
+indexed workflows; `manifest.json.runai_workflows` maps every workflow to its
+instructions. They use the supplied scientific API URL, standard REST/MCP and
+the caller's bound bucket. Native Run:ai administration and the older artifact
+manifest protocol are separate interfaces. The unprefixed skills retain their
+existing backend instructions. Discover the current model/schema and skill link;
+bundle inclusion does not certify live model availability or scientific accuracy.
+
 ## Install a release
 
 Download the `scientific-ai-skills-*.tar.gz` and `SHA256SUMS` assets from
 [Releases](https://github.com/rene-tech/serverless-ai-cookbook/releases).
-For a laptop or Claude Code, also download `scientific-ai-client-*.tar.gz` and
+For the original backend's laptop/Claude Code file transport, also download `scientific-ai-client-*.tar.gz` and
 its `.sha256` file from the **same release**. The skills archive contains
 instructions; the client archive contains `upload-artifact.py`,
 `invoke-scientific-batch.py`, `invoke-native.py` and their dependencies manifest.
@@ -58,7 +70,7 @@ structure viewing. It is distinct from `rfdiffusion` and `proteina-complexa`;
 oracle/search workflows and remote YAML inputs are not advertised. Its presence
 in the bundle does not establish deployment or caller access.
 
-Start with `scientific-gateway`; load only skills relevant to your task. For
+For the original hosted backend, start with `scientific-gateway`; load only skills relevant to your task. For
 non-LibreChat clients, see its [portable client contract](scientific-gateway/references/portable-client.md).
 For event participants using Claude Code, start with
 [`scientific-ai-hackathon`](scientific-ai-hackathon/SKILL.md), including its

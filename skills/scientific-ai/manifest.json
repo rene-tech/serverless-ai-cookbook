@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.12.1",
+  "version": "2026.11.12.2",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -174,7 +174,50 @@
       "diar-streaming-sortformer-4spk-v2-1",
       "magpie-tts-multilingual-357m"
     ],
-    "tavily-research": []
+    "tavily-research": [],
+    "runai-scientific-gateway": [],
+    "runai-gromacs": [
+      "gromacs"
+    ],
+    "runai-amber": [
+      "amber"
+    ],
+    "runai-namd": [
+      "namd"
+    ],
+    "runai-lammps": [
+      "lammps"
+    ],
+    "runai-openmm": [
+      "openmm"
+    ],
+    "runai-mdprecheck": [
+      "mdprecheck"
+    ],
+    "runai-proteinmpnn": [
+      "proteinmpnn"
+    ],
+    "runai-rfdiffusion": [
+      "rfdiffusion"
+    ],
+    "runai-rfd4-proteina": [
+      "rfd4-proteina"
+    ],
+    "runai-mosaic": [
+      "mosaic"
+    ],
+    "runai-boltzgen": [
+      "boltzgen"
+    ],
+    "runai-proteina-complexa": [
+      "proteina-complexa"
+    ],
+    "runai-bindcraft2": [
+      "bindcraft2"
+    ],
+    "runai-bindcraft": [
+      "bindcraft"
+    ]
   },
   "client_requirements": {
     "aging-models": "hosted-mcp-with-workbench-sections",
@@ -227,13 +270,147 @@
     "scientific-starter-data": "hosted-mcp-with-workbench-sections",
     "single-cell-analysis": "hosted-mcp-with-workbench-sections",
     "speech-workflows": "hosted-mcp",
-    "tavily-research": "separate-local-or-external-tools"
+    "tavily-research": "separate-local-or-external-tools",
+    "runai-scientific-gateway": "runai-scientific-api-mcp",
+    "runai-gromacs": "runai-scientific-api-mcp",
+    "runai-amber": "runai-scientific-api-mcp",
+    "runai-namd": "runai-scientific-api-mcp",
+    "runai-lammps": "runai-scientific-api-mcp",
+    "runai-openmm": "runai-scientific-api-mcp",
+    "runai-mdprecheck": "runai-scientific-api-mcp",
+    "runai-proteinmpnn": "runai-scientific-api-mcp",
+    "runai-rfdiffusion": "runai-scientific-api-mcp",
+    "runai-rfd4-proteina": "runai-scientific-api-mcp",
+    "runai-mosaic": "runai-scientific-api-mcp",
+    "runai-boltzgen": "runai-scientific-api-mcp",
+    "runai-proteina-complexa": "runai-scientific-api-mcp",
+    "runai-bindcraft2": "runai-scientific-api-mcp",
+    "runai-bindcraft": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
     "hosted-mcp-with-workbench-sections": "Model calls are portable. Referenced workbench_*, viewers, study tools and /opt helpers are optional LibreChat additions; use portable file clients outside that image.",
     "workbench-runtime": "Execution requires the separately installed LibreChat tools/runtime named by this skill; not supplied by the hosted model MCP.",
     "separate-local-or-external-tools": "Requires the separately installed local environment or authorized external connector described by this skill; not supplied by the hosted model MCP.",
-    "research-guidance": "Domain guidance; configure requested literature or analysis tools separately. This skill installs no service."
+    "research-guidance": "Domain guidance; configure requested literature or analysis tools separately. This skill installs no service.",
+    "runai-scientific-api-mcp": "Managed Scientific AI Run:ai public REST/MCP and caller-bound bucket. Standard curl/jq/AWS CLI examples; no LibreChat, native Run:ai administration or legacy manifest client required."
+  },
+  "runai_workflows": {
+    "gromacs": {
+      "skill": "runai-gromacs",
+      "scientific_version": "2026.4",
+      "workflows": {
+        "hecbiosim-20k": "runai-gromacs/SKILL.md#hecbiosim-20k",
+        "alanine-quickstart": "runai-gromacs/SKILL.md#alanine-quickstart"
+      }
+    },
+    "amber": {
+      "skill": "runai-amber",
+      "scientific_version": "26.0",
+      "workflows": {
+        "hecbiosim-20k": "runai-amber/SKILL.md#hecbiosim-20k",
+        "alanine-quickstart": "runai-amber/SKILL.md#alanine-quickstart"
+      }
+    },
+    "namd": {
+      "skill": "runai-namd",
+      "scientific_version": "3.0.2",
+      "workflows": {
+        "hecbiosim-20k": "runai-namd/SKILL.md#hecbiosim-20k",
+        "alanine-quickstart": "runai-namd/SKILL.md#alanine-quickstart"
+      }
+    },
+    "lammps": {
+      "skill": "runai-lammps",
+      "scientific_version": "22Jul2025+shake988b963.r2",
+      "workflows": {
+        "hecbiosim-20k": "runai-lammps/SKILL.md#hecbiosim-20k",
+        "alanine-quickstart": "runai-lammps/SKILL.md#alanine-quickstart"
+      }
+    },
+    "openmm": {
+      "skill": "runai-openmm",
+      "scientific_version": "8.6.1.dev-b399af4",
+      "workflows": {
+        "hecbiosim-20k": "runai-openmm/SKILL.md#hecbiosim-20k"
+      }
+    },
+    "mdprecheck": {
+      "skill": "runai-mdprecheck",
+      "scientific_version": "0.1.0+git.1ab41dd",
+      "workflows": {
+        "hecbiosim-20k": "runai-mdprecheck/SKILL.md#hecbiosim-20k",
+        "alanine-source": "runai-mdprecheck/SKILL.md#alanine-source"
+      }
+    },
+    "proteinmpnn": {
+      "skill": "runai-proteinmpnn",
+      "scientific_version": "source-8907e6671bfb",
+      "workflows": {
+        "sequence-design": "runai-proteinmpnn/SKILL.md#sequence-design"
+      }
+    },
+    "rfdiffusion": {
+      "skill": "runai-rfdiffusion",
+      "scientific_version": "1.1.0+symmetry.8810bf28",
+      "workflows": {
+        "backbone-and-motif": "runai-rfdiffusion/SKILL.md#backbone-and-motif"
+      }
+    },
+    "rfd4-proteina": {
+      "skill": "runai-rfd4-proteina",
+      "scientific_version": "source-ed63183a7f27",
+      "workflows": {
+        "annotated-design": "runai-rfd4-proteina/SKILL.md#annotated-design",
+        "native-sharded-design": "runai-rfd4-proteina/SKILL.md#native-sharded-design",
+        "reward-guided-search": "runai-rfd4-proteina/SKILL.md#reward-guided-search"
+      }
+    },
+    "mosaic": {
+      "skill": "runai-mosaic",
+      "scientific_version": "0.1.0",
+      "workflows": {
+        "design": "runai-mosaic/SKILL.md#design"
+      }
+    },
+    "boltzgen": {
+      "skill": "runai-boltzgen",
+      "scientific_version": "0.3.2",
+      "workflows": {
+        "design": "runai-boltzgen/SKILL.md#design"
+      }
+    },
+    "proteina-complexa": {
+      "skill": "runai-proteina-complexa",
+      "scientific_version": "1.1.0",
+      "workflows": {
+        "generate": "runai-proteina-complexa/SKILL.md#generate",
+        "design": "runai-proteina-complexa/SKILL.md#design",
+        "filter": "runai-proteina-complexa/SKILL.md#filter",
+        "evaluate": "runai-proteina-complexa/SKILL.md#evaluate",
+        "analyze": "runai-proteina-complexa/SKILL.md#analyze"
+      }
+    },
+    "bindcraft2": {
+      "skill": "runai-bindcraft2",
+      "scientific_version": "1.0.4",
+      "workflows": {
+        "design": "runai-bindcraft2/SKILL.md#design",
+        "score": "runai-bindcraft2/SKILL.md#score",
+        "rank": "runai-bindcraft2/SKILL.md#rank",
+        "filter": "runai-bindcraft2/SKILL.md#filter",
+        "campaign_output": "runai-bindcraft2/SKILL.md#campaign_output",
+        "archive": "runai-bindcraft2/SKILL.md#archive"
+      }
+    },
+    "bindcraft": {
+      "skill": "runai-bindcraft",
+      "scientific_version": "source-7cd4ace1b740",
+      "workflows": {
+        "design": "runai-bindcraft/SKILL.md#design",
+        "design-campaign": "runai-bindcraft/SKILL.md#design-campaign",
+        "trajectories": "runai-bindcraft/SKILL.md#trajectories"
+      }
+    }
   }
 }
