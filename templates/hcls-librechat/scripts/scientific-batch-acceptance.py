@@ -568,8 +568,26 @@ def selected_source_contract(contract: dict, parameters: dict, args):
         if len(matches) != 1:
             raise SourcePreflightError('Choose one unique published input entry name; no upload was submitted.')
         source, selection = matches[0], f'entry {args.entry_name!r}'
+
+        def condition_matches(condition):
+            if (not isinstance(condition, dict) or set(condition) != {'parameter', 'equals'}
+                    or not isinstance(condition['parameter'], str)
+                    or not all(condition['parameter'].split('.'))):
+                raise SourcePreflightError('Unsupported published input condition; use a complete manifest. '
+                                           'No upload was submitted.')
+            value = context
+            for part in condition['parameter'].split('.'):
+                if not isinstance(value, dict) or part not in value:
+                    return False
+                value = value[part]
+            return value == condition['equals']
+
+        if 'allowed_if' in source and not condition_matches(source['allowed_if']):
+            raise SourcePreflightError(f'Input {args.entry_name!r} is not allowed for these parameters; '
+                                       'no upload was submitted.')
         missing = [entry.get('name') for entry in entries if isinstance(entry, dict)
-                   and entry.get('required') is True and entry is not source]
+                   and entry is not source and (entry.get('required') is True
+                   or ('required_if' in entry and condition_matches(entry['required_if'])))]
         if missing:
             raise SourcePreflightError(f'This request also requires input entries {missing!r}; '
                                        'use a complete manifest. No upload was submitted.')
@@ -846,7 +864,7 @@ async def recover_completed(args) -> dict:
         raise ValueError('Use the native op-... operation ID returned by submission.')
     endpoint = os.environ['SCIENTIFIC_MODELS_MCP_URL']
     key = os.environ['SCIENTIFIC_MODELS_API_KEY']
-    origin = endpoint.removesuffix('/mcp').removesuffix('/mcp/')
+    origin = urlparse(endpoint)._replace(query='', fragment='').geturl().removesuffix('/mcp').removesuffix('/mcp/')
     identity = {'operation_id': operation_id, 'endpoint': endpoint,
                 'caller_fingerprint': digest(key.encode())}
     path = args.output / 'recovery-receipt.json'
@@ -882,7 +900,7 @@ async def observe_saved(args) -> dict:
     if identity.get('endpoint') != endpoint or identity.get('caller_fingerprint') != digest(key.encode()):
         raise ValueError('Receipt belongs to a different endpoint or caller; no operation was read.')
     headers = {'authorization': 'Bearer ' + key}
-    origin = endpoint.removesuffix('/mcp').removesuffix('/mcp/')
+    origin = urlparse(endpoint)._replace(query='', fragment='').geturl().removesuffix('/mcp').removesuffix('/mcp/')
     async with httpx2.AsyncClient(base_url=origin, headers=headers, timeout=180,
                                   trust_env=False, follow_redirects=False) as http:
         return await observe_operation(args, http, endpoint, headers, receipt, path)
@@ -1054,7 +1072,7 @@ async def run(args) -> dict:
 async def _run(args) -> dict:
     endpoint = os.environ["SCIENTIFIC_MODELS_MCP_URL"]
     key = os.environ["SCIENTIFIC_MODELS_API_KEY"]
-    origin = endpoint.removesuffix("/mcp").removesuffix("/mcp/")
+    origin = urlparse(endpoint)._replace(query='', fragment='').geturl().removesuffix('/mcp').removesuffix('/mcp/')
     source = FileSource(args.source)
     parameters = json.loads(args.parameters.read_text())
     identity = {"model_id": args.model, "source_sha256": digest(source),

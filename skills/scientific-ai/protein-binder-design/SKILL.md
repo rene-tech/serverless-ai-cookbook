@@ -21,7 +21,9 @@ biological functions.
    supports the scientific request. Do not label unconditional generation as
    target-conditioned binder design. Use this customer's finalized artifacts.
 2. **Sequence** with `proteinmpnn` native: feed the designed backbone PDB,
-   `num_seq_per_target` up to 8, low `sampling_temp` for conservative designs.
+   a positive `num_seq_per_target` permitted by the live schema, and a low
+   `sampling_temp` such as `0.1` or `[0.1]`. Internal batches do not cap the
+   total request count; allow for the larger runtime and output size.
 3. **Verify** by folding the designed binder with the target using batch
    `alphafold3`/`openfold3-openbind`/`protenix-v2` or native `boltz2`/`openfold3`
    per their contracts.

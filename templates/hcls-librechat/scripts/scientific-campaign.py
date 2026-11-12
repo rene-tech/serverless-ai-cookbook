@@ -187,12 +187,9 @@ def admission_slot_held(local, receipt):
                               model_id=receipt['identity']['model_id'])
     except ValueError:
         return None  # A retained mismatched response is not this child's slot evidence.
-    error, graph = status.get('error'), status.get('graph')
+    error = status.get('error')
     flag = error.get('admission_slot_held') if isinstance(error, dict) else None
-    signals = [flag] if type(flag) is bool else []
-    if isinstance(graph, dict) and graph.get('action_required') is True:
-        signals.append(True)
-    return signals[0] if signals and all(value == signals[0] for value in signals) else None
+    return flag if type(flag) is bool else None
 
 
 def project(args, plan, owner):

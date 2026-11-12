@@ -263,9 +263,10 @@ def test_worked_existing_study_uses_current_schema_and_nonoverlapping_seeds(tmp_
     plan = scope['plan']
     Draft202012Validator(schema.STUDY_SCHEMA).validate(plan)
     parameters = [json.loads(Path(step['parameters']).read_text()) for step in plan['steps']]
-    assert [p['num_designs'] for p in parameters] == [64, 1]
-    assert [p['seed'] for p in parameters] == [8100, 8164]
-    assert len({step['idempotency_key'] for step in plan['steps']}) == 2
+    assert [p['num_designs'] for p in parameters] == [64]
+    assert [p['seed'] for p in parameters] == [8100]
+    assert parameters[0]['campaign'] == {'total_designs': 65, 'max_parallelism': 2}
+    assert len(plan['steps']) == len({step['idempotency_key'] for step in plan['steps']}) == 1
     assert len({step['source_artifact'] for step in plan['steps']}) == 1
 
 
@@ -338,9 +339,15 @@ def test_failed_science_keeps_independent_typed_slot_evidence(tmp_path, monkeypa
     assert summary['children'][0]['admission_slot_held'] is True
     assert summary['children'][1]['admission_slot_held'] is None
     assert 'status.json' in summary['children'][0]['request_runtime_result_references']
+    status['error']['admission_slot_held'] = None
+    batch.save(local.output / 'status.json', status)
+    summary = asyncio.run(campaign.execute(args))
+    assert summary['children'][0]['admission_slot_held'] is None
+    assert summary['design_counts']['failed'] == 64
+    assert len(transport.submissions) == 1  # Unknown slot state never reopens admission.
     del status['error']['admission_slot_held']
     batch.save(local.output / 'status.json', status)
-    assert campaign.project(args, plan, owner)['children'][0]['admission_slot_held'] is True
+    assert campaign.project(args, plan, owner)['children'][0]['admission_slot_held'] is None
     status['graph']['action_required'] = False
     batch.save(local.output / 'status.json', status)
     assert campaign.project(args, plan, owner)['children'][0]['admission_slot_held'] is None

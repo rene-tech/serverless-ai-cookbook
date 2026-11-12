@@ -15,6 +15,57 @@ prediction), `esmfold2`, `esmfold2-fast` (monomer structure),
 exact deployed ESMFold/Mosaic runtime identities from discovery rather than
 publication names.
 
+## Input formats for structure and design Apps
+
+These are source payloads inside the canonical artifact manifest, not the
+manifest itself. Read the current authorized contract before upload; model
+availability and a documented format do not establish qualification.
+
+| App | Source entry / semantic type | Actual payload |
+| --- | --- | --- |
+| `esmfold2` | `esmfold2-input` / `esmfold2-input-json/v1` | JSON, `application/json`, no compression; see below. |
+| `esmfold2-fast` | `esmfold2-fast-input` / `esmfold2-fast-input-json/v1` | The same JSON format, with this distinct entry and single-sequence mode only. |
+| `protenix-v2` | `protenix-input` / `protenix-input-json/v1` | Native Protenix JSON array, `application/json`, no compression; see below. |
+| `mosaic` | `target_sequence` / `protein-sequence-fasta/v1` | One target FASTA record, `text/x-fasta`, no compression. Put hotspots and design settings in typed parameters, not a config archive. Hotspots are one-based target-sequence positions. |
+| `rfd4-proteina` | `annotated-cif` / `rfd4-proteina-annotated-cif/v1` | Annotated CIF, `chemical/x-cif`, no compression. Preserve its native atom/residue annotations; see [input preparation](../rfd4-proteina/references/inputs.md). |
+| `rfdiffusion` | Operation-specific | Use the [portable RFdiffusion guide](../scientific-gateway/references/portable-rfdiffusion.md): a text design note for `design-backbone`, a PDB for `scaffold-motif`. They are different source contracts. |
+| `bioemu2` | `workload` / `bioemu2-workload-tar/v1` | Uncompressed tar, `application/x-tar`, with native `system.yaml`, required MSA files or explicit single-sequence mode, and starting coordinates for propagation. See [BioEmu2 inputs and examples](../bioemu2/SKILL.md). |
+
+For ESMFold2 single-sequence prediction, a source JSON shape is:
+
+```json
+{"sequences":[{"id":"A","sequence":"ACDEFGHIK","type":"protein"}]}
+```
+
+The typed parameters must specify the same intended sequence, for example
+`{"sequence":"ACDEFGHIK","mode":"single-sequence","seed":0}`. In this
+hosted path the typed sequence drives prediction. `precomputed-msa` instead
+requires source JSON with `msa_sequences`, an array of aligned sequence strings;
+the first query row must match the typed sequence. Keep alignment columns intact
+and use real supplied alignments, not invented homologs. ESMFold2-Fast accepts
+only `single-sequence`. These are monomer contracts, not complex prediction.
+
+A minimal native Protenix source shape is:
+
+```json
+[{"name":"example","sequences":[{"proteinChain":{"count":1,"sequence":"ACDEFGHIK"}}]}]
+```
+
+Use `predict-complex-structure` with parameters such as
+`{"checkpoint":"protenix-v2","msa_mode":"none","sample_count":1,"model_seeds":[0]}`.
+Additional protein entities use their own `proteinChain` entries. The current
+hosted contract admits the no-MSA lane; upstream file references or online MSA
+options do not make those paths available here. These short sequences illustrate
+file syntax only, not scientifically useful benchmarks.
+
+Use the separate portable client archive's `invoke-scientific-batch.py` with
+the actual source file, parameter file and the discovered entry/semantic/MIME
+fields. It uploads the source and canonical manifest and selects the tool's
+typed request shape. For other requested input families, use the exact
+[ESM-2 FASTA/variant CSV](../protein-scoring/references/esm2.md),
+[StaB-ddG structure/typed mutation](../protein-scoring/references/binding.md), and
+[scVI H5AD/reference](../single-cell-analysis/SKILL.md) instructions.
+
 ## How to submit
 
 The study/executor tools in steps 2–4 and the analysis/report sections below

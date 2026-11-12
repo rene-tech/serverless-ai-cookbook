@@ -1,14 +1,18 @@
 # RFdiffusion through the existing LibreChat study owner
 
 This is the **LibreChat** path, requiring the installed scientific-study tools.
-For plain MCP/Claude Code, use the portable campaign client instead. Do not call
-nonexistent study tools from a plain MCP connection.
+For plain MCP/Claude Code, use the hosted campaign through the portable batch
+client. Do not call nonexistent study tools from a plain MCP connection.
 
-Freeze all intended batches in one `scientific-workflow/v2` plan before launch.
-The example below is a 65-design unconditional-backbone campaign: two native
-requests, 64 designs at seeds 8100–8163 and one at seed 8164. It introduces no
-new scheduler or native limit. Each native request retains ordinary admission,
-queueing, retry, cancellation and artifact semantics.
+When the live RFdiffusion schema advertises `campaign`, register it as **one
+batch phase** in the existing `scientific-workflow/v2` plan. The example below
+requests 65 unconditional backbones in one public operation: a 64-design GPU
+chunk at seeds 8100–8163 and one at seed 8164. The platform owns this graph;
+the study owner advances any subsequent models/analysis after its verified result.
+This unconditional study template is CPU/schema qualified. A separate hosted
+65-design hotspot campaign passed live checks using nine chunks (eight designs
+per chunk, then one) with `max_parallelism=4`; that proof does not qualify this
+LibreChat study template or 1,000-design throughput.
 
 Prepare a workspace directory and provenance note, then upload that note once
 using the existing uploader. Preserve the returned `artifact.json`; never fill
@@ -25,7 +29,7 @@ printf '%s\n' '65 unconditional 80-residue backbones; seeds 8100..8164; no bindi
   --output-dir /workspace/rfdiffusion-campaign/source-upload
 ```
 
-Generate both parameter files and the whole existing study plan in that same
+Generate the parameter file and the whole existing study plan in that same
 directory. Choose a new stable campaign key for a distinct intended experiment,
 never to bypass a pending or failed request:
 
@@ -35,27 +39,26 @@ from pathlib import Path
 
 root = Path('/workspace/rfdiffusion-campaign')
 campaign_key = 'backbone-study-001'
-steps, deliverables = [], []
-for index, (seed, count) in enumerate([(8100, 64), (8164, 1)]):
-    step = f'design_{index:06d}'
-    parameters = root / f'{step}.parameters.json'
-    parameters.write_text(json.dumps({
-        'schema': 'fs2-serve.nebius.ai/rfdiffusion-parameters/v1',
-        'operation': 'design-backbone', 'contigs': ['80-80'],
-        'num_designs': count, 'seed': seed, 'diffuser_T': 50
-    }, indent=2) + '\n')
-    steps.append({
-        'id': step, 'kind': 'batch', 'model': 'rfdiffusion',
-        'tool': 'submit_rfdiffusion', 'operation': 'design-backbone',
-        'source': str(root / 'design-note.txt'),
-        'source_artifact': str(root / 'source-upload/artifact.json'),
-        'parameters': str(parameters), 'media_type': 'text/plain', 'compression': 'none',
-        'entry_name': 'design_constraint', 'semantic_type': 'rfdiffusion-design-constraint/v1',
-        'idempotency_key': f'{campaign_key}-{index:06d}',
-        'display_name': f'Backbones at seeds {seed}..{seed + count - 1}'
-    })
-    deliverables.append({'name': f'{step}-outputs.json', 'role': 'provenance',
-                         'source': {'step': step, 'file': 'output-manifest.json'}})
+step = 'backbone_campaign'
+parameters = root / f'{step}.parameters.json'
+parameters.write_text(json.dumps({
+    'schema': 'fs2-serve.nebius.ai/rfdiffusion-parameters/v1',
+    'operation': 'design-backbone', 'contigs': ['80-80'],
+    'num_designs': 64, 'seed': 8100, 'diffuser_T': 50,
+    'campaign': {'total_designs': 65, 'max_parallelism': 2}
+}, indent=2) + '\n')
+steps = [{
+    'id': step, 'kind': 'batch', 'model': 'rfdiffusion',
+    'tool': 'submit_rfdiffusion', 'operation': 'design-backbone',
+    'source': str(root / 'design-note.txt'),
+    'source_artifact': str(root / 'source-upload/artifact.json'),
+    'parameters': str(parameters), 'media_type': 'text/plain', 'compression': 'none',
+    'entry_name': 'design_constraint', 'semantic_type': 'rfdiffusion-design-constraint/v1',
+    'idempotency_key': campaign_key,
+    'display_name': '65 backbones at seeds 8100..8164'
+}]
+deliverables = [{'name': 'campaign-outputs.json', 'role': 'provenance',
+                 'source': {'step': step, 'file': 'output-manifest.json'}}]
 plan = {'schema': 'scientific-workflow/v2', 'title': '65 backbone designs',
         'steps': steps, 'deliverables': deliverables}
 (root / 'study-plan.json').write_text(json.dumps(plan, indent=2) + '\n')
@@ -65,13 +68,14 @@ Inspect the current `describe_scientific_workflow` contract, validate the plan,
 and use its supported `run_scientific_workflow` launch with
 `/workspace/rfdiffusion-campaign/study-plan.json`. Register the **whole plan**;
 a handwritten tracker or a promise to continue is not a registered study.
-The existing worker owns iteration and records actual accepted IDs. Follow that
-study's receipt after disconnects; do not launch a second study or recreate keys.
+The existing worker records the one accepted operation. Follow that study's
+receipt after disconnects; do not launch a second study or recreate keys.
 
 An unknown admission or held child stops further admission for reconciliation.
 Failures remain failures; preserve their diagnostic artifacts and do not replay
 them automatically. Cancellation uses the existing study/operation owner and
-must preserve already accepted IDs and durable evidence. A full 1,000-design
-plan uses 15 × 64 plus 40 with the same non-overlapping seed rule; freeze every
-phase before launch. This example is CPU/schema qualified, not a claim that
-these 65 designs or a thousand-design campaign have been run successfully.
+must preserve already accepted IDs and durable evidence. A 1,000-design
+campaign uses the same single batch phase with `total_designs=1000`: fifteen
+64-design chunks plus 40. Register any requested downstream analyses in the same
+study before launch. Read the [campaign guide](../../scientific-gateway/references/portable-campaign.md)
+for account admission, cumulative budgets, partial archives and unresolved slot states.

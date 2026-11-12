@@ -13,7 +13,7 @@ import json
 import os
 from pathlib import Path
 import time
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import httpx2
 from jsonschema import Draft202012Validator, ValidationError
@@ -290,7 +290,7 @@ async def run(args):
                         artifact_id = value.get('artifact', {}).get('artifact_id')
                         if not isinstance(artifact_id, str):
                             raise ValueError('Result artifact identifier is missing.')
-                        origin = endpoint.removesuffix('/mcp').removesuffix('/mcp/')
+                        origin = urlparse(endpoint)._replace(query='', fragment='').geturl().removesuffix('/mcp').removesuffix('/mcp/')
                         downloaded = await http.get(origin + '/v1/artifacts/' + quote(artifact_id, safe='') + '/content')
                         downloaded.raise_for_status()
                         value = materialize_result_artifact(value, downloaded.content, args.output_dir)

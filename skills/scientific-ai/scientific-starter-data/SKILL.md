@@ -31,7 +31,10 @@ its job ID with `read_execution`, then use `deliver_scientific_results` with
 `kind: native-md` and the returned output directory. Do not search unrelated
 historical runs or reconstruct the submission in a shell. Custom protocols and
 additional scientific analyses still use the relevant engine/workflow skill.
-The following CLI procedure is for clients without that typed launcher.
+The following `/opt` CLI procedure uses the hosted workbench's installed client.
+For a laptop or Claude Code, install the separate client archive and follow the
+[portable MD example](../scientific-gateway/references/portable-md.md); skills
+alone do not install `invoke-scientific-batch.py`.
 
 The pack README's `run-example.py` assumes downloaded POSIX files. Do not run
 that script directly on the `/workspace` Object Storage mount, or install a
@@ -47,6 +50,11 @@ native archive and parameter JSON unchanged. Resolve the selected recipe's
 the manifest entry's name, semantic type, media type and compression against
 the live model schema. Do not pass the entire recipe/request envelope as the
 parameters document.
+
+For a direct `submit_<engine>_workflow` MCP call, put the finalized recipe body
+under `request` and the stable key under `idempotency_key`. The recipe's
+top-level `arguments` is not the complete typed MCP argument object. The
+existing batch helper discovers and adds that wrapper automatically.
 
 For the existing v3 GROMACS alanine examples, after those checks, use:
 

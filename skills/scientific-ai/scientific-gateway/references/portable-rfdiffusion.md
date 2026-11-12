@@ -152,9 +152,13 @@ retained receptor. `complex-beta` changes the learned design distribution; it
 does not guarantee binding. Sequence conditioning selects `inpaint-seq` before
 the hotspot/default choice and requires that checkpoint.
 
-The following advanced controls are prepared for a successor release. **Do not
-send them until the live parameter schema advertises the operation and every
-field you intend to use.** Omission preserves the existing native defaults.
+The following advanced controls are available when your live parameter schema
+advertises the operation and every field you intend to use. Omission preserves
+the existing native defaults. Three bounded H100 workflows passed scientific and
+artifact checks: partial diffusion with sequence preservation, motif masking with
+`monomer_ROG`, and C2 symmetry with zero noise plus contact guidance. The first
+two retain the sampling release; C2 uses the corrected launcher release. These
+checks do not establish every option combination or every GPU/region.
 
 | Control | Exact field semantics and requirements |
 | --- | --- |
@@ -165,6 +169,8 @@ field you intend to use.** Omission preserves the existing native defaults.
 | Guiding potentials | `guiding_potentials` is a list of typed objects, e.g. `[{"type":"monomer_ROG","weight":1.0}]` for monomer compactness. Use only the live registry's fields and required binder/hotspot context. `guide_scale`/`guide_decay` require a potential; omitted values retain 10/`constant`. Native `cubic` decay ignores `guide_scale`. These are heuristic constraints, not affinity scores. |
 | Symmetry | `symmetry="c2"` describes two chains; exact total length must be divisible by symmetry order. Discover `cN`, `dN`, `t3`, tetrahedral/octahedral/icosahedral and their type-specific options from the schema. The native PDB output supports at most 62 unique one-character chain labels. Symmetric `olig_contacts` additionally needs a nonempty allowed contact selection, such as `olig_inter_all=true`; do not apply arbitrary potential/symmetry combinations. |
 
-For more than 64 designs, use the existing [campaign client](portable-campaign.md)
-to freeze child requests and preserve each child's seeds, IDs, failures and
-verified results. Campaign design counts are not counts of accepted binders.
+For more than 64 designs, prefer the [hosted campaign contract](portable-campaign.md)
+when the live schema advertises it: one operation with explicit total designs,
+native batch size and bounded chunk parallelism. That guide also retains the
+client-driven compatibility path and exact qualification boundary. Campaign
+design counts are not counts of accepted binders.

@@ -5,10 +5,52 @@ These are distinct pinned checkpoints, not a model-size parameter of ESMFold.
 Default to the requested model. The 3B checkpoint is more expensive; its larger
 size alone does not establish better ranking for a particular assay.
 
-The workload bundle contains FASTA sequences and, for mutation scoring, a CSV
-linking each variant to its reference sequence. Use the schema/example's exact
-column names and one-based reference-sequence positions. PDB residue numbers are
-not automatically FASTA positions: retain an explicit mapping when needed.
+Both models use one manifest entry named `workload`, semantic type
+`protein-sequence-scoring-tar/v1`, MIME `application/x-tar`, compression `none`.
+Upload a plain tar with `sequences.fasta` at its root and, for `score-variants`,
+`variants.csv`. `parameters.fasta_file` and `parameters.variants_file` can select
+other relative archive paths; there is no automatic enclosing-directory removal.
+
+FASTA IDs are the first whitespace-delimited token after `>` and must be unique.
+Sequences accept `ACDEFGHIKLMNPQRSTVWYXBZUO`; whitespace is removed and letters
+uppercased, with no silent truncation. Gaps and special tokens are invalid.
+The variant CSV requires columns **`id,sequence_id,mutations`**. Variant IDs are
+unique, `sequence_id` must match a FASTA ID, and mutations use one-based `A1G`
+notation with colon-separated substitutions (`A1G:D3N`). The wild-type letter
+must match that FASTA position; a variant cannot repeat a position. PDB residue
+numbers are not automatically FASTA positions: retain an explicit mapping.
+
+A synthetic format example (not a biological benchmark):
+
+```text
+>reference
+ACDEFGHIK
+```
+
+```csv
+id,sequence_id,mutations
+single,reference,A1G
+double,reference,A1G:D3N
+```
+
+Save those as `inputs/sequences.fasta` and `inputs/variants.csv`, then create
+`tar -C inputs -cf workload.tar sequences.fasta variants.csv`. A parameter file
+for this operation can contain `{"strategy":"masked-marginals"}`. From the
+separate portable client directory, using actual local paths:
+
+```bash
+.venv/bin/python invoke-scientific-batch.py \
+  --model esm2-650m --tool submit_esm2_650m --operation score-variants \
+  --source workload.tar --parameters parameters.json \
+  --entry-name workload --semantic-type protein-sequence-scoring-tar/v1 \
+  --media-type application/x-tar --compression none \
+  --output runs/esm2-variants --idempotency-key esm2-variants-001
+```
+
+For `score-sequences`, omit the CSV, select that operation and use its declared
+strategy. For 3B, discover `submit_esm2_3b` and select `esm2-3b`; do not change the
+requested model silently. The helper creates the canonical manifest using the
+real finalized artifact pointer. Skills alone do not install that helper.
 
 `score-variants` defaults to masked-marginal mutant-versus-wild-type natural-log
 odds. A larger value means the model favours the mutant in that reference context.

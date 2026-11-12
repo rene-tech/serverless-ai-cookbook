@@ -14,7 +14,11 @@ client dependencies; its presence does not grant or install them.
 
 ## Install the existing file client
 
-The separate `scientific-ai-client-*.tar.gz` release asset packages the same
+Download **both** the skills archive and the separate
+`scientific-ai-client-*.tar.gz` asset, with their checksums, from the same
+[release](https://github.com/rene-tech/serverless-ai-cookbook/releases).
+The skills installer installs instructions, not these Python executables.
+The separate client asset packages the same
 uploader, batch client and receipt modules as the workbench, without its API,
 viewer, model weights or supervisor. Verify its `.sha256` file, extract it,
 then run these commands inside `scientific-ai-client` on Python 3.11+ on
@@ -26,6 +30,8 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python upload-artifact.py --help
 .venv/bin/python invoke-scientific-batch.py --help
+.venv/bin/python invoke-native.py --help
+export SCIENTIFIC_AI_CLIENT_DIR="$(pwd -P)"
 ```
 
 If the client archive is not present in the selected release, build it from
@@ -41,6 +47,17 @@ python3 templates/hcls-librechat/scripts/package-scientific-client.py \
 bundle's existing `bundle.py verify/install` remains independent and refuses
 to overwrite customized skills. Downloading skills alone does not install
 these Python dependencies.
+
+Run helpers from that extracted directory, or use
+`"$SCIENTIFIC_AI_CLIENT_DIR/.venv/bin/python"` with the helper's absolute path.
+`/opt/bionemo` and `/opt/scientific-client` paths in workbench examples are not
+laptop install locations. The [portable MD example](portable-md.md) shows
+starter-file selection and the distinct typed MCP request envelope.
+
+The packaged [readiness and residency table](model-readiness.md) and
+[JSON snapshot](model-readiness.json) distinguish catalog availability, scoped
+verified runs and untested release gates. Check their dates and your live
+authorized schema; the snapshot does not grant access or certify every model.
 
 ## Configure the connection
 
@@ -85,6 +102,22 @@ Fetch `get_model_schema` only for the selected App. If the tool's live schema
 does not expose these pagination fields, report the older server revision;
 do not invent parameters or truncate a full response and call it complete.
 
+MCP `tools/list` is different: it contains typed tool definitions and can still
+be large. To select model tools for a connection, set its existing URL variable:
+
+```bash
+export SCIENTIFIC_MODELS_MCP_URL='https://forge.nebius.cloud/mcp?models=proteinmpnn,rfdiffusion'
+```
+
+Use comma-separated authorized model IDs. Selected tools retain their complete
+schemas, and authorized utility tools remain available. Omitting `models` keeps
+the full discovery list. Selection does not change grants or prevent other
+authorized tools from being called; `get_model_schema` and the catalog revision
+still describe the canonical authorized contracts. Keep the API key in its
+existing environment variable. Do not send `query` or `limit` to `tools/list`.
+Record the origin, catalog revision and tool result when reporting a different
+response shape; stale-client or routing causes require evidence.
+
 ## Transfer and resume
 
 - `upload-artifact.py` uploads one file and verifies the finalized SHA-256,
@@ -94,10 +127,14 @@ do not invent parameters or truncate a full response and call it complete.
   verifies output hashes. It saves the operation ID and private receipts.
 - `invoke-native.py` handles discovered native named tools using a JSON input
   file; fill artifact fields from the uploader's verified `artifact.json`.
-- `invoke-scientific-campaign.py` plans and iterates RFdiffusion campaigns via
-  that same batch client, retaining the 64-design request bound. See
-  `campaign-example.md` in the client archive for offline planning, source reuse,
-  bounded iteration, observation and admission fencing.
+- When the live RFdiffusion schema advertises `parameters.campaign`, use
+  `invoke-scientific-batch.py` for one hosted campaign operation. Its `num_designs`
+  is the per-chunk batch size; `campaign.total_designs` and `max_parallelism`
+  set total work and bounded chunk concurrency. See `campaign-example.md` for
+  the prepared contract, current qualification boundary and partial results.
+- `invoke-scientific-campaign.py` remains a **client-driven** compatibility
+  path that iterates separate ordinary requests. Its process must run to admit
+  later children; it is not the hosted campaign or a background service.
 
 Use one output directory and stable idempotency key per intended request.
 Do not edit inputs or change identity inside an accepted receipt directory.

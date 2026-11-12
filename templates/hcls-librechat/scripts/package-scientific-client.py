@@ -24,9 +24,14 @@ FILES = {
     'requirements.txt': 'templates/hcls-librechat/scientific-client-requirements.txt',
     'README.md': 'skills/scientific-ai/scientific-gateway/references/portable-client.md',
     'worked-example.md': 'skills/scientific-ai/scientific-gateway/references/portable-rfdiffusion.md',
+    'portable-rfdiffusion.md': 'skills/scientific-ai/scientific-gateway/references/portable-rfdiffusion.md',
     'bindcraft2-example.md': 'skills/scientific-ai/scientific-gateway/references/portable-bindcraft2.md',
     'campaign-example.md': 'skills/scientific-ai/scientific-gateway/references/portable-campaign.md',
+    'portable-campaign.md': 'skills/scientific-ai/scientific-gateway/references/portable-campaign.md',
+    'portable-md.md': 'skills/scientific-ai/scientific-gateway/references/portable-md.md',
     'bucket-access.md': 'skills/scientific-ai/scientific-gateway/references/bucket-access.md',
+    'model-readiness.md': 'skills/scientific-ai/scientific-gateway/references/model-readiness.md',
+    'model-readiness.json': 'skills/scientific-ai/scientific-gateway/references/model-readiness.json',
 }
 
 

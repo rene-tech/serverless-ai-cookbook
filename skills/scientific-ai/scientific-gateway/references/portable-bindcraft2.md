@@ -69,6 +69,12 @@ printf '%s\n' '{"input_path":"settings.json"}' > inputs/bc2-design-parameters.js
   --output runs/bc2-design --wait-seconds 1800
 ```
 
+This bounded example completed on BindCraft2 1.0.4 in one native attempt,
+with seven finite output structures and one design accepted by the native
+filters. All 18 downloadable artifacts and the complete owner-bucket export
+were verified through public REST and MCP. This is computational acceptance,
+not experimental binding or qualification of every design mode.
+
 `input_path` resolves from the archive root. Each `targets[].target_path` and an
 optional `binder_scaffold` resolve from the **settings JSON's directory**. For
 example, `input_path: configs/settings.json` with
@@ -120,10 +126,11 @@ The score operation reads one structure (`structure.pdb` is the default
 `input_path`); explicit role parameters remove chain-order ambiguity. Native
 coordinate-derived metrics do not reconstruct missing prediction confidence,
 and they are not calibrated binding affinity, Kd, or Rosetta energy estimates.
-The retained ordinary public analysis check exercised **rank**. Native CPU
-score execution and this API contract have been checked separately; do not
-describe this example as a completed current-release public score run until
-its own result and artifacts are verified.
+This example's ordinary typed-MCP CPU score completed on BindCraft2 1.0.4.
+Its status, result and all four downloadable artifacts were verified through
+public REST and MCP, together with the complete owner-bucket export.
+Qualification covers this bounded geometry-scoring path. Other analysis modes
+require separate evidence; the GPU design result above is a separate trial.
 
 ## Campaign tables and other analysis operations
 

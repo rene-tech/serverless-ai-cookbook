@@ -156,6 +156,29 @@ def test_current_app_without_optional_manifest_policy():
     client.preflight_source({}, {}, argparse.Namespace(), 100)
 
 
+def test_conditional_source_roles_reject_incomplete_or_forbidden_inputs():
+    condition = {'parameter': 'parameters.mode', 'equals': 'map-query'}
+    policy = {'entries': [
+        {'name': 'anndata', 'required': True},
+        {'name': 'reference', 'required_if': condition, 'allowed_if': condition},
+    ]}
+    contract = {'input_artifact_contract': policy}
+    args = argparse.Namespace(entry_name='anndata', operation='fit-transform')
+    assert client.selected_source_contract(contract, {'mode': 'train'}, args)[0]['name'] == 'anndata'
+    assert client.selected_source_contract(contract, {}, args)[0]['name'] == 'anndata'
+    with pytest.raises(ValueError, match="requires input entries.*reference.*complete manifest"):
+        client.selected_source_contract(contract, {'mode': 'map-query'}, args)
+    args.entry_name = 'reference'
+    with pytest.raises(ValueError, match='not allowed'):
+        client.selected_source_contract(contract, {'mode': 'train'}, args)
+    with pytest.raises(ValueError, match="requires input entries.*anndata"):
+        client.selected_source_contract(contract, {'mode': 'map-query'}, args)
+    # An unsupported conditional grammar must not silently bypass the guard.
+    policy['entries'][1]['allowed_if'] = {'parameter': 'parameters.mode', 'in': ['map-query']}
+    with pytest.raises(ValueError, match='Unsupported published input condition'):
+        client.selected_source_contract(contract, {'mode': 'map-query'}, args)
+
+
 def test_real_top_level_discovery_preserves_manifest_and_fixed_entry_policy():
     entry = {'name': 'protenix-input', 'semantic_type': 'protenix-input-json/v1',
              'media_type': 'application/json', 'compression': 'none', 'maximum_bytes': 4096}
@@ -207,7 +230,8 @@ def test_top_level_source_kind_policy_is_enforced_for_existing_cosmos_shape():
         client.preflight_source(contract, {'source': {'kind': 'uploaded-bundle'}}, args, 100)
 
 
-def test_run_rejects_published_role_mismatch_before_any_upload_or_admission(tmp_path, monkeypatch):
+@pytest.mark.parametrize('suffix', ['/mcp', '/mcp/', '/mcp?models=fixture&ignored=https%3A%2F%2Fforeign.invalid'])
+def test_run_rejects_published_role_mismatch_before_any_upload_or_admission(tmp_path, monkeypatch, suffix):
     from types import SimpleNamespace
     calls = []
     class Context:
@@ -226,10 +250,18 @@ def test_run_rejects_published_role_mismatch_before_any_upload_or_admission(tmp_
     async def forbidden_upload(*args, **kwargs):
         calls.append('upload')
         raise AssertionError('Preflight must finish before reserving storage or submitting inference')
-    monkeypatch.setenv('SCIENTIFIC_MODELS_MCP_URL', 'https://fixture.invalid/mcp')
+    endpoint = 'https://fixture.invalid' + suffix
+    monkeypatch.setenv('SCIENTIFIC_MODELS_MCP_URL', endpoint)
     monkeypatch.setenv('SCIENTIFIC_MODELS_API_KEY', 'test-only-key')
-    monkeypatch.setattr(client.httpx2, 'AsyncClient', lambda **kwargs: Context())
-    monkeypatch.setattr(client, 'streamable_http_client', lambda *args, **kwargs: None)
+    def http_client(**kwargs):
+        if 'base_url' in kwargs:
+            assert kwargs['base_url'] == 'https://fixture.invalid'
+        assert kwargs['headers']['authorization'] == 'Bearer test-only-key'
+        return Context()
+    def mcp_transport(url, **kwargs):
+        assert url == endpoint
+    monkeypatch.setattr(client.httpx2, 'AsyncClient', http_client)
+    monkeypatch.setattr(client, 'streamable_http_client', mcp_transport)
     monkeypatch.setattr(client, 'Client', lambda *args, **kwargs: MCP())
     monkeypatch.setattr(client, 'call', discovered)
     monkeypatch.setattr(client, 'upload', forbidden_upload)

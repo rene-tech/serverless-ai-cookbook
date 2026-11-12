@@ -11,16 +11,18 @@ Public model ID `proteinmpnn`; typed tool `infer_proteinmpnn_native` on the
 rules: `scientific-gateway`. Call `get_model_schema` when unsure — its live
 schema and example win over this skill.
 
-## Payload contract (verified against the deployed adapter, 2026-09-09)
+## Payload contract
 
 Allowed fields only:
 
 - `input_pdb`: 40 B–2 MB UTF-8 PDB text containing `ATOM` records; populate
   from the real file outside chat, or use the artifact variant if advertised.
 - `input_pdb_chains`: optional list of 1–16 one-character chain IDs to design.
-- `num_seq_per_target` 1–8 (default 1).
-- `sampling_temp`: number or single-element list (default 0.1; lower is more
-  conservative).
+- `num_seq_per_target`: positive integer (default 1), subject to the live
+  schema. Internal bounded batches are not a request-count cap; larger counts
+  increase runtime and output size within the execution deadline.
+- `sampling_temp`: finite number or single-element list in 0.01–1;
+  `0.1` and `[0.1]` are both valid (default 0.1; lower is more conservative).
 - `random_seed` 1–2^31-1 (default 1).
 - `omit_AAs`: optional amino acids to exclude from design.
 
@@ -36,3 +38,8 @@ Designed sequences per requested chain with per-position log-probabilities.
 Sequences are research suggestions; validation by structure prediction
 (`openfold2`/`boltz2`) can supply further research evidence before synthesis.
 Installing this skill does not establish exact-runtime readiness or validation.
+One ordinary typed-MCP request with an inline 20-residue PDB, scalar temperature
+`0.1` and 100 requested sequences passed on L40S in eu-north1. All 100 sample
+labels, probability normalization, REST/MCP results and owner-bucket export
+hashes were verified. This does not qualify every sequence length, concurrent
+capacity or the artifact-upload variant.

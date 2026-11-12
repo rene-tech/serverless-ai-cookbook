@@ -130,15 +130,17 @@ def test_native_json_materialization_preserves_existing_contract(tmp_path):
     assert list(tmp_path.iterdir())==[]
 
 
-def test_known_native_mp4_result_recovery_never_submits_again(tmp_path, monkeypatch):
-    monkeypatch.setenv('SCIENTIFIC_MODELS_MCP_URL','https://example.invalid/mcp')
+@pytest.mark.parametrize('suffix', ['/mcp', '/mcp/', '/mcp?models=cosmos3-nano&ignored=https%3A%2F%2Fforeign.invalid'])
+def test_known_native_mp4_result_recovery_never_submits_again(tmp_path, monkeypatch, suffix):
+    endpoint = 'https://example.invalid' + suffix
+    monkeypatch.setenv('SCIENTIFIC_MODELS_MCP_URL',endpoint)
     monkeypatch.setenv('SCIENTIFIC_MODELS_API_KEY','synthetic-key')
     source=tmp_path/'input.json';source.write_text('{"mode":"transfer-video"}')
     args=types.SimpleNamespace(input=source,output_dir=tmp_path/'run',model='cosmos3-nano',
         idempotency_key='existing-video-key',wait_seconds=30,recover_only=True)
     args.output_dir.mkdir()
     identity={'model_id':args.model,'input_sha256':client.hashlib.sha256(source.read_bytes()).hexdigest(),
-              'endpoint':'https://example.invalid/mcp',
+              'endpoint':endpoint,
               'caller_fingerprint':client.hashlib.sha256(b'synthetic-key').hexdigest(),
               'idempotency_key':args.idempotency_key}
     client.save(args.output_dir/'receipt.json',{'identity':identity,'state':'result_pending','operation_id':'known-video'})
@@ -167,8 +169,13 @@ def test_known_native_mp4_result_recovery_never_submits_again(tmp_path, monkeypa
         async def get(self,url):
             assert url=='https://example.invalid/v1/artifacts/known-artifact/content'
             calls.append('download');return Download()
-    monkeypatch.setattr(client.httpx2,'AsyncClient',lambda **kwargs:HTTP())
-    monkeypatch.setattr(client,'streamable_http_client',lambda *args,**kwargs:None)
+    def http_client(**kwargs):
+        assert kwargs['headers']['Authorization'] == 'Bearer synthetic-key'
+        return HTTP()
+    def mcp_transport(url, **kwargs):
+        assert url == endpoint
+    monkeypatch.setattr(client.httpx2,'AsyncClient',http_client)
+    monkeypatch.setattr(client,'streamable_http_client',mcp_transport)
     monkeypatch.setattr(client,'Client',lambda transport:MCP())
     completed=asyncio.run(client.run(args))
     assert completed['state']=='succeeded' and completed['operation_id']=='known-video'

@@ -14,7 +14,8 @@ limits of the new batch API; do not route a large study through that adapter.
 
 For batch fields call `get_model_schema` with
 `{"model_id":"scvi-scanvi","tool_name":"submit_scvi_scanvi"}`. The exact
-protocol selector is `scientific-batch-v1`, not `scientific-batch`. A compact
+protocol selector is `scientific-batch-v1`; current discovery also accepts the
+`scientific-batch` execution-family selector. A compact
 discovery call with `summary_only: true` lists both native and batch tools.
 
 ## Inspect and choose the scientific method
@@ -44,6 +45,53 @@ Eight admitted operations does not guarantee eight immediately available
    GPUs. Queued work retains its operation ID. API limits/schema take priority.
 
 ## Submit once, then recover the same operation
+
+### Portable input layout
+
+`train` requires exactly one finalized manifest entry: `anndata`, semantic type
+`anndata-counts/v1`, MIME `application/x-hdf5`, compression `none`. Its payload is
+the actual `.h5ad` file, not a tar or a CSV. Select raw counts with
+`counts_source: "X"`, `"raw.X"` or `"layers/COUNTS_LAYER"`; batch/label keys must
+name real `obs` columns. A parameter-file shape is
+`{"schema":"fs2-serve.nebius.ai/scvi-workflow-request/v1","method":"scvi","mode":"train","counts_source":"X"}`;
+inspect the input before choosing those values.
+
+`map-query` requires both `anndata` and `reference`. Upload the reference as
+`scvi-reference/v1`, MIME `application/x-tar`, compression `gzip`; its native
+archive contains `reference.json` and model files at the root. Use an exported
+reference with the matching scientific method/runtime. Do not invent those
+model files, add a wrapper directory, or put H5AD inside the reference archive.
+The `reference` entry is not allowed in `train` mode. The complete live contract
+publishes these rules as `required_if`, `allowed_if` and `exact_entries_by_mode`.
+
+On a laptop, install the separate portable file client. `upload-artifact.py`
+can finalize each file independently with its exact MIME/compression. Construct
+one canonical manifest from those actual `artifact.json` receipts:
+
+```python
+import json
+from pathlib import Path
+
+manifest = {
+    "schema": "fs2-serve.nebius.ai/scientific-artifact-manifest/v1",
+    "entries": [
+        {"name": "anndata", "semantic_type": "anndata-counts/v1",
+         "artifact": json.loads(Path("uploads/anndata/artifact.json").read_text())},
+        {"name": "reference", "semantic_type": "scvi-reference/v1",
+         "artifact": json.loads(Path("uploads/reference/artifact.json").read_text())}
+    ]
+}
+Path("manifest.json").write_text(json.dumps(manifest, sort_keys=True, separators=(",", ":")))
+```
+
+This example is for `map-query`; omit `reference` for training. Finalize that
+manifest with MIME `application/vnd.fs2.scientific-manifest+json` and compression
+`none`. Call `submit_scvi_scanvi` with top-level `request` and `idempotency_key`;
+the request contains `operation: "fit-transform"`, the finalized manifest pointer
+and your model `parameters`. The generic one-source batch helper does not assemble
+this two-entry mapping manifest: use this complete-manifest typed-MCP route or
+the existing workbench `scvi-batch.py --reference` path. Do not submit a mapping
+request with only the H5AD entry.
 
 Upload files outside chat and submit immutable artifact references. Never put
 HDF5/base64 or large matrices into MCP arguments. The full LibreChat workbench

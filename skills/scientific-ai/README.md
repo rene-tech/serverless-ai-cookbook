@@ -9,6 +9,13 @@ access, or install an entire workbench on a customer's computer.
 
 Download the `scientific-ai-skills-*.tar.gz` and `SHA256SUMS` assets from
 [Releases](https://github.com/rene-tech/serverless-ai-cookbook/releases).
+For a laptop or Claude Code, also download `scientific-ai-client-*.tar.gz` and
+its `.sha256` file from the **same release**. The skills archive contains
+instructions; the client archive contains `upload-artifact.py`,
+`invoke-scientific-batch.py`, `invoke-native.py` and their dependencies manifest.
+Installing skills does not put these helpers in your skills directory or PATH.
+Follow the [portable installation](scientific-gateway/references/portable-client.md)
+for that separate client directory.
 Verify the checksum and extract the archive. From its `scientific-ai` directory:
 
 ```bash

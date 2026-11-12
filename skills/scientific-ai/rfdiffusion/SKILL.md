@@ -22,6 +22,15 @@ and structure contract. Reference the finalized manifest in `input_manifest`.
 Suggested `service_class: "customer-batch"`
 unless the key grants otherwise.
 
+For a campaign, read [hosted campaign usage](../scientific-gateway/references/portable-campaign.md)
+and check whether the live schema advertises `parameters.campaign`. Use one
+normal typed submission with `campaign.total_designs` and `max_parallelism`;
+`num_designs` becomes the 1–64 design batch size per GPU chunk. Preserve one
+manifest/key/operation and inspect partial-result counts and account admission
+reservations. A root reservation is not a GPU-capacity limit. The linked guide
+records a verified 65-design hotspot campaign; its 1,000-design template retains
+CPU-only planning evidence, not measured throughput or scientific success.
+
 ## Result
 
 Designed backbone PDB/mmCIF artifacts. Chain into `proteinmpnn` (sequence

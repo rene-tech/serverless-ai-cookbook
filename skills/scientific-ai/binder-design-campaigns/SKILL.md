@@ -29,25 +29,29 @@ the user's target with a preset or infer unsupported status from a missing ID.
 
 ## Execute and evaluate
 
-In LibreChat, register the complete durable scientific study before starting
-multiple bounded jobs and dependent analyses. See the
-[existing RFdiffusion study example](references/rfdiffusion-study.md).
-Plain MCP clients instead use the
-[portable campaign client](../scientific-gateway/references/portable-campaign.md);
-connecting MCP does not install LibreChat's study tools. Keep RFdiffusion's
-64-design request limit: partition a larger campaign into immutable children,
-reuse the finalized source and retain contiguous, non-overlapping seed ranges.
+For RFdiffusion, prefer the [hosted campaign contract](../scientific-gateway/references/portable-campaign.md)
+when advertised by the live schema: one typed operation, finalized manifest,
+key and result prefix. `num_designs` is then the 1–64 design batch size;
+`campaign.total_designs` and `max_parallelism` bound total work and eligible
+GPU chunks. Check the guide's qualification boundary and account capacity;
+root admission reservations are not GPU counts. The retained local campaign
+helper is client-driven compatibility, not a hosted background owner.
+In LibreChat, register a complete durable study for additional models and
+dependent analyses, using one batch phase for this hosted campaign. See the
+[RFdiffusion study example](references/rfdiffusion-study.md). Connecting plain
+MCP does not install LibreChat's study tools.
 Each distinct parameter/seed combination has one stable
 idempotency key and receipt directory. Respect queue/concurrency policy; pending
 capacity is not a reason to change a key. Preserve failed/filtered/empty outputs
 in the campaign table. Do not loosen filters or select only successful seeds to
 make a campaign appear successful.
 
-Unknown admission fences later chunks. Reconcile only the saved exact request
+Unknown admission fences additional requests. Reconcile only the saved exact request
 and key; observe already accepted IDs without replacement submissions. A failed
 or held child is not permission to replay science. Stopping new admissions does
 not cancel existing work; use its supported operation control explicitly.
 
+Retain partial-result manifests when present; incomplete work is not full success.
 Download every manifest-declared design, sequence and score artifact; verify
 hashes before interpreting them. Compare exact chains and residue numbering
 when refolding or computing RMSD/contacts. Use the existing design-artifact,

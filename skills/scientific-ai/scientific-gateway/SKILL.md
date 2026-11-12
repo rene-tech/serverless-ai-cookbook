@@ -158,9 +158,19 @@ Native speech calls consume concurrency too; do not submit them all in parallel
 when the caller policy allows only one active operation. Do not change keys to evade a rejected
 or unknown admission. Optional `/v1/me` describes caller policy, not real-time
 reserved capacity.
+When advertised, `get_account_budget.concurrency` reports key-wide root
+reservations and observed headroom; it is not a GPU count or capacity reservation.
+When advertised, `graph.admission_slot_held` reports the operation's original
+root reservation: `true` means held, `false` means no reservation, and null or
+absence means unknown. The error repeats the same field when present. Re-read
+status after an authorized control action; failure alone proves neither retention
+nor release. Inspect partial results before cancelling that exact operation;
+do not automatically cancel or replay it.
 Plain MCP clients do not inherit this supervisor: use the portable file client
 and its saved operation receipt, or the client's own explicitly configured
 orchestration. Do not promise background continuation from a handwritten plan.
+An advertised hosted campaign is one server-owned operation and can continue
+after its full admission without a local study worker; observe that same ID.
 
 ## Errors and user-facing results
 
@@ -179,6 +189,12 @@ orchestration. Do not promise background continuation from a handwritten plan.
   or a documented validation response proves that no work was admitted.
 - For 401/403 or a missing App, check this user's key and current catalog. Never
   substitute an admin credential or claim academic eligibility in the request.
+- For `SCIENTIFIC_STAGE_ADMISSION_BLOCKED`, correct the reported authorization
+  or execution configuration before retrying; repeatedly replaying a key cannot
+  fix that cause. Preserve any accepted or uncertain operation and its original
+  request/key. Once the cause is corrected, use that same request/key to finish
+  admission, not a replacement. Polling alone does not finish admission or
+  release a reservation; an absent or null held-slot value remains unknown.
 - For 429, retryable 503, or an interrupted submission, retain the same
   idempotency identity, back off, and check the saved operation.
 - For a terminal model failure, report the public model/App, operation ID,
