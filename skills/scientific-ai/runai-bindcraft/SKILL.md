@@ -82,3 +82,51 @@ Poll the returned owned run, verify downloaded artifact sizes/SHA-256 and
 retain scientific provenance in the owner's store. Report public errors and
 partial results without secrets, signed links or private image/deployment IDs.
 Skills do not grant licences, access to another owner or untested capabilities.
+
+## Optional bounded PD-L1 pilot
+
+This target-specific example is separate from the canonical catalog target.
+Download the exact tested public target from NVIDIA's pinned source below. It
+contains chain A residues 1–115; preserve its coordinates, numbering and bytes.
+Different PD-L1 structures do not reproduce this example's target/hotspots.
+
+```sh
+mkdir -p prepared-inputs
+curl --fail --location --silent --show-error \
+  https://raw.githubusercontent.com/NVIDIA-BioNeMo/Proteina-Complexa/54058860d43444c7289873f77d3e50b5b02348cd/assets/target_data/bindcraft_targets/PD-L1.pdb \
+  -o prepared-inputs/target.pdb
+printf '%s  %s\n' \
+  5e949950d8255ec3bf390b8bf24f5c71c6ac8fc65bc553d7e477563c9599b93e \
+  prepared-inputs/target.pdb | sha256sum --check
+tar -czf input.tar.gz -C prepared-inputs target.pdb
+```
+
+The target is 74,614 bytes. Choose an authorized `INPUT_KEY` in your own bound
+bucket. Use the portable procedure's Python reference-generation block on this
+archive to create `input-reference.json`, then its S3 upload command. This
+archive has only root `target.pdb`; its compressed hash/size come from your own
+archive, not an operator's bucket. Compose the exact scientific request:
+
+```sh
+jq -n --slurpfile input input-reference.json '{
+  model:"bindcraft", workflow:"design", version:"source-7cd4ace1b740",
+  region:"eu-north1", gpu:"h100", inputs:[$input[0]],
+  parameters:{seed:912083, minimum_length:67, maximum_length:67,
+    accepted_designs:1, max_trajectories:20, target_chains:"A",
+    hotspots:"A37,A39,A98,A104,A106", mpnn_lane:"vanilla",
+    advanced_profile:"legacy", filter_profile:"legacy"}
+}' > request.json
+```
+
+Confirm EU-North1/H100 access, then submit this file using the portable REST
+procedure. In MCP, call `bindcraft_design` with the same `version`, `region`,
+`gpu`, `inputs` and `parameters`, plus the saved `idempotency_key`; omit
+`model`/`workflow`. Keep the full trajectory ceiling and native filters.
+The cap counts closed/relaxed native units; failed low-confidence or clashing
+attempts can be additional. The original cumulative two-week deadline still applies.
+Managed success also requires at least one correctly mapped requested hotspot
+to have an atom within 4 Å of a binder atom. Generic native filter acceptance
+alone does not establish this product criterion.
+The scientific goal is one native filter-passing design, not guaranteed binding
+or guaranteed acceptance within the budget. Report `NATIVE_GOAL_NOT_MET` and
+rejections honestly; do not search seeds or weaken filters to force a pass.
