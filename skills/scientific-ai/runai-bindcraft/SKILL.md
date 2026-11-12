@@ -46,8 +46,14 @@ the portable upload procedure. Named MCP tools take the same fields without
 
 MCP tool: `bindcraft_design`. Execution: GPU.
 
+Before using default inputs, confirm the live `design` schema
+`example.inputs[0].sha256` is
+`e63ec3845f51b3f3513033c70467e44a3c1bb958b8d3b206c0413b00f85e2f07`
+and its archive contract names root `target.pdb`. During a rollout, wait for
+that contract or supply your own archive from the optional PD-L1 pilot below.
+
 ```json
-{"model":"bindcraft","workflow":"design","version":"source-7cd4ace1b740","parameters":{"count":1,"accepted_designs":1}}
+{"model":"bindcraft","workflow":"design","version":"source-7cd4ace1b740","parameters":{"seed":912083,"minimum_length":67,"maximum_length":67,"accepted_designs":1,"max_trajectories":20,"target_chains":"A","hotspots":"A37,A39,A98,A104,A106","mpnn_lane":"vanilla","advanced_profile":"legacy","filter_profile":"legacy"}}
 ```
 
 ### design-campaign
