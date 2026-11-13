@@ -8,7 +8,7 @@ license: Apache-2.0
 
 Read [the Run:ai scientific gateway](../runai-scientific-gateway/SKILL.md) and
 [portable client procedure](../runai-scientific-gateway/references/client.md).
-Model ID: `rfdiffusion`. Documented scientific version: `1.1.0+symmetry.8810bf28`; confirm
+Model ID: `rfdiffusion`. Documented scientific version: `1.1.0+symmetry.8810bf28.dimerrog.0b96ce0f`; confirm
 the live supported versions and workflow schema before submitting. This skill
 targets the managed scientific API, not native Run:ai administration or the
 other backend's scientific-batch artifact-manifest API.
@@ -41,7 +41,8 @@ Use the same scientific settings when comparing runs. Lower noise does not
 guarantee improved binding or design quality.
 
 For partial diffusion, input length and contig mapping must cover the complete
-input structure. `partial_T` is bounded by `diffuser_T`; `provide_seq` uses
+input structure. The full schedule requires `diffuser_T >= 15`; `partial_T`
+may be below 15 but cannot exceed `diffuser_T`. `provide_seq` uses
 zero-based inclusive input positions, and requires `InpaintSeq` or compatible
 `auto` selection. PDB motif ranges use the actual chain and residue identifiers.
 Do not confuse these numbering conventions or pretrained checkpoint variants
@@ -59,7 +60,7 @@ the portable upload procedure. Named MCP tools take the same fields without
 MCP tool: `rfdiffusion_backbone_and_motif`. Execution: GPU.
 
 ```json
-{"model":"rfdiffusion","workflow":"backbone-and-motif","version":"1.1.0+symmetry.8810bf28","parameters":{}}
+{"model":"rfdiffusion","workflow":"backbone-and-motif","version":"1.1.0+symmetry.8810bf28.dimerrog.0b96ce0f","parameters":{}}
 ```
 
 ## Worked scientific controls
@@ -107,13 +108,13 @@ do not apply these fixture residue ranges to an unrelated target.
 Unconditional Base backbone with independent denoising controls:
 
 ```json
-{"model":"rfdiffusion","workflow":"backbone-and-motif","version":"1.1.0+symmetry.8810bf28","parameters":{"contigs":["76-76"],"num_designs":1,"seed":8100,"diffuser_T":50,"checkpoint_family":"Base","noise_scale_ca":0.25,"noise_scale_frame":0.75}}
+{"model":"rfdiffusion","workflow":"backbone-and-motif","version":"1.1.0+symmetry.8810bf28.dimerrog.0b96ce0f","parameters":{"contigs":["76-76"],"num_designs":1,"seed":8100,"diffuser_T":50,"checkpoint_family":"Base","noise_scale_ca":0.25,"noise_scale_frame":0.75}}
 ```
 
 Receptor-conditioned binder transport smoke test:
 
 ```json
-{"model":"rfdiffusion","workflow":"backbone-and-motif","version":"1.1.0+symmetry.8810bf28","parameters":{"operation":"scaffold-motif","contigs":["A1-20/0 20-20"],"hotspot_residues":["A4"],"checkpoint_family":"Complex_base","num_designs":1,"seed":8200,"noise_scale_ca":0.25,"noise_scale_frame":0.75}}
+{"model":"rfdiffusion","workflow":"backbone-and-motif","version":"1.1.0+symmetry.8810bf28.dimerrog.0b96ce0f","parameters":{"operation":"scaffold-motif","contigs":["A1-20/0 20-20"],"hotspot_residues":["A4"],"checkpoint_family":"Complex_base","num_designs":1,"seed":8200,"noise_scale_ca":0.25,"noise_scale_frame":0.75}}
 ```
 
 This creates a 20-residue candidate binder beside a 20-residue retained
@@ -124,14 +125,15 @@ Partial diffusion on the complete 20-residue fixture, with a fixed PDB motif
 and retained input sequence at zero-based positions 10–19:
 
 ```json
-{"model":"rfdiffusion","workflow":"backbone-and-motif","version":"1.1.0+symmetry.8810bf28","parameters":{"operation":"partial-diffusion","contigs":["A1-4/16-16"],"partial_T":10,"provide_seq":["10-19"],"checkpoint_family":"InpaintSeq","num_designs":1,"seed":8300,"diffuser_T":50,"noise_scale_ca":0.25,"noise_scale_frame":0.75}}
+{"model":"rfdiffusion","workflow":"backbone-and-motif","version":"1.1.0+symmetry.8810bf28.dimerrog.0b96ce0f","parameters":{"operation":"partial-diffusion","contigs":["A1-4/16-16"],"partial_T":10,"provide_seq":["10-19"],"checkpoint_family":"InpaintSeq","num_designs":1,"seed":8300,"diffuser_T":50,"noise_scale_ca":0.25,"noise_scale_frame":0.75}}
 ```
 
 Inspect the actual selected checkpoint, retained sequence/mapping and trajectory
 step count. These requests intentionally choose different scientific controls;
 they are not an optimization comparison. Use only options qualified for the
-current release. In particular, `dimer_ROG` has a recorded upstream scientific
-defect and must not be treated as qualified until its correction is released.
+current release. The corrected `dimer_ROG` potential in this scientific version
+averages the independent clamped C-alpha radii of gyration of the two monomers.
+It encourages monomer compactness and does not establish binding or affinity.
 
 ## Interpret and retain results
 

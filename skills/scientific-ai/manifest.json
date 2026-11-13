@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.8",
+  "version": "2026.11.13.9",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -386,7 +386,7 @@
     },
     "rfdiffusion": {
       "skill": "runai-rfdiffusion",
-      "scientific_version": "1.1.0+symmetry.8810bf28",
+      "scientific_version": "1.1.0+symmetry.8810bf28.dimerrog.0b96ce0f",
       "workflows": {
         "backbone-and-motif": "runai-rfdiffusion/SKILL.md#backbone-and-motif"
       }
