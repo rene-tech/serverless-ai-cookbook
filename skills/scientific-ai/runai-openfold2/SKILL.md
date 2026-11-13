@@ -140,7 +140,9 @@ Private per-job scratch is synced to the authorized owner bucket. On completion,
 failure or stop, final-upload retries last at most300s, then the temporary PVC,
 PV and backing disk are deleted. Unsynced tail loss is reported; recovery uses
 only verified owner-bucket data. Recovery is implemented at completed target
-boundaries; cross-region qualification is pending. An unfinished target
+boundaries. H100 in EU-North1 to H200 in EU-North2 continuation passed an
+unfinished-run test through MCP, including owner-bucket restore and temporary-disk
+deletion. Other GPU/region pairs require separate qualification. An unfinished target
 recomputes with the original settings and deadline. No in-flight neural-state
 restoration is promised. Other users cannot
 read/control your runs, artifacts, checkpoints or storage. Administrators do not
