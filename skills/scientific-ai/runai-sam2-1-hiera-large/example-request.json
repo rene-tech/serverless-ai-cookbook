@@ -4,7 +4,7 @@
   "version": "sam2.1-hiera-large-665f8e2a",
   "region": "eu-north1",
   "gpu": "h100",
-  "pvc_gib": 16,
+  "pvc_gib": 32,
   "inputs": [
     {
       "name": "input.tar.gz",

@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.10",
+  "version": "2026.11.13.11",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -247,6 +247,9 @@
     ],
     "runai-sam2-1-hiera-large": [
       "sam2-1-hiera-large"
+    ],
+    "runai-esmc-300m": [
+      "esmc-300m"
     ]
   },
   "client_requirements": {
@@ -325,7 +328,8 @@
     "runai-ctoxpred2": "runai-scientific-api-mcp",
     "runai-esm2-3b": "runai-scientific-api-mcp",
     "runai-openfold2": "runai-scientific-api-mcp",
-    "runai-sam2-1-hiera-large": "runai-scientific-api-mcp"
+    "runai-sam2-1-hiera-large": "runai-scientific-api-mcp",
+    "runai-esmc-300m": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -532,6 +536,18 @@
       "scientific_version": "sam2.1-hiera-large-665f8e2a",
       "workflows": {
         "segment-track-media": "runai-sam2-1-hiera-large/SKILL.md#segment-track-media"
+      }
+    },
+    "esmc-300m": {
+      "skill": "runai-esmc-300m",
+      "scientific_version": "esmc-300m-96a2d8d6",
+      "workflows": {
+        "embed": "runai-esmc-300m/SKILL.md#embed",
+        "score-variants": "runai-esmc-300m/SKILL.md#score-variants",
+        "score-sequences": "runai-esmc-300m/SKILL.md#score-sequences",
+        "extract-representations": "runai-esmc-300m/SKILL.md#extract-representations",
+        "logits": "runai-esmc-300m/SKILL.md#logits",
+        "masked-completion": "runai-esmc-300m/SKILL.md#masked-completion"
       }
     }
   }
