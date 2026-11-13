@@ -8,17 +8,21 @@ license: Apache-2.0
 
 Use the [managed scientific gateway](../runai-scientific-gateway/SKILL.md) and
 [portable REST/MCP client](../runai-scientific-gateway/references/client.md).
-Model `nanobodybuilder2`, workflow `predict`, scientific version **`1.2`**
+Model `nanobodybuilder2`, workflow `predict`, scientific version **`1.2+strainfix.e33d4bdc`**
 (ImmuneBuilder 1.2 / NanoBodyBuilder2); MCP tool `nanobodybuilder2_predict`.
 Discover the caller's live model/workflow schema and supported versions first.
 This is finite structure prediction, with CPU input validation before GPU work.
 It does not design a sequence, dock an antigen or predict binding affinity.
 
-This draft describes research use on the new release. Local native parsing, retained-output
-readers and immutable regional publication have passed. New Run:ai GPU science,
-all feature combinations, regional execution, concurrency, lifecycle and fresh
-portable-client qualification remain pending. Availability in discovery alone
-does not establish those gates or production readiness.
+The corrected version fixes CPU sidechain refinement when positive `n_threads`
+and strain checking are used together; weights, precision and requested settings
+are unchanged. Explicit version `1.2` remains available for reproducibility,
+including its known exception in that branch. Use the corrected version for new work.
+
+This is evaluation documentation. Corrected positive-thread workflows have
+completed REST/MCP execution, independent structure checks and verified bucket
+delivery. Full production qualification, including a fresh portable-client
+canonical default request, remains incomplete.
 
 ## Run the canonical example
 
@@ -33,11 +37,14 @@ With the gateway's approved URL/token environment and ordinary `curl`/`jq`:
 ```sh
 MODEL=nanobodybuilder2
 WORKFLOW=predict
+: "${SCIENTIFIC_AI_REGION:?Choose an allowed region from your connection details}"
+: "${SCIENTIFIC_AI_GPU:?Choose an allowed GPU from your connection details}"
 curl --fail-with-body --silent --show-error \
   -H "Authorization: Bearer $SCIENTIFIC_AI_TOKEN" \
   "$SCIENTIFIC_AI_URL/v1/models/$MODEL" > model.json
 jq '.workflows.predict.input_contract' model.json
-jq '.workflows.predict.example + {version:"1.2",parameters:{}}' \
+jq --arg region "$SCIENTIFIC_AI_REGION" --arg gpu "$SCIENTIFIC_AI_GPU" \
+  '.workflows.predict.example + {version:"1.2+strainfix.e33d4bdc",region:$region,gpu:$gpu,parameters:{}}' \
   model.json > request.json
 ```
 
@@ -49,17 +56,17 @@ plus the saved `idempotency_key`; omit REST `model` and `workflow` fields.
 Confirm the current tool schema using an ordinary MCP client's tools/list.
 Use `md_run_status` and `md_run_artifacts` with the returned public `run_id`.
 
-For the same input, this variation retains the ranked unrefined ensemble and
+This variation retains the ranked unrefined ensemble and
 uncertainty while choosing two native members and raw output numbering:
 
 ```json
-{"model_ids":[1,4],"numbering_scheme":"raw","save_all":true,"n_threads":2,"check_for_strained_bonds":true}
+{"model_ids":[4,1],"numbering_scheme":"raw","save_all":true,"n_threads":2,"check_for_strained_bonds":true}
 ```
 
 Use it as `parameters` in a separate logical request with a new saved key.
-This variation is supported by the native contract and has retained-output
-checks; new managed-service execution remains pending. Positive `n_threads`
-selects CPU refinement; neural inference still uses the GPU.
+The corrected mode completed a managed-service test with a flanked sequence;
+that is distinct from qualification of the canonical unflanked example above.
+Positive `n_threads` selects CPU refinement; neural inference still uses the GPU.
 
 ## Prepare a caller-owned sequence
 
@@ -89,8 +96,9 @@ weights, credentials, links, scripts or filesystem paths as scientific options.
 
 There is no native antigen, affinity, user-seed, CIF-output or mid-inference
 checkpoint option. Paired-antibody and TCR builders are separate models.
-Leave placement unset unless a permitted region is required; use only placement
-choices currently authorized and advertised for the caller.
+Use explicit authorized region/GPU placement while automatic cost routing is
+unqualified. Obtain choices from your connection details; model discovery does
+not itself grant access to a region or GPU.
 
 ## Verify the scientific result
 
@@ -115,6 +123,9 @@ calibrated confidence, measured affinity or Kd. A one-member ensemble has zero
 between-model spread, which does not establish certainty. The upstream save API
 does not report refinement convergence. Computation success and a plausible
 structure do not establish experimental binding or biological validity.
+Some tested member subsets and a human-VH variation missed the unchanged
+crystal-reference accuracy screen despite valid refined geometry. Inspect the
+specific prediction; member selection and uncertainty are not accuracy guarantees.
 
 ## Errors, cancellation and recovery
 

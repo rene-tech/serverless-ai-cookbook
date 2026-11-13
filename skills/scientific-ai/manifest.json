@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.6",
+  "version": "2026.11.13.7",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -472,9 +472,9 @@
     },
     "nanobodybuilder2": {
       "skill": "runai-nanobodybuilder2",
-      "scientific_version": "1.2",
+      "scientific_version": "1.2+strainfix.e33d4bdc",
       "workflows": {
-        "predict": "runai-nanobodybuilder2/SKILL.md#predict"
+        "predict": "runai-nanobodybuilder2/SKILL.md#run-the-canonical-example"
       }
     },
     "esm2-650m": {
