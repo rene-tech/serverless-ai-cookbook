@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.2",
+  "version": "2026.11.13.3",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -217,6 +217,9 @@
     ],
     "runai-bindcraft": [
       "bindcraft"
+    ],
+    "runai-diffdock": [
+      "diffdock"
     ]
   },
   "client_requirements": {
@@ -285,7 +288,8 @@
     "runai-boltzgen": "runai-scientific-api-mcp",
     "runai-proteina-complexa": "runai-scientific-api-mcp",
     "runai-bindcraft2": "runai-scientific-api-mcp",
-    "runai-bindcraft": "runai-scientific-api-mcp"
+    "runai-bindcraft": "runai-scientific-api-mcp",
+    "runai-diffdock": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -332,7 +336,8 @@
       "skill": "runai-openmm",
       "scientific_version": "8.6.1.dev-b399af4",
       "workflows": {
-        "hecbiosim-20k": "runai-openmm/SKILL.md#hecbiosim-20k"
+        "hecbiosim-20k": "runai-openmm/SKILL.md#hecbiosim-20k",
+        "reviewed-simulation": "runai-openmm/SKILL.md#reviewed-simulation"
       }
     },
     "mdprecheck": {
@@ -411,6 +416,13 @@
         "design": "runai-bindcraft/SKILL.md#design",
         "design-campaign": "runai-bindcraft/SKILL.md#design-campaign",
         "trajectories": "runai-bindcraft/SKILL.md#trajectories"
+      }
+    },
+    "diffdock": {
+      "skill": "runai-diffdock",
+      "scientific_version": "v1.1",
+      "workflows": {
+        "dock": "runai-diffdock/SKILL.md#dock"
       }
     }
   }
