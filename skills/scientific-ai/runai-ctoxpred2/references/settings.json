@@ -1,0 +1,7 @@
+{
+  "molecules": [
+    {"id": "aspirin", "smiles": "CC(=O)Oc1ccccc1C(=O)O"},
+    {"id": "caffeine", "smiles": "Cn1c(=O)c2c(ncn2C)n(C)c1=O"}
+  ],
+  "method": "rf-ssl"
+}
