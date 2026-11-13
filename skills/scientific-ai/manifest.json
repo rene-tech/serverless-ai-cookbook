@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.1",
+  "version": "2026.11.13.2",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -340,7 +340,8 @@
       "scientific_version": "0.1.0+git.1ab41dd",
       "workflows": {
         "hecbiosim-20k": "runai-mdprecheck/SKILL.md#hecbiosim-20k",
-        "alanine-source": "runai-mdprecheck/SKILL.md#alanine-source"
+        "alanine-source": "runai-mdprecheck/SKILL.md#alanine-source",
+        "coordinate-stages": "runai-mdprecheck/SKILL.md#coordinate-stages"
       }
     },
     "proteinmpnn": {
