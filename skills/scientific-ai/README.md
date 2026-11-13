@@ -9,8 +9,8 @@ access, or install an entire workbench on a customer's computer.
 
 For the managed **Run:ai scientific service**, start with
 [`runai-scientific-gateway`](runai-scientific-gateway/SKILL.md), then the
-`runai-<model>` skill. These additive skills cover 14 models and 32 explicitly
-indexed workflows; `manifest.json.runai_workflows` maps every workflow to its
+`runai-<model>` skill. These additive skills cover the models and workflows explicitly indexed in
+`manifest.json.runai_workflows`, which maps each listed workflow to its
 instructions. They use the supplied scientific API URL, standard REST/MCP and
 the caller's bound bucket. Native Run:ai administration and the older artifact
 manifest protocol are separate interfaces. The unprefixed skills retain their

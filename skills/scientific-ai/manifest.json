@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.3",
+  "version": "2026.11.13.4",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -220,6 +220,18 @@
     ],
     "runai-diffdock": [
       "diffdock"
+    ],
+    "runai-cellpose-cpsam-v2": [
+      "cellpose-cpsam-v2"
+    ],
+    "runai-monai-spleen-ct": [
+      "monai-spleen-ct"
+    ],
+    "runai-admet-ai": [
+      "admet-ai"
+    ],
+    "runai-nanobodybuilder2": [
+      "nanobodybuilder2"
     ]
   },
   "client_requirements": {
@@ -289,7 +301,11 @@
     "runai-proteina-complexa": "runai-scientific-api-mcp",
     "runai-bindcraft2": "runai-scientific-api-mcp",
     "runai-bindcraft": "runai-scientific-api-mcp",
-    "runai-diffdock": "runai-scientific-api-mcp"
+    "runai-diffdock": "runai-scientific-api-mcp",
+    "runai-cellpose-cpsam-v2": "runai-scientific-api-mcp",
+    "runai-monai-spleen-ct": "runai-scientific-api-mcp",
+    "runai-admet-ai": "runai-scientific-api-mcp",
+    "runai-nanobodybuilder2": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -423,6 +439,34 @@
       "scientific_version": "v1.1",
       "workflows": {
         "dock": "runai-diffdock/SKILL.md#dock"
+      }
+    },
+    "cellpose-cpsam-v2": {
+      "skill": "runai-cellpose-cpsam-v2",
+      "scientific_version": "4.2.1",
+      "workflows": {
+        "segment-cells": "runai-cellpose-cpsam-v2/SKILL.md#segment-cells"
+      }
+    },
+    "monai-spleen-ct": {
+      "skill": "runai-monai-spleen-ct",
+      "scientific_version": "bundle-0.6.1",
+      "workflows": {
+        "segment": "runai-monai-spleen-ct/SKILL.md#segment"
+      }
+    },
+    "admet-ai": {
+      "skill": "runai-admet-ai",
+      "scientific_version": "2.0.1",
+      "workflows": {
+        "screen-molecules": "runai-admet-ai/SKILL.md#screen-molecules"
+      }
+    },
+    "nanobodybuilder2": {
+      "skill": "runai-nanobodybuilder2",
+      "scientific_version": "1.2",
+      "workflows": {
+        "predict": "runai-nanobodybuilder2/SKILL.md#predict"
       }
     }
   }
