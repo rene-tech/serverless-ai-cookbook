@@ -36,7 +36,9 @@ For a single monomer, `request.json` can contain:
 ```
 
 The sequence uses canonical uppercase amino acids. Native length domain is1–1024;
-consult live readiness before assuming every boundary is qualified. Without
+consult live readiness before assuming every boundary is qualified. Optional
+`relax_prediction:true` requires at least two residues in every target; native
+Amber cannot relax a one-residue chain. Without
 `msa_file`, the model uses a query-only dummy MSA; that can substantially reduce
 accuracy. Supplied alignments must have an aligned first query exactly equal to
 the requested sequence. Native parsers handle lowercase A3M insertions and
@@ -79,10 +81,12 @@ Those placeholders describe the fields; obtain real values from your file.
 No legacy scientific manifest or container-local upload helper is required.
 
 The canonical supplied example is ubiquitin,76 residues with a provided MSA.
-Its archive contains root `request.json`, `bfd_uniclust_hits.a3m`, `ATTRIBUTION.txt`
-and `LICENSE`. Its referenced object must exist in your bound bucket; another
-owner's example does not grant access. With ordinary `curl`/`jq` and the gateway's
-approved URL/token environment, prepare the complete default request:
+Its publicly licensed [example archive](examples/1ubq-input.tar.gz) contains root
+`request.json`, the unchanged genuine OpenProteinSet `bfd_uniclust_hits.a3m`,
+`ATTRIBUTION.txt` and the full CC-BY-4.0 `LICENSE`. Download it and upload it to
+your own bound bucket; another owner's example does not grant access. With
+ordinary `curl`/`jq` and the gateway's approved URL/token environment, prepare the
+complete default request:
 
 ```sh
 : "${SCIENTIFIC_AI_URL:?Set the scientific API base URL}"
@@ -97,6 +101,35 @@ jq --arg region "$SCIENTIFIC_AI_REGION" --arg gpu "$SCIENTIFIC_AI_GPU" \
   model.json > request.json
 ```
 
+From an empty working directory, obtain the exact public input and upload it
+using your existing bound-bucket credentials. Set `INPUT_KEY` to a new key in that
+bucket; the shared gateway defines the `SCIENTIFIC_DATA_*` environment values.
+The downloaded archive has no executable files or reference-structure coordinates.
+
+```sh
+set -e
+: "${INPUT_KEY:?Choose a new object key in your bound bucket}"
+export INPUT_KEY
+curl --fail-with-body --silent --show-error \
+  https://raw.githubusercontent.com/rene-tech/serverless-ai-cookbook/main/skills/scientific-ai/runai-openfold2/examples/1ubq-input.tar.gz \
+  --output input.tar.gz
+python3 - <<'PYTHON' > input-reference.json
+import hashlib, json, os
+from pathlib import Path
+p = Path('input.tar.gz')
+digest = hashlib.sha256(p.read_bytes()).hexdigest()
+if digest != '76d6be1f898932a1f42595ec563d6746862724fcb5bb656dd953f721df69489f':
+    raise SystemExit('The public example checksum does not match')
+print(json.dumps({'name':'input.tar.gz', 'key':os.environ['INPUT_KEY'],
+                  'sha256':digest, 'size_bytes':p.stat().st_size}))
+PYTHON
+aws s3 cp input.tar.gz "s3://$SCIENTIFIC_DATA_BUCKET/$INPUT_KEY" \
+  --endpoint-url "$SCIENTIFIC_DATA_ENDPOINT" --region "$SCIENTIFIC_DATA_REGION"
+jq --slurpfile input input-reference.json '.inputs=[$input[0]]' \
+  request.json > request-with-input.json
+mv request-with-input.json request.json
+```
+
 Review that request, then follow the gateway's submit-once, saved-key, bounded
 polling and checksum-verified artifact-download procedure. Native inference of
 this known positive control has passed independent1UBQ structure checks; public
@@ -108,9 +141,10 @@ procedure:
 ```sh
 jq '.parameters = ((.parameters // {}) + {relax_prediction:true})' \
   request.json > request-relaxed.json
+mv request-relaxed.json request.json
 ```
 
-Submit `request-relaxed.json` through REST, or pass the same typed
+Submit the updated `request.json` through REST, or pass the same typed
 `parameters:{"relax_prediction":true}` with the other MCP arguments. Verify the
 live schema advertises this option for your supported release. Refinement uses
 OpenMM 8.6.1 and PDBFixer 1.12.0 on CPU with the pinned model's native settings;

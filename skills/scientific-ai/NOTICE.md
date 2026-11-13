@@ -60,3 +60,7 @@ The adaptations are concise research guidance, with current-platform tool routin
 upstream optional commercial tools and treatment instructions were not imported.
 Scientific papers are linked and summarized, not redistributed. No institutional
 endorsement or clinical validation is implied.
+
+The `runai-openfold2/examples/1ubq-input.tar.gz` example includes an unchanged
+OpenProteinSet alignment under CC-BY-4.0. The archive contains the full license,
+original dataset URL and attribution; reference-structure coordinates are excluded.
