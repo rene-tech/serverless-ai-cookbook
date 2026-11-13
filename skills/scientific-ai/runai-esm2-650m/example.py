@@ -15,6 +15,7 @@ from uuid import uuid4
 WORKFLOWS = ['score-variants', 'score-sequences', 'extract-representations',
              'predict-contacts', 'logits', 'masked-completion']
 parser = argparse.ArgumentParser()
+parser.add_argument('--model', choices=['esm2-650m', 'esm2-3b'], default='esm2-650m')
 parser.add_argument('--workflow', choices=WORKFLOWS, default='score-variants')
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--prepare-only', action='store_true')
@@ -37,7 +38,8 @@ parameters = {}
 if args.workflow == 'masked-completion':
     parameters = {'masked_positions': [{'sequence_id': 'synthetic', 'positions': [2, 5]}], 'top_k': 5}
 if args.workflow == 'extract-representations':
-    parameters = {'layers': [0, 12, 33], 'representations': ['per-token', 'mean', 'bos']}
+    parameters = {'layers': [0, 12, 33] if args.model == 'esm2-650m' else [0, 18, 36],
+                  'representations': ['per-token', 'mean', 'bos']}
 if args.prepare_only:
     print(json.dumps({'archive': str(archive), 'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
                       'workflow': args.workflow, 'parameters': parameters})); raise SystemExit
@@ -73,7 +75,7 @@ def api(path, body=None, key=None):
         raise RuntimeError('Scientific API rejected request: ' + error.read().decode()) from None
 
 
-schema = api('/v1/models/esm2-650m?workflow=' + args.workflow)
+schema = api('/v1/models/' + args.model + '?workflow=' + args.workflow)
 if args.workflow not in schema['workflows']:
     raise ValueError('Selected workflow is unavailable in discovery')
 import boto3
@@ -81,10 +83,12 @@ s3 = boto3.session.Session().client('s3', endpoint_url=os.environ['OWNER_S3_ENDP
                                    region_name=os.environ.get('AWS_DEFAULT_REGION', 'eu-north1'))
 key = os.environ['OWNER_INPUT_PREFIX'].strip('/') + '/' + uuid4().hex + '/input.tar.gz'
 s3.upload_file(str(archive), os.environ['OWNER_BUCKET'], key)
-request = {'model': 'esm2-650m', 'workflow': args.workflow, 'parameters': parameters,
+request = {'model': args.model, 'workflow': args.workflow, 'parameters': parameters,
            'inputs': [{'name': 'input.tar.gz', 'key': key, 'size_bytes': archive.stat().st_size,
                        'sha256': hashlib.sha256(archive.read_bytes()).hexdigest()}]}
 request.update(placement)
+if args.model == 'esm2-3b':
+    request['version'] = 'esm2-3b-476b6399'
 submission = {'idempotency_key': uuid4().hex, 'request': request}
 (args.output / 'submission.json').write_text(json.dumps(submission, indent=2))
 run = api('/v1/runs', request, key=submission['idempotency_key'])

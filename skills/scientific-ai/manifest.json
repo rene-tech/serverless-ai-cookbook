@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.7",
+  "version": "2026.11.13.8",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -238,6 +238,9 @@
     ],
     "runai-ctoxpred2": [
       "ctoxpred2"
+    ],
+    "runai-esm2-3b": [
+      "esm2-3b"
     ]
   },
   "client_requirements": {
@@ -313,7 +316,8 @@
     "runai-admet-ai": "runai-scientific-api-mcp",
     "runai-nanobodybuilder2": "runai-scientific-api-mcp",
     "runai-esm2-650m": "runai-scientific-api-mcp",
-    "runai-ctoxpred2": "runai-scientific-api-mcp"
+    "runai-ctoxpred2": "runai-scientific-api-mcp",
+    "runai-esm2-3b": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -494,6 +498,18 @@
       "scientific_version": "2a31aa119e27b6b69a5588d18a01f2a27fef4524",
       "workflows": {
         "screen-molecules": "runai-ctoxpred2/SKILL.md#screen-molecules"
+      }
+    },
+    "esm2-3b": {
+      "skill": "runai-esm2-3b",
+      "scientific_version": "esm2-3b-476b6399",
+      "workflows": {
+        "score-variants": "runai-esm2-3b/SKILL.md#score-variants",
+        "score-sequences": "runai-esm2-3b/SKILL.md#score-sequences",
+        "extract-representations": "runai-esm2-3b/SKILL.md#extract-representations",
+        "predict-contacts": "runai-esm2-3b/SKILL.md#predict-contacts",
+        "logits": "runai-esm2-3b/SKILL.md#logits",
+        "masked-completion": "runai-esm2-3b/SKILL.md#masked-completion"
       }
     }
   }
