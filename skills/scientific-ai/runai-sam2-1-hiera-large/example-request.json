@@ -1,0 +1,17 @@
+{
+  "model": "sam2-1-hiera-large",
+  "workflow": "segment-track-media",
+  "version": "sam2.1-hiera-large-665f8e2a",
+  "region": "eu-north1",
+  "gpu": "h100",
+  "pvc_gib": 16,
+  "inputs": [
+    {
+      "name": "input.tar.gz",
+      "key": "examples/runai-sam2-v1/prompted-image/input.tar.gz",
+      "sha256": "19503db6126b811c167a0c6856606a145ee30cf6ce1ac5b9d558297bb898e618",
+      "size_bytes": 6569
+    }
+  ],
+  "parameters": {}
+}

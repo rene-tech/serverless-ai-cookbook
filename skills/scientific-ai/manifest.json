@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.9",
+  "version": "2026.11.13.10",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -241,6 +241,12 @@
     ],
     "runai-esm2-3b": [
       "esm2-3b"
+    ],
+    "runai-openfold2": [
+      "openfold2"
+    ],
+    "runai-sam2-1-hiera-large": [
+      "sam2-1-hiera-large"
     ]
   },
   "client_requirements": {
@@ -317,7 +323,9 @@
     "runai-nanobodybuilder2": "runai-scientific-api-mcp",
     "runai-esm2-650m": "runai-scientific-api-mcp",
     "runai-ctoxpred2": "runai-scientific-api-mcp",
-    "runai-esm2-3b": "runai-scientific-api-mcp"
+    "runai-esm2-3b": "runai-scientific-api-mcp",
+    "runai-openfold2": "runai-scientific-api-mcp",
+    "runai-sam2-1-hiera-large": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -510,6 +518,20 @@
         "predict-contacts": "runai-esm2-3b/SKILL.md#predict-contacts",
         "logits": "runai-esm2-3b/SKILL.md#logits",
         "masked-completion": "runai-esm2-3b/SKILL.md#masked-completion"
+      }
+    },
+    "openfold2": {
+      "skill": "runai-openfold2",
+      "scientific_version": "OpenFold2-be2ec184-no-templ-ptm1",
+      "workflows": {
+        "predict-structure": "runai-openfold2/SKILL.md#predict-structure"
+      }
+    },
+    "sam2-1-hiera-large": {
+      "skill": "runai-sam2-1-hiera-large",
+      "scientific_version": "sam2.1-hiera-large-665f8e2a",
+      "workflows": {
+        "segment-track-media": "runai-sam2-1-hiera-large/SKILL.md#segment-track-media"
       }
     }
   }
