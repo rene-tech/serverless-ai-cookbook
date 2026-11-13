@@ -53,7 +53,7 @@ separately durable units; an interrupted unfinished target recomputes.
 | Control | Meaning and native default |
 |---|---|
 | `selected_models` | Exactly `[1]`; only this weight variant is present. |
-| `relax_prediction` | Exactly `false`; this runtime has no relaxation dependencies. |
+| `relax_prediction` | Optional native Amber CPU relaxation; default `false`. Preserves unrelaxed outputs and all neural confidence arrays. |
 | `model_seed` | Torch RNG seed, default1. |
 | `data_seed` | NumPy RNG seed, default0. |
 | `recycling_steps` | Integer0–32 native recycling iterations, default3. Keep3 until another value is live-qualified. |
@@ -66,7 +66,7 @@ counts in the result. The adapter does not change native precision or MSA caps.
 Do not infer bitwise reproducibility across GPU architectures from RNG seeds.
 
 Templates, other checkpoints/ensembles, multimer/SoloSeq, external MSA generation
-and structural relaxation are not supplied by this exact runtime. Unsupported
+are not supplied by this exact runtime. Unsupported
 controls are rejected; do not guess hidden options or send executable config.
 
 ## Submit through REST or MCP
@@ -101,6 +101,25 @@ Review that request, then follow the gateway's submit-once, saved-key, bounded
 polling and checksum-verified artifact-download procedure. Native inference of
 this known positive control has passed independent1UBQ structure checks; public
 REST/MCP qualification of the matching deployment must be stated separately.
+To request the optional native geometry refinement, keep the same complete
+example input and add the Boolean control before following the submit-once
+procedure:
+
+```sh
+jq '.parameters = ((.parameters // {}) + {relax_prediction:true})' \
+  request.json > request-relaxed.json
+```
+
+Submit `request-relaxed.json` through REST, or pass the same typed
+`parameters:{"relax_prediction":true}` with the other MCP arguments. Verify the
+live schema advertises this option for your supported release. Refinement uses
+OpenMM 8.6.1 and PDBFixer 1.12.0 on CPU with the pinned model's native settings;
+GPU inference and confidence estimation are unchanged. Keep `false` for the
+original unrelaxed behavior. Local forcefield energy/geometry improvement is not
+a claim of improved predictive accuracy. Native true-mode reference and lifecycle
+screens have passed H100, L40S, H200 and B200; consult current readiness for RTX
+coverage and public-release acceptance.
+
 Choose explicit allowed region/GPU from your grant while automatic cost routing
 is unqualified. Read tokens from environment or an approved secret store, never
 an operator credential or inline chat. Submit once using the gateway's saved
@@ -126,7 +145,18 @@ Each `data/outputs/target-NNNNNN/prediction.json` contains the original target
 label, scientific version, full PDB, per-residue pLDDT0–100, fullN×N PAE in
 angstrom, pTM0–1, settings, MSA source/input/unique/native feature counts and
 measured timings. Selected `structure.pdb` and/or `structure.cif` appear beside
-it. PDB B-factors encode pLDDT, not crystallographic displacement. Confidence,
+it. If relaxation is requested, `prediction.json` and selected structure files
+contain relaxed geometry; the original neural prediction is retained as
+`unrelaxed-prediction.json` and selected `unrelaxed.pdb`/`unrelaxed.cif`. The
+`relaxation` section states CPU duration, package versions, native configuration,
+initial/final energies in kcal/mol, unaligned native all-atom displacement in
+angstrom (including added hydrogens), and remaining per-residue violations. The
+native tolerance is a force threshold in kJ/(mol nm); restraint stiffness is
+kcal/(mol angstrom squared). These units follow the exact implementation,
+including its tolerance conversion, rather than its misleading prose docstring. pLDDT, PAE and
+pTM remain the original neural estimates. ModelCIF contains native heavy atoms,
+including terminal OXT; the full relaxed PDB additionally contains hydrogens.
+PDB B-factors encode pLDDT, not crystallographic displacement. Confidence,
 valid geometry or successful computation do not demonstrate experimental
 accuracy or binding. Review uncertainty and task-relevant independent references.
 
