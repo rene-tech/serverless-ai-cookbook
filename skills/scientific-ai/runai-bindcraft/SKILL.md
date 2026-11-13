@@ -8,8 +8,9 @@ license: Apache-2.0
 
 Read [the Run:ai scientific gateway](../runai-scientific-gateway/SKILL.md) and
 [portable client procedure](../runai-scientific-gateway/references/client.md).
-Model ID: `bindcraft`. Documented scientific version: `source-7cd4ace1b740`; confirm
-the live supported versions and workflow schema before submitting. This skill
+Model ID: `bindcraft`. The original version is `source-7cd4ace1b740`; the
+selectable checkpoint edition is `source-7cd4ace1b740+checkpoint.1`. Confirm the
+live authorized versions, capabilities and workflow schema before selecting one. This skill
 targets the managed scientific API, not native Run:ai administration or the
 other backend's scientific-batch artifact-manifest API.
 
@@ -28,6 +29,14 @@ process-wide adaptive counters. Use `design-campaign` for the reviewed bounded
 accepted-design campaign with closed-trajectory checkpoints. Use `trajectories`
 only when relaxed native trajectories are the requested product; ProteinMPNN/
 refolding are disabled there, so those outputs are not accepted binders.
+
+The examples below retain the original version. To use the checkpoint edition,
+set `version` explicitly to `source-7cd4ace1b740+checkpoint.1` on the same REST
+body or named MCP call; preserve scientific inputs, budgets and filters. For
+`design-campaign` or `trajectories`, rejection-check or adaptive beta controls
+also require `native-loop-checkpoint-v1` in that selected version's live
+capabilities. If it is absent, report the unsupported combination before
+submission; do not change the caller's controls or assume the capability is enabled.
 
 Set binder-length range, target chains/hotspots, seed, accepted-design goal and
 maximum trajectory budget deliberately. Advanced/filter profiles, ProteinMPNN
@@ -79,19 +88,24 @@ requested accepted-design goal. Report attempted trajectories, accepted designs
 and rejected candidates separately. B200 trajectory evidence alone does not
 qualify accepted-design behavior; follow the actual live supported envelope.
 
-Campaign recovery retains completed trajectories and their verified outputs;
-whole-campaign adaptive state and closed-trajectory continuation have different
-guarantees. Do not promise restoration of an interrupted optimizer or identical
-RNG continuation. Preserve the original run/version/deadline.
+Original-version recovery retains verified closed units and, in its qualified
+cap mode, the saved cap RNG state; its legacy whole-process mode is indivisible.
+The qualified checkpoint edition additionally records closed native-loop counters,
+NumPy RNG state and applicable rejection/beta state. Resume from the last verified
+owner-bucket checkpoint with the original run/version/deadline and an authorized,
+compatible region/GPU. In-flight trajectory work can be repeated; neither edition
+restores optimizer/GPU state mid-trajectory or promises bitwise-identical GPU results.
 
 Poll the returned owned run, verify downloaded artifact sizes/SHA-256 and
 retain scientific provenance in the owner's store. Report public errors and
 partial results without secrets, signed links or private image/deployment IDs.
 Skills do not grant licences, access to another owner or untested capabilities.
+Technical qualification does not establish commercial hosted-service rights.
+Use only the licence grants approved for the requested use, including dependencies.
 
 ## Optional bounded PD-L1 pilot
 
-This target-specific example is separate from the canonical catalog target.
+This target-specific example uses the current canonical PD-L1 design target.
 Download the exact tested public target from NVIDIA's pinned source below. It
 contains chain A residues 1–115; preserve its coordinates, numbering and bytes.
 Different PD-L1 structures do not reproduce this example's target/hotspots.
