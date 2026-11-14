@@ -13,7 +13,7 @@ import urllib.request
 from uuid import uuid4
 
 WORKFLOWS = ['score-variants', 'score-sequences', 'extract-representations',
-             'predict-contacts', 'logits', 'masked-completion']
+             'predict-contacts', 'logits', 'masked-completion', 'attention-maps', 'masked-token-loss']
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', choices=['esm2-650m', 'esm2-3b'], default='esm2-650m')
 parser.add_argument('--workflow', choices=WORKFLOWS, default='score-variants')
@@ -40,6 +40,12 @@ if args.workflow == 'masked-completion':
 if args.workflow == 'extract-representations':
     parameters = {'layers': [0, 12, 33] if args.model == 'esm2-650m' else [0, 18, 36],
                   'representations': ['per-token', 'mean', 'bos']}
+if args.workflow in ('attention-maps', 'masked-token-loss') and args.model != 'esm2-650m':
+    raise ValueError('These two workflows are currently declared only for ESM2-650M; choose a workflow in your selected model schema.')
+if args.workflow == 'attention-maps':
+    parameters = {'layers': [1, 33], 'heads': [0, 19]}
+if args.workflow == 'masked-token-loss':
+    parameters = {'masked_positions': [{'sequence_id': 'synthetic', 'positions': [2, 5]}]}
 if args.prepare_only:
     print(json.dumps({'archive': str(archive), 'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
                       'workflow': args.workflow, 'parameters': parameters})); raise SystemExit
