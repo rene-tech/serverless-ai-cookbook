@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.13",
+  "version": "2026.11.14.14",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -283,6 +283,9 @@
     ],
     "runai-rfantibody": [
       "rfantibody"
+    ],
+    "runai-chai1": [
+      "chai1"
     ],
     "runai-bioemu2": [
       "bioemu2"
