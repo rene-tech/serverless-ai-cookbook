@@ -146,6 +146,29 @@ Probabilities include all 64 native logits. These are independent marginal
 predictions under simultaneous masking, not joint sequence generation.
 Typed MCP: `esmc-6b_masked_completion`.
 
+For the native labelled masked-language loss, use `logits` with the desired
+`masked_positions` (or the full logits delivered by `masked-completion`). Build
+one token-ID label per exported residue using `result.json`'s `vocabulary`; use
+`-100` for ignored residues. With at least one selected label, the native default
+is the mean unshifted cross entropy over **all 64** logits:
+
+```python
+import numpy as np
+
+selected = np.flatnonzero(labels != -100)
+z = logits[selected].astype("float64")
+y = labels[selected]
+m = z.max(axis=1)
+loss = np.mean(m + np.log(np.exp(z - m[:, None]).sum(axis=1))
+               - z[np.arange(len(y)), y])
+```
+
+Here `logits` is the verified `(L,64)` array and `labels` is an integer NumPy
+array of length `L`. BOS/EOS/padding are absent from that array and must remain
+ignored. Do not shift labels or renormalize over only amino-acid tokens. For a
+batch, reduce over all selected residues together, rather than averaging sequence
+means. This is an inference-output reduction, not a training/fine-tuning API.
+
 ## Attention maps
 
 Anchor: <a id="attention-maps"></a>
@@ -191,6 +214,6 @@ embeddings do not establish affinity, stability ddG or experimental efficacy.
 
 Scope: these seven reviewed inference workflows do not expose training,
 fine-tuning, separately weighted sparse-autoencoder models or an unqualified
-FlashAttention/Biohub backend. Native labelled masked-language loss is not exposed by these seven workflows;
-sequence PLL and raw logits are different contracts. Follow discovery for any
+FlashAttention/Biohub backend. Labelled residue loss is available as the documented
+reduction of full logits; it differs from sequence PLL. Follow discovery for any
 separately supported capability.
