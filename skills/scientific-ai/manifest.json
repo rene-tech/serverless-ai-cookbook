@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.7",
+  "version": "2026.11.14.8",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -271,6 +271,9 @@
     ],
     "runai-abodybuilder3": [
       "abodybuilder3"
+    ],
+    "runai-saprot-650m": [
+      "saprot-650m"
     ]
   },
   "client_requirements": {
@@ -357,7 +360,8 @@
     "runai-esmc-6b": "runai-scientific-api-mcp",
     "runai-boltz2": "runai-scientific-api-mcp",
     "runai-igbert": "runai-scientific-api-mcp",
-    "runai-abodybuilder3": "runai-scientific-api-mcp"
+    "runai-abodybuilder3": "runai-scientific-api-mcp",
+    "runai-saprot-650m": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -646,6 +650,20 @@
       "scientific_version": "18e40580",
       "workflows": {
         "predict": "runai-abodybuilder3/SKILL.md#predict"
+      }
+    },
+    "saprot-650m": {
+      "skill": "runai-saprot-650m",
+      "scientific_version": "saprot650m-af2-d9b9ad00",
+      "workflows": {
+        "embed": "runai-saprot-650m/SKILL.md#embed",
+        "score-variants": "runai-saprot-650m/SKILL.md#score-variants",
+        "score-positions": "runai-saprot-650m/SKILL.md#score-positions",
+        "position-probabilities": "runai-saprot-650m/SKILL.md#position-probabilities",
+        "extract-representations": "runai-saprot-650m/SKILL.md#extract-representations",
+        "logits": "runai-saprot-650m/SKILL.md#logits",
+        "masked-completion": "runai-saprot-650m/SKILL.md#masked-completion",
+        "attention-maps": "runai-saprot-650m/SKILL.md#attention-maps"
       }
     }
   }

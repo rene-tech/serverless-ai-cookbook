@@ -126,7 +126,9 @@ seconds, then deletes scratch even if unsynced data is lost.
 
 The implementation checkpoints complete internal 32-row native units, preserving
 original record order and masked-context batches. This is not a 32-record input
-cap. An unfinished unit is recomputed; complete verified units may resume into
+cap. Qualified cross-region continuation is EU-North1 H100 to EU-North2 H200
+at `precision:"float32"` (the default); other precisions return a structured conflict.
+An unfinished unit is recomputed; complete verified units may resume into
 a fresh authorized-region volume with the original owner/settings/deadline.
 There is no mid-forward or partial-row continuation and no fixed five-minute RPO.
 Larger rows/units may take longer; use the live workload envelope and budget.
