@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.6",
+  "version": "2026.11.14.7",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -262,6 +262,15 @@
     ],
     "runai-esmc-6b": [
       "esmc-6b"
+    ],
+    "runai-boltz2": [
+      "boltz2"
+    ],
+    "runai-igbert": [
+      "igbert"
+    ],
+    "runai-abodybuilder3": [
+      "abodybuilder3"
     ]
   },
   "client_requirements": {
@@ -345,7 +354,10 @@
     "runai-esmc-600m": "runai-scientific-api-mcp",
     "runai-antifold": "runai-scientific-api-mcp",
     "runai-esm-if1": "runai-scientific-api-mcp",
-    "runai-esmc-6b": "runai-scientific-api-mcp"
+    "runai-esmc-6b": "runai-scientific-api-mcp",
+    "runai-boltz2": "runai-scientific-api-mcp",
+    "runai-igbert": "runai-scientific-api-mcp",
+    "runai-abodybuilder3": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -608,6 +620,32 @@
         "sample-sequences": "runai-esm-if1/SKILL.md#sample-sequences",
         "score-sequences": "runai-esm-if1/SKILL.md#score-sequences",
         "extract-encoder-representations": "runai-esm-if1/SKILL.md#extract-encoder-representations"
+      }
+    },
+    "boltz2": {
+      "skill": "runai-boltz2",
+      "scientific_version": "2.2.1",
+      "workflows": {
+        "predict": "runai-boltz2/SKILL.md#predict"
+      }
+    },
+    "igbert": {
+      "skill": "runai-igbert",
+      "scientific_version": "igbert-paired-81a4abb8",
+      "workflows": {
+        "embed": "runai-igbert/SKILL.md#embed",
+        "score-sequences": "runai-igbert/SKILL.md#score-sequences",
+        "extract-representations": "runai-igbert/SKILL.md#extract-representations",
+        "logits": "runai-igbert/SKILL.md#logits",
+        "masked-completion": "runai-igbert/SKILL.md#masked-completion",
+        "attention-maps": "runai-igbert/SKILL.md#attention-maps"
+      }
+    },
+    "abodybuilder3": {
+      "skill": "runai-abodybuilder3",
+      "scientific_version": "18e40580",
+      "workflows": {
+        "predict": "runai-abodybuilder3/SKILL.md#predict"
       }
     }
   }

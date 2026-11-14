@@ -168,6 +168,52 @@ integrity. Signed URLs expire: fetch the artifact inventory again to renew them.
 Keep `artifacts.json` private because it temporarily contains credential-bearing
 links. Standard S3 tooling may retrieve the same authorized owner-bucket results.
 
+To download the complete inventory for a model's local result checker, use a
+fresh caller-owned destination. This preserves the published paths, verifies
+every size/hash, and sends no scientific bearer header to object storage:
+
+```sh
+export RESULT_DIR=results
+python3 - <<'PY'
+import hashlib, json, os, tempfile, urllib.parse, urllib.request
+from pathlib import Path, PurePosixPath
+class HTTPSRedirects(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, url):
+        if urllib.parse.urlsplit(url).scheme != 'https':
+            raise ValueError('Artifact redirects require HTTPS')
+        return super().redirect_request(request, fp, code, message, headers, url)
+downloads = urllib.request.build_opener(HTTPSRedirects())
+root = Path(os.environ['RESULT_DIR'])
+root.mkdir(mode=0o700, parents=True)
+files = json.loads(Path('artifacts.json').read_text())['files']
+for item in files:
+    path = PurePosixPath(item['path'])
+    if path.is_absolute() or '..' in path.parts or path.as_posix() != item['path']:
+        raise ValueError('Artifact path is not a normalized relative path')
+    if urllib.parse.urlsplit(item['download_url']).scheme != 'https':
+        raise ValueError('Artifact download requires HTTPS')
+    destination = root.joinpath(*path.parts)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    digest, size = hashlib.sha256(), 0
+    with downloads.open(item['download_url'], timeout=120) as source:
+        with tempfile.NamedTemporaryFile(dir=destination.parent, delete=False) as output:
+            temporary = Path(output.name)
+            for chunk in iter(lambda: source.read(4 << 20), b''):
+                size += len(chunk)
+                if size > item['size_bytes']:
+                    raise ValueError('Artifact exceeds its declared size')
+                digest.update(chunk)
+                output.write(chunk)
+    if size != item['size_bytes'] or digest.hexdigest() != item['sha256']:
+        raise ValueError('Artifact size or SHA-256 mismatch')
+    temporary.rename(destination)
+print('Verified', len(files), 'artifacts')
+PY
+```
+
+If a signed URL expires, refresh the inventory for the same run. Preserve the
+existing destination; use a new empty directory when repeating this example.
+
 ## Cancel, resume and errors
 
 - REST cancellation is `POST /v1/runs/{run_id}/cancel`, or MCP `md_run_cancel`.
