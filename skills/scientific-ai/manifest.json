@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.11",
+  "version": "2026.11.14.12",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -283,6 +283,9 @@
     ],
     "runai-rfantibody": [
       "rfantibody"
+    ],
+    "runai-bioemu2": [
+      "bioemu2"
     ]
   },
   "client_requirements": {
@@ -705,6 +708,16 @@
         "sequence-design": "runai-rfantibody/SKILL.md#sequence-design",
         "predict-complex": "runai-rfantibody/SKILL.md#predict-complex",
         "sequence-design-cpu": "runai-rfantibody/SKILL.md#sequence-design-cpu"
+      }
+    },
+    "bioemu2": {
+      "skill": "runai-bioemu2",
+      "scientific_version": "0.1.0rc0-f99e0d89",
+      "workflows": {
+        "predict-structure": "runai-bioemu2/SKILL.md#predict-structure",
+        "sample-equilibrium": "runai-bioemu2/SKILL.md#sample-equilibrium",
+        "propagate": "runai-bioemu2/SKILL.md#propagate",
+        "simulate-trajectory": "runai-bioemu2/SKILL.md#simulate-trajectory"
       }
     }
   }
