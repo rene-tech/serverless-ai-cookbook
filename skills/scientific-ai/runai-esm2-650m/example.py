@@ -19,6 +19,7 @@ parser.add_argument('--model', choices=['esm2-650m', 'esm2-3b'], default='esm2-6
 parser.add_argument('--workflow', choices=WORKFLOWS, default='score-variants')
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--prepare-only', action='store_true')
+parser.add_argument('--auto-place', action='store_true', help='Use qualified routing for missing region/GPU fields; preserve supplied placement constraints.')
 parser.add_argument('--negative', action='store_true', help='Wrong WT variant; expect a structured validation failure.')
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=False)
@@ -51,8 +52,9 @@ if args.prepare_only:
                       'workflow': args.workflow, 'parameters': parameters})); raise SystemExit
 
 placement = {name: os.environ.get('SCIENTIFIC_AI_' + name.upper()) for name in ('region', 'gpu')}
-if not all(placement.values()):
+if not args.auto_place and not all(placement.values()):
     raise ValueError('Set SCIENTIFIC_AI_REGION and SCIENTIFIC_AI_GPU to an allowed explicit placement before upload')
+placement = {name: value for name, value in placement.items() if value}
 base = os.environ['SCIENTIFIC_AI_BASE_URL'].rstrip('/')
 if not base.startswith('https://'):
     raise ValueError('Use the configured HTTPS scientific API origin')
