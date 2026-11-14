@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.5",
+  "version": "2026.11.14.6",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -341,7 +341,11 @@
     "runai-esm2-3b": "runai-scientific-api-mcp",
     "runai-openfold2": "runai-scientific-api-mcp",
     "runai-sam2-1-hiera-large": "runai-scientific-api-mcp",
-    "runai-esmc-300m": "runai-scientific-api-mcp"
+    "runai-esmc-300m": "runai-scientific-api-mcp",
+    "runai-esmc-600m": "runai-scientific-api-mcp",
+    "runai-antifold": "runai-scientific-api-mcp",
+    "runai-esm-if1": "runai-scientific-api-mcp",
+    "runai-esmc-6b": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
