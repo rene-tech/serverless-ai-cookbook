@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.12",
+  "version": "2026.11.14.13",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -286,6 +286,9 @@
     ],
     "runai-bioemu2": [
       "bioemu2"
+    ],
+    "runai-msa-search-pdb70": [
+      "msa-search-pdb70"
     ]
   },
   "client_requirements": {
@@ -718,6 +721,13 @@
         "sample-equilibrium": "runai-bioemu2/SKILL.md#sample-equilibrium",
         "propagate": "runai-bioemu2/SKILL.md#propagate",
         "simulate-trajectory": "runai-bioemu2/SKILL.md#simulate-trajectory"
+      }
+    },
+    "msa-search-pdb70": {
+      "skill": "runai-msa-search-pdb70",
+      "scientific_version": "mmseqs2-8cc5ce36-pdb70-220313",
+      "workflows": {
+        "search-msa": "runai-msa-search-pdb70/SKILL.md#search-msa"
       }
     }
   }
