@@ -87,6 +87,9 @@ must match native hit names. The adapter stages those files into the private
 job cache. Template parsing alone is not evidence of predictive accuracy.
 
 `use_msa_server:false` and `use_templates_server:false` are defaults.
+External MSA and template searches are currently unavailable in this managed
+deployment. Requests enabling either flag are rejected before GPU admission;
+use the owner-local inputs above.
 Enabling external searches can send sequences/data to a third-party service;
 provider access, privacy, licensing and egress qualification must be explicitly
 enabled by the live platform. An external MSA search conflicts with local
