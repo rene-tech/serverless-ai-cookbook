@@ -22,8 +22,6 @@ parser.add_argument('--prepare-only', action='store_true')
 parser.add_argument('--auto-place', action='store_true', help='Use qualified routing for missing region/GPU fields; preserve supplied placement constraints.')
 parser.add_argument('--negative', action='store_true', help='Wrong WT variant; expect a structured validation failure.')
 args = parser.parse_args()
-if args.auto_place and args.model == 'esm2-3b':
-    raise ValueError('ESM2-3B automatic placement is not qualified; set an allowed explicit region and GPU.')
 args.output.mkdir(parents=True, exist_ok=False)
 members = {'sequences.fasta': '>synthetic\nACDEFGHIKLMNPQRSTVWY\n',
            'variants.csv': ('id,sequence_id,mutations\nidentity,synthetic,A1A\nfirst,synthetic,A1G\n'

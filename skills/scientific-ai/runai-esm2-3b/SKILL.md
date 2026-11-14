@@ -1,13 +1,13 @@
 ---
 name: runai-esm2-3b
 description: Use ESM-2 3B protein scoring, representations, contacts, logits, masked completion, attention maps and masked-token loss through the Scientific AI REST API or typed MCP tools.
-version: 0.2.0
+version: 0.3.0
 license: Apache-2.0
 ---
 
 # ESM-2 3B
 
-Evaluation candidate: native CPU scientific checks pass; GPU, public-client and recovery qualification of this expanded release remain pending. Discover `GET /v1/models/esm2-3b?workflow=score-variants` before submitting. ESM2-650M measurements are not 3B evidence.
+All eight workflows are qualified for commercial nonclinical research on L40S, H100, H200, B200 and RTX PRO 6000. Discover `GET /v1/models/esm2-3b?workflow=score-variants` before submitting; the deployed contract governs availability. This is not clinical clearance or HIPAA/SOC certification.
 
 Scientific version: `esm2-3b-476b6399`. Checkpoint: [`facebook/esm2_t36_3B_UR50D`](https://huggingface.co/facebook/esm2_t36_3B_UR50D/tree/476b639933c8baad5ad09a60ac1a87f987b656fc), revision `476b639933c8baad5ad09a60ac1a87f987b656fc`. It has 36 layers, width 2560 and 33 vocabulary tokens. Use advertised versions; the client pins this version.
 
@@ -22,7 +22,7 @@ python ../runai-esm2-650m/example.py --model esm2-3b \
 
 This creates a deterministic `input.tar.gz` offline: root-level `sequences.fasta` (ID `synthetic`, sequence `ACDEFGHIKLMNPQRSTVWY`) and `variants.csv`, including an identity variant. All eight workflows use this fixture. `--negative` supplies a wrong WT residue for validation.
 
-Set approved `SCIENTIFIC_AI_BASE_URL`, `SCIENTIFIC_AI_API_KEY`, `SCIENTIFIC_AI_REGION`, `SCIENTIFIC_AI_GPU`, plus `OWNER_S3_ENDPOINT`, `OWNER_BUCKET`, `OWNER_INPUT_PREFIX` and standard AWS credentials for your existing bound bucket. Run without `--prepare-only`, using a fresh output directory. Explicit placement is required while cost routing is unqualified; do not use `--auto-place` for this evaluation candidate.
+Set approved `SCIENTIFIC_AI_BASE_URL`, `SCIENTIFIC_AI_API_KEY`, `SCIENTIFIC_AI_REGION`, `SCIENTIFIC_AI_GPU`, plus `OWNER_S3_ENDPOINT`, `OWNER_BUCKET`, `OWNER_INPUT_PREFIX` and standard AWS credentials for your existing bound bucket. Run without `--prepare-only`, using a fresh output directory. Supply authorized region/GPU constraints, or add `--auto-place` to fill missing placement fields; unset both constraints to choose across authorized regions. Routing uses measured full-VM on-demand estimates for default float32/512-residue reference requests and available capacity. Estimates exclude CPU preflight, image pull, Pod startup, API queues and delivery; they are neither invoices nor a cheapest-GPU guarantee for every input or precision.
 
 The client discovers the schema, uploads, saves `submission.json` **before** its single POST, polls, and verifies result sizes/SHA256. The API token stays on the configured HTTPS scientific origin; redirects are refused and downloads use a separate unauthenticated client. Keep credentials out of archives. After lost acknowledgement, preserve the intent and reconcile its original idempotency key; rerunning creates another key. Keep `run.json` for polling after disconnects.
 
@@ -64,6 +64,6 @@ Supply masks for every sequence. Requested sites are masked simultaneously; orig
 
 Tools: `esm2-3b_score_variants`, `esm2-3b_score_sequences`, `esm2-3b_extract_representations`, `esm2-3b_predict_contacts`, `esm2-3b_logits`, `esm2-3b_masked_completion`, `esm2-3b_attention_maps`, `esm2-3b_masked_token_loss`. Read their schemas. Pass REST `version`, `parameters`, `inputs`, `region`, `gpu` and a saved `idempotency_key`; omit `model`/`workflow`. Poll with `md_run_status`, retrieve with `md_run_artifacts`, cancel with `md_run_cancel`. REST: `GET /v1/runs/{id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/runs/{id}/cancel`. Never submit an existing run again.
 
-Inspect structured error stage/field/retryability/correlation ID. Fix deterministic failures before a new request. Closed scoring batches/PLL terms and inference rows checkpoint to the owner bucket at the five-minute quantum or interruption. The unfinished batch/row recomputes; individual forwards have no partial neural checkpoint or fixed five-minute recovery-point guarantee. Resumption preserves owner, selected version, scientific settings and original deadline. Use only explicitly qualified region/GPU/precision pairs; positive-progress cross-region recovery of this expanded release remains unqualified. Completed verified owner-bucket results remain durable.
+Inspect structured error stage/field/retryability/correlation ID. Fix deterministic failures before a new request. Closed scoring batches/PLL terms and inference rows checkpoint to the owner bucket at the five-minute quantum or interruption. The unfinished batch/row recomputes; individual forwards have no partial neural checkpoint or fixed five-minute recovery-point guarantee. Resumption preserves owner, selected version, scientific settings and original deadline. For verified scheduler or infrastructure preemption, the service attempts same-GPU recovery, preserving precision. Float32 H100-to-H200 continuation is also qualified; other cross-GPU/precision pairs are rejected. Resume with typed MCP `md_run_resume`, the same `run_id`, an authorized `region` and compatible `gpu`. The demonstrated cross-region test used public cancellation after genuine unfinished progress, rather than injected cloud failure. Completed verified owner-bucket results remain durable.
 
 ESM code and this pinned checkpoint declare MIT. Reviewed dependency terms permit commercial nonclinical hosted inference and private regional Linux copies, retaining applicable notices. This guide grants no production or clinical clearance.
