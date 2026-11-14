@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.1",
+  "version": "2026.11.14.2",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -250,6 +250,9 @@
     ],
     "runai-esmc-300m": [
       "esmc-300m"
+    ],
+    "runai-esmc-600m": [
+      "esmc-600m"
     ]
   },
   "client_requirements": {
@@ -549,6 +552,19 @@
         "logits": "runai-esmc-300m/SKILL.md#logits",
         "masked-completion": "runai-esmc-300m/SKILL.md#masked-completion",
         "attention-maps": "runai-esmc-300m/SKILL.md#attention-maps"
+      }
+    },
+    "esmc-600m": {
+      "skill": "runai-esmc-600m",
+      "scientific_version": "esmc-600m-5e366569",
+      "workflows": {
+        "embed": "runai-esmc-600m/SKILL.md#embed",
+        "score-variants": "runai-esmc-600m/SKILL.md#score-variants",
+        "score-sequences": "runai-esmc-600m/SKILL.md#score-sequences",
+        "extract-representations": "runai-esmc-600m/SKILL.md#extract-representations",
+        "logits": "runai-esmc-600m/SKILL.md#logits",
+        "masked-completion": "runai-esmc-600m/SKILL.md#masked-completion",
+        "attention-maps": "runai-esmc-600m/SKILL.md#attention-maps"
       }
     }
   }
