@@ -1,12 +1,13 @@
 ---
 name: runai-esm2-3b
-description: Use ESM-2 3B protein scoring, representations, contacts, logits and masked completion through the Scientific AI REST API or typed MCP tools.
+description: Use ESM-2 3B protein scoring, representations, contacts, logits, masked completion, attention maps and masked-token loss through the Scientific AI REST API or typed MCP tools.
+version: 0.2.0
 license: Apache-2.0
 ---
 
 # ESM-2 3B
 
-Evaluation candidate: native CPU scientific checks pass; GPU and production qualification remain pending. Discover `GET /v1/models/esm2-3b?workflow=score-variants` before submitting. ESM2-650M measurements are not 3B evidence.
+Evaluation candidate: native CPU scientific checks pass; GPU, public-client and recovery qualification of this expanded release remain pending. Discover `GET /v1/models/esm2-3b?workflow=score-variants` before submitting. ESM2-650M measurements are not 3B evidence.
 
 Scientific version: `esm2-3b-476b6399`. Checkpoint: [`facebook/esm2_t36_3B_UR50D`](https://huggingface.co/facebook/esm2_t36_3B_UR50D/tree/476b639933c8baad5ad09a60ac1a87f987b656fc), revision `476b639933c8baad5ad09a60ac1a87f987b656fc`. It has 36 layers, width 2560 and 33 vocabulary tokens. Use advertised versions; the client pins this version.
 
@@ -19,9 +20,9 @@ python ../runai-esm2-650m/example.py --model esm2-3b \
   --workflow score-variants --prepare-only --output ./new-esm3b-input
 ```
 
-This creates a deterministic `input.tar.gz` offline: root-level `sequences.fasta` (ID `synthetic`, sequence `ACDEFGHIKLMNPQRSTVWY`) and `variants.csv`, including an identity variant. All six workflows use this fixture. `--negative` supplies a wrong WT residue for validation.
+This creates a deterministic `input.tar.gz` offline: root-level `sequences.fasta` (ID `synthetic`, sequence `ACDEFGHIKLMNPQRSTVWY`) and `variants.csv`, including an identity variant. All eight workflows use this fixture. `--negative` supplies a wrong WT residue for validation.
 
-Set approved `SCIENTIFIC_AI_BASE_URL`, `SCIENTIFIC_AI_API_KEY`, `SCIENTIFIC_AI_REGION`, `SCIENTIFIC_AI_GPU`, plus `OWNER_S3_ENDPOINT`, `OWNER_BUCKET`, `OWNER_INPUT_PREFIX` and standard AWS credentials for your existing bound bucket. Run without `--prepare-only`, using a fresh output directory. Explicit placement is required while cost routing is unqualified.
+Set approved `SCIENTIFIC_AI_BASE_URL`, `SCIENTIFIC_AI_API_KEY`, `SCIENTIFIC_AI_REGION`, `SCIENTIFIC_AI_GPU`, plus `OWNER_S3_ENDPOINT`, `OWNER_BUCKET`, `OWNER_INPUT_PREFIX` and standard AWS credentials for your existing bound bucket. Run without `--prepare-only`, using a fresh output directory. Explicit placement is required while cost routing is unqualified; do not use `--auto-place` for this evaluation candidate.
 
 The client discovers the schema, uploads, saves `submission.json` **before** its single POST, polls, and verifies result sizes/SHA256. The API token stays on the configured HTTPS scientific origin; redirects are refused and downloads use a separate unauthenticated client. Keep credentials out of archives. After lost acknowledgement, preserve the intent and reconcile its original idempotency key; rerunning creates another key. Keep `run.json` for polling after disconnects.
 
@@ -51,10 +52,18 @@ All 33 native-token logits per residue and vocabulary. Optional `masked_position
 
 Supply masks for every sequence and `top_k` 1–33. Receive IDs, labels, probabilities and logits. These are conditional marginals, not joint decoding; preserve special-token labels.
 
+## attention-maps
+
+Choose transformer `layers` 1–36 (default 36) and zero-based `heads` 0–39 (default 0). Float32 NPZ shape is `[selected_heads,residues+2,residues+2]`, including BOS/EOS. These eager attention probabilities are not contact probabilities or calibrated biological interactions. Select matrices within discovered memory/output budgets.
+
+## masked-token-loss
+
+Supply masks for every sequence. Requested sites are masked simultaneously; original FASTA residues at exactly those sites are supervised labels, excluding BOS/EOS and all other positions. The native mean cross entropy per sequence uses natural-log units; it is distinct from complete PLL or biochemical free energy.
+
 ## Typed MCP and durable jobs
 
-Tools: `esm2-3b_score_variants`, `esm2-3b_score_sequences`, `esm2-3b_extract_representations`, `esm2-3b_predict_contacts`, `esm2-3b_logits`, `esm2-3b_masked_completion`. Read their schemas. Pass REST `version`, `parameters`, `inputs`, `region`, `gpu` and a saved `idempotency_key`; omit `model`/`workflow`. Poll with `md_run_status`, retrieve with `md_run_artifacts`, cancel with `md_run_cancel`. REST: `GET /v1/runs/{id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/runs/{id}/cancel`. Never submit an existing run again.
+Tools: `esm2-3b_score_variants`, `esm2-3b_score_sequences`, `esm2-3b_extract_representations`, `esm2-3b_predict_contacts`, `esm2-3b_logits`, `esm2-3b_masked_completion`, `esm2-3b_attention_maps`, `esm2-3b_masked_token_loss`. Read their schemas. Pass REST `version`, `parameters`, `inputs`, `region`, `gpu` and a saved `idempotency_key`; omit `model`/`workflow`. Poll with `md_run_status`, retrieve with `md_run_artifacts`, cancel with `md_run_cancel`. REST: `GET /v1/runs/{id}`, `GET /v1/runs/{id}/artifacts`, `POST /v1/runs/{id}/cancel`. Never submit an existing run again.
 
-Inspect structured error stage/field/retryability/correlation ID. Fix deterministic failures before a new request. Interruption restarts the whole unfinished batch under its original owner/version/deadline. Partial-row and positive-progress cross-region recovery are unqualified; completed verified owner-bucket results remain durable.
+Inspect structured error stage/field/retryability/correlation ID. Fix deterministic failures before a new request. Closed scoring batches/PLL terms and inference rows checkpoint to the owner bucket at the five-minute quantum or interruption. The unfinished batch/row recomputes; individual forwards have no partial neural checkpoint or fixed five-minute recovery-point guarantee. Resumption preserves owner, selected version, scientific settings and original deadline. Use only explicitly qualified region/GPU/precision pairs; positive-progress cross-region recovery of this expanded release remains unqualified. Completed verified owner-bucket results remain durable.
 
-ESM code and this checkpoint declare MIT; applicable dependency/runtime notices still apply. This guide grants no production or clinical clearance.
+ESM code and this pinned checkpoint declare MIT. Reviewed dependency terms permit commercial nonclinical hosted inference and private regional Linux copies, retaining applicable notices. This guide grants no production or clinical clearance.

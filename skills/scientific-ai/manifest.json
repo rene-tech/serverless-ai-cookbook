@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.17",
+  "version": "2026.11.14.18",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -574,7 +574,9 @@
         "extract-representations": "runai-esm2-3b/SKILL.md#extract-representations",
         "predict-contacts": "runai-esm2-3b/SKILL.md#predict-contacts",
         "logits": "runai-esm2-3b/SKILL.md#logits",
-        "masked-completion": "runai-esm2-3b/SKILL.md#masked-completion"
+        "masked-completion": "runai-esm2-3b/SKILL.md#masked-completion",
+        "attention-maps": "runai-esm2-3b/SKILL.md#attention-maps",
+        "masked-token-loss": "runai-esm2-3b/SKILL.md#masked-token-loss"
       }
     },
     "openfold2": {

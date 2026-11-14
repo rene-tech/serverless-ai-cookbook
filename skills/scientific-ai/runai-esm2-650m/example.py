@@ -22,6 +22,8 @@ parser.add_argument('--prepare-only', action='store_true')
 parser.add_argument('--auto-place', action='store_true', help='Use qualified routing for missing region/GPU fields; preserve supplied placement constraints.')
 parser.add_argument('--negative', action='store_true', help='Wrong WT variant; expect a structured validation failure.')
 args = parser.parse_args()
+if args.auto_place and args.model == 'esm2-3b':
+    raise ValueError('ESM2-3B automatic placement is not qualified; set an allowed explicit region and GPU.')
 args.output.mkdir(parents=True, exist_ok=False)
 members = {'sequences.fasta': '>synthetic\nACDEFGHIKLMNPQRSTVWY\n',
            'variants.csv': ('id,sequence_id,mutations\nidentity,synthetic,A1A\nfirst,synthetic,A1G\n'
@@ -41,10 +43,8 @@ if args.workflow == 'masked-completion':
 if args.workflow == 'extract-representations':
     parameters = {'layers': [0, 12, 33] if args.model == 'esm2-650m' else [0, 18, 36],
                   'representations': ['per-token', 'mean', 'bos']}
-if args.workflow in ('attention-maps', 'masked-token-loss') and args.model != 'esm2-650m':
-    raise ValueError('These two workflows are currently declared only for ESM2-650M; choose a workflow in your selected model schema.')
 if args.workflow == 'attention-maps':
-    parameters = {'layers': [1, 33], 'heads': [0, 19]}
+    parameters = {'layers': [1, 33], 'heads': [0, 19]} if args.model == 'esm2-650m' else {'layers': [1, 36], 'heads': [0, 39]}
 if args.workflow == 'masked-token-loss':
     parameters = {'masked_positions': [{'sequence_id': 'synthetic', 'positions': [2, 5]}]}
 if args.prepare_only:
