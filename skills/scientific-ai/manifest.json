@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.4",
+  "version": "2026.11.14.5",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -259,6 +259,9 @@
     ],
     "runai-esm-if1": [
       "esm-if1"
+    ],
+    "runai-esmc-6b": [
+      "esmc-6b"
     ]
   },
   "client_requirements": {
@@ -571,6 +574,36 @@
         "logits": "runai-esmc-600m/SKILL.md#logits",
         "masked-completion": "runai-esmc-600m/SKILL.md#masked-completion",
         "attention-maps": "runai-esmc-600m/SKILL.md#attention-maps"
+      }
+    },
+    "esmc-6b": {
+      "skill": "runai-esmc-6b",
+      "scientific_version": "esmc-6b-94605596",
+      "workflows": {
+        "embed": "runai-esmc-6b/SKILL.md#embed",
+        "score-variants": "runai-esmc-6b/SKILL.md#score-variants",
+        "score-sequences": "runai-esmc-6b/SKILL.md#score-sequences",
+        "extract-representations": "runai-esmc-6b/SKILL.md#extract-representations",
+        "logits": "runai-esmc-6b/SKILL.md#logits",
+        "masked-completion": "runai-esmc-6b/SKILL.md#masked-completion",
+        "attention-maps": "runai-esmc-6b/SKILL.md#attention-maps"
+      }
+    },
+    "antifold": {
+      "skill": "runai-antifold",
+      "scientific_version": "0.4.0",
+      "workflows": {
+        "inverse-fold": "runai-antifold/SKILL.md#inverse-fold"
+      }
+    },
+    "esm-if1": {
+      "skill": "runai-esm-if1",
+      "scientific_version": "esm_if1_gvp4_t16_142M_UR50",
+      "workflows": {
+        "inverse-fold": "runai-esm-if1/SKILL.md#inverse-fold",
+        "sample-sequences": "runai-esm-if1/SKILL.md#sample-sequences",
+        "score-sequences": "runai-esm-if1/SKILL.md#score-sequences",
+        "extract-encoder-representations": "runai-esm-if1/SKILL.md#extract-encoder-representations"
       }
     }
   }
