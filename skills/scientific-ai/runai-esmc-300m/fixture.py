@@ -1,10 +1,11 @@
 """Prepare a synthetic ESMC fixture/reference; no network or credentials."""
 import argparse,gzip,hashlib,io,json,tarfile
 from pathlib import Path
-p=argparse.ArgumentParser();p.add_argument('--workflow',choices=['embed','score-variants','score-sequences','extract-representations','logits','masked-completion'],required=True);p.add_argument('--key',required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output.mkdir(parents=True)
+p=argparse.ArgumentParser();p.add_argument('--workflow',choices=['embed','score-variants','score-sequences','extract-representations','logits','masked-completion','attention-maps'],required=True);p.add_argument('--key',required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output.mkdir(parents=True)
 params={}
 if a.workflow=='extract-representations':params={'layers':[0,15,30],'representations':['per-token','mean','bos']}
 if a.workflow=='masked-completion':params={'masked_positions':[{'sequence_id':'synthetic','positions':[2,5]}],'top_k':5}
+if a.workflow=='attention-maps':params={'layers':[1,15,30],'heads':[0,7,14]}
 members={'sequences.fasta':'>synthetic\nACDEFGHIKLMNPQRSTVWY\n'}
 if a.workflow=='score-variants':members['variants.csv']='id,sequence_id,mutations\nidentity,synthetic,A1A\nsingle,synthetic,A1G\nmulti,synthetic,A1G:C2A\n'
 archive=a.output/'input.tar.gz'

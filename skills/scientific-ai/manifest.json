@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.13.14",
+  "version": "2026.11.14.1",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -547,7 +547,8 @@
         "score-sequences": "runai-esmc-300m/SKILL.md#score-sequences",
         "extract-representations": "runai-esmc-300m/SKILL.md#extract-representations",
         "logits": "runai-esmc-300m/SKILL.md#logits",
-        "masked-completion": "runai-esmc-300m/SKILL.md#masked-completion"
+        "masked-completion": "runai-esmc-300m/SKILL.md#masked-completion",
+        "attention-maps": "runai-esmc-300m/SKILL.md#attention-maps"
       }
     }
   }

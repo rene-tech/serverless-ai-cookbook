@@ -2,7 +2,7 @@
 import argparse,csv,io,json,math,tarfile
 from pathlib import Path
 import numpy as np
-p=argparse.ArgumentParser();p.add_argument('--workflow',choices=['embed','score-variants','score-sequences','extract-representations','logits','masked-completion'],required=True);p.add_argument('--result-dir',type=Path,required=True);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--workflow',choices=['embed','score-variants','score-sequences','extract-representations','logits','masked-completion','attention-maps'],required=True);p.add_argument('--result-dir',type=Path,required=True);a=p.parse_args()
 root=a.result_dir/'data/outputs'/('score'if a.workflow in ['embed','score-variants','score-sequences']else'infer');r=json.loads((root/'result.json').read_text());assert r['model_id']=='esmc-300m'and r['operation']==a.workflow
 assert r['checkpoint']=='biohub/ESMC-300M'and r['hf_revision']=='96a2d8d61654ac0c08881be44da6c867686449b9'
 if a.workflow=='embed':
@@ -33,6 +33,11 @@ else:
    for layer in [0,15,30]:
     assert arrays[f'layer_{layer}_per_token'].shape==(20,960)and arrays[f'layer_{layer}_mean'].shape==(960,)and arrays[f'layer_{layer}_bos'].shape==(960,)
     assert np.allclose(arrays[f'layer_{layer}_per_token'].mean(0),arrays[f'layer_{layer}_mean'],atol=2e-6)
+  elif a.workflow=='attention-maps':
+   assert r['parameters']['layers']==[1,15,30]and r['parameters']['heads']==[0,7,14]and r['attention_provenance']['implementation']=='eager'
+   assert set(arrays.files)=={f'layer_{i}_attention'for i in [1,15,30]}
+   for layer in [1,15,30]:
+    data=arrays[f'layer_{layer}_attention'];assert data.shape==(3,22,22)and np.all(data>=0)and np.allclose(data.sum(-1),1,atol=1e-5,rtol=0)
   else:
    assert arrays['logits'].shape==(20,64)
    if a.workflow=='masked-completion':
