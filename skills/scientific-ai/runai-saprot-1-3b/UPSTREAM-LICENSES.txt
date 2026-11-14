@@ -1,0 +1,28 @@
+SaProt source and short structure-aware example
+Source: https://github.com/westlake-repl/SaProt/tree/e91e4858b55944523f1f8d385f7b96a0d3d34c1d
+
+MIT License
+
+Copyright (c) 2023 westlake-repl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Managed fixed weights: https://huggingface.co/westlake-repl/SaProt_1.3B_AFDB_OMG_NCBI/tree/3e000715b428e69a8ea166716727c8596bc3ddcf (model card MIT).
+Structure conversion uses Foldseek10-941cd33 under GPLv3; this portable helper does not redistribute its binary. Source and full licence: https://github.com/steineggerlab/foldseek/tree/941cd33ff0771cd2e3f144e3293e22a2b87e9fda
+The second eight-residue sequence is synthetic validation data.

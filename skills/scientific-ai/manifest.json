@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.8",
+  "version": "2026.11.14.9",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -274,6 +274,9 @@
     ],
     "runai-saprot-650m": [
       "saprot-650m"
+    ],
+    "runai-saprot-1-3b": [
+      "saprot-1-3b"
     ]
   },
   "client_requirements": {
@@ -361,7 +364,8 @@
     "runai-boltz2": "runai-scientific-api-mcp",
     "runai-igbert": "runai-scientific-api-mcp",
     "runai-abodybuilder3": "runai-scientific-api-mcp",
-    "runai-saprot-650m": "runai-scientific-api-mcp"
+    "runai-saprot-650m": "runai-scientific-api-mcp",
+    "runai-saprot-1-3b": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -664,6 +668,20 @@
         "logits": "runai-saprot-650m/SKILL.md#logits",
         "masked-completion": "runai-saprot-650m/SKILL.md#masked-completion",
         "attention-maps": "runai-saprot-650m/SKILL.md#attention-maps"
+      }
+    },
+    "saprot-1-3b": {
+      "skill": "runai-saprot-1-3b",
+      "scientific_version": "saprot13b-afdb-omg-ncbi-3e000715",
+      "workflows": {
+        "embed": "runai-saprot-1-3b/SKILL.md#embed",
+        "score-variants": "runai-saprot-1-3b/SKILL.md#score-variants",
+        "score-positions": "runai-saprot-1-3b/SKILL.md#score-positions",
+        "position-probabilities": "runai-saprot-1-3b/SKILL.md#position-probabilities",
+        "extract-representations": "runai-saprot-1-3b/SKILL.md#extract-representations",
+        "logits": "runai-saprot-1-3b/SKILL.md#logits",
+        "masked-completion": "runai-saprot-1-3b/SKILL.md#masked-completion",
+        "attention-maps": "runai-saprot-1-3b/SKILL.md#attention-maps"
       }
     }
   }
