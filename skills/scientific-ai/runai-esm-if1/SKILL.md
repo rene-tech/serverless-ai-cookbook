@@ -7,8 +7,10 @@ description: Design protein sequences from backbones, score sequence compatibili
 
 Discover `esm-if1` with `GET /v1/models/esm-if1` or MCP `md_models`
 `{"model":"esm-if1","detail":true}`. Select a version from that response and use a placement permitted by your account. This contract describes named checkpoint
-**esm_if1_gvp4_t16_142M_UR50**, with native FP32 inference. A skill is usage
-documentation; the live release determines access and qualified availability.
+**esm_if1_gvp4_t16_142M_UR50**, with native FP32 inference and the managed
+AntiFold **0.4.0+managed.cif1** runtime dependency. The checkpoint name is
+unchanged. A skill is usage documentation; the live release determines access
+and qualified availability.
 
 Use the shared [portable client](../runai-scientific-gateway/references/client.md)
 for environment-based authentication, bucket uploads, one-time REST submission,
@@ -83,8 +85,11 @@ native missing-coordinate semantics. At least one complete unmasked target
 backbone residue must remain. `confidence` is null, one scalar in [0,1], or one
 value per target residue. `fixed_positions` preserves the specified residues.
 Design index i uses `seed+i`; resumed requests preserve the original index.
+For these native APIs, mmCIF uses `label_asym_id` chain names and parsed residue
+order, which can differ from author/PDB identifiers; no author-name alias is
+applied.
 
-Expect a FASTA and result record per requested design. Verify target length,
+Expect `sequences.fasta` and `result.json` per requested design. Verify target length,
 residue alphabet and every fixed residue. Native recovery fraction is the
 fraction matching the supplied structure's sequence; it is not binding affinity.
 
@@ -102,8 +107,9 @@ Scoring is a new operation: keep a separate request record and generate a new
 idempotency key; do not reuse the sampling request's saved key.
 
 For MCP use **`esm-if1_score_sequences`**. Each FASTA record needs a unique ID
-and a sequence matching the target's parsed length. Expect per-residue negative
-log-likelihoods and two mean log-likelihoods, in **natural logarithms**. The full
+and a sequence matching the target's parsed length. Expect `scores.json` with
+per-residue negative log-likelihoods and two mean log-likelihoods, in **natural
+logarithms**. The full
 sequence and complete-coordinate means use different denominators when backbone
 coordinates are masked or missing. Higher mean log-likelihood is better; this
 is a conditional sequence-compatibility score, not a measured free energy.
@@ -116,9 +122,12 @@ Build the encoder request from the prepared request:
 jq '.workflow="extract-encoder-representations" | .parameters={structure_file:"target.pdb",
   target_chain:"H",chains:["H","L"],cpu_threads:4}' request.json > encoder-request.json
 ```
-The typed MCP tool is **`esm-if1_extract_encoder_representations`**. Expect a
-finite float32 NPY matrix with one row per target residue and 512 columns. It is
-a structural encoder representation, not a language-model layer or affinity.
+The typed MCP tool is **`esm-if1_extract_encoder_representations`**. Expect
+`encoder.npy`, a finite float32 matrix with one row per target residue and 512
+columns. It is a structural encoder representation, not a language-model layer
+or affinity. For these three native API workflows, artifact directories are
+`data/outputs/esm-if1/{workflow}-{original_global_unit_index:08d}/`; each unit
+also has `result.json`.
 
 ## Inverse fold
 
@@ -138,10 +147,23 @@ The typed MCP tool is **`esm-if1_inverse_fold`**.
 For directory/CSV batches and native chain/region controls, use the published
 schema and [shared legacy guide](../runai-antifold/SKILL.md#inputs-and-native-controls).
 Choose the managed ESM-IF1 version rather than uploading checkpoint files.
-Per-residue amino-acid CSV values are normalized natural-log probabilities;
+ESM-IF1 always uses legacy custom-chain mode: `custom_chain_mode` must be true.
+For mmCIF, numbering-enabled legacy input selects **author** chain identifiers
+and then uses native IMGT output numbering. With numbering skipped, legacy
+input selects **label** chain identifiers and label residue positions; those
+positions must already encode the intended region numbering. PDB behavior is
+unchanged, and legacy chain identifiers must be single characters. Preserve
+the returned chain, residue and insertion-code mapping.
+
+Legacy artifacts are target-stem CSV, optional FASTA and encoder NPY files plus
+`result.json` under `data/outputs/antifold/`. Numbering-enabled runs also retain
+their IMGT-numbered structures. Per-residue amino-acid CSV values are normalized
+natural-log probabilities;
 FASTA `score`/`global_score` are **positive mean NLL**, lower is better;
 `perplexity` is `exp(entropy)`, an effective alphabet size. Preserve the native
-whole-batch RNG order. Encoder arrays have 512 columns.
+original prediction-batch, target, temperature and sample RNG order. Preserve
+the explicit batch size and original input ordering. Encoder arrays have 512
+columns; rounded CSV values cannot reconstruct resumable native logits.
 
 ## Storage, recovery and errors
 
@@ -153,15 +175,27 @@ verified owner-bucket checkpoint.
 
 The autoregressive and scoring workflows checkpoint **closed whole designs or
 FASTA records**. An interrupted in-progress unit is recomputed with its original
-index; completed units are retained. Encoder inference and a legacy CLI batch
-are atomic: there is no mid-forward or mid-batch continuation. Cross-GPU floating
-point differences can change unconstrained samples; do not promise bitwise
-equivalence across GPU types. Preserve the original request and deadline.
+index; completed units are retained. Encoder inference remains one atomic
+forward. Managed legacy inference checkpoints closed **original prediction
+batches** and sampling chunks of at most **32 records within one target and
+temperature**. A generated chunk commits all records and RNG state before
+honoring a stop; only unfinished or not-yet-uploaded work may repeat. Native
+model construction precedes restoration of the saved sampling RNG.
 
-For the current genuine native APIs, mmCIF chain names follow the published
-Biotite label-chain contract; they may differ from author/PDB chain names. Legacy
-mmCIF numbering has a separately documented compatibility limit. Follow the
-live schema if a later qualified version changes this behavior.
+Owner-bucket exports occur between execution quanta. An atomic forward/batch
+can exceed five minutes, so five minutes is not a guaranteed recovery-point
+bound. Resume the **same run ID** through the shared client or `md_run_resume`,
+using a target allowed by the live compatibility contract. Preserve the original
+version, parameters, ordering and expiry; the original execution budget remains
+cumulative across continuations, with a default of fourteen days. Cross-GPU
+floating-point differences can change unconstrained samples; bitwise identity
+across GPU types is not promised. With legacy numbering enabled, CPU validation
+runs auxiliary ANARCII numbering, but no main ESM-IF1 forward or delivered
+scientific unit.
+
+Historical runs retain their original runtime and recovery contract; this
+guide does not upgrade an old checkpoint. Check the deployed model contract
+for enabled workflows, versions and compatible continuation targets.
 
 Correct structured field/rule errors before retrying. Treat a `403` as an access
 failure, not permission to switch identities or regions. Preserve the original

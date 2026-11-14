@@ -16,9 +16,12 @@ schemas before submitting. Use the managed scientific API and ordinary MCP.
 
 | Workflow | Default archive members | Purpose and MCP tool |
 |---|---|---|
-| `hecbiosim-20k` | `benchmark.tpr` | Prepared-system static intake; `mdprecheck_hecbiosim_20k` |
+| `hecbiosim-20k` | `benchmark.tpr` | Prepared-system static intake (synthetic approximately 20K-atom alanine example); `mdprecheck_hecbiosim_20k` |
 | `alanine-source` | `system.gro`, `system.top`, `production.mdp`, all referenced topology includes | Source checks and optional bounded probes; `mdprecheck_alanine_source` |
 | `coordinate-stages` | `system.top`, `stage0.gro`, `stage1.gro`, all referenced topology includes | Static intake/geometry per coordinate stage; `mdprecheck_coordinate_stages` |
+
+The retained `hecbiosim-20k` workflow ID accepts caller-owned prepared TPR files. Its default example is generated from the approved alanine source; it contains no HECBioSim data.
+Qualification of this replacement default example is pending. Select an explicit authorized region for this workflow while its placement measurements are unqualified; the request below uses `eu-north1`.
 
 Upload one regular gzip-compressed tar archive named `input.tar.gz`, with its
 SHA-256, compressed size and exact key in the caller's bound bucket, using the
@@ -87,7 +90,7 @@ uncertain submission; inspect the existing run rather than creating duplicate wo
 ### hecbiosim-20k
 
 ```json
-{"model":"mdprecheck","workflow":"hecbiosim-20k","version":"0.1.0+git.1ab41dd","parameters":{}}
+{"model":"mdprecheck","workflow":"hecbiosim-20k","version":"0.1.0+git.1ab41dd","region":"eu-north1","parameters":{}}
 ```
 
 ### alanine-source

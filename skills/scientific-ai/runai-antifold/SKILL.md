@@ -8,7 +8,7 @@ description: Score antibody sequence compatibility, sample antibody regions and 
 ## Inverse-fold
 
 Discover `antifold` with `GET /v1/models/antifold` or MCP `md_models`
-`{"model":"antifold","detail":true}`. Select a version from that response and use a placement permitted by your account. This skill describes scientific version **0.4.0** and the named
+`{"model":"antifold","detail":true}`. Select a version from that response and use a placement permitted by your account. This skill describes managed tool version **0.4.0+managed.cif1** and the named
 managed AntiFold checkpoint. Availability is determined by the live release;
 the existence of this document does not grant access or establish qualification.
 
@@ -60,7 +60,7 @@ Create the REST request after the upload reference exists:
 
 ```sh
 jq -n --slurpfile input input-reference.json '{
-  model:"antifold", workflow:"inverse-fold", version:"0.4.0",
+  model:"antifold", workflow:"inverse-fold", version:"0.4.0+managed.cif1",
   region:"eu-north1",gpu:"h100",
   inputs:[$input[0]],
   parameters:{pdb_file:"target.pdb",heavy_chain:"H",light_chain:"L",
@@ -92,7 +92,9 @@ belong in CSV, not ignored scalar chain flags. For nanobody plus antigen use
 `pdb,Hchain,Agchain` and e.g. `nanobody,A,B`, with `nanobody_mode:true`.
 Chain columns follow `pdb` in heavy, light (when present), then context order;
 empty cells are omitted. Only the first chain is sampled in nanobody mode.
-Confirm that the exact live version publishes this contract.
+For reproducible independent submissions, provide an explicit CSV target order;
+continuations preserve the original accepted order. Confirm that the exact live
+version publishes this contract.
 
 | Controls | Meaning |
 |---|---|
@@ -107,11 +109,23 @@ Confirm that the exact live version publishes this contract.
 | `custom_chain_mode` | Native custom chain interpretation; use only its published supported chain/numbering contract. |
 | `batch_size`, `num_threads`, `seed` | Native resource/RNG controls. Original whole-batch RNG semantics are preserved; changing batching or target ordering may change samples. |
 
-PDB is the qualified reference path. Native mmCIF author/label chain namespaces
-and multi-character chain IDs have recorded unresolved compatibility cases; do
-not promise general mmCIF support, silently rename chains, or change the scientific
-input to conceal a failure. Raw caller checkpoint files, Python code and arbitrary
-Torch pickle import are not accepted; select a named qualified scientific version.
+The managed version corrects the native mmCIF identifier handoff. Use this
+chain/residue namespace when selecting inputs and regions:
+
+| mmCIF mode | Chain and residue identifiers |
+|---|---|
+| ANARCII numbering enabled, any mode | Author IDs: `auth_asym_id`, `auth_seq_id` and insertion codes. |
+| Numbering skipped, ordinary paired mode | The same author IDs and supplied IMGT positions. |
+| Numbering skipped, custom mode | Native label IDs: `label_asym_id`, `label_seq_id` and insertion codes. CSV, nanobody and antigen selections can enable custom mode automatically. |
+
+In custom mode with skipped numbering, the selected label positions must already
+encode the intended IMGT positions; author IMGT numbering alone is insufficient.
+PDB behavior is unchanged. Chain identifiers must be single characters.
+`0.4.0+managed.cif1` retains the published checkpoint and identifies a managed
+correction, rather than an upstream release. Historical `0.4.0` has different
+mmCIF limitations; follow the contract for the exact selected version.
+Raw caller checkpoint files, Python code and arbitrary Torch pickle import are
+not accepted; select a named qualified scientific version.
 Training and fine-tuning are not enabled by these inference workflows.
 
 ## Interpret and validate results
@@ -130,6 +144,9 @@ checksums. For each target, expect the following when their options were request
   512 features per row. This is not a decoder-input embedding.
 - Per-residue `perplexity`: `exp(entropy)`, an effective amino-acid alphabet size
   between 1 and 20, rather than sequence-level perplexity.
+- IMGT-numbered structures when numbering is enabled. Preserve their returned
+  residue mapping when joining CSVs to structures. CSVs and embeddings can include
+  antigen/context chains; FASTA sampling covers the selected antibody chains.
 
 Native sampling is independent sampling from teacher-forced marginals conditioned
 on the supplied original sequence. It is not autoregressive sequence design and
@@ -142,8 +159,19 @@ AntiFold is submitted as a finite GPU job and releases compute after completion.
 Owner-private working storage is temporary and asynchronously synced to the bound
 bucket. Shutdown retries final uploads for at most five minutes, then deletes
 scratch even during a bucket outage; only verified bucket data can be recovered.
-The native CLI has no mid-forward or mid-batch checkpoint: an interrupted atomic
-batch must be recomputed. Do not describe it as resuming a partly computed batch.
+The managed job retains unrounded native values and sampling RNG state at closed
+original prediction batches and sampling progress. Long runs upload checkpoints
+between execution quanta; an individual forward/batch remains atomic. Abrupt loss
+can recover only the last verified bucket checkpoint, so five minutes is not a
+guaranteed recovery-point bound inside a long forward. Completed checkpoint work
+is retained; only unfinished or not-yet-uploaded work may repeat.
+
+Resume the **same run ID** through the shared client's REST resume route or MCP
+`md_run_resume`, using a permitted, qualified target. Preserve the original tool
+version, parameters, ordering and expiry. Execution time remains cumulative
+across continuations. Do not reconstruct sampling state from rounded output CSVs.
+When numbering is enabled, validation runs auxiliary ANARCII on CPU; it delivers
+zero main AntiFold prediction units.
 
 Use the shared client's owner-scoped status/artifact/cancel methods. A `403` is an
 authorization/data/region failure, not permission to switch identities. Correct
