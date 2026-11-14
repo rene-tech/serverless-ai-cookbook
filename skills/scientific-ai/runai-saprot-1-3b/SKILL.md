@@ -93,8 +93,10 @@ MCP `saprot-1-3b_score_variants`: include `variants.csv`
 
 MCP `saprot-1-3b_score_positions`: optional `positions`
   selects one-based sites; omitted means every residue. Each site is masked in
-  its own full context and scores the native amino acid. Sum/mean log likelihood
-  is distinct from mutation-effect scoring and unmasked sequence likelihood.
+  its full context. `native/scores.csv` returns 20 single-substitution natural-log
+  mutant/wild-type probability ratios per site, including the identity
+  substitution at 0. `score` equals `mean_score` because each row has one
+  substitution. The fixture selects two sites in each of two records: 80 rows.
 ## Position probabilities
 
 MCP `saprot-1-3b_position_probabilities`: the same
