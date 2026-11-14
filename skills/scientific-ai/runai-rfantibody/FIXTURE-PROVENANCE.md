@@ -1,0 +1,5 @@
+The six regression input files are unchanged from RosettaCommons/RFantibody commit947fd3dde58947b4fa64b38e79b744223974d53a (MIT). The Quiver example wraps the exact official ab_des_0 PDB in one native QV_TAG record. Source file URLs and scientific SHA-256 values are pinned by fixture.py.
+
+7Y1B.HLT.pdb derives from the RCSB PDB archive entry7Y1B (CC0): mouse Basigin-2 bound to antibody6E7F1, https://www.rcsb.org/structure/7Y1B . Observed antibody chainsH/L were numbered with ANARCII2.0.8's Chothia conversion, cropped to their variable domains, then annotated by the pinned unmodified RFantibody chothia2HLT utility. All selected experimental coordinates are retained at PDB precision; targetA becomes native chainT. It has224antibody and114target residues.
+
+The known-complex reference is described in the RFantibody paper, Nature(2025), https://www.nature.com/articles/s41586-025-09721-5 , ExtendedData2. This is a finite software/scientific correctness fixture, not evidence that a new design binds experimentally.

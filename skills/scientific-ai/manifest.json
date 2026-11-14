@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.14.10",
+  "version": "2026.11.14.11",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -277,6 +277,12 @@
     ],
     "runai-saprot-1-3b": [
       "saprot-1-3b"
+    ],
+    "runai-saprot-inverse-folding": [
+      "saprot-inverse-folding"
+    ],
+    "runai-rfantibody": [
+      "rfantibody"
     ]
   },
   "client_requirements": {
@@ -682,6 +688,23 @@
         "logits": "runai-saprot-1-3b/SKILL.md#logits",
         "masked-completion": "runai-saprot-1-3b/SKILL.md#masked-completion",
         "attention-maps": "runai-saprot-1-3b/SKILL.md#attention-maps"
+      }
+    },
+    "saprot-inverse-folding": {
+      "skill": "runai-saprot-inverse-folding",
+      "scientific_version": "saprot650m-if-ba725f3e",
+      "workflows": {
+        "inverse-fold": "runai-saprot-inverse-folding/SKILL.md#inverse-fold"
+      }
+    },
+    "rfantibody": {
+      "skill": "runai-rfantibody",
+      "scientific_version": "1.0.0-947fd3dd",
+      "workflows": {
+        "design": "runai-rfantibody/SKILL.md#design",
+        "sequence-design": "runai-rfantibody/SKILL.md#sequence-design",
+        "predict-complex": "runai-rfantibody/SKILL.md#predict-complex",
+        "sequence-design-cpu": "runai-rfantibody/SKILL.md#sequence-design-cpu"
       }
     }
   }
