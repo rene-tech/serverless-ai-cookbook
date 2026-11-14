@@ -21,12 +21,12 @@ schemas before submitting. Use the managed scientific API and ordinary MCP.
 | `coordinate-stages` | `system.top`, `stage0.gro`, `stage1.gro`, all referenced topology includes | Static intake/geometry per coordinate stage; `mdprecheck_coordinate_stages` |
 
 The retained `hecbiosim-20k` workflow ID accepts caller-owned prepared TPR files. Its default example is generated from the approved alanine source; it contains no HECBioSim data.
-Qualification of this replacement default example is pending. Select an explicit authorized region for this workflow while its placement measurements are unqualified; the request below uses `eu-north1`.
+The replacement default example has completed the public REST workflow. Select an explicit authorized region for reproducible placement; automatic placement uses the available measured references.
 
 Upload one regular gzip-compressed tar archive named `input.tar.gz`, with its
 SHA-256, compressed size and exact key in the caller's bound bucket, using the
 portable procedure. Members and scientific file selectors are relative to the
-archive root: no `data/` wrapper or selector prefix. Members stage below logical
+archive root: no `data/` wrapper or selector prefix. The schema’s `example_members` lists required scientific files; regular README, LICENSE and NOTICE members may also be present. Members stage below logical
 `data/`. Preserve topology includes and matching atom order, identifiers and units.
 Absolute paths, traversal, links and executable controls are rejected. A TPR does
 not supply reconstructable source topology/MDP; source checks need those files.
