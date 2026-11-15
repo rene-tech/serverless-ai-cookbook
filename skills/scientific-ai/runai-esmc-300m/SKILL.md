@@ -13,10 +13,9 @@ The scientific version is `esmc-300m-96a2d8d6`, checkpoint
 `biohub/ESMC-300M` revision `96a2d8d61654ac0c08881be44da6c867686449b9`,
 Transformers 5.16.0. Select only placements available to your authenticated account.
 
-Status: SYSTEM evaluation. The six original workflows have passed public REST
-and typed MCP tests; the explicit attention workflow is undergoing qualification.
-Complete production, precision, regional and long-work acceptance remains pending.
-Use only workflows and placements available through your current grant.
+Use this guide when discovery exposes this version and the requested workflow
+for your account. Use only placements permitted by your grant; omit `region`
+and `gpu` only when the live workflow has qualified automatic routing.
 
 Use the existing [portable gateway client](../runai-scientific-gateway/references/client.md)
 for authentication, owner-bucket upload, submit/poll/cancel and full artifact
@@ -139,6 +138,29 @@ Probabilities include all 64 native logits. These are independent marginal
 predictions under simultaneous masking, not joint sequence generation.
 Typed MCP: `esmc-300m_masked_completion`.
 
+For the native labelled masked-language loss, use `logits` with the desired
+`masked_positions` (or the full logits delivered by `masked-completion`). Build
+one token-ID label per exported residue using `result.json`'s `vocabulary`; use
+`-100` for ignored residues. With at least one selected label, the native default
+is the mean unshifted cross entropy over **all 64** logits:
+
+```python
+import numpy as np
+
+selected = np.flatnonzero(labels != -100)
+z = logits[selected].astype("float64")
+y = labels[selected]
+m = z.max(axis=1)
+loss = np.mean(m + np.log(np.exp(z - m[:, None]).sum(axis=1))
+               - z[np.arange(len(y)), y])
+```
+
+Here `logits` is the verified `(L,64)` array and `labels` is an integer NumPy
+array of length `L`. BOS/EOS/padding are absent from that array and must remain
+ignored. Do not shift labels or renormalize over only amino-acid tokens. For a
+batch, reduce over all selected residues together, rather than averaging sequence
+means. This is an inference-output reduction, not a training/fine-tuning API.
+
 ## Attention maps
 
 Anchor: <a id="attention-maps"></a>
@@ -164,14 +186,18 @@ Memory/output size grows quadratically with token count; preserve explicit
 precision and check your available execution resources. Typed MCP:
 `esmc-300m_attention_maps`. Use the same shared submit-once and artifact flow.
 
-Long sequence and variant scoring retain verified progress at closed native
-batch boundaries. Continuation preserves owner, inputs, weights, precision,
-context, explicit batch settings and the original deadline; unfinished forwards
-recompute. Short scoring and the other inference workflows currently restart
-their unfinished whole-file unit. No in-flight neural-state restoration is
-promised. The cumulative native execution budget is 86,400 seconds within the
-original outer job deadline; continuation resets neither budget. Completed
-results remain in your bucket.
+Long inputs use closed-unit continuation: masked-context batches for scoring
+and completed sequences for embedding and the four inference workflows.
+After a verified Spot interruption, automatic continuation can use the same GPU
+type and managed runtime. Qualified cross-GPU continuation is EU-North1 L40S
+to US-Central1 B200, with the original precision and settings.
+Use only the recovery destinations supported by the live version and your grant.
+Owner, input, weights, precision, explicit settings and the original execution
+deadline are preserved. An unfinished forward is recomputed. The cumulative
+native execution budget is 86,400 seconds within the original outer job
+deadline; continuation resets neither budget. Temporary job scratch is synced
+to your bound bucket and removed after the bounded final-upload window.
+Completed results and verified checkpoints remain in your bucket.
 Errors identify the failing stage/field, retryability and next action; inspect
 terminal status before treating a transport success as scientific success.
 
@@ -179,3 +205,8 @@ The official [model card](https://huggingface.co/biohub/ESMC-300M/tree/96a2d8d61
 and [upstream implementation](https://github.com/huggingface/transformers/tree/v5.16.0/src/transformers/models/esmc)
 describe checkpoint provenance. Preserve applicable notices. Model scores and
 embeddings do not establish affinity, stability ddG or experimental efficacy.
+
+Scope: these seven inference workflows do not expose training, fine-tuning,
+separately weighted sparse-autoencoder models or an unqualified FlashAttention
+backend. The labelled residue-loss recipe reduces verified logits and differs
+from sequence PLL. Follow discovery for separately supported capabilities.

@@ -13,11 +13,9 @@ The scientific version is `esmc-600m-5e366569`, checkpoint
 `biohub/ESMC-600M` revision `5e366569e675ad5ae3512f66bf0b53ffe80ee83e`,
 Transformers 5.16.0. Select only placements available to your authenticated account.
 
-Status: SYSTEM evaluation. The authorized API schema determines availability.
-Native CPU and H100/L40S/H200/B200 float32 feature screens have passed.
-Public-client, other precision, recovery and full production/security acceptance
-remain pending; these screens are not complete production qualification.
-Do not advertise availability before the exact released contract is qualified.
+Availability follows your authenticated live schema. Use only the GPUs, regions
+and scientific versions available to your account. The seven reviewed inference
+workflows below share the portable owner-bucket submit and artifact contract.
 
 Use the existing [portable gateway client](../runai-scientific-gateway/references/client.md)
 for authentication, owner-bucket upload, submit/poll/cancel and full artifact
@@ -140,6 +138,29 @@ Probabilities include all 64 native logits. These are independent marginal
 predictions under simultaneous masking, not joint sequence generation.
 Typed MCP: `esmc-600m_masked_completion`.
 
+For the native labelled masked-language loss, use `logits` with the desired
+`masked_positions` (or the full logits delivered by `masked-completion`). Build
+one token-ID label per exported residue using `result.json`'s `vocabulary`; use
+`-100` for ignored residues. With at least one selected label, the native default
+is the mean unshifted cross entropy over **all 64** logits:
+
+```python
+import numpy as np
+
+selected = np.flatnonzero(labels != -100)
+z = logits[selected].astype("float64")
+y = labels[selected]
+m = z.max(axis=1)
+loss = np.mean(m + np.log(np.exp(z - m[:, None]).sum(axis=1))
+               - z[np.arange(len(y)), y])
+```
+
+Here `logits` is the verified `(L,64)` array and `labels` is an integer NumPy
+array of length `L`. BOS/EOS/padding are absent from that array and must remain
+ignored. Do not shift labels or renormalize over only amino-acid tokens. For a
+batch, reduce over all selected residues together, rather than averaging sequence
+means. This is an inference-output reduction, not a training/fine-tuning API.
+
 ## Attention maps
 
 Anchor: <a id="attention-maps"></a>
@@ -165,16 +186,18 @@ Memory/output size grows quadratically with token count; preserve explicit
 precision and check your available execution resources. Typed MCP:
 `esmc-600m_attention_maps`. Use the same shared submit-once and artifact flow.
 
-Long sequence and variant scoring implement closed-native-batch continuation;
-ESMC-600M interruption and cross-region recovery remain under qualification.
-No verified ESMC-600M resume guarantee is claimed yet. The implementation
-preserves owner, inputs, weights, precision,
-context, explicit batch settings and the original deadline; unfinished forwards
-recompute. Short scoring and the other inference workflows currently restart
-their unfinished whole-file unit. No in-flight neural-state restoration is
-promised. The cumulative native execution budget is 86,400 seconds within the
-original outer job deadline; continuation resets neither budget. Completed
-results remain in your bucket.
+Long inputs use closed-unit continuation: masked-context batches for scoring
+and completed sequences for embedding and the four inference workflows.
+After a verified Spot interruption, automatic continuation can use the same GPU
+type and managed runtime. Qualified cross-GPU continuation is EU-North1 L40S
+to US-Central1 B200, with the original precision and settings.
+Use only the recovery destinations supported by the live version and your grant.
+Owner, input, weights, precision, explicit settings and the original execution
+deadline are preserved. An unfinished forward is recomputed. The cumulative
+native execution budget is 86,400 seconds within the original outer job
+deadline; continuation resets neither budget. Temporary job scratch is synced
+to your bound bucket and removed after the bounded final-upload window.
+Completed results and verified checkpoints remain in your bucket.
 Errors identify the failing stage/field, retryability and next action; inspect
 terminal status before treating a transport success as scientific success.
 
@@ -183,3 +206,9 @@ and [upstream implementation](https://github.com/huggingface/transformers/tree/v
 describe checkpoint provenance. Preserve applicable notices. The model card specifies a 2048-token trained context window; computation beyond
 that context is not an accuracy guarantee. Model scores and
 embeddings do not establish affinity, stability ddG or experimental efficacy.
+
+Scope: these seven reviewed inference workflows do not expose training,
+fine-tuning, separately weighted sparse-autoencoder models or an unqualified
+FlashAttention/Biohub backend. Labelled residue loss is available as the documented
+reduction of full logits; it differs from sequence PLL. Follow discovery for any
+separately supported capability.
