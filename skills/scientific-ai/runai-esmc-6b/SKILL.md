@@ -196,6 +196,9 @@ precision and check your available execution resources. Typed MCP:
 
 Long inputs use closed-unit continuation: masked-context batches for scoring
 and completed sequences for embedding and the four inference workflows.
+After a verified Spot interruption, automatic continuation can use the same GPU
+type and managed runtime. Qualified cross-GPU continuation is EU-North1 L40S
+to US-Central1 B200, with the original precision and settings.
 Use only the recovery destinations supported by the live version and your grant.
 Owner, input, weights, precision, explicit settings and the original execution
 deadline are preserved. An unfinished forward is recomputed. The cumulative

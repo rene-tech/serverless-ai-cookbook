@@ -126,8 +126,11 @@ seconds, then deletes scratch even if unsynced data is lost.
 
 The implementation checkpoints complete internal 32-row native units, preserving
 original record order and masked-context batches. This is not a 32-record input
-cap. Qualified cross-region continuation is EU-North1 H100 to EU-North2 H200
-at `precision:"float32"` (the default); other precisions return a structured conflict.
+cap. After a verified Spot interruption, automatic continuation can reuse a verified
+checkpoint on the same GPU type and managed runtime, preserving the original
+precision, owner, settings and deadline. Qualified cross-GPU continuation remains
+EU-North1 H100 to EU-North2 H200 at `precision:"float32"` (the default); other
+cross-GPU precision/type combinations return a structured conflict.
 An unfinished unit is recomputed; complete verified units may resume into
 a fresh authorized-region volume with the original owner/settings/deadline.
 There is no mid-forward or partial-row continuation and no fixed five-minute RPO.
