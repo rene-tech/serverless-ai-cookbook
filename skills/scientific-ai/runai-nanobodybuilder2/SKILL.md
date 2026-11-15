@@ -19,10 +19,9 @@ and strain checking are used together; weights, precision and requested settings
 are unchanged. Explicit version `1.2` remains available for reproducibility,
 including its known exception in that branch. Use the corrected version for new work.
 
-This is evaluation documentation. Corrected positive-thread workflows have
-completed REST/MCP execution, independent structure checks and verified bucket
-delivery. Full production qualification, including a fresh portable-client
-canonical default request, remains incomplete.
+Availability follows your authenticated live model schema and qualified
+scientific version. Select only workflows, GPU types and regions permitted by
+your grant; model discovery does not expand that grant.
 
 ## Run the canonical example
 
@@ -96,9 +95,10 @@ weights, credentials, links, scripts or filesystem paths as scientific options.
 
 There is no native antigen, affinity, user-seed, CIF-output or mid-inference
 checkpoint option. Paired-antibody and TCR builders are separate models.
-Use explicit authorized region/GPU placement while automatic cost routing is
-unqualified. Obtain choices from your connection details; model discovery does
-not itself grant access to a region or GPU.
+Request an allowed region/GPU explicitly, or omit them when the live version
+allows automatic routing. The router uses measured representative work and
+on-demand reference prices; that estimate is not an invoice or a guarantee
+for every sequence and option combination.
 
 ## Verify the scientific result
 
@@ -123,9 +123,11 @@ calibrated confidence, measured affinity or Kd. A one-member ensemble has zero
 between-model spread, which does not establish certainty. The upstream save API
 does not report refinement convergence. Computation success and a plausible
 structure do not establish experimental binding or biological validity.
-Some tested member subsets and a human-VH variation missed the unchanged
-crystal-reference accuracy screen despite valid refined geometry. Inspect the
-specific prediction; member selection and uncertainty are not accuracy guarantees.
+Some tested member subsets, a human-VH variation and repeated canonical
+all-member predictions missed the unchanged crystal-reference accuracy screen
+despite valid refined geometry. Native refinement can produce different final
+coordinates; inspect the specific prediction. Member selection and uncertainty
+are not per-target accuracy guarantees.
 
 ## Errors, cancellation and recovery
 
@@ -136,17 +138,18 @@ Do not blindly duplicate an ambiguously acknowledged request or retry unchanged
 deterministic failures. Queued work may wait for shared capacity.
 
 Cancel through `md_run_cancel` or the public REST cancel operation. No native
-intra-forward or intra-refinement state checkpoint exists: an interrupted
-unfinished prediction restarts its finite unit with the same owner, scientific
-version/input and original request deadline. Model weights are not execution
-checkpoints; explicit cancellation does not authorize a replacement run.
+intra-forward or intra-refinement state checkpoint exists. A supported restart
+recomputes the unfinished whole prediction from its safe initial boundary; it
+does not continue partially completed neural work or refinement. The managed
+version preserves the owner, inputs, settings and original request deadline.
+Use only the restart destinations qualified for that live version and your
+grant. Model weights are not execution checkpoints; explicit cancellation does
+not authorize an automatic replacement run.
 
 The managed storage policy uses owner-private temporary job storage and the
 bound owner bucket. Final upload retries last at most 300 seconds, followed by
 scratch deletion and explicit reporting of unsynced tail loss. Preserve verified
-owner-bucket results. Model-specific live lifecycle proof remains pending for
-this release; no indefinite scratch retention or native-state continuation is
-promised.
+owner-bucket results. No indefinite scratch retention or native-state continuation is promised.
 
 ## Scientific attribution and terms
 
