@@ -51,7 +51,7 @@ All eight workflows accept one gzip tar named `input.tar.gz`, with flat UTF-8
 FASTA IDs must be unique. Structure-aware tokens alternate uppercase standard
 amino acid and lowercase Foldseek 3Di symbol, for example `M#EvVp` represents
 three residues; `#` is unknown structure. The 3Di alphabet is
-`acdefghiklmnpqrstvwy`; do not substitute secondary-structure labels.
+`pynwrqhgdlvtmfsaeikc#`; do not substitute secondary-structure labels.
 `input_kind:"amino-acid"` accepts standard amino-acid sequences and explicitly
 supplies unknown 3Di symbols. Never silently truncate sequences or treat that
 mode as equivalent to a real structure-aware input.
@@ -66,8 +66,9 @@ as pLDDT. Use explicit `true`/`false` when appropriate. Below-threshold structur
 tokens become `#`; amino acids remain unchanged. Derived positions are one-based
 sequence positions, not original PDB residue numbers or insertion codes.
 
-Defaults: `precision:"float32"`, `cpu_threads:4`. Native FP16/BF16 options have
-execution screens only; do not infer scientific equivalence from those screens.
+Defaults: `precision:"float32"`, `cpu_threads:4`. Select only precision/GPU
+placements that the live catalog marks qualified; qualification on one precision
+or GPU does not imply another.
 The model has33 blocks,20 attention heads,1280 hidden features and446 vocabulary
 tokens. Published positional configuration is not a tested memory/accuracy limit.
 
@@ -87,6 +88,31 @@ MCP `saprot-650m_score_variants`: include `variants.csv`
   reports sum/mean natural-log mutant-to-wild-type probability ratios; positive
   favors mutant likelihood. Identity substitutions score0. This is not affinity,
   Kd, ddG or a clinical pathogenicity score. Insertions/deletions are unsupported.
+
+Optional MSA and structure-ablation controls are available only here. Set
+`msa_prior_file:"msa-priors.jsonl"` for one JSON object per requested
+`sequence_id`, with exactly `DMS_id`, `MSA_start`, `MSA_end` and
+`MSA_log_prior`. IDs must be known and unique, and every sequence named by
+`variants.csv` needs a row. The span is zero-based, half-open and within the
+sequence. `MSA_log_prior` has one row per spanned residue and exactly25 finite
+float32 columns: five columns ignored by this score, then amino acids in
+`ACDEFGHIKLMNPQRSTVWY` order. Inside the span, each mutation contributes
+`0.4 * model_log_ratio + 0.6 * (mutant_log_prior - wild_log_prior)`; outside it,
+the ordinary model log ratio is used. Priors are accepted as supplied and are
+not normalized or calibrated by the service.
+
+`structure_mask_rate` and `structure_substitute_rate` each accept0–1. The model
+first applies the existing input/pLDDT conversion, then masks `floor(length*rate)`
+3Di symbols to `#`, then substitutes `floor(length*rate)` positions from the
+native21-symbol structure alphabet. Amino acids never change. A single local
+MT19937 stream follows original FASTA/chain order. `structure_seed` is uint32;
+when an ablation is requested and the seed is omitted it defaults to20000812.
+Explicit zero rates still advance that stream, so omit an unused control rather
+than sending zero when another stochastic control is active. These are controlled
+sensitivity analyses, not improved predictions.
+
+Use `--optional-profile msa|mask|substitute|combined` with the fixture's
+`score-variants` workflow; `--precision` selects a catalog-qualified precision.
 ## Score positions
 
 MCP `saprot-650m_score_positions`: optional `positions`
@@ -148,9 +174,11 @@ original record IDs/order and native masked contexts. This is not a32-record
 input cap. Unfinished units recompute. A supported cross-region resume creates a
 fresh volume with the same owner/settings/deadline, then restores verified closed
 units. Qualified continuation is EU-North1 H100 to EU-North2 H200 at
-`precision:"float32"` (the default); unsupported precision returns a structured
-conflict before queueing. There is no mid-forward continuation or unmeasured
-fixed five-minute RPO.
+`precision:"float32"` (the default), including the combined MSA/mask/substitute
+score-variants mode. Unsupported precision returns a structured conflict before
+queueing. Completed32-context score units and their derived tokens/priors are
+restored byte-identically; an unfinished unit recomputes. There is no mid-forward
+continuation or unmeasured fixed five-minute RPO.
 Large contexts/attention remain subject to the live resource/output budget.
 
 Use structured field/rule errors to correct invalid input. A forbidden region
@@ -158,12 +186,9 @@ or foreign run returns an authorization error; changing scientific parameters
 cannot grant access. Only qualified versions/placements are advertised by the
 live catalog; internal registry and deployment identifiers are private.
 
-The native upstream ProteinGym evaluation class has additional optional MSA
-prior/structure-ablation controls not yet qualified here. Its legacy tokenizer
-call is incompatible with the current dependency; insertion handling is not a
-validated insertion fitness algorithm. Do not infer those features from the
-core substitution API. Training, LoRA and newly initialized task heads are
-separate unqualified capabilities.
+The upstream ProteinGym class's legacy insertion path is not a validated
+insertion-fitness algorithm and remains excluded. Training, LoRA and newly
+initialized task heads are separate unqualified capabilities.
 
 The short native fixture and code come from the pinned
 [SaProt MIT source](https://github.com/westlake-repl/SaProt/tree/e91e4858b55944523f1f8d385f7b96a0d3d34c1d).
