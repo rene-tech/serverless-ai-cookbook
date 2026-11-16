@@ -51,7 +51,7 @@ All eight workflows accept one gzip tar named `input.tar.gz`, with flat UTF-8
 FASTA IDs must be unique. Structure-aware tokens alternate uppercase standard
 amino acid and lowercase Foldseek 3Di symbol, for example `M#EvVp` represents
 three residues; `#` is unknown structure. The 3Di alphabet is
-`acdefghiklmnpqrstvwy`; do not substitute secondary-structure labels.
+`pynwrqhgdlvtmfsaeikc#`; do not substitute secondary-structure labels.
 `input_kind:"amino-acid"` accepts standard amino-acid sequences and explicitly
 supplies unknown 3Di symbols. This 1.3B checkpoint was trained for both sequence-only and structure-aware input.
 The two inputs carry different information; never silently truncate sequences or

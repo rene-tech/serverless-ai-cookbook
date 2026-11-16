@@ -52,7 +52,7 @@ FASTA IDs must be unique. Tokens alternate an uppercase canonical amino acid
 or `#` with a lowercase Foldseek 3Di state or `#`. For example
 `##Ev#pQp##Vy#dYa#v` has nine residues and masks amino-acid positions1,3,5,7,9.
 The second character describes structure: it is not a secondary-structure label.
-The 3Di alphabet is `acdefghiklmnpqrstvwy`; `#` denotes unknown structure.
+The 3Di alphabet is `pynwrqhgdlvtmfsaeikc#`; `#` denotes unknown structure.
 The first-character `#` requests an amino-acid prediction. Amino-acid-only mode
 is unsupported by this inverse-folding interface.
 
