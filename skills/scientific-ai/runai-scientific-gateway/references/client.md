@@ -139,6 +139,33 @@ Do not include REST `model`/`workflow` fields in a named submit tool. Use
 identifier exactly. Tool failures expose `isError` and a public error; accepted
 asynchronous work can fail later, so always inspect terminal status and results.
 
+### Read-only MCP discovery with curl
+
+Save this as a shell script and run it with the approved environment variables above.
+These Run:ai calls return JSON. The example negotiates the protocol and lists
+one model through MCP without installing a client SDK or submitting a job.
+The bearer header reaches curl on standard input.
+
+```sh
+: "${SCIENTIFIC_AI_URL:?Set the scientific API base URL}"
+: "${SCIENTIFIC_AI_TOKEN:?Load your access token securely}"
+mcp_post() {
+  printf 'Authorization: Bearer %s\n' "$SCIENTIFIC_AI_TOKEN" |
+    curl --fail-with-body --silent --show-error --max-time 20 \
+      --header @- --header 'Content-Type: application/json' \
+      --header 'Accept: application/json, text/event-stream' \
+      "$@" "$SCIENTIFIC_AI_URL/mcp"
+}
+initial=$(mcp_post --data-binary \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"scientific-ai-curl","version":"1"}}}') || exit
+protocol=$(printf '%s' "$initial" | jq -er '.result.protocolVersion') || exit
+mcp_post --header "MCP-Protocol-Version: $protocol" --data-binary \
+  '{"jsonrpc":"2.0","method":"notifications/initialized"}' >/dev/null || exit
+mcp_post --header "MCP-Protocol-Version: $protocol" --data-binary \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"md_models","arguments":{"model":"mdprecheck","detail":false}}}' |
+  jq -e 'select(.result.isError != true) | .result.structuredContent'
+```
+
 ## Retrieve and verify results
 
 ```sh
