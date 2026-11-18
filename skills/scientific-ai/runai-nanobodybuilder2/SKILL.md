@@ -23,6 +23,8 @@ Availability follows your authenticated live model schema and qualified
 scientific version. Select only workflows, GPU types and regions permitted by
 your grant; model discovery does not expand that grant.
 
+<a name="predict"></a>
+
 ## Run the canonical example
 
 The example is a complete 123-residue NbE VHH from PDB 8V8K. Its canonical
