@@ -292,6 +292,9 @@
     ],
     "runai-msa-search-pdb70": [
       "msa-search-pdb70"
+    ],
+    "runai-boltz2-reference": [
+      "boltz2-reference"
     ]
   },
   "client_requirements": {
@@ -380,7 +383,8 @@
     "runai-igbert": "runai-scientific-api-mcp",
     "runai-abodybuilder3": "runai-scientific-api-mcp",
     "runai-saprot-650m": "runai-scientific-api-mcp",
-    "runai-saprot-1-3b": "runai-scientific-api-mcp"
+    "runai-saprot-1-3b": "runai-scientific-api-mcp",
+    "runai-boltz2-reference": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -735,6 +739,13 @@
       "scientific_version": "mmseqs2-8cc5ce36-pdb70-220313",
       "workflows": {
         "search-msa": "runai-msa-search-pdb70/SKILL.md#search-msa"
+      }
+    },
+    "boltz2-reference": {
+      "skill": "runai-boltz2-reference",
+      "scientific_version": "2.2.1",
+      "workflows": {
+        "predict": "runai-boltz2-reference/SKILL.md#predict"
       }
     }
   }

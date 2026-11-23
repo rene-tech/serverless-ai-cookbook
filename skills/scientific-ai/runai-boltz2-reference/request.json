@@ -1,0 +1,1 @@
+{"runtime": "inference", "request": {"model": "boltz2-reference", "workflow": "predict", "version": "2.2.1", "parameters": {"reference": "1UBQ"}}, "outputs": ["data/result.json"]}
