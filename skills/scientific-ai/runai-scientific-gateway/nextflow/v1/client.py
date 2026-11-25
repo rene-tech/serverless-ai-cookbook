@@ -88,9 +88,22 @@ def wait(identifier, seconds, *, interactive=False):
             raise ValueError("Status belongs to another run")
         phase = status["phase"]
         if phase in {"SUCCEEDED", "FAILED", "CANCELLED", "TIMED_OUT", "PAUSED"}:
-            return phase
+            return status
         time.sleep(min(poll, max(0, deadline - time.monotonic())))
     raise ValueError("Wait limit reached. Reattach with the original submission key to check the remote run")
+
+
+def terminal_diagnostic(status):
+    summary = f"Scientific AI run {status['run_id']} ended in {status['phase']}"
+    detail = status.get("error")
+    if not isinstance(detail, dict):
+        return summary
+    text_fields = ("code", "message", "next_action", "field", "stage_id", "correlation_id")
+    public = {name: detail[name][:2048] for name in text_fields
+              if isinstance(detail.get(name), str)}
+    if "retryable" in detail and (detail["retryable"] is None or type(detail["retryable"]) is bool):
+        public["retryable"] = detail["retryable"]
+    return f"{summary} {json.dumps(public, separators=(',', ':'))}" if public else summary
 
 
 def stage_request(spec):
@@ -149,9 +162,9 @@ def run(request_file):
     Path("sciai-run-id.txt").write_text(identifier + "\n")
     if runtime == "interactive":
         print(f"Scientific AI session {identifier}", flush=True)
-    phase = wait(identifier, 14 * 24 * 60 * 60 + 600, interactive=runtime == "interactive")
-    if phase != "SUCCEEDED":
-        raise ValueError(f"Scientific AI run {identifier} ended in {phase}")
+    status = wait(identifier, 14 * 24 * 60 * 60 + 600, interactive=runtime == "interactive")
+    if status["phase"] != "SUCCEEDED":
+        raise ValueError(terminal_diagnostic(status))
     result = api("GET", f"/v1/runs/{identifier}/artifacts")
     if result["run_id"] != identifier:
         raise ValueError("Artifacts do not belong to the submitted run")
@@ -176,9 +189,9 @@ def cancel(identifier_file, *, interactive=False):
         result = api("POST", f"/v1/runs/{identifier}/cancel")
     if result["run_id"] != identifier:
         raise ValueError("Cancellation response belongs to another run")
-    phase = wait(identifier, 600, interactive=interactive)
-    if phase != "CANCELLED":
-        raise ValueError(f"Scientific AI run {identifier} reached {phase} while cancellation was requested")
+    status = wait(identifier, 600, interactive=interactive)
+    if status["phase"] != "CANCELLED":
+        raise ValueError(f"{terminal_diagnostic(status)} while cancellation was requested")
 
 
 if __name__ == "__main__":

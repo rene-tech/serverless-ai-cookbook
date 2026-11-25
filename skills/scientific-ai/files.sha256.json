@@ -190,7 +190,7 @@
   "runai-saprot-inverse-folding/SKILL.md": "4d9f80ae82a7ef96bc1cf4e4eb55d7e39ccb73ab1e6e18b0a71c977ac8968164",
   "runai-saprot-inverse-folding/fixture.py": "2680b8cf26490aaca1e987915d17fa7e862e78fcf77e68bc13a220eb3adc6f34",
   "runai-scientific-gateway/SKILL.md": "23e464652fb4d5995452b971590641ae61a43c9ada7a1dba28c205d08ad987ee",
-  "runai-scientific-gateway/nextflow/v1/client.py": "a2e63cd3e64957f21ca4dc260ac721a2ed58fbe397ec546af887138f783503ff",
+  "runai-scientific-gateway/nextflow/v1/client.py": "899e97b22e8ce6cf26dbfb5b40bb32ad4b4e12f5dcd145e9707dc1721370e970",
   "runai-scientific-gateway/nextflow/v1/main.nf": "9f0cf0ce5894d9dbff814e29d94a092323139bafdd23602fa2b6e4ee49dfc685",
   "runai-scientific-gateway/nextflow/v1/scientific_ai_stage_v1.nf": "a050ae29815b86cfa3d67c286ebfdee542e29057bf3ad91fb760ba7ec248d2fa",
   "runai-scientific-gateway/references/client.md": "0d30f94e3fb9e8fd6ba59675471eb13aed98f9283e1540b55e476777e393c034",
