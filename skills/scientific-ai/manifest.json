@@ -1,6 +1,6 @@
 {
   "schema": "scientific-ai-skills/v1",
-  "version": "2026.11.15.24",
+  "version": "2026.11.25.1",
   "catalog_url": "https://forge.nebius.cloud/api/models",
   "catalog_observed_date": "2026-09-20",
   "source_path": "skills/scientific-ai",
@@ -295,6 +295,9 @@
     ],
     "runai-boltz2-reference": [
       "boltz2-reference"
+    ],
+    "runai-isaac-healthcare-interactive": [
+      "isaac-healthcare-interactive"
     ]
   },
   "client_requirements": {
@@ -384,7 +387,8 @@
     "runai-abodybuilder3": "runai-scientific-api-mcp",
     "runai-saprot-650m": "runai-scientific-api-mcp",
     "runai-saprot-1-3b": "runai-scientific-api-mcp",
-    "runai-boltz2-reference": "runai-scientific-api-mcp"
+    "runai-boltz2-reference": "runai-scientific-api-mcp",
+    "runai-isaac-healthcare-interactive": "runai-scientific-api-mcp"
   },
   "client_requirement_types": {
     "hosted-mcp": "Hosted Scientific AI MCP; trusted local file client for file inputs. No LibreChat required for model calls.",
@@ -746,6 +750,13 @@
       "scientific_version": "2.2.1",
       "workflows": {
         "predict": "runai-boltz2-reference/SKILL.md#predict"
+      }
+    },
+    "isaac-healthcare-interactive": {
+      "skill": "runai-isaac-healthcare-interactive",
+      "scientific_version": "0.9.0",
+      "workflows": {
+        "scissor-teleop": "runai-isaac-healthcare-interactive/SKILL.md#scissor-teleoperation"
       }
     }
   }

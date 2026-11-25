@@ -78,11 +78,12 @@ def run_id(value):
     return value
 
 
-def wait(identifier, seconds):
+def wait(identifier, seconds, *, interactive=False):
     deadline = time.monotonic() + seconds
     poll = min(60, max(1, int(os.environ.get("SCIENTIFIC_AI_POLL_SECONDS", "15"))))
+    path = f"/v1/{'interactive' if interactive else 'runs'}/{identifier}"
     while time.monotonic() < deadline:
-        status = api("GET", "/v1/runs/" + identifier)
+        status = api("GET", path)
         if status["run_id"] != identifier:
             raise ValueError("Status belongs to another run")
         phase = status["phase"]
@@ -93,7 +94,7 @@ def wait(identifier, seconds):
 
 
 def stage_request(spec):
-    if set(spec) != {"runtime", "request", "outputs"} or spec["runtime"] not in {"batch", "inference"}:
+    if set(spec) != {"runtime", "request", "outputs"} or spec["runtime"] not in {"batch", "inference", "interactive"}:
         raise ValueError("Declare the stage runtime, versioned request and exact outputs")
     body = spec["request"]
     if any(not isinstance(body[field], str) or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", body[field])
@@ -140,10 +141,15 @@ def run(request_file):
         submitted = api("POST", "/v1/runs", body, key)
     else:
         model, workflow = body.pop("model"), body.pop("workflow")
-        submitted = api("POST", f"/v1/inference/{model}/{workflow}", body, key, asynchronous=True)["run"]
+        if runtime == "interactive":
+            submitted = api("POST", f"/v1/interactive/{model}/{workflow}/start", body, key)
+        else:
+            submitted = api("POST", f"/v1/inference/{model}/{workflow}", body, key, asynchronous=True)["run"]
     identifier = run_id(submitted["run_id"])
     Path("sciai-run-id.txt").write_text(identifier + "\n")
-    phase = wait(identifier, 14 * 24 * 60 * 60 + 600)
+    if runtime == "interactive":
+        print(f"Scientific AI session {identifier}", flush=True)
+    phase = wait(identifier, 14 * 24 * 60 * 60 + 600, interactive=runtime == "interactive")
     if phase != "SUCCEEDED":
         raise ValueError(f"Scientific AI run {identifier} ended in {phase}")
     result = api("GET", f"/v1/runs/{identifier}/artifacts")
@@ -162,12 +168,15 @@ def run(request_file):
     Path("verified-manifest.json").write_text(json.dumps({"run_id": identifier, "files": verified}) + "\n")
 
 
-def cancel(identifier_file):
+def cancel(identifier_file, *, interactive=False):
     identifier = run_id(identifier_file.read_text().strip())
-    result = api("POST", f"/v1/runs/{identifier}/cancel")
+    if interactive:
+        result = api("DELETE", f"/v1/interactive/{identifier}")
+    else:
+        result = api("POST", f"/v1/runs/{identifier}/cancel")
     if result["run_id"] != identifier:
         raise ValueError("Cancellation response belongs to another run")
-    phase = wait(identifier, 600)
+    phase = wait(identifier, 600, interactive=interactive)
     if phase != "CANCELLED":
         raise ValueError(f"Scientific AI run {identifier} reached {phase} while cancellation was requested")
 
@@ -175,10 +184,14 @@ def cancel(identifier_file):
 if __name__ == "__main__":
     os.umask(0o077)
     arguments = sys.argv[1:]
-    if len(arguments) != 2 or arguments[0] not in {"run", "cancel"}:
-        sys.exit("Usage: client.py run REQUEST_JSON | cancel RUN_ID_FILE")
+    if len(arguments) != 2 or arguments[0] not in {"run", "cancel", "cancel-interactive"}:
+        sys.exit("Usage: client.py run REQUEST_JSON | cancel RUN_ID_FILE | cancel-interactive RUN_ID_FILE")
     try:
-        {"run": run, "cancel": cancel}[arguments[0]](Path(arguments[1]))
+        command, path = arguments[0], Path(arguments[1])
+        if command == "run":
+            run(path)
+        else:
+            cancel(path, interactive=command == "cancel-interactive")
     except Transient as error:
         print(error, file=sys.stderr)
         sys.exit(75)

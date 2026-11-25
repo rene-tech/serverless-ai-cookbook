@@ -1,0 +1,12 @@
+{
+  "runtime": "interactive",
+  "request": {
+    "model": "isaac-healthcare-interactive",
+    "workflow": "scissor-teleop",
+    "version": "0.9.0",
+    "region": "eu-north1",
+    "gpu": "l40s",
+    "parameters": {"seed": 17, "episode_steps": 600}
+  },
+  "outputs": ["data/demos.hdf5", "data/recording.json"]
+}
