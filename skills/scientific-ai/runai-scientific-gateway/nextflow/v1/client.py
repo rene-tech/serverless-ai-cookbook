@@ -83,12 +83,15 @@ def wait(identifier, seconds, *, interactive=False):
     poll = min(60, max(1, int(os.environ.get("SCIENTIFIC_AI_POLL_SECONDS", "15"))))
     path = f"/v1/{'interactive' if interactive else 'runs'}/{identifier}"
     while time.monotonic() < deadline:
-        status = api("GET", path)
-        if status["run_id"] != identifier:
-            raise ValueError("Status belongs to another run")
-        phase = status["phase"]
-        if phase in {"SUCCEEDED", "FAILED", "CANCELLED", "TIMED_OUT", "PAUSED"}:
-            return status
+        try:
+            status = api("GET", path)
+        except Transient:
+            pass
+        else:
+            if status["run_id"] != identifier:
+                raise ValueError("Status belongs to another run")
+            if status["phase"] in {"SUCCEEDED", "FAILED", "CANCELLED", "TIMED_OUT", "PAUSED"}:
+                return status
         time.sleep(min(poll, max(0, deadline - time.monotonic())))
     raise ValueError("Wait limit reached. Reattach with the original submission key to check the remote run")
 
